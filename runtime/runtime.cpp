@@ -1029,9 +1029,8 @@ void tt_runtime::create_graphs_and_init_queues() {
 
         // Wait until NCRISC initializes epoch queues in L1 to 0x0 and they are safe to use.
         // Only use timeout for silicon. Versim will be slower, especially with VCD dump.
-        bool enable_timeout = (target_type == TargetDevice::Silicon) ? true : false;
+        bool enable_timeout = (target_type == TargetDevice::Silicon || target_type == TargetDevice::Emulation) ? true : false;
         loader->wait_for_ncrisc_init_all_epoch_queues(enable_timeout);
-
     } else {
         cluster->deasserted_risc_reset = true; // assume already deasserted
         for (const auto& device_id : workload_target_device_ids) {

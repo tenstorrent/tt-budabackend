@@ -34,6 +34,7 @@ tt::DEVICE_STATUS_CODE push_input(
         switch (q_desc.backend_type) {
             case tt::DEVICE::Versim:
             case tt::DEVICE::Silicon:
+            case tt::DEVICE::Emulation:
                 tt::io::push_input_to_device(q_desc, tilized_tensor_desc, timeout_in_seconds, ptr);
                 break;
             case tt::DEVICE::Golden:
@@ -72,6 +73,7 @@ tt::DEVICE_STATUS_CODE push_input(
                 break;
             case tt::DEVICE::Versim:
             case tt::DEVICE::Silicon:
+            case tt::DEVICE::Emulation:
                 tt::io::push_input_to_device(q_desc, py_tensor_desc, push_one, timeout_in_seconds_override, ptr);
                 break;
             default: 
@@ -109,6 +111,7 @@ tt::DEVICE_STATUS_CODE pop_output(
                 break;
             case tt::DEVICE::Versim:
             case tt::DEVICE::Silicon: 
+            case tt::DEVICE::Emulation:
                 tt::io::pop_output_from_device(q_desc, pop_one, timeout_in_seconds_override); 
                 break;
             default: 
@@ -143,6 +146,7 @@ tt::DEVICE_STATUS_CODE get_output(
                 break;
             case tt::DEVICE::Versim:
             case tt::DEVICE::Silicon:
+            case tt::DEVICE::Emulation:
                 tt::io::get_output_from_device(q_desc, py_tensor_desc, get_one, timeout_in_seconds_override, ptr);
                 break;
             default: 

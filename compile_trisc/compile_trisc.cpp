@@ -299,6 +299,7 @@ void generate_ncrisc_fw(
     bool is_concurrent_perf = perf_desc.device_perf_mode == perf::PerfDumpMode::Concurrent;
     bool is_distributed_tables = !parse_env("TT_BACKEND_NON_DISTRIBUTED_EPOCH_TABLE", false);
     bool default_epoch_q_num_slots = !parse_env("TT_BACKEND_EPOCH_QUEUE_NUM_SLOTS", false);
+    bool is_emulator_compile = parse_env("TT_BACKEND_EMULATOR_RUN", false);
     uint32_t perf_dump_level = perf_desc.perf_dump_level;
     bool is_dram_decouple_en = perf_desc.dram_decouple_config.size() > 0;
     bool is_overlay_decoupled = is_perf_dump_en && perf_desc.overlay_decouplings.size() > 0;
@@ -307,7 +308,7 @@ void generate_ncrisc_fw(
     bool kernel_cache_ena = dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS() > 0;
     bool is_default_ncrisc_bin = !is_perf_dump_en && !is_perf_spill_dram && perf_dump_level == 0 &&
                                  is_distributed_tables && !is_dram_decouple_en && default_epoch_q_num_slots &&
-                                 firmware_num_loop_iterations == 0 && !is_overlay_decoupled && !kernel_cache_ena;
+                                 firmware_num_loop_iterations == 0 && !is_overlay_decoupled && !kernel_cache_ena && !is_emulator_compile;
 
     fs::path ncrisc_build_path(root + "build/src/firmware/riscv/targets/ncrisc/out");
     string ncrisc_out_dir = fs::absolute(out_dir_path).string() + "/ncrisc";
@@ -379,6 +380,9 @@ void generate_ncrisc_fw(
 
         if (is_distributed_tables == false) {
             make_cmd << " NO_DISTRIBUTED_EPOCH_TABLES=1";
+        }
+        if (is_emulator_compile) {
+            make_cmd << " USE_EMULATOR_DRAM_LAYOUT=1";
         }
         if (firmware_num_loop_iterations > 0) {
             make_cmd << " NUM_EXEC_LOOP_ITERATIONS=" << firmware_num_loop_iterations;

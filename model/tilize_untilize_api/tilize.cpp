@@ -1483,7 +1483,6 @@ Tilizer get_tilizer_based_on_io_config(const tt_dram_io_desc &io, DataFormat hos
     bool use_hw_tilize = supported_conversion && supported_tlb_ranges && queue_on_mmio_chip;
 
     if(use_hw_tilize and !(backend_type == TargetDevice::Versim or backend_type == TargetDevice::Emulation)) return Tilizer::FastTilizeMMIOPush;
-
     return Tilizer::FastTilizeDevicePush;
     #endif
 }

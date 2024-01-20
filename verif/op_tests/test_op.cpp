@@ -52,6 +52,8 @@ struct test_args {
     bool skip_check = false;
     bool stochastic_rnd_test = false;
     perf::PerfDesc perf_desc;
+    std::string device_desc_path = "";
+    bool run_emulation = false;
 };
 
 test_args parse_test_args(std::vector<std::string> input_args) {
@@ -122,7 +124,8 @@ test_args parse_test_args(std::vector<std::string> input_args) {
         std::tie(args.stochastic_rnd_test, input_args) =
             verif_args::has_command_option_and_remaining_args(input_args, "--stochastic-rnd-test");
         args.perf_desc = perf::PerfDesc(input_args, args.netlist_path);
-
+        std::tie(args.device_desc_path, input_args)= verif_args::get_command_option_and_remaining_args(input_args, "--device-desc", "");
+        std::tie(args.run_emulation, input_args)   = verif_args::has_command_option_and_remaining_args(input_args, "--emulation");
         verif_args::validate_remaining_args(input_args);
 
     } catch (const std::exception& e) {
@@ -166,6 +169,10 @@ void test_main(test_args args) {
     const tt::ARCH arch = arch_name_from_string(args.arch_name);
 
     tt_runtime_config config = get_runtime_config(args.perf_desc, args.output_dir, 0, args.run_silicon);
+    config.soc_descriptor_path = args.device_desc_path;
+    if (args.run_emulation) {
+        config.type = tt::DEVICE::Emulation;
+    }
     if (args.cluster_desc_path.size() > 0) {
         config.cluster_descriptor_path = args.cluster_desc_path;
     }
@@ -177,7 +184,7 @@ void test_main(test_args args) {
     tt_runtime runtime(args.netlist_path, config);
     // Runtime init
     log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to get initialized");
-
+    
     tt_runtime_workload& workload = *runtime.get_workload();
     std::string program_name = workload.programs.begin()->first;
     log_assert(workload.programs.size() >= 1, "must have a program in netlist");
@@ -377,7 +384,6 @@ void test_main(test_args args) {
         auto push_end = std::chrono::high_resolution_clock::now();
         auto push_duration = std::chrono::duration_cast<std::chrono::microseconds>(push_end - push_start).count();
         log_info(tt::LogTest, "Push Elapsed Time: {} us", push_duration);
-
         for (std::string program_name: workload.program_order) {
             log_assert(runtime.run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
             log_assert(runtime.wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on target backend"); // explicitly wfi before popping from device

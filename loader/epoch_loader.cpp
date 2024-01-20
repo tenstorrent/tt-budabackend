@@ -89,6 +89,12 @@ uint tt_epoch_dram_manager::get_worker_idx_in_channel(tt_xy_pair worker, int dra
 
 std::tuple<int, int> tt_epoch_dram_manager::get_dram_chan(
     tt::ARCH arch, tt_xy_pair physical_core, const std::unordered_map<tt_xy_pair, std::tuple<int, int>> &dram_chan_map) {
+    
+    if (dram_chan_map.size() == 1) {
+        // Emulation device has a single dram core. Return the first value in the map.
+        return dram_chan_map.begin() -> second;
+    }
+
     tt_xy_pair dram_core;
     if (arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0 || arch == tt::ARCH::BLACKHOLE) {
         switch (physical_core.y) {
@@ -131,6 +137,7 @@ std::tuple<int, int> tt_epoch_dram_manager::get_dram_chan(
     } else {
         log_fatal("Unsupported architecture");
     }
+
     log_assert(dram_chan_map.find(dram_core) != dram_chan_map.end(), "Dram core {} not found in soc descriptor", dram_core.str());
     return dram_chan_map.at(dram_core);
 }
@@ -641,7 +648,6 @@ void tt_epoch_queue::push_command(std::shared_ptr<tt_hex> hex_ptr, tt_cluster *c
 
     if (wc_window_size != 0) {
         push(hex_ptr);
-
         // Should not occur, redundant with later flushing assert, but check that occupancy is not too large to cause 
         // non-adjacent slot writes in epoch cmd queue. Considers that physically wrptr wraps at 2*num_slots
         log_assert((get_wr_ptr()/slots) == ((get_wr_ptr() + occupancy() - 1)/slots),
@@ -2952,7 +2958,7 @@ void tt_epoch_loader::send_static_binaries() {
         cluster -> broadcast_write_to_all_eth_in_cluster(binary -> blob_bin_init, eth_l1_mem::address_map::OVERLAY_BLOB_BASE+0xC);
     }
     
-    if(check_binaries) {
+    if (check_binaries) {
         for (int device: target_devices) {
             buda_soc_description &sdesc = cluster->get_soc_desc(device);
             // Read back device contents and check against write data

@@ -81,6 +81,9 @@ void process_tile_clearing(kernel_input_stream_state_t* input_stream_state, uint
 }
 
 int get_epoch_table_x(int my_x, int my_y) {
+#if USE_EMULATOR_DRAM_LAYOUT == 1
+  return 1;
+#else
 #if NO_DISTRIBUTED_EPOCH_TABLES == 1
   return 0;
 #else
@@ -103,14 +106,19 @@ int get_epoch_table_x(int my_x, int my_y) {
 #endif
   return epoch_x;
 #endif
+#endif
 }
 
 
 int get_epoch_table_y(int my_x, int my_y) {
+#if USE_EMULATOR_DRAM_LAYOUT == 1
+  return 0;
+#else
 #if NO_DISTRIBUTED_EPOCH_TABLES == 1
   return 0;
 #else
   return my_y;
+#endif
 #endif
 }
 

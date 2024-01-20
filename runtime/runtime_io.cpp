@@ -74,7 +74,8 @@ DeviceTilizer<tilizer_backend> *get_tilizer(const std::string tag, const std::ve
             std::function<void(uint32_t, uint8_t*, int, uint32_t, uint32_t)> spill_to_dram_func = [cluster](uint32_t dram_base_addr, uint8_t* intermed_buf_addr, int num_bytes, uint32_t channel, uint32_t device_id){
                 log_assert(num_bytes % 4 == 0, "Expected chunks of 4-bytes to transfer to dram");
                 std::vector<uint32_t> vec(reinterpret_cast<uint32_t*>(intermed_buf_addr), reinterpret_cast<uint32_t*>(intermed_buf_addr + num_bytes));
-                cluster->write_dram_vec(vec, tt_target_dram(device_id, channel, 0), (uint64_t)dram_base_addr);};
+                cluster->write_dram_vec(vec, tt_target_dram(device_id, channel, 0), (uint64_t)dram_base_addr);
+            };
             std::function<uint32_t(uint32_t, uint32_t, uint32_t)> read_from_dram_func = [cluster](uint32_t dram_base_addr, uint32_t channel, uint32_t device_id){
                 std::vector<uint32_t> vec;
                 cluster->read_dram_vec(vec, tt_target_dram(device_id, channel, 0), dram_base_addr, 4);
@@ -126,7 +127,6 @@ bool is_dram_queue_empty(const tt_dram_io_desc& desc, const tt_queue_info &queue
         // read rd_ptr and wr_ptr from queue
         vector<uint32_t> buffer_ptr = {0,0};
         cluster->read_dram_vec(buffer_ptr, dram, buffer.address, 8);
-
         empty &= (buffer_ptr[0] & 0x0ffff) == (buffer_ptr[1] & 0xffff);
         log_trace(tt::LogIO, "{} -- queue={} buf_addr=0x{:x} buf_ch={} rdptr={} wrptr={}", __FUNCTION__, desc.queue_name, buffer.address, buffer.channel, (buffer_ptr[0] & 0x0ffff), (buffer_ptr[1] & 0xffff));
     }
@@ -202,7 +202,7 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
                 io_desc.bufq_mapping.push_back(cluster->host_dma_address(offset, queue_info.src_device_id, channel));
                 log_assert(io_desc.bufq_mapping.back() != nullptr, "Must be able to translate host queue address for ch: {}. Possible hugepage issue, check for earlier warnings.", std::to_string(channel));
             } else if (queue_info.loc == QUEUE_LOCATION::DRAM) {
-                if (cluster->type == TargetDevice::Versim) {
+                if (cluster->type == TargetDevice::Versim || cluster->type == TargetDevice::Emulation) {
                     io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
                 } else {
                     if (cluster->get_cluster_desc()->is_chip_mmio_capable(queue_info.target_device)) {

@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     std::tie(device_desc_path, args)= verif_args::get_command_option_and_remaining_args(args, "--device-desc", "");
     std::tie(netlist_path, args)    = verif_args::get_command_option_and_remaining_args(args, "--netlist", "loader/tests/net_tilize_untilize/tilize_fp16b_untilize_fp16.yaml");
     std::tie(arch_name, args)       = verif_args::get_command_option_and_remaining_args(args, "--arch", "grayskull");
-    log_assert(arch_name == "grayskull" || arch_name == "wormhole", "Invalid arch");
+    log_assert(arch_name == "grayskull" || arch_name == "wormhole" || arch_name == "blackhole" , "Invalid arch");
 
     verif_args::validate_remaining_args(args);
 
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     // Backend setup
     tt_backend_config config = {
         .type = run_silicon ? tt::DEVICE::Silicon : (run_emulation ? tt::DEVICE::Emulation : tt::DEVICE::Versim),
-        .arch = arch_name == "grayskull" ? tt::ARCH::GRAYSKULL : tt::ARCH::WORMHOLE,
+        .arch = arch_name == "blackhole" ? tt::ARCH::BLACKHOLE : ("grayskull" ? tt::ARCH::GRAYSKULL : tt::ARCH::WORMHOLE),
         .optimization_level = 0, // disable epoch preload since we don't run program in this test
         .output_dir = output_dir,
         .soc_descriptor_path = device_desc_path};
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
             // Set up input and expected output, identity for unary datacopy
             tt_tensor input = get_tilized_tensor(queue_info, i, batched_push);
 
-            int ram_ptr = tt_rnd_int(0, queue_info.entries-1);
+            int ram_ptr = tt_rnd_int(0, queue_info.entries - 1);
             expected_output[ram_ptr] = input;
             accessed_ptrs.push_back(ram_ptr);
 
@@ -136,7 +136,6 @@ int main(int argc, char **argv) {
             // PyBuda API for random input write
             // ----------------------------------------------------------------
             tt::backend::push_input(ram_desc, py_in_tensor_desc, !batched_push, 0, ram_ptr);
-
             log_assert(tt::io::is_dram_queue_empty(ram_desc, queue_info, cluster), "Expected empty ram"); // random access doesn't update ptrs
 
             // ----------------------------------------------------------------
