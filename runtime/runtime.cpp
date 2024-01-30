@@ -328,8 +328,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         check_netlist_constraints();
 
         backend_profiler.record_loader_event("COMPILE");
-
-        if(config.do_compile() or config.perf_desc.always_compile() or need_partial_recompile_during_run) {
+        if(config.do_compile() or config.perf_desc.always_compile() or need_overlay_recompile_during_run or need_risc_recompile_during_run) {
             log_info(tt::LogRuntime, "Compiling Firmware for TT device");
         }
         // Parallelize compile steps (further nested parallellism occurs within each thread)
@@ -337,10 +336,12 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         std::vector<std::thread> compile_threads;
         std::vector<exception_ptr> exceptions_all_threads(num_threads, nullptr);
         std::vector<tt_compile_result> compile_results_all_threads(num_threads);
+
         compile_threads.push_back(std::thread([&] {
             try {
-                if (config.do_compile() or config.perf_desc.always_compile()) {
-                    bool compile_for_perf_only = !config.do_compile();
+                if (config.do_compile() or config.perf_desc.always_compile() or need_risc_recompile_during_run) {
+                    // When (re)compiling RISC binaries, we aren't compiling for perf decoupling runs.
+                    bool compile_for_perf_only = !(need_risc_recompile_during_run || config.do_compile());
                     generate_all_fw(
                         workload,
                         get_arch_str(arch_name),
@@ -361,7 +362,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         compile_threads.push_back(std::thread([&] {
             try {
                 // Static compile of firmware/kernel binaries and overlay
-                if (config.do_compile() or need_partial_recompile_during_run) {
+                if (config.do_compile() or need_overlay_recompile_during_run) {
                     // (Re)compile overlay binaries
                     // For Grayskull, pass in the full device descriptor (net2pipe will not allocate any memory/structures outside of op grid, which is guaranteed to fit inside the harvested grid)
                     // For multichip WH, pass in SOC descriptors per chip (similar to Pipegen). Net2pipe can allocate ethernet relay buffers outside of op grid and needs accurate SOC dimensions here.
@@ -425,6 +426,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
             // Initialize loader settings
             set_loader_settings(config.optimization_level);
             start_device_cluster();
+            verify_eth_fw_version();
             log_server->start();
 
             query_all_device_aiclks("runtime initialize()");
@@ -453,6 +455,15 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         log_error("{}", e.what());
         cleanup_runtime_and_close_device();
         return tt::DEVICE_STATUS_CODE::RuntimeError;
+    }
+}
+
+void tt_runtime::verify_eth_fw_version() {
+    if (arch_name != tt::ARCH::GRAYSKULL and target_type == TargetDevice::Silicon) {
+        // Only check ethernet FW version for Silicon backend (not on GS devices)
+        tt_version cluster_eth_fw_version = cluster -> get_ethernet_fw_version();
+        tt_version min_eth_fw_version = tt_version(6, 8, 0);
+        log_assert(cluster_eth_fw_version >= min_eth_fw_version, "The minimum ethernet Firmware Version for the cluster is expected to be 6.8.0 for compatibility with Buda Runtime.");
     }
 }
 
@@ -1769,7 +1780,6 @@ void tt_runtime::check_runtime_data() {
     if (config.mode == DEVICE_MODE::RunOnly) {
         if (fs::exists(runtime_data)) {
             auto runtime_data = get_runtime_data(runtime_data_path);
-
             // Populate compile and run gitinfo
             std::pair<string, string> cmp_info = {"null", "null"};
             std::pair<string, string> run_info = tt::get_git_info();
@@ -1794,7 +1804,7 @@ void tt_runtime::check_runtime_data() {
 
             if(runtime_data["noc_translation_enabled"].as<int>() != noc_translation_enabled) {
                 log_debug(tt::LogRuntime, "Recompiling overlay binaries since NOC translation is enabled on this machine.");
-                need_partial_recompile_during_run = true;
+                need_overlay_recompile_during_run = true;
             }
             if(arch_supports_harvesting) {
                 if (runtime_data["worker_grid_sizes_per_chip"] and (arch_name == tt::ARCH::WORMHOLE or arch_name == tt::ARCH::WORMHOLE_B0)) {
@@ -1804,8 +1814,8 @@ void tt_runtime::check_runtime_data() {
                     for (const auto& chip : runtime_data["worker_grid_sizes_per_chip"]) {
                         log_assert(workload_target_device_ids.find(chip.first.as<int>()) != workload_target_device_ids.end(), "Device {} was present during compile but not during runtime.", chip.first.as<string>());
                         // Overlay recompile needed compile time grid size > runtime grid size (net2pipe may have placed relay buffers outside of op grid).
-                        need_partial_recompile_during_run = (chip.second["y"].as<int>() > soc_descs[chip.first.as<int>()].worker_grid_size.y || chip.second["x"].as<int>() > soc_descs[chip.first.as<int>()].worker_grid_size.x);
-                        if (need_partial_recompile_during_run) {
+                        need_overlay_recompile_during_run = (chip.second["y"].as<int>() > soc_descs[chip.first.as<int>()].worker_grid_size.y || chip.second["x"].as<int>() > soc_descs[chip.first.as<int>()].worker_grid_size.x);
+                        if (need_overlay_recompile_during_run) {
                             log_warning(tt::LogRuntime, "Compile time grid size for device {} is greater than runtime grid size. Recompiling overlay binaries.", chip.first.as<string>());
                             break;
                         }
@@ -1819,16 +1829,16 @@ void tt_runtime::check_runtime_data() {
                         log_assert(workload_target_device_ids.find(chip.first.as<int>()) != workload_target_device_ids.end(), "Device {} was present during compile but not during runtime.", chip.first.as<string>());
                         if (arch_name == tt::ARCH::GRAYSKULL) {
                             // Harvesting masks must match exactly between compile and run for GS
-                            need_partial_recompile_during_run = (chip.second.as<int>() != rows_to_harvest.at(chip.first.as<int>()));
-                            if (need_partial_recompile_during_run) {
+                            need_overlay_recompile_during_run = (chip.second.as<int>() != rows_to_harvest.at(chip.first.as<int>()));
+                            if (need_overlay_recompile_during_run) {
                                 log_warning(tt::LogRuntime, "The harvesting config for device {} does not match harvesting config in compile. Recompiling overlay binaries.", chip.first.as<string>());
                                 break;
                             }
                         }
                         else {
                             // Compile time grid size must be lte than runtime grid size for WH ->  Number of bits in compile harvesting mask must be gte than runtime harvesting mask
-                            need_partial_recompile_during_run = (std::bitset<32>(chip.second.as<int>()).count() < std::bitset<32>(rows_to_harvest.at(chip.first.as<int>())).count());
-                            if(need_partial_recompile_during_run) {
+                            need_overlay_recompile_during_run = (std::bitset<32>(chip.second.as<int>()).count() < std::bitset<32>(rows_to_harvest.at(chip.first.as<int>())).count());
+                            if(need_overlay_recompile_during_run) {
                                 log_warning(tt::LogRuntime, "The harvesting config for device {} does not match harvesting config in compile. Recompiling overlay binaries during run.", chip.first.as<string>());
                                 break;
                             }
@@ -1836,7 +1846,8 @@ void tt_runtime::check_runtime_data() {
                     }
                 }
             }
-            log_assert(using_arm_host() ? (!need_partial_recompile_during_run) : true, "Recompiling overlay binaries is only supported on x86 hosts.");
+            check_epoch_metadata(runtime_data);
+            log_assert(using_arm_host() ? (!need_overlay_recompile_during_run || need_risc_recompile_during_run) : true, "Recompiling overlay binaries or RISC Firmware is only supported on x86 hosts.");
 
             // Kernel Cache feature enablement changes NCRISC FW, epoch binary layout in DRAM. Number of slots impacts BE reserved region in DRAM. Ensure they match.
             uint32_t run_info_kc_slots = dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS();
@@ -1847,6 +1858,38 @@ void tt_runtime::check_runtime_data() {
             log_fatal("RunOnly mode requires a valid pre-compiled output dir specified, '{}' doesn't exist!", runtime_data_path);
         }
     }
+}
+
+void tt_runtime::check_epoch_metadata(const YAML::Node& runtime_data) {
+    if (runtime_data["epoch_metadata"]) {
+        const auto& epoch_md = runtime_data["epoch_metadata"];
+        need_risc_recompile_during_run = epoch_md["epoch_q_num_slots"].as<int>() != epoch_queue::get_epoch_q_num_slots() ||
+                                         epoch_md["epoch_table_dram_addr"].as<int>() != epoch_queue::get_epoch_table_dram_addr() ||
+                                         epoch_md["epoch_table_entry_size_bytes"].as<int>() != epoch_queue::get_epoch_table_entry_size_bytes() ||
+                                         epoch_md["epoch_alloc_q_sync_addr"].as<int>() != epoch_queue::get_epoch_alloc_queue_sync_addr() ||
+                                         epoch_md["epoch_q_slot_size"].as<int>() != epoch_queue::EPOCH_Q_SLOT_SIZE ||
+                                         epoch_md["epoch_q_slot_offset"].as<int>() != epoch_queue::EPOCH_Q_SLOTS_OFFSET;
+    }
+    else {
+        need_risc_recompile_during_run = true;
+    }
+    // If epoch metadata does not match between compile and run, we also need to recompile overlay due to NCRISC <--> NOC dependencies
+    need_overlay_recompile_during_run |= need_risc_recompile_during_run;
+    if (need_risc_recompile_during_run) {
+        log_warning(tt::LogRuntime, "Epoch Metadata mismatches between compile and run. Recompiling Firmware.");
+    }
+}
+
+std::string tt_runtime::epoch_metadata_to_yaml() {
+    std::ostringstream f;
+    f << "epoch_metadata:" << std::endl;
+    f << "  epoch_q_num_slots: " << epoch_queue::get_epoch_q_num_slots() << endl;
+    f << "  epoch_table_dram_addr: " << epoch_queue::get_epoch_table_dram_addr() << endl;
+    f << "  epoch_table_entry_size_bytes: " << epoch_queue::get_epoch_table_entry_size_bytes() << endl;
+    f << "  epoch_alloc_q_sync_addr: " << epoch_queue::get_epoch_alloc_queue_sync_addr() << endl;
+    f << "  epoch_q_slot_size: " << epoch_queue::EPOCH_Q_SLOT_SIZE << endl;
+    f << "  epoch_q_slot_offset: " << epoch_queue::EPOCH_Q_SLOTS_OFFSET << endl;
+    return f.str();
 }
 
 std::string tt_runtime::runtime_data_to_yaml() {
@@ -1887,7 +1930,7 @@ std::string tt_runtime::runtime_data_to_yaml() {
     }
 
     f << "kernel_cache_num_slots: " << dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS() << endl;
-
+    f << epoch_metadata_to_yaml();
     return f.str();
 }
 

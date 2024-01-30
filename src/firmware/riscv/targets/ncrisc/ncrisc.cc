@@ -46,7 +46,7 @@ volatile uint32_t tt_l1_ptr* test_mailbox_ptr = (volatile uint32_t tt_l1_ptr*)(l
 
 int post_index;
 
-volatile uint32_t tt_l1_ptr noc_read_scratch_buf[32] __attribute__((section("data_l1_noinit"))) __attribute__((aligned(32))) ;
+volatile uint32_t tt_l1_ptr noc_read_scratch_buf[32] __attribute__((section("data_l1_noinit"))) __attribute__((aligned(l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT))) ;
 volatile uint16_t tt_l1_ptr *debug_mailbox_base = nullptr;
 uint8_t mailbox_index = 0;
 uint8_t mailbox_end = 32;

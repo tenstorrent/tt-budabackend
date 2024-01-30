@@ -163,7 +163,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_kernel_cache(int t6_cores_per_chan, i
     uint64_t top_of_epoch0_start_table = get_top_of_epoch0_start_table();
     uint64_t kernel_cache_size_bytes = dram_mem::address_map::TRISC_BINARY_SIZE * (uint64_t)dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS();
     uint64_t top_of_kernel_cache = top_of_epoch0_start_table + kernel_cache_size_bytes;
-    log_assert((top_of_kernel_cache & 0x3) == 0, "top_of_kernel_cache: {} addr must be 4B aligned.", top_of_kernel_cache);
+    log_assert((top_of_kernel_cache % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_kernel_cache: {} addr must be {}B aligned.", top_of_kernel_cache, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
     return top_of_kernel_cache;
 }
 
@@ -173,7 +173,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_binaries(int t6_cores_per_chan, int e
     uint64_t bin_size_q_slot = get_bin_size_q_slot(t6_cores_per_chan, eth_cores_per_chan);
     uint64_t bin_size_bytes = bin_size_q_slot * (uint64_t)epoch_queue::get_epoch_bin_num_slots();
     uint64_t top_of_binaries = top_of_kernel_cache + bin_size_bytes;
-    log_assert((top_of_binaries & 0x3) == 0, "top_of_binaries: {} addr must be 4B aligned.", top_of_binaries);
+    log_assert((top_of_binaries % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_binaries: {} addr must be {}B aligned.", top_of_binaries, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
     return top_of_binaries;
 }
 
@@ -181,7 +181,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_q_update_blobs(int t6_cores_per_chan,
     uint64_t top_of_binaries = get_top_of_binaries(t6_cores_per_chan, eth_cores_per_chan);
     uint64_t q_update_blob_size_bytes = (uint64_t)epoch_queue::get_queue_update_blob_size_bytes() * (uint64_t)epoch_queue::get_epoch_io_queue_update_num_slots() * (t6_cores_per_chan + eth_cores_per_chan);
     uint64_t top_of_q_update_blobs = top_of_binaries + q_update_blob_size_bytes;
-    log_assert((top_of_q_update_blobs & 0x3) == 0, "top_of_q_update_blobs: {} addr must be 4B aligned.", top_of_q_update_blobs);
+    log_assert((top_of_q_update_blobs % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_q_update_blobs: {} addr must be {}B aligned.", top_of_q_update_blobs, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
     return top_of_q_update_blobs;
 }
 
@@ -557,7 +557,6 @@ void tt_epoch_binary::assign_tensix_binaries_to_dram(int hex_id, int dram_channe
     blob_hex.set_dram_subchannel(dram_subchannel);
     blob_hex.set_chip_id(chip_id);
     blob_hex.set_dram_addr(dram_start_addr + dram_mem::address_map::OVERLAY_BLOB_BASE());
-
 }
 
 void tt_epoch_binary::assign_ethernet_binaries_to_dram(int hex_id, int dram_channel, int dram_subchannel, uint64_t dram_start_addr)
@@ -630,8 +629,8 @@ int tt_epoch_queue::size_bytes() {
     log_assert(slot_size != 0xabadface, "Epoch Queue is unintialized.");
 
     // Pad size by 32 bytes for pointers and other metadata
-    int size = slots * slot_size + 32;
-    log_assert(size % 32 == 0, "Expected epoch queue size to be 32 byte aligned.");
+    int size = slots * slot_size + epoch_queue::EPOCH_Q_SLOTS_OFFSET;
+    log_assert(size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "Expected epoch queue size to be {}B aligned.", l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
 
     return(size);
 }
@@ -712,13 +711,12 @@ void tt_epoch_queue::push_to_dram(tt_cluster *cluster, std::shared_ptr<tt_hex> h
     }
     
     // use local write pointer
-    uint32_t wr_addr = d_addr + (wr_ptr * slot_size) + 32;
+    uint32_t wr_addr = d_addr + (wr_ptr * slot_size) + epoch_queue::EPOCH_Q_SLOTS_OFFSET;
     hex_ptr->d_addr = wr_addr;
     hex_ptr->d_chan = d_chan;
     hex_ptr->d_subchannel = d_subchannel;
     hex_ptr->d_chip_id = d_chip_id;
     hex_ptr->d_record_vld = d_record_vld;
-
     constexpr bool small_access = true;     // Dedicated TLB for small read/write accesses for epoch cmds + wrptr update to reduce contention
     constexpr bool send_epoch_cmd = true;   // Dedicated driver API for sending epoch commands
 
@@ -738,7 +736,7 @@ void tt_epoch_queue::push_to_dram(tt_cluster *cluster, std::shared_ptr<tt_hex> h
 void tt_epoch_queue::init_queue_ptrs(tt_cluster *cluster)
 {
     // 32B array
-    vector<uint32_t> ptr_vec = {0,0,0,0,0,0,0,0};
+    vector<uint32_t> ptr_vec = std::vector<uint32_t>(epoch_queue::EPOCH_Q_SLOTS_OFFSET / sizeof(uint32_t), 0);
 
     buda_soc_description &sdesc = cluster->get_soc_desc(d_chip_id);
     for (const std::vector<tt_xy_pair> &dram_channel_coords : sdesc.dram_cores) {
@@ -1744,7 +1742,7 @@ void tt_epoch_loader::create_and_allocate_epoch_queues(bool distribute_tables) {
     if (skip_device_init) return;
 
     // Initialize all Epoch queues with default settings
-    vector<uint32_t> header_vec = {0,0,0,0,0,0,0,0};
+    vector<uint32_t> header_vec = std::vector<std::uint32_t>(epoch_queue::EPOCH_Q_SLOTS_OFFSET / sizeof(uint32_t), 0);
 
     log_assert(!target_devices.empty(), "target_devices was empty");
     for (int device: target_devices) {
@@ -2707,7 +2705,6 @@ void tt_epoch_loader::update_io_queue_setting_from_device(const tt_queue_info &q
                     update_hex.set_dram_subchannel(dram_subchannel);
                     update_hex.set_dram_addr(external_blob_dram_addr);
                     update_hex.set_chip_id(queue_info.target_device);
-                    
                     cluster->send_hex_to_dram(&update_hex, true);
                     tt_driver_atomics::sfence();
                     dram_profiler.add_report_for_q_update_blob(&device_epoch_ctrl, &update_hex, group_cache_key, core, external_blob_dram_addr);
@@ -2808,7 +2805,6 @@ void tt_epoch_loader::send_epoch_program(std::string name, bool epoch_binary_pre
 
     // Check if epoch can be reused from device cache, if not lay it out in DRAM and update addrs
     bool epoch_cache_hit = lay_out_binaries(epoch_info, epoch_binary_preload);
-
     log_trace(tt::LogLoader, "\t(caching)\t epoch binary will be {} (epoch_binary_preload: {}) for graph = {}, device = {}", epoch_cache_hit ? "reused" : "sent", epoch_binary_preload, name, epoch_info.target_device);
     
     // Execution order: 
@@ -2920,7 +2916,6 @@ bool tt_epoch_loader::lay_out_binaries(const tt_epoch_program_info &info, bool e
                 dram_xy, dram_addr, dram_addr_kernels, info.device_perf_trace_en,
                 info.get_overlay_decouple_mask(core_xy)), tt_hex_type::Misc, bin -> ethernet_blob_bin_vec[i].associated_routing_core, info.name));
         }
-        
         if (epoch_binary_preload){
             event_counters["epoch_cache_preload"] += 1;
         }else{
@@ -3890,7 +3885,7 @@ void tt_epoch_loader::insert_sync_on_cores(tt_epoch_control& ctrl, const std::un
     // External sync loc. FW Sync logic requires min one buffer, so re-use 32B sync slot as target.
     std::pair<uint, uint> &sync_flag    = get_current_sync_flag_loc(ctrl.associated_chip);
     tt_xy_pair qstride_sync_loc         = sdesc.get_core_for_dram_channel(sync_flag.first, 0);
-    const uint64_t update_dram_addr     = epoch_queue::get_epoch_alloc_queue_sync_addr() + (sync_flag.second * 32);
+    const uint64_t update_dram_addr     = epoch_queue::get_epoch_alloc_queue_sync_addr() + (sync_flag.second * epoch_queue::EPOCH_Q_SLOT_SIZE);
     tt_xy_pair update_dram_core         = qstride_sync_loc;
     header_wrap.val[0]                  = qstride_sync_loc.x;
     header_wrap.val[1]                  = qstride_sync_loc.y;

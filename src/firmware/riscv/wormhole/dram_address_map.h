@@ -17,7 +17,7 @@ struct address_map {
     // It is reduced below for faster dram perf dump.
     // This can be increased to maximum 39896 * 1024 if more space was needed.
     static constexpr std::int32_t DRAM_EACH_BANK_PERF_BUFFER_SIZE = 4800 * 1024;
-    static constexpr std::int32_t DRAM_EACH_BANK_CONST_BLOB_SIZE = 1 * 1024 * 1024;
+    static constexpr std::int32_t DRAM_EACH_BANK_CONST_BLOB_SIZE = 100 * 1024;
     static constexpr std::int32_t DRAM_EACH_BANK_CONST_BLOB_ADDR = 6 * 1024 * 1024;
     static constexpr std::int32_t DRAM_EACH_BANK_TILE_HEADER_BUFFER = DRAM_EACH_BANK_CONST_BLOB_ADDR + DRAM_EACH_BANK_CONST_BLOB_SIZE - l1_mem::address_map::TILE_HEADER_BUF_SIZE;
     static constexpr std::int32_t TRISC_BINARY_SIZE = l1_mem::address_map::TRISC0_SIZE + l1_mem::address_map::TRISC1_SIZE + l1_mem::address_map::TRISC2_SIZE;

@@ -110,20 +110,20 @@ inline bool risc_is_l1_epoch_q_empty(uint32_t &my_q_rd_ptr) {
 #endif
 
 inline void risc_epoch_q_rdptr_update(uint32_t rd_ptr, volatile uint32_t *noc_read_scratch_buf, uint64_t &my_q_table_offset) {
-  uint32_t noc_write_dest_buf_offset = my_q_table_offset % (NOC_WORD_BYTES);
-  uint32_t noc_write_dest_buf_addr = (uint32_t)(&(noc_read_scratch_buf[SCRATCH_PAD_DRAM_WRITE_IDX]));
-  uint32_t noc_write_dest_buf_ptr_addr = noc_write_dest_buf_addr+noc_write_dest_buf_offset;
-  volatile uint32_t *noc_write_dest_buf_ptr = (volatile uint32_t *)(noc_write_dest_buf_ptr_addr + epoch_queue::EPOCH_Q_RDPTR_OFFSET); 
+  // Transfer updated rd_ptr from a 64 byte aligned l1 address (noc_read_scratch_buf) to DRAM (this address is at least 32 byte aligned).
+  // Apply epoch_queue::EPOCH_Q_RDPTR_OFFSET shift to both addresses.
+  uint32_t noc_write_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
+  volatile uint32_t *noc_write_dest_buf_ptr = (volatile uint32_t *)(noc_write_dest_buf_addr + epoch_queue::EPOCH_Q_RDPTR_OFFSET); 
   *noc_write_dest_buf_ptr = rd_ptr;
   uint64_t q_rd_ptr_addr = my_q_table_offset + epoch_queue::EPOCH_Q_RDPTR_OFFSET;
   RISC_POST_DEBUG(0x10000009);
   RISC_POST_DEBUG(rd_ptr);
-  RISC_POST_DEBUG(noc_write_dest_buf_ptr_addr);
+  RISC_POST_DEBUG(noc_write_dest_buf_addr);
   RISC_POST_DEBUG(q_rd_ptr_addr >> 32);
   RISC_POST_DEBUG(q_rd_ptr_addr & 0xFFFFFFFF);
   // Reg poll loop, flushed immediately
   while (!ncrisc_noc_fast_write_ok(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
-  ncrisc_noc_fast_write(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, noc_write_dest_buf_ptr_addr, q_rd_ptr_addr, 4,
+  ncrisc_noc_fast_write(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, noc_write_dest_buf_addr, q_rd_ptr_addr, 4,
                         DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
 }
 
@@ -136,16 +136,15 @@ inline uint64_t risc_get_epoch_q_dram_ptr(uint32_t my_x, uint32_t my_y) {
 }
 
 inline void risc_epoch_q_get_ptr(volatile uint32_t *noc_read_scratch_buf, uint64_t &my_q_table_offset, uint32_t &my_q_rd_ptr, uint32_t &my_q_wr_ptr) {
-
-  uint32_t noc_read_dest_buf_offset = my_q_table_offset % (NOC_WORD_BYTES);
+  // Get the q_ptr vector <rd_ptr, wr_ptr> from the first 2 words of the queue header in DRAM (the queue header is at least 32 byte aligned).
+  // Transfer this to the first 8 bytes of a 64 Byte aligned L1 Buffer (noc_read_scratch_buf).
   uint32_t noc_read_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
-  uint32_t noc_read_dest_buf_ptr_addr = noc_read_dest_buf_addr+noc_read_dest_buf_offset;
   ncrisc_noc_fast_read_any_len(loading_noc, NCRISC_SMALL_TXN_CMD_BUF,
                                my_q_table_offset,
-                               noc_read_dest_buf_ptr_addr,
+                               noc_read_dest_buf_addr,
                                8, NCRISC_RD_DEF_TRID);
   while (!ncrisc_noc_reads_flushed(loading_noc, NCRISC_RD_DEF_TRID));
-  volatile uint32_t *noc_read_dest_buf_ptr = (volatile uint32_t *)(noc_read_dest_buf_ptr_addr); 
+  volatile uint32_t *noc_read_dest_buf_ptr = (volatile uint32_t *)(noc_read_dest_buf_addr); 
   my_q_rd_ptr = noc_read_dest_buf_ptr[0];
   my_q_wr_ptr = noc_read_dest_buf_ptr[1];
 }
@@ -156,9 +155,7 @@ inline bool risc_is_epoch_q_empty(volatile uint32_t *noc_read_scratch_buf, uint6
 
   if (dram_io_empty(my_q_rd_ptr, my_q_wr_ptr)) {
     if (risc_get_l1_epoch_q_wrptr() == epoch_queue::POLLING_EPOCH_QUEUE_TAG ? epoch_empty_check_cnt == 0 : !risc_is_l1_epoch_q_empty(my_q_rd_ptr)) {
-      uint32_t noc_read_dest_buf_offset = my_q_table_offset % (NOC_WORD_BYTES);
-      uint32_t noc_read_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
-      uint32_t noc_read_dest_buf_ptr_addr = noc_read_dest_buf_addr+noc_read_dest_buf_offset;
+      uint32_t noc_read_dest_buf_ptr_addr = (uint32_t)(noc_read_scratch_buf);;
       ncrisc_noc_fast_read_any_len(loading_noc, NCRISC_SMALL_TXN_CMD_BUF,
                                   my_q_table_offset,
                                   noc_read_dest_buf_ptr_addr,
@@ -219,22 +216,22 @@ inline __attribute__((section("code_l1"))) void risc_get_noc_addr_from_dram_ptr_
 }
 
 inline void risc_get_epoch_dram_ptrs(uint32_t &epoch_command, uint32_t &dram_decouple_mask, volatile uint32_t *noc_read_scratch_buf, uint64_t &my_q_table_offset, uint32_t &my_q_rd_ptr, uint32_t &num_loops, uint64_t &dram_next_epoch_ptr, uint64_t &dram_next_epoch_triscs_ptr) {
-
+  // Read the 64 byte epoch command slot at the current read pointer from DRAM (the address for this command: my_q_entry_offset is at least 32 Byte aligned) into a 64 byte aligned L1 buffer (noc_read_scratch_buf)
+  // The epoch command may be less than 64 bytes, but this is to future proof for cases where we populate all words in the slot.
   uint64_t my_q_entry_offset = (my_q_rd_ptr & (EPOCH_QUEUE_NUM_SLOTS-1)) * epoch_queue::EPOCH_Q_SLOT_SIZE + epoch_queue::EPOCH_Q_SLOTS_OFFSET + my_q_table_offset;
-  uint32_t noc_read_dest_buf_offset = my_q_entry_offset % (NOC_WORD_BYTES);
-  uint32_t noc_read_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
-  uint32_t noc_read_dest_buf_ptr_addr = noc_read_dest_buf_addr+noc_read_dest_buf_offset;
+
+  uint32_t noc_read_dest_buf_ptr_addr = (uint32_t)(noc_read_scratch_buf);
   ncrisc_noc_fast_read_any_len(loading_noc, NCRISC_SMALL_TXN_CMD_BUF,
                                my_q_entry_offset,
                                noc_read_dest_buf_ptr_addr,
-                               32, NCRISC_RD_DEF_TRID);
+                               64, NCRISC_RD_DEF_TRID);
   while (!ncrisc_noc_reads_flushed(loading_noc, NCRISC_RD_DEF_TRID));
   volatile uint32_t *noc_read_dest_buf_ptr = (uint32_t *)(noc_read_dest_buf_ptr_addr); 
   uint64_t dram_addr_offset_combined; // Combined overlay+trisc+etc binaries addr
   uint64_t dram_addr_offset_trisc;    // trisc-only binaries addr (to save space)
   uint32_t dram_coord_x;
   uint32_t dram_coord_y;
-
+  // Resolve the location of the epoch binaries from the command.
 #ifdef KERNEL_CACHE_ENA
   // Trisc binary cache is seperate address if enabled, otherwise trisc binaries are in combined epoch binary.
   risc_get_noc_addrs_from_dram_ptr(noc_read_dest_buf_ptr, dram_addr_offset_combined, dram_addr_offset_trisc, dram_coord_x, dram_coord_y);
@@ -242,10 +239,10 @@ inline void risc_get_epoch_dram_ptrs(uint32_t &epoch_command, uint32_t &dram_dec
   dram_next_epoch_triscs_ptr  = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset_trisc);
 #else
   risc_get_noc_addr_from_dram_ptr(noc_read_dest_buf_ptr, dram_addr_offset_combined, dram_coord_x, dram_coord_y);
+  
   dram_next_epoch_ptr         = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset_combined);
   dram_next_epoch_triscs_ptr  = dram_next_epoch_ptr;
 #endif
-
   epoch_command = (noc_read_dest_buf_ptr[1] >> 28) & 0xF;
   num_loops = (epoch_command == epoch_queue::EpochCmdLoopStart) ? noc_read_dest_buf_ptr[1] & 0xFFFFFFF : 1;
 #ifdef PERF_DUMP
@@ -266,10 +263,7 @@ inline __attribute__((section("code_l1"))) void risc_get_epoch_update_info(epoch
 
   volatile epoch_queue::IOQueueUpdateCmdInfo* update_info;
 
-  uint64_t my_q_entry_offset = (my_q_rd_ptr & (EPOCH_QUEUE_NUM_SLOTS-1)) * epoch_queue::EPOCH_Q_SLOT_SIZE + epoch_queue::EPOCH_Q_SLOTS_OFFSET + my_q_table_offset;
-  uint32_t noc_read_dest_buf_offset = my_q_entry_offset % (NOC_WORD_BYTES);
-  uint32_t noc_read_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
-  uint32_t noc_read_dest_buf_ptr_addr = noc_read_dest_buf_addr+noc_read_dest_buf_offset;
+  uint32_t noc_read_dest_buf_ptr_addr = (uint32_t)(noc_read_scratch_buf);
 
   update_info = (volatile epoch_queue::IOQueueUpdateCmdInfo*)noc_read_dest_buf_ptr_addr;
 
@@ -288,11 +282,7 @@ inline __attribute__((section("code_l1"))) void risc_get_epoch_update_info(epoch
 inline __attribute__((section("code_l1"))) void risc_get_epoch_varinst_info(epoch_queue::VarinstCmdInfo &varinst_cmd_info, volatile uint32_t *noc_read_scratch_buf, uint64_t &my_q_table_offset, uint32_t &my_q_rd_ptr, uint64_t dram_next_epoch_ptr) {
 
   volatile epoch_queue::VarinstCmdInfo* varinst_info;
-
-  uint64_t my_q_entry_offset = (my_q_rd_ptr & (EPOCH_QUEUE_NUM_SLOTS-1)) * epoch_queue::EPOCH_Q_SLOT_SIZE + epoch_queue::EPOCH_Q_SLOTS_OFFSET + my_q_table_offset;
-  uint32_t noc_read_dest_buf_offset = my_q_entry_offset % (NOC_WORD_BYTES);
-  uint32_t noc_read_dest_buf_addr = (uint32_t)(noc_read_scratch_buf);
-  uint32_t noc_read_dest_buf_ptr_addr = noc_read_dest_buf_addr+noc_read_dest_buf_offset;
+  uint32_t noc_read_dest_buf_ptr_addr = (uint32_t)(noc_read_scratch_buf);
 
   varinst_info = (volatile epoch_queue::VarinstCmdInfo*)noc_read_dest_buf_ptr_addr;
 
@@ -341,7 +331,7 @@ void __attribute__((section("code_l1"))) __attribute__((noinline)) run_dram_queu
 );
 
 void __attribute__((section("code_l1"))) run_varinst_cmd_dram_rmw(
-    epoch_queue::VarinstCmdInfo &varinst_cmd_info, uint64_t &queue_addr_ptr, uint32_t header_addr, volatile uint32_t tt_l1_ptr *header_addr_ptr
+    epoch_queue::VarinstCmdInfo &varinst_cmd_info, uint64_t &queue_addr_ptr, volatile uint32_t *noc_read_scratch_buf
 );
 #endif
 

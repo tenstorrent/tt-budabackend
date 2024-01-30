@@ -674,6 +674,10 @@ void tt_cluster::translate_to_noc_table_coords(chip_id_t device_id, std::size_t 
     device -> translate_to_noc_table_coords(device_id, r, c);
 }
 
+tt_version tt_cluster::get_ethernet_fw_version() {
+    return device -> get_ethernet_fw_version();
+}
+
 std::ostream &operator<<(std::ostream &os, tt_target_dram const &dram) {
     os << "Target DRAM chip = " << std::get<0>(dram) << ", chan = " << std::get<1>(dram) << ", subchan = " << std::get<2>(dram);
     return os;

@@ -81,9 +81,11 @@ class tt_runtime : public tt_backend
     bool arch_supports_harvesting = false;
     bool performed_harvesting = false;
     bool noc_translation_enabled = false;
-    bool need_partial_recompile_during_run = false;
+    bool need_overlay_recompile_during_run = false;
+    bool need_risc_recompile_during_run = false;
     bool distribute_epoch_tables = !parse_env("TT_BACKEND_NON_DISTRIBUTED_EPOCH_TABLE", false);
     //! Pre-run static creation and init methods
+    void verify_eth_fw_version();
     void create_graphs_and_init_queues();
     void create_graph_program(const tt_graph_info &graph_info);
     tt_compile_result create_graph_overlay_binaries();
@@ -165,8 +167,10 @@ class tt_runtime : public tt_backend
     unordered_map<tt_xy_pair, vector<uint64_t>> get_last_epoch_kernel_runtime();
 
     void ensure_devices_present(const TargetDevice &target_type);
+    void check_epoch_metadata(const YAML::Node& runtime_data);
     void check_runtime_data();
     void export_runtime_data_to_yaml();
+    std::string epoch_metadata_to_yaml();
     std::string runtime_data_to_yaml(); // Returns a string respresentation of runtime_data
 
     void perf_set_total_number_of_samples(int total_num_samples);

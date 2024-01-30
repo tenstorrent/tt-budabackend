@@ -121,6 +121,7 @@ struct tt_cluster
     map<uint, pair<uint64_t, uint64_t>> get_elapsed_time(std::string output_dir);
     vector<tt::EpochPerfInfo> get_perf_info_all_epochs();
     void translate_to_noc_table_coords(chip_id_t device_id, std::size_t &r, std::size_t &c);
+    tt_version get_ethernet_fw_version();
     //! read/write access
     void send_hex_to_dram(tt_hex *hex, bool small_access = false, bool send_epoch_cmd = false, bool last_send_epoch_cmd = true);
     void read_hex_from_dram(tt_hex *hex);

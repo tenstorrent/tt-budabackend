@@ -153,6 +153,15 @@ void run_epoch(
 void run_dram_queue_update(
     void * pFunction, volatile uint32_t *noc_read_scratch_buf, uint64_t& my_q_table_offset, uint32_t& my_q_rd_ptr, uint64_t& dram_next_epoch_ptr, uint8_t& loading_noc, bool &varinst_cmd, uint32_t &loop_iteration
 ) {
+    uint32_t epoch_info_struct_size = sizeof(epoch_t);
+    // Get NOC Address Aligned value for epoch_t size offset, since the struct size itself may not be correctly aligned and we allocate L1 buffers interfacing with DRAM based on this size
+    uint32_t skip_epoch_t = epoch_info_struct_size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT; // Get remainder wrt NOC alignment
+    skip_epoch_t = (skip_epoch_t == 0) ? epoch_info_struct_size : (epoch_info_struct_size + l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT - skip_epoch_t); // Align the offset based on remainder
+    // Get NOC Address Aligned value for dram_io_state_t size offset, since the struct size itself may not be correctly aligned and we allocate L1 buffers interfacing with DRAM based on this size
+    uint32_t dram_io_state_struct_size = sizeof(dram_io_state_t);
+    uint32_t skip_dram_io_t = dram_io_state_struct_size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT; // Get remainder wrt NOC alignment
+    skip_dram_io_t = (skip_dram_io_t == 0) ? dram_io_state_struct_size : (dram_io_state_struct_size + l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT - skip_dram_io_t); // Align the offset based on remainder
+
     epoch_queue::EpochDramUpdateCmdInfo cmd;
 
     // Desire to re-use this code mostly as-is for existing EpochCmdIOQueueUpdate and new EpochCmdVarinst which are very similar in what they do.
@@ -207,17 +216,17 @@ void run_dram_queue_update(
         uint64_t queue_addr_ptr = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset);
         ncrisc_noc_fast_read_any_len_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, queue_addr_ptr, 
 #ifdef ERISC
-                                        eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t), 
+                                        eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t, 
 #else
-                                        l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t), 
+                                        l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t, 
 #endif
                                         cmd_info_num_buffers*8, NCRISC_HEADER_RD_TRID);
     }
 
 #ifdef ERISC
-    uint32_t header_addr = eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t) + MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*sizeof(dram_io_state_t);
+    uint32_t header_addr = eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*skip_dram_io_t;
 #else
-    uint32_t header_addr = l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t) + MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*sizeof(dram_io_state_t);
+    uint32_t header_addr = l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*skip_dram_io_t;
 #endif  
  
     volatile uint32_t tt_l1_ptr *header_addr_ptr = (volatile uint32_t tt_l1_ptr *)header_addr;
@@ -268,9 +277,9 @@ void run_dram_queue_update(
             }
 
     #ifdef ERISC
-            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t));
+            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t);
     #else
-            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t));
+            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t);
     #endif
 
             bool has_multi_buffers = cmd_info_num_buffers > 1;
@@ -292,17 +301,16 @@ void run_dram_queue_update(
                 queue_sync_ptr = NOC_XY_ADDR(
                     NOC_X(cmd.queue_update_info.header[0]),
                     NOC_Y(cmd.queue_update_info.header[1]),
-                    EPOCH_ALLOC_QUEUE_SYNC_ADDRESS + cmd.queue_update_info.header[2] * 32);
+                    EPOCH_ALLOC_QUEUE_SYNC_ADDRESS + cmd.queue_update_info.header[2] * epoch_queue::EPOCH_Q_SLOT_SIZE);
             } else if (varinst_cmd && cmd.varinst_cmd_info.sync_loc_enable){
                 queue_sync_ptr = NOC_XY_ADDR(
                     NOC_X(cmd.varinst_cmd_info.sync_loc_dram_core_x),
                     NOC_Y(cmd.varinst_cmd_info.sync_loc_dram_core_y),
-                    EPOCH_ALLOC_QUEUE_SYNC_ADDRESS + cmd.varinst_cmd_info.sync_loc_index * 32);
+                    EPOCH_ALLOC_QUEUE_SYNC_ADDRESS + cmd.varinst_cmd_info.sync_loc_index * epoch_queue::EPOCH_Q_SLOT_SIZE);
             }else{
                 queue_sync_ptr = queue_addr_ptr;
             }
-
-            uint32_t l1_ptr_addr = ((uint32_t)queue_addr_l1) + MAX_DRAM_QUEUES_TO_UPDATE*8 + k*sizeof(dram_io_state_t);
+            uint32_t l1_ptr_addr = ((uint32_t)queue_addr_l1) + MAX_DRAM_QUEUES_TO_UPDATE*8 + k*skip_dram_io_t;
             volatile dram_io_state_t tt_l1_ptr *l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)l1_ptr_addr;
 
             if (state[k] == 0 || state[k] == 2) {
@@ -333,7 +341,7 @@ void run_dram_queue_update(
                 if (!has_multi_readers || reader_index == rd_stride) {
                     if (!has_multi_readers || reader_index == total_readers-1) {
                         if (varinst_cmd){
-                            run_varinst_cmd_dram_rmw(cmd.varinst_cmd_info, queue_addr_ptr, header_addr, header_addr_ptr);
+                            run_varinst_cmd_dram_rmw(cmd.varinst_cmd_info, queue_addr_ptr, noc_read_scratch_buf);
                         }else{
                             if (allocate_queue || cmd.queue_update_info.update_mask == 0xff) {
                                 while (!ncrisc_noc_fast_write_ok_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
@@ -359,7 +367,7 @@ void run_dram_queue_update(
                                     queue_addr_ptr = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset);
                                     while (!ncrisc_noc_fast_write_ok_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
                                     if (varinst_cmd){
-                                        run_varinst_cmd_dram_rmw(cmd.varinst_cmd_info, queue_addr_ptr, header_addr, header_addr_ptr);
+                                        run_varinst_cmd_dram_rmw(cmd.varinst_cmd_info, queue_addr_ptr, noc_read_scratch_buf);
                                     }else{
                                         ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(header_addr_ptr[0])), queue_addr_ptr, DRAM_HEADER_SIZE,
                                                                 DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
@@ -429,100 +437,68 @@ void run_dram_queue_update(
 }
 
 // Execute the opcode w/ operands. for EpochCmdVarinst on configurable size and nubmer of fields offset from a DRAM address.
-void run_varinst_cmd_dram_rmw(epoch_queue::VarinstCmdInfo &varinst_cmd_info, uint64_t &queue_addr_ptr, uint32_t header_addr, volatile uint32_t tt_l1_ptr *header_addr_ptr){
-
-    // Re-use existing allocated 32B header_addr in L1 for arithmetic. Cmd may use 64B of DRAM, split over two read/modify/write loops. 
-    const int num_varinst_words = 8; // rename, make it something to do with words per txn or something.
+void run_varinst_cmd_dram_rmw(epoch_queue::VarinstCmdInfo &varinst_cmd_info, uint64_t &queue_addr_ptr, volatile uint32_t *noc_read_scratch_buf){
+    // Read the 64 Byte aligned header into the 64 Byte aligned noc_read_scratch_buf
+    const int num_varinst_words = 16; // rename, make it something to do with words per txn or something.
     const int read_size         = num_varinst_words * sizeof(uint32_t);
     const int write_size        = sizeof(uint32_t);
 
-    // Some variables used to avoid multiplication and division.
-    int num_32B_rdwr_loops          = 1; // Common case, only 4B with upper+lower update_mask bits set will use 2 loops.
-    int update_mask_start_idx       = 0;
-    int update_mask_bits_per_loop   = 16;
+    int field_offset_1B = 0;
 
-    // For 4B field sizes, determine number of loops and/or DRAM addr offset if single loop.
-    if ((varinst_cmd_info.field_size_bytes == 4) && (varinst_cmd_info.update_mask & 0xFF00)){
-        if (varinst_cmd_info.update_mask & 0x00FF){
-            num_32B_rdwr_loops = 2;
-            update_mask_bits_per_loop = 8; // num_varinst_words;
-        }else{
-            queue_addr_ptr += read_size;
-            update_mask_start_idx += num_varinst_words;
-        }
-    }
+    // Step 1 : Read 64B chunk from DRAM to L1 and wait for read to complete. This is safe, since we're reading from a 64B aligned address into a 64B aligned address
+    ncrisc_noc_fast_read_any_len_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, queue_addr_ptr, (uint32_t)(noc_read_scratch_buf), read_size, NCRISC_HEADER_RD_TRID);
+    while (!ncrisc_noc_reads_flushed_l1(loading_noc, NCRISC_HEADER_RD_TRID));
 
-    // 2 loops for 4Byte case where upper and lower update_mask bits are set. If we simplified this to use 64 bytes in L1,
-    // then existing code would work and wouldn't need loops.
-    for (int loop_idx=0; loop_idx<num_32B_rdwr_loops; loop_idx++){
+    // Step 2 : Modify appropriate fields (up to 16 per 64B chunk) of configurable size.
+    for (int i = 0; i < 16; i++) {
 
-        int field_offset_1B = 0;
+        bool update_word = (varinst_cmd_info.update_mask >> i) & 0x1;
+        if (update_word) {
 
-        // Step 1 : Read 32B chunk from DRAM to L1 and wait for read to complete.
-        ncrisc_noc_fast_read_any_len_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, queue_addr_ptr, header_addr, read_size, NCRISC_HEADER_RD_TRID);
-        while (!ncrisc_noc_reads_flushed_l1(loading_noc, NCRISC_HEADER_RD_TRID));
+            uint16_t field_offset_4B        = field_offset_1B >> 2;
+            uint32_t field_shift_amt        = (field_offset_1B << 3) & 0x1F; // Number of bits to shift by into 4B word to reach field.
+            uint32_t field_mask_4B          = varinst_cmd_info.field_size_bytes == 2 ? 0xFFFF : varinst_cmd_info.field_size_bytes == 1 ? 0xFF : 0xFFFFFFFFF;
+            uint32_t field_mask_shifted_4B  = field_mask_4B << field_shift_amt;
 
-        // Step 2 : Modify appropriate fields (up to 8 per 32B chunk) of configurable size.
-        for (int i = update_mask_start_idx; i < 16; i++) {
+            // TODO - Could improve by avoiding datacopies, and using references.
+            uint32_t rd_val_field = (noc_read_scratch_buf[field_offset_4B] & field_mask_shifted_4B) >> field_shift_amt;
+            uint32_t wr_val_field = 0;
 
-            // Making this part of for loop range causes compile errors about multiply being used. This was only possible workaround found.
-            if (i > (update_mask_start_idx + update_mask_bits_per_loop - 1)){
-                continue;
-            }
-            
-            bool update_word = (varinst_cmd_info.update_mask >> i) & 0x1;
-            if (update_word) {
-
-                // Instead of modulo operator, for 2 loops, want to re-use same 8 slots of 32B L1 for each loop.
-                uint16_t field_offset_4B        = field_offset_1B >= read_size ? (field_offset_1B - read_size) >> 2 : (field_offset_1B) >> 2;
-                uint32_t field_shift_amt        = (field_offset_1B << 3) & 0x1F; // Number of bits to shift by into 4B word to reach field.
-                uint32_t field_mask_4B          = varinst_cmd_info.field_size_bytes == 2 ? 0xFFFF : varinst_cmd_info.field_size_bytes == 1 ? 0xFF : 0xFFFFFFFFF;
-                uint32_t field_mask_shifted_4B  = field_mask_4B << field_shift_amt;
-
-                // TODO - Could improve by avoiding datacopies, and using references.
-                uint32_t rd_val_field = (header_addr_ptr[field_offset_4B] & field_mask_shifted_4B) >> field_shift_amt;
-                uint32_t wr_val_field = 0;
-
-                if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdIncWrap){
-                    // Can't use modulo, do wrapping manually. This isn't efficient for the case where existing data is 
-                    // many times larget than wrap value. Could be optimized, but this shouldn't be common.
-                    wr_val_field = rd_val_field + varinst_cmd_info.operand_0;
-                    while (wr_val_field >= varinst_cmd_info.operand_1) {
-                        wr_val_field -= varinst_cmd_info.operand_1;
-                    }
-                }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdInc){
-                    wr_val_field = rd_val_field + varinst_cmd_info.operand_0;
-                }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdSet){
-                    wr_val_field = varinst_cmd_info.operand_0;
-                }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdAdd){
-                    wr_val_field = varinst_cmd_info.operand_0 + varinst_cmd_info.operand_1;
-                }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdMul){
-                    // Multiply operator not available. This seems to work...
-                    for (uint32_t j = 0; j < 32; ++j) {
-                        if (varinst_cmd_info.operand_1 & (1u << j)) {
-                            wr_val_field += (varinst_cmd_info.operand_0 << j);
-                        }
+            if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdIncWrap){
+                // Can't use modulo, do wrapping manually. This isn't efficient for the case where existing data is 
+                // many times larget than wrap value. Could be optimized, but this shouldn't be common.
+                wr_val_field = rd_val_field + varinst_cmd_info.operand_0;
+                while (wr_val_field >= varinst_cmd_info.operand_1) {
+                    wr_val_field -= varinst_cmd_info.operand_1;
+                }
+            }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdInc){
+                wr_val_field = rd_val_field + varinst_cmd_info.operand_0;
+            }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdSet){
+                wr_val_field = varinst_cmd_info.operand_0;
+            }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdAdd){
+                wr_val_field = varinst_cmd_info.operand_0 + varinst_cmd_info.operand_1;
+            }else if (varinst_cmd_info.opcode == epoch_queue::VarinstCmdMul){
+                // Multiply operator not available. This seems to work...
+                for (uint32_t j = 0; j < 32; ++j) {
+                    if (varinst_cmd_info.operand_1 & (1u << j)) {
+                        wr_val_field += (varinst_cmd_info.operand_0 << j);
                     }
                 }
+            }
 
-                header_addr_ptr[field_offset_4B] = header_addr_ptr[field_offset_4B] & ~field_mask_shifted_4B;
-                header_addr_ptr[field_offset_4B] = header_addr_ptr[field_offset_4B] | ((wr_val_field & field_mask_4B) << field_shift_amt);
-                // TT_LOG("run_varinst_cmd_dram_rmw queue_addr_ptr: 0x{:x} field_size_bytes: {} num_buffers: {} num_readers: {} reader_index: {} => updated i: {} opcode: {} rd_val_field: 0x{:x} wr_val_field: 0x{:x}",
-                // queue_addr_ptr, varinst_cmd_info.field_size_bytes, varinst_cmd_info.num_buffers, varinst_cmd_info.num_readers, varinst_cmd_info.reader_index, i, varinst_cmd_info.opcode, rd_val_field, wr_val_field);
+            noc_read_scratch_buf[field_offset_4B] = noc_read_scratch_buf[field_offset_4B] & ~field_mask_shifted_4B;
+            noc_read_scratch_buf[field_offset_4B] = noc_read_scratch_buf[field_offset_4B] | ((wr_val_field & field_mask_4B) << field_shift_amt);
+            // TT_LOG("run_varinst_cmd_dram_rmw queue_addr_ptr: 0x{:x} field_size_bytes: {} num_buffers: {} num_readers: {} reader_index: {} => updated i: {} opcode: {} rd_val_field: 0x{:x} wr_val_field: 0x{:x}",
+            // queue_addr_ptr, varinst_cmd_info.field_size_bytes, varinst_cmd_info.num_buffers, varinst_cmd_info.num_readers, varinst_cmd_info.reader_index, i, varinst_cmd_info.opcode, rd_val_field, wr_val_field);
 
-            // Step 3 : Write updated fields back to DRAM. Not entire 32B chunk, but just updated fields, one at a time.
+            // Step 3 : Write updated fields back to DRAM. Not entire 64B chunk, but just updated fields, one at a time. Since the L1 src address has the same relative addr as the DRAM dest addr (wrt a 64B alignment, this is safe) 
             // This is a bit dangerous, write back entire 4B word that may have been partially (1B or 2B) updated. It works to solve Rdptr/Wrptr modification race though since
             // they are in different 4B words.
             while (!ncrisc_noc_fast_write_ok_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
-            ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(header_addr_ptr[field_offset_4B])), queue_addr_ptr + field_offset_1B, write_size,
+            ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(noc_read_scratch_buf[field_offset_4B])), queue_addr_ptr + field_offset_1B, write_size,
                                     DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
-            }
-
-            field_offset_1B += varinst_cmd_info.field_size_bytes;
         }
 
-        // If there is a next loop, offset read/write location by next 32B chunk.
-        queue_addr_ptr += read_size;
-        update_mask_start_idx += num_varinst_words;
+        field_offset_1B += varinst_cmd_info.field_size_bytes;
     }
 }
