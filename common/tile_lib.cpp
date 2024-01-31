@@ -81,7 +81,7 @@ void multiply(tt::tt_tile& output_tile, const tt::tt_tile& input0, const tt::tt_
 }
 void maximum(tt::tt_tile& output_tile, const tt::tt_tile& input0, const tt::tt_tile& input1) {
     for (unsigned int i = 0; i < tt::constants::TILE_HEIGHT * tt::constants::TILE_WIDTH; i++) {
-        output_tile.t_vector[i] = input0.t_vector[i] > input1.t_vector[i] ? input0.t_vector[i] : input1.t_vector[i]
+        output_tile.t_vector[i] = input0.t_vector[i] > input1.t_vector[i] ? input0.t_vector[i] : input1.t_vector[i];
     }
 }
 

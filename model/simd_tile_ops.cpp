@@ -278,7 +278,7 @@ namespace tt {
 
     void tt_tile::operator = (const tt_tile& rhs)
     {
-        log_assert(rhs.data_format != DataFormat::Invalid);
+        log_assert(rhs.data_format != DataFormat::Invalid, "invalid data format");
         data_format = rhs.data_format;
 
         int i,j;
