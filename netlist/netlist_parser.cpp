@@ -3483,38 +3483,27 @@ void netlist_parser::verify_complex_settings() {
         }
     }
     // START: Checks for tilizer op
-    for (const auto &graph_it : graph_map) {
-        for (const auto &op_it : graph_it.second.op_map) {
-            if (netlist_utils::is_valid_tilizer_op(op_it.second.type)) {
-                // Check that tm is not on input
-                bool found_tm_on_input = false;
+    for (const auto &[graph_name, graph] : graph_map) {
+        for (const auto &[op_name, op] : graph.op_map) {
+            if (netlist_utils::is_valid_tilizer_op(op.type)) {
 
-                for (const auto &tm_it : op_it.second.input_tm_ops) {
-                    if (tm_it.second.size() > 0) {
-                        found_tm_on_input = true;
-                        break;
-                    }
+                for (const auto &tm_it : op.input_tm_ops) {
+                    log_assert(
+                        tm_it.second.empty(),
+                        "graph={}, op={} is a tilizer op and should not have tm on input.",
+                        graph_name, op_name
+                    );
                 }
 
-                log_assert(
-                    !found_tm_on_input,
-                    "graph={}, op={} is a tilizer op and should not have tm on input.",
-                    graph_it.second.name, 
-                    op_it.second.name
-                );
+                // Check that in/out ublock dims are the same if ublock_rt > 1
+                const tt_dim_info& in0 = op.input_dims.at(0);
+                const tt_dim_info& out = op.output_dim;
 
-                // Check that in/out ublock dims are the same if  ublock_rt>1
-                if (op_it.second.output_dim.ublock_rt>1) {
+                if (in0.ublock_rt > 1 || out.ublock_rt > 1) {
                     log_assert(
-                        (op_it.second.output_dim.ublock_rt == op_it.second.input_dims.at(0).ublock_rt) &&
-                        (op_it.second.output_dim.ublock_ct == op_it.second.input_dims.at(0).ublock_ct),
+                        out.ublock_rt == in0.ublock_rt && out.ublock_ct == in0.ublock_ct,
                         "graph={}, op={} for tilizer op input and output ublock dim has to match when ublock_rt>1, input ublock[rt,ct]=[{},{}] != output ublock[rt,ct]=[{},{}]", 
-                        graph_it.second.name, 
-                        op_it.second.name, 
-                        op_it.second.input_dims.at(0).ublock_rt,
-                        op_it.second.input_dims.at(0).ublock_ct,
-                        op_it.second.output_dim.ublock_rt,
-                        op_it.second.output_dim.ublock_ct
+                        graph_name, op_name, in0.ublock_rt, in0.ublock_ct, out.ublock_rt, out.ublock_ct
                     );
                 }    
             }
