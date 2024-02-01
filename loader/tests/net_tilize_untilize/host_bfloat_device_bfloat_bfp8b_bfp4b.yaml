@@ -1,0 +1,49 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  input_0_matmul2:          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input_0_matmul1:          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30003240]]}
+
+  # output
+  # data_formats.output_add:  {input: add, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+  data_formats.output_add:  {input: add, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+  # parameter
+  data_formats.weights2:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x300020a0]]}
+  data_formats.weights1:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Bfp4_b, target_device: 0, loc: dram, dram: [[0, 0x300052e0]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    matmul2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_0_matmul2, data_formats.weights2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Bfp8_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    matmul1: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [input_0_matmul1, data_formats.weights1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Bfp4_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    sqrt: {type: sqrt, grid_loc: [0, 2], grid_size: [1, 1], inputs: [matmul1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add: {type: add, grid_loc: [0, 3], grid_size: [1, 1], inputs: [sqrt, matmul2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               data_formats.weights2: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               data_formats.weights1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_0_matmul2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_0_matmul1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+

@@ -1,0 +1,116 @@
+6.7.0
+    - Split routing queue into two independent queues for incoming and outgoing ethernet traffic.
+    - Add support for outstanding writes > queue size, with CMD_ORDERED flag. In this mode only
+      the last write block is acked.
+
+6.6.0
+    - Fix deadlock when erisc cores issue ethernet cross traffic within the chip.
+    - Fix long retraining time on marginal ethernet lanes on galaxy modules
+
+6.5.0
+    - Update ethernet routing from Nebula to Galaxy. All Nebula to Galaxy ports are used
+      for routing to Galaxy. Routing form Galaxy to Nebula is disabled.
+    - Fix ethernet send packet race with fw updating data packet.
+
+6.4.0
+    - Add Ethernet Broadcast Support
+    - Add Scatter Block Write Support
+    - Add port disable mask for custom galaxy topologies
+    - Remove unused param table entries (PHY FW loading)
+    - Add granular status for inactive ports
+    - Optimize ethernet TX equalization settings for Galaxy Mobo port 8 and 15 to improve the lane quality
+    - Optimize ethernet firmware link training sequence to resolve boot to boot intermittent ethernet training failing cases
+
+6.3.0
+    - Fix NOC Aggregator queue overflow when block reads and writes are interleaved
+      from multiple requestors.
+    - Fix rsfec err counter reset issue, return proper BER data from symerr checker during training.
+    - Add more config error codes.
+    - Add correctable and uncorrect errors logs to link monitoring.
+    - Fix bilateral training race condition causing one side to fail to recieve chip info table, resulting config error.
+
+6.2.0
+    - Add support for ARC refclk in erisc retrain
+
+6.1.0
+    - Add unique trnasaction ids to Noc Transactions.
+    - Update rack discovery to handle one chip fanning out to multiple chips over eth links
+    - Fix long delays in credo training sequence
+    - Add config error detection, and separate not connected from training failed port status
+
+6.0.0
+    - Eth routing v2
+      Add load balancing.
+      Update rack and shelf discovery.
+      Add command timestamps/latency support.
+      Add support for dram block read/write.
+    - Add credo sig detect and retrain sequence, 
+    - move chip info table exchange to training, 
+    - increase mac recv to 100ms, 
+    - add config error detect (default off), 
+    - add auto loopback cable detect
+
+5.2.0
+  - Fix for WHB0 issue # 3490.
+    During AM Misalignment, some packets can still sneak past the checks and make it
+    to the ethernet receiver.
+
+5.1.0
+  - Galaxy rack/shelf routing support.
+    Complete system address now includes Rack x,y in addition to [chip x,y] [noc x,y] [Offset]
+    Rack x,y is specified in ethernet routing command.
+  - Dram trained status is provided via boot_params.dram_trained field. Device driver is supposed to 
+    set this field to 1. Ethernet Overlay Stream firmware waits fro this flag before polling epoch_q in DRAM
+    for epoch commands.
+  - Added support to run syseng stream test firmware. boot_params.run_test_app flag controls running stream
+    test application. After loading test firmware @0x8020, setting run_test_app to 1 will result in execution of
+    stream test firmware.
+
+5.0.0
+   - Skipped. Version used for verificaton. FW is released as 5.1.0.
+
+4.0.0
+  - Ethernet root node can be any chip on the network grid that has host mmio access. Root Chip X/Y 
+    does not need to be specified in boot_params anymore.
+  - Block mode transfers now require explicit api call to reserve block buffer before issuing
+    Block Read/Write commands. Once block transfer is complete, reserved buffer has to be freed.
+  - Updated ethernet training sequence.
+
+3.0.0
+  - Move ethernet boot params from 0x5000 to 0x1000.
+  - Move erisc Application firmware from 0x6020 to 0x8020.
+  - Modify memory map to provide more space for erisc spi fw. First 64KB of L1 is divided equally between 
+    erisc spi fw and applicaiton fw. i.e erisc spi fw has 32 KB of L1 starting @ 0x0.
+    Of this 32 KB, 4 KB @ 0x1000 is used for boot parameters.
+    erisc spi fw now has 27 KB code space. erisc spi fw has 1 KB data space @ 0x7C00.
+
+2.1.0
+  - Wait for all outstanding NOC read/writes to complete before context switch.
+
+2.0.0
+  - Epoch Q interface update.
+
+1.4.1
+  - Add support to complete ethernet routing command using NOC1.
+    NOC is specified by a bit in Flags field of ethernet routing command.
+  - Training sequence updates.
+
+1.4.0
+  - Add Destination Unreachable routing error to remote writes. Flags[31] is set in ethernet command
+    response if the remote chip[x,y] is unreachable.
+  - Add skip flag to support running DRAM tests that can clobber Epoch Q. Ethernet application
+    firmware is monitoring Epoch Q for Host commands.
+  - Add FW training FSM feature to ethernet init.
+
+1.3.0
+  - Fix bug in block reads with more than two chips.
+  - Enable support for root node to be specified by boot params.
+    Root node can be anywhere on the chip grid instead of being fixed at [0,0]
+  - Port over latest ethernet init updates from wh bringup branch.
+    From this release onwards, ethernet init golden code will be kept in budabackend.
+
+1.2.0
+  - Add support for data block reads from remote chips. Upto 1024 bytes can be read/written with single 
+    ethernet read/write command.
+  - Added ethernet version number read back for SW check.
+    ERISC Version can be read from 0xFFB3010C or 0x210 on any ethernet core.

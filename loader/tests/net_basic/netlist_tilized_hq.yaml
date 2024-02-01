@@ -1,0 +1,51 @@
+devices:
+    arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  # inputs -- from previous op masquerading as host input
+  op1_in:    {input: HOST, type: queue, entries: 256, grid_size: [2, 2], t: 1, mblock: [3, 4], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000], [1, 0x30000000], [2, 0x30000000], [3, 0x30000000]]}
+
+  op1_dq:    {input: datacopy_dram, type: queue, entries: 256, grid_size: [2, 2], t: 1, mblock: [3, 4], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x20000000], [1, 0x20000000], [2, 0x20000000], [3, 0x20000000]]}
+  op1_hq:    {input: datacopy_host, type: queue, entries: 256, grid_size: [2, 2], t: 1, mblock: [3, 4], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0, 0x10000000, 0x20000000, 0x30000000]}
+  # op1_hq:    {input: datacopy_host, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [6, 8], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x00000000]}
+
+
+graphs:
+  graph_op1:
+    target_device: 0
+    input_count: 128
+    # datacopy_host: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [op1_in], in_df: [Float16_b], acc_df: Float16_b, out_df: Float16_b,  intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 2, u_kt: 2}}
+    # datacopy_dram: {type: nop, grid_loc: [0, 2], grid_size: [2, 2], inputs: [op1_in], in_df: [Float16_b], acc_df: Float16_b, out_df: Float16_b,  intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 2, u_kt: 2}}
+
+    datacopy_dram: {type: nop, grid_loc: [0, 2], grid_size: [2, 2], inputs: [op1_in], untilize_output: false,
+         t: 1, mblock: [3, 4], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    # datacopy_host: {type: nop, grid_loc: [0, 4], grid_size: [2, 2], inputs: [op1_in], untilize_output: true,
+    #      t: 1, mblock: [3, 4], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    datacopy_host: {type: nop, grid_loc: [0, 4], grid_size: [2, 2], inputs: [op1_in], untilize_output: false,
+         t: 1, mblock: [3, 4], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+
+programs:
+  - op_unary:
+    - var: {$p_microbatch_count: 1}
+    - var: {$c_microbatch_size: 128, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: graph_op1, queue_settings: {
+          op1_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 512]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 512]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.99
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: DebugTileId
+    debug_tile_id_base: 0
+    debug_tile_id_step: 1

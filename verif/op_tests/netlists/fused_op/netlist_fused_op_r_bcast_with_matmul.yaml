@@ -1,0 +1,68 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  # input
+  act1:                                                        {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 2, mblock: [4, 16], ublock: [2, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  # output
+  fuse_tile_broadcast.output_add:                              {input: _fused_op_0_output_nop_0, type: queue, entries: 2, grid_size: [1, 1], t: 2, mblock: [4, 2], ublock: [2, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0x0, 0x31000000]]}
+  # parameter
+  fuse_tile_broadcast.weights1:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 2], t: 2, mblock: [16, 1], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x30000000], [1, 0x34000000]]}
+  fuse_tile_broadcast.bias1:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 2], t: 2, mblock: [1, 4], ublock: [1, 1], ublock_order: r, df: Bfp4_b, target_device: 0, loc: dram, dram: [[2, 0x30000000], [2, 0x34000000]]}
+  # constant
+  lc.input_tensor.fuse_tile_broadcast.bias1_s_brcst_m2_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x30000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 2
+    matmul1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 2], inputs: [act1, fuse_tile_broadcast.weights1],
+         t: 2, mblock: [4, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: HiFi3,
+         attributes: {m_k: 16, u_kt: 1}}
+    _fused_op_0: {type: fused_op, grid_loc: [0, 2], grid_size: [1, 2], inputs: [lc.input_tensor.fuse_tile_broadcast.bias1_s_brcst_m2_0_0.0, fuse_tile_broadcast.bias1, matmul1],
+         t: 2, mblock: [4, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Bfp4_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Float16_b, acc_df: Bfp8_b, math_fidelity: HiFi3,
+         attributes: {fused_op_id: 0}}
+    _fused_op_0_output_nop_0: {type: nop, grid_loc: [0, 4], grid_size: [1, 1], inputs: [_fused_op_0], untilize_output: false,
+         t: 2, mblock: [4, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: HiFi3}
+
+programs:         
+  - run_fwd:
+    - var: {$c_microbatch_size: 2, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               fuse_tile_broadcast.weights1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.fuse_tile_broadcast.bias1_s_brcst_m2_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               fuse_tile_broadcast.bias1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 4]
+    - endloop
+
+fused_ops:    
+  0: 
+    inputs: 3
+    intermediates: 1
+    schedules: 
+      -
+        - fuse_tile_broadcast.bias1_s_brcst_m2_0_0.lc1: { type: matmul, inputs: [input0, input1], attributes: {m_k: 1, u_kt: 1}, mblock: [1, 1], ublock: [1, 4], output: intermed0}
+      -
+        - add: { type: add, inputs: [input2, intermed0], input_1_tms: [broadcast: {r: 8}], pop_last: [intermed0], mblock: [4, 1], ublock: [2, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    #type: Uniform
+    type: Constant
+    constant_value: 0.1
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: -0.1
+    uniform_upper_bound: 0.1        

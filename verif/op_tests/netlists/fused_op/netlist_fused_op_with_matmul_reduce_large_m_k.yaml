@@ -1,0 +1,89 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in_0:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 8, mblock: [3, 8], ublock: [2, 2], df: Bfp4_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in_1:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 8, mblock: [3, 1], ublock: [2, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  in_2:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 8, mblock: [8, 1], ublock: [2, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  in_3:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 8, mblock: [1, 1], ublock: [1, 1], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+  #input4:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x34000000]]}
+  #input5:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x35000000]]}
+  #input6:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x36000000]]}
+  output0:  {type: queue, input: op0 , entries: 8, grid_size: [1, 1], t: 8, mblock: [3, 1], ublock: [2, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  8
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [in_0, in_1, in_2, in_3]
+      in_df: [Bfp4_b, Bfp8_b, Float16_b, Float32]
+      acc_df: Float16
+      out_df: Bfp8_b  
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false 
+      gradient_op: false
+      attributes: {approximate_mode: true, fused_op_id: 0}
+      input_3_tms: [broadcast: {r: 6}]
+      #input_2_tms: [broadcast: {r: 4}] 
+      input_1_tms: [broadcast: {c: 16}]
+      t: 8
+      mblock: [3, 1]
+      ublock: [2, 1]
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 8]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 16]
+      -   varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+fused_ops:
+  0: 
+    inputs: 4
+    intermediates: 2
+    schedules: 
+      -
+        - layernorm_39.dc.multiply.2: { type: multiply, inputs: [input0, input1], mblock: [3, 8], ublock: [2, 2], output: intermed0}
+        - layernorm_39.dc.reduce_avg.3.lc1: { type: matmul, inputs: [intermed0, input2], attributes: {m_k: 8, u_kt: 2}, pop: [intermed0], mblock: [3, 1], ublock: [2, 1], output: intermed1}
+      -
+        - layernorm_39.dc.add.5: { type: add, inputs: [intermed1, input3], pop_last: [intermed1], mblock: [3, 1], ublock: [2, 1], output: dest}
+        - layernorm_39.dc.sqrt.6: { type: sqrt, inputs: [dest], mblock: [3, 1], ublock: [2, 1], output: dest}
+        - layernorm_39.dc.reciprocal.7: { type: reciprocal, inputs: [dest], mblock: [3, 1], ublock: [2, 1], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.95
+    verbosity: Concise
+  stimulus-config:
+    #type: Uniform
+    #type: Constant
+    #constant_value: 1.0
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 1.0
+    type: Normal
+    normal_mean: 0.5
+    normal_stddev: 0.25
+

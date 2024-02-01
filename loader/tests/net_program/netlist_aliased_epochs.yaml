@@ -1,0 +1,34 @@
+# Verify functionality mechanism used to avoid epoch aliasing
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  in0: {type: queue, input: HOST, entries: 1500, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [4, 4], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  in1: {type: queue, input: HOST, entries: 1500, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [4, 4], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10000000]]}
+  
+  out0: {type: queue, input: unary0, entries: 1500, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [4, 4], df: Float16, target_device: 0, loc: dram, dram: [[3, 0x10000000]]}
+  out1: {type: queue, input: unary1, entries: 1500, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [4, 4], df: Float16, target_device: 0, loc: dram, dram: [[4, 0x10000000]]}
+
+graphs:
+  unary_graph0:
+    target_device: 0
+    input_count: 1500
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [4, 8], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 1], ublock: [2, 2]}
+  unary_graph1:
+    target_device: 0
+    input_count: 1500
+    unary1: {type: nop, grid_loc: [5, 0], grid_size: [4, 8], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 1], ublock: [2, 2]}
+
+programs:
+  - run_back_to_back_epochs:
+      - var: [$ptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1500] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph0, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+      - execute: {graph_name: unary_graph1, queue_settings: {
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+
+      - varinst: [$ptr, add, $ptr, $c_input_count] # incr ptr
+      - endloop

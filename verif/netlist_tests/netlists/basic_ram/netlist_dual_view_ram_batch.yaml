@@ -1,0 +1,44 @@
+# Implements dual-view dram where the read-view has num_entries > 1. Requires global_wrptr_autoinc on write-view and global_rdptr_autoinc on reader.
+
+devices:
+    arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  q0     : {type: queue,  input: HOST, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  writer : {type: ram,    input: unary0, entries: 14, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  reader : {type: ram,    input: HOST, alias: writer, entries: 2, grid_size: [1, 1], t: 7, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  output : {type: queue,  input: unary1, entries: 4, grid_size: [1, 1], t: 7, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+
+graphs:
+  test_graph0:
+    target_device: 0
+    input_count: 2
+    unary0: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  test_graph1:
+    target_device: 0
+    input_count: 2
+    unary1: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [reader], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 7, mblock: [1, 1], ublock: [1, 1]}
+
+programs:
+  - write_cache: 
+      - param: [$p_cache_write]
+      - staticvar: {$input_side_lrdptr: 0, $input_side_grdptr: 0}
+      - var: {$v_cache_write: 0, $c_zero: 0, $c_microbatch_size: 2, $c_num_loops: 1, $c_write_stride: 7} 
+      - varinst: [$v_cache_write, set, $p_cache_write]
+      - loop: $c_num_loops
+      - execute: {graph_name: test_graph0, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $input_side_lrdptr, rd_ptr_global: $input_side_grdptr},
+          writer: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - varinst: [$input_side_lrdptr, incwrap, $c_microbatch_size, 8]
+      - varinst: [$input_side_grdptr, incwrap, $c_microbatch_size, 8]
+
+      - endloop
+
+  - read_cache: 
+      - staticvar: {$output_side_ptr: 0}
+      - var: {$c_zero: 0, $c_one: 1, $c_num_loops: 1, $c_microbatch_size: 2} 
+      - loop: $c_num_loops
+      - execute: {graph_name: test_graph1, queue_settings: {
+          reader: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $output_side_ptr, global_rdptr_autoinc: $c_one}}}
+      - endloop

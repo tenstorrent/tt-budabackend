@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 24
+    grid_size: [8, 2]
+    t: 8
+    mblock: [1, 3]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x13db7500], [1, 0x15535b80], [1, 0x19862ee0], [1, 0x1a8382e0], [1, 0x1c31ba20], [1, 0x1e70d2c0], [1, 0x1f3a9140], [1, 0x22916320], [1, 0x24464560], [1, 0x25fcffa0], [1, 0x30ed3100], [1, 0x36becb40], [1, 0x3aa60380], [1, 0x3b8e8940], [1, 0x3d1367c0], [1, 0x3fafa2e0]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 12
+    grid_size: [1, 8]
+    t: 8
+    mblock: [2, 1]
+    ublock: [6, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x1355bb40], [2, 0x173282e0], [2, 0x1c041c20], [2, 0x205aff20], [2, 0x27126940], [2, 0x38687120], [2, 0x3c92c780], [2, 0x3f630860]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 36
+    grid_size: [8, 8]
+    t: 8
+    mblock: [1, 1]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x101a08c0], [4, 0x11556fc0], [4, 0x13079800], [4, 0x13824de0], [4, 0x14498be0], [4, 0x14f05280], [4, 0x157f4f60], [4, 0x15e20a40], [4, 0x16504ee0], [4, 0x16679360], [4, 0x16879220], [4, 0x16d205e0], [4, 0x17e9d7a0], [4, 0x1934d700], [4, 0x19a28fe0], [4, 0x19fbc680], [4, 0x1a471ae0], [4, 0x1a654c80], [4, 0x1a9fa0e0], [4, 0x1b1e4420], [4, 0x1c9df3c0], [4, 0x1e173d80], [4, 0x202fde60], [4, 0x21d593a0], [4, 0x21ecb740], [4, 0x2255d6e0], [4, 0x23071300], [4, 0x235d60e0], [4, 0x238f38e0], [4, 0x23e2f9a0], [4, 0x2466f6c0], [4, 0x24a2e9a0], [4, 0x24b66120], [4, 0x24d656e0], [4, 0x258ed900], [4, 0x26a71ba0], [4, 0x27a878a0], [4, 0x29d994a0], [4, 0x2a8cd9a0], [4, 0x2af570e0], [4, 0x2b794880], [4, 0x2bfc7540], [4, 0x2c1380e0], [4, 0x2c88a140], [4, 0x2ce8adc0], [4, 0x2dc6b2a0], [4, 0x2e8238e0], [4, 0x2f7bb4e0], [4, 0x2f9bf2e0], [4, 0x3143e440], [4, 0x326af0a0], [4, 0x3284aec0], [4, 0x329dffc0], [4, 0x331d8600], [4, 0x3342ea80], [4, 0x340f6760], [4, 0x37356100], [4, 0x38be21c0], [4, 0x3ae4aac0], [4, 0x3b149880], [4, 0x3b2da540], [4, 0x3e128940], [4, 0x3f1e28a0], [4, 0x3fb318e0]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  12
+    op0: 
+      type: matmul
+      grid_loc: [2, 0]
+      grid_size: [8, 8]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 8
+      math_fidelity: HiFi4
+      attributes: {m_k: 12, u_kt: 1}
+      untilize_output: false
+      t: 8
+      mblock: [1, 1]
+      ublock: [1, 2]
+      input_0_tms: []
+      input_1_tms: []
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 12, 48]
+      - varinst: [$gptr0, incwrap, 12, 48]
+      - varinst: [$lptr1, incwrap, 12, 24]
+      - varinst: [$gptr1, incwrap, 12, 24]
+      - endloop: 

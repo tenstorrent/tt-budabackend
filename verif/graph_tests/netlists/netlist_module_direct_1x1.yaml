@@ -1,0 +1,103 @@
+# git checkout 3946d0d20
+# pytest pybuda/test/test_user.py::test_module_direct_pybuda
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [act1, act2]
+    outputs: [direct.output_add_0, direct.output_matmul2]
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  act1:                   {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  act2:                   {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30008120]]}
+
+  # output
+  direct.output_add_0:    {input: add_0, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0x0]}
+  direct.output_matmul2:  {input: matmul2_output_nop_0, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0x8020]}
+
+  # parameter
+  direct.weights1:        {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x1101e100]]}
+  direct.weights2:        {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[3, 0x1800100]]}
+
+  # epoch_to_epoch
+  e2e_matmul1_0:          {input: matmul1, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[4, 0x1800100]]}
+  e2e_matmul2_0:          {input: matmul2, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[5, 0x1101e100]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 4
+    matmul1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [act1, direct.weights1],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+
+  fwd_0_1_temporal_epoch_1:
+    target_device: 0
+    input_count: 4
+    matmul2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [act2, direct.weights2],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+
+  fwd_0_2_temporal_epoch_2:
+    target_device: 0
+    input_count: 4
+    add_0: {type: add, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_matmul1_0, e2e_matmul2_0], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+
+  fwd_0_3_temporal_epoch_3:
+    target_device: 0
+    input_count: 4
+    matmul2_output_nop_0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_matmul2_0], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd_0:
+    - param: [$p_loop_count]
+    - var: {$gptr_q3_shadow: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q3: 0, $gptr_q4: 0, $lptr_q3: 0, $lptr_q4: 0, $c_microbatch_size: 4, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0, $gptr_q1: 0, $lptr_q1: 0}
+    - loop: $p_loop_count
+    -   varinst: [$gptr_q3, set, $gptr_q3_shadow]
+    -   allocate_queue: [e2e_matmul1_0]
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               direct.weights1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 16]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 16]
+    -   allocate_queue: [e2e_matmul2_0]
+    -   execute: {graph_name: fwd_0_1_temporal_epoch_1, queue_settings: {
+               act2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               direct.weights2: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 16]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 16]
+    -   execute: {graph_name: fwd_0_2_temporal_epoch_2, queue_settings: {
+               e2e_matmul1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               e2e_matmul2_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q3, rd_ptr_global: $gptr_q3}} }
+    -   deallocate_queue: [e2e_matmul1_0]
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$gptr_q3_shadow, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q3, incwrap, $c_microbatch_size, 8]
+    -   execute: {graph_name: fwd_0_3_temporal_epoch_3, queue_settings: {
+               e2e_matmul2_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q4, rd_ptr_global: $gptr_q4}} }
+    -   deallocate_queue: [e2e_matmul2_0]
+    -   varinst: [$gptr_q4, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q4, incwrap, $c_microbatch_size, 8]
+    - endloop
+
+

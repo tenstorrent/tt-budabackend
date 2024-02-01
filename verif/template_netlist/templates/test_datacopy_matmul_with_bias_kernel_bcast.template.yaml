@@ -1,0 +1,165 @@
+# test_config_id=$TEMPLATE_test_config_id
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input0_dram_entries
+    grid_size: [$TEMPLATE_input0_dram_grid_size_r, $TEMPLATE_input0_dram_grid_size_c]
+    t: $TEMPLATE_input0_dram_t
+    mblock: [$TEMPLATE_input0_dram_mb_r, $TEMPLATE_input0_dram_mb_c]
+    ublock: [$TEMPLATE_input0_dram_ub_r, $TEMPLATE_input0_dram_ub_c]
+    df: $TEMPLATE_input0_dram_df
+    ublock_order: $TEMPLATE_input0_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_input0_dram_loc
+    $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input1_dram_entries
+    grid_size: [$TEMPLATE_input1_dram_grid_size_r, $TEMPLATE_input1_dram_grid_size_c]
+    t: $TEMPLATE_input1_dram_t
+    mblock: [$TEMPLATE_input1_dram_mb_r, $TEMPLATE_input1_dram_mb_c]
+    ublock: [$TEMPLATE_input1_dram_ub_r, $TEMPLATE_input1_dram_ub_c]
+    df: $TEMPLATE_input1_dram_df
+    target_device: 0
+    loc: $TEMPLATE_input1_dram_loc
+    $TEMPLATE_input1_dram_loc: $TEMPLATE_input1_dram_buffers
+
+  input2_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input2_dram_entries
+    grid_size: [$TEMPLATE_input2_dram_grid_size_r, $TEMPLATE_input2_dram_grid_size_c]
+    t: $TEMPLATE_input2_dram_t
+    mblock: [$TEMPLATE_input2_dram_mb_r, $TEMPLATE_input2_dram_mb_c]
+    ublock: [$TEMPLATE_input2_dram_ub_r, $TEMPLATE_input2_dram_ub_c]
+    df: $TEMPLATE_input2_dram_df
+    target_device: 0
+    loc: $TEMPLATE_input2_dram_loc
+    $TEMPLATE_input2_dram_loc: $TEMPLATE_input2_dram_buffers
+
+  output_dram:
+    type: queue
+    input: output
+    entries: $TEMPLATE_output_dram_entries
+    grid_size: [$TEMPLATE_output_dram_grid_size_r, $TEMPLATE_output_dram_grid_size_c]
+    t: $TEMPLATE_output_dram_t
+    mblock: [$TEMPLATE_output_dram_mb_r, $TEMPLATE_output_dram_mb_c]
+    ublock: [$TEMPLATE_output_dram_ub_r, $TEMPLATE_output_dram_ub_c]
+    df: $TEMPLATE_output_dram_df
+    target_device: 0
+    loc: $TEMPLATE_output_dram_loc
+    $TEMPLATE_output_dram_loc: $TEMPLATE_output_dram_buffers
+
+graphs:
+  test_multi_tm_datacopy_matmul:
+    target_device: 0
+    input_count: $TEMPLATE_microbatch_size
+    feeder0:
+      type: datacopy
+      grid_loc: [$TEMPLATE_feeder0_grid_loc_r, $TEMPLATE_feeder0_grid_loc_c]
+      grid_size: [$TEMPLATE_feeder0_grid_size_r, $TEMPLATE_feeder0_grid_size_c]
+      inputs: [input0_dram]
+      in_df: [$TEMPLATE_input0_df]
+      acc_df: $TEMPLATE_feeder0_dest_acc_df
+      out_df: $TEMPLATE_feeder0_out_df
+      intermed_df: $TEMPLATE_feeder0_intermed_df
+      ublock_order: $TEMPLATE_feeder0_ublock_order
+      buf_size_mb: $TEMPLATE_feeder0_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      t: $TEMPLATE_feeder0_t
+      mblock: [$TEMPLATE_feeder0_mb_r, $TEMPLATE_feeder0_mb_c]
+      ublock: [$TEMPLATE_feeder0_ub_r, $TEMPLATE_feeder0_ub_c]
+    feeder1:
+      type: datacopy
+      grid_loc: [$TEMPLATE_feeder1_grid_loc_r, $TEMPLATE_feeder1_grid_loc_c]
+      grid_size: [$TEMPLATE_feeder1_grid_size_r, $TEMPLATE_feeder1_grid_size_c]
+      inputs: [input1_dram]
+      in_df: [$TEMPLATE_input1_df]
+      acc_df: $TEMPLATE_feeder1_dest_acc_df
+      out_df: $TEMPLATE_feeder1_out_df
+      intermed_df: $TEMPLATE_feeder1_intermed_df
+      ublock_order: $TEMPLATE_feeder1_ublock_order
+      buf_size_mb: $TEMPLATE_feeder1_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      t: $TEMPLATE_feeder1_t
+      mblock: [$TEMPLATE_feeder1_mb_r, $TEMPLATE_feeder1_mb_c]
+      ublock: [$TEMPLATE_feeder1_ub_r, $TEMPLATE_feeder1_ub_c]
+    feeder2:
+      type: datacopy
+      grid_loc: [$TEMPLATE_feeder2_grid_loc_r, $TEMPLATE_feeder2_grid_loc_c]
+      grid_size: [$TEMPLATE_feeder2_grid_size_r, $TEMPLATE_feeder2_grid_size_c]
+      inputs: [input2_dram]
+      in_df: [$TEMPLATE_input1_df]
+      acc_df: $TEMPLATE_feeder2_dest_acc_df
+      out_df: $TEMPLATE_feeder2_out_df
+      intermed_df: $TEMPLATE_feeder2_intermed_df
+      ublock_order: $TEMPLATE_feeder2_ublock_order
+      buf_size_mb: $TEMPLATE_feeder2_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      t: $TEMPLATE_feeder2_t
+      mblock: [$TEMPLATE_feeder2_mb_r, $TEMPLATE_feeder2_mb_c]
+      ublock: [$TEMPLATE_feeder2_ub_r, $TEMPLATE_feeder2_ub_c]
+    output:
+      type: matmul
+      grid_loc: [$TEMPLATE_output_grid_loc_r, $TEMPLATE_output_grid_loc_c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [feeder0, feeder1, feeder2]
+      in_df: [$TEMPLATE_input0_df, $TEMPLATE_input1_df, $TEMPLATE_input2_df]
+      acc_df: $TEMPLATE_output_dest_acc_df
+      out_df: $TEMPLATE_output_out_df
+      intermed_df: $TEMPLATE_output_inremed_df
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      attributes: {
+        bias: true, m_k: $TEMPLATE_mm_m_k, u_kt: $TEMPLATE_mm_u_kt, # $TEMPLATE_kernel_bcast_attribute_partial
+      }
+      untilize_output: $TEMPLATE_output_untilize_output
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms: $TEMPLATE_output_input0_tms
+      input_1_tms: $TEMPLATE_output_input1_tms
+      input_2_tms: $TEMPLATE_output_input2_tms
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_matmul,
+          queue_settings: {
+            input0_dram: {prologue: $TEMPLATE_input0_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            input1_dram: {prologue: $TEMPLATE_input1_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            input2_dram: {prologue: $TEMPLATE_input2_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: $TEMPLATE_microbatch_count # entries / input_count
+    microbatch_size: $TEMPLATE_microbatch_size # input_count
+    minibatch_count: $TEMPLATE_minibatch_count # host loop iterations
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+    overrides:
+      input2_dram:
+        type: Constant
+        constant_value: 1.0
+  test-generation-debug:
+    kernel_broadcast_index: $TEMPLATE_kernel_bcast_idx # kernel broadcast index for this netlist

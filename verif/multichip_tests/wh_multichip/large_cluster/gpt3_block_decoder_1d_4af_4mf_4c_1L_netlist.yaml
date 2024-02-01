@@ -1,0 +1,891 @@
+# git checkout 58bd8be66
+# pytest ../large-lm/investigations/008-megatron/decoder/gpt3_loopback.py -c 4 -af 4 -mf 4 -l 1
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  input_1:                                                                  {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 384], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  attention_mask:                                                           {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 16], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30186020]]}
+
+  # output
+  gpt3_block_decoder_1d_4af_4mf_4c_1L.output_add_65:                        {input: add_65, type: queue, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x10112280], [1, 0x113f3040]]}
+  fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67:         {input: fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x9b2fca0]]}
+  fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67:         {input: fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[5, 0xdb0dd40]]}
+  fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67:         {input: fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[1, 0xe500020]]}
+  fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67:         {input: fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x12026460]]}
+  fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69:         {input: fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[2, 0xad6b100]]}
+  fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69:         {input: fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[4, 0xfae9120]]}
+  fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69:         {input: fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[4, 0xf1c5100]]}
+  fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69:         {input: fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop, type: ram, entries: 63, grid_size: [1, 1], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x12ea7220]]}
+
+  # parameter
+  blocks.0.ln_1.weight:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 4], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[2, 0xd23eac0], [3, 0xf20ec40], [4, 0x1196e560], [5, 0xf98bf60]]}
+  blocks.0.ln_1.bias:                                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 4], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[2, 0xd20dea0], [3, 0xf1de020], [4, 0x1193d940], [5, 0xf95b340]]}
+  blocks.0.attn.c_attn.weight_fork_clone190_fork_clone264:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[5, 0xc8e3ce0], [1, 0xa735260], [2, 0xc2a6bc0], [3, 0x128980a0], [4, 0x131c1a00], [5, 0xd207d00], [1, 0xb059280], [2, 0xcbcabe0]]}
+  blocks.0.attn.c_attn.bias_fork_clone192_fork_clone272:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[2, 0xc29a880], [3, 0x1288bd60], [4, 0x131b56c0], [5, 0xc8ddb40], [1, 0xa72f0c0], [2, 0xc2a0a20], [3, 0x12891f00], [4, 0x131bb860]]}
+  fractured_0_tensor_1:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x9b2fca0]]}
+  blocks.0.attn.c_attn.weight_fork_clone196_fork_clone300:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[3, 0x11643d20], [4, 0x11f6d680], [5, 0xb695b00], [1, 0x920bc80], [2, 0xb976860], [3, 0x11f67d40], [4, 0x128916a0], [5, 0xbfb9b20]]}
+  blocks.0.attn.c_attn.bias_fork_clone198_fork_clone308:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[5, 0xb6897c0], [1, 0x91ff940], [2, 0xb96a520], [3, 0x1163db80], [4, 0x11f674e0], [5, 0xb68f960], [1, 0x9205ae0], [2, 0xb9706c0]]}
+  fractured_0_tensor_5:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[2, 0xad6b100]]}
+  blocks.0.attn.c_attn.weight_fork_clone376:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[4, 0x10d12940], [5, 0xa440f40], [1, 0x7fb7900], [2, 0xa4470e0], [3, 0x10d18ae0], [4, 0x11636960], [5, 0xad64f60], [1, 0x88db920]]}
+  blocks.0.attn.c_attn.bias_fork_clone384:                                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x7fab5c0], [2, 0xa43ada0], [3, 0x10d0c7a0], [4, 0x10d0c7a0], [5, 0xa43ada0], [1, 0x7fb1760], [2, 0xa440f40], [3, 0x10d12940]]}
+  blocks.0.attn.c_attn.weight_fork_clone190_fork_clone265:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[4, 0x106f5900], [5, 0xe713300], [1, 0xed6d360], [2, 0xc8e9e80], [3, 0xe8ba000], [4, 0x11019920], [5, 0xf037320], [1, 0xf691380]]}
+  blocks.0.attn.c_attn.bias_fork_clone192_fork_clone273:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xed61020], [2, 0xc8ddb40], [3, 0xe8adcc0], [4, 0x106ef760], [5, 0xe70d160], [1, 0xed671c0], [2, 0xc8e3ce0], [3, 0xe8b3e60]]}
+  fractured_1_tensor_1:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[5, 0xdb0dd40]]}
+  blocks.0.attn.c_attn.weight_fork_clone196_fork_clone301:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0x365a100], [2, 0x365a100], [3, 0x7ab4100], [4, 0x7ab4100], [5, 0x365a100], [1, 0x3f7e120], [2, 0x3f7e120], [3, 0x83d8120]]}
+  blocks.0.attn.c_attn.bias_fork_clone198_fork_clone309:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xed54ce0], [2, 0xc8d1800], [3, 0xe8a1980], [4, 0x106e8d80], [5, 0xdb07ba0], [1, 0xed5ae80], [2, 0xc8d79a0], [3, 0xe8a7b20]]}
+  fractured_1_tensor_5:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[4, 0xfae9120]]}
+  blocks.0.attn.c_attn.weight_fork_clone377:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xdb00980], [2, 0xb688f80], [3, 0xd659100], [4, 0xf1c5100], [5, 0xd1e2b00], [1, 0xe4249a0], [2, 0xbfacfa0], [3, 0xdf7d120]]}
+  blocks.0.attn.c_attn.bias_fork_clone385:                                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[3, 0xd64cdc0], [4, 0xf1b8dc0], [5, 0xd1d67c0], [1, 0xdafa7e0], [2, 0xb682de0], [3, 0xd652f60], [4, 0xf1bef60], [5, 0xd1dc960]]}
+  blocks.0.attn.c_attn.weight_fork_clone190_fork_clone266:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[5, 0xe43d860], [1, 0xf1055e0], [2, 0xc088e80], [3, 0xe8b46a0], [4, 0x1101f280], [5, 0xed61880], [1, 0xfa29600], [2, 0xc9acea0]]}
+  blocks.0.attn.c_attn.bias_fork_clone192_fork_clone274:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[2, 0xc07cb40], [3, 0xe8a8360], [4, 0x11012f40], [5, 0xe4376c0], [1, 0xf0ff440], [2, 0xc082ce0], [3, 0xe8ae500], [4, 0x110190e0]]}
+  fractured_2_tensor_1:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 2, loc: dram, dram: [[1, 0xe500020]]}
+  blocks.0.attn.c_attn.weight_fork_clone196_fork_clone302:                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[3, 0xd660320], [4, 0xfdcaf00], [5, 0xd1ef680], [1, 0xdbdc000], [2, 0xb758b20], [3, 0xdf84340], [4, 0x106eef20], [5, 0xdb136a0]]}
+  blocks.0.attn.c_attn.bias_fork_clone198_fork_clone310:                    {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[5, 0xd1e3340], [1, 0xdbcfcc0], [2, 0xb74c7e0], [3, 0xd65a180], [4, 0xfdc4d60], [5, 0xd1e94e0], [1, 0xdbd5e60], [2, 0xb752980]]}
+  fractured_2_tensor_5:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[4, 0xf1c5100]]}
+  blocks.0.attn.c_attn.weight_fork_clone378:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[1, 0xc97b960], [2, 0xa503f60], [3, 0xc411900], [4, 0xe8a10e0], [5, 0xc8beae0], [1, 0xd29f980], [2, 0xae27f80], [3, 0xcd35920]]}
+  blocks.0.attn.c_attn.bias_fork_clone386:                                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[3, 0xc4055c0], [4, 0xe894da0], [5, 0xc8b27a0], [1, 0xc9757c0], [2, 0xa4fddc0], [3, 0xc40b760], [4, 0xe89af40], [5, 0xc8b8940]]}
+  blocks.0.attn.c_attn.weight_fork_clone190:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x1322fca0], [4, 0x10dd8280], [5, 0xc98eea0], [1, 0xeeb12c0], [2, 0x113284a0], [3, 0x13b53cc0], [4, 0x116fc2a0], [5, 0xd2b2ec0]]}
+  blocks.0.attn.c_attn.bias_fork_clone192:                                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0xf7d52e0], [2, 0x11c4c4c0], [3, 0x14477ce0], [4, 0x120202c0], [5, 0xdbd6ee0], [1, 0xf7db480], [2, 0x11c52660], [3, 0x1447de80]]}
+  fractured_3_tensor_1:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x12026460]]}
+  blocks.0.attn.c_attn.weight_fork_clone196:                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0xdbdd080], [1, 0xf7e1620], [2, 0x11c58800], [3, 0x14484020], [4, 0x12c25880], [5, 0xe5010a0], [1, 0x10105640], [2, 0x1257c820]]}
+  blocks.0.attn.c_attn.bias_fork_clone198:                                  {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x14da8040], [4, 0x135498a0], [5, 0xee250c0], [1, 0x10a29660], [2, 0x12ea0840], [3, 0x14dae1e0], [4, 0x1354fa40], [5, 0xee2b260]]}
+  fractured_3_tensor_5:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 63, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x12ea7220]]}
+  blocks.0.attn.c_attn.weight:                                              {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [24, 3], ublock: [16, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x14db4bc0], [4, 0x13561f00], [5, 0xee31c40], [1, 0x10a30880], [2, 0x13aa6640], [3, 0x156d8be0], [4, 0x13e85f20], [5, 0xf755c60]]}
+  blocks.0.attn.c_attn.bias:                                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x113548a0], [2, 0x143ca660], [3, 0x15ffcc00], [4, 0x147a9f40], [5, 0x10079c80], [1, 0x1135aa40], [2, 0x143d0800], [3, 0x16002da0]]}
+  blocks.0.attn.c_proj.weight:                                              {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [192, 12], ublock: [2, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x806ee60], [1, 0xa591280], [2, 0xca08460], [3, 0x10d9fc80], [4, 0xe948260], [5, 0xa4fee80], [1, 0xca212a0], [2, 0xee98480]]}
+  blocks.0.attn.c_proj.bias:                                                {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 12], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x147b00e0], [5, 0x1007fe20], [1, 0x11360be0], [2, 0x143d69a0], [3, 0x16008f40], [4, 0x147c8700], [5, 0x10098440], [1, 0x11379200]]}
+  blocks.0.ln_2.weight:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 4], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x371d960], [3, 0x7ab5180], [4, 0x7ad5160], [5, 0x36bc160]]}
+  blocks.0.ln_2.bias:                                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 4], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x374e580], [3, 0x7ae5da0], [4, 0x7b05d80], [5, 0x36ecd80]]}
+  fractured_0_blocks.0.mlp.c_fc.weight:                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [128, 12], ublock: [3, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[3, 0xc3ec760], [4, 0xc3ec760], [5, 0x5b1ad60], [1, 0x5b1b5a0], [2, 0x7faad80], [3, 0xe87c780], [4, 0xe87c780], [5, 0x7faad80]]}
+  fractured_0_blocks.0.mlp.c_fc.bias:                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 12], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[5, 0x5aea120], [1, 0x5aea960], [2, 0x7f7a140], [3, 0xc3d4140], [4, 0xc3d4140], [5, 0x5b02740], [1, 0x5b02f80], [2, 0x7f92760]]}
+  fractured_0_blocks.0.mlp.c_proj.weight:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [96, 12], ublock: [4, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[2, 0x365a100], [3, 0x7ab4100], [4, 0x7ab4100], [5, 0x365a100], [1, 0x365a940], [2, 0x5aea120], [3, 0x9f44120], [4, 0x9f44120]]}
+  fractured_1_blocks.0.mlp.c_fc.weight:                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [128, 12], ublock: [3, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[5, 0x88b6780], [1, 0x91da7a0], [2, 0x6d62da0], [3, 0xb1bcda0], [4, 0xcd28da0], [5, 0xad467a0], [1, 0xb66a7c0], [2, 0x91f2dc0]]}
+  fractured_1_blocks.0.mlp.c_fc.bias:                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 12], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[2, 0x6d32160], [3, 0xb18c160], [4, 0xccf8160], [5, 0x889e160], [1, 0x91c2180], [2, 0x6d4a780], [3, 0xb1a4780], [4, 0xcd10780]]}
+  fractured_1_blocks.0.mlp.c_proj.weight:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [96, 12], ublock: [4, 4], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[4, 0x83d8120], [5, 0x3f7e120], [1, 0x48a2140], [2, 0x48a2140], [3, 0x8cfc140], [4, 0xa868140], [5, 0x640e140], [1, 0x6d32160]]}
+  fractured_2_blocks.0.mlp.c_fc.weight:                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [128, 12], ublock: [3, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[5, 0x7f92760], [1, 0x8055780], [2, 0x5bddd80], [3, 0x9f755a0], [4, 0xc404d80], [5, 0xa422780], [1, 0xa4e57a0], [2, 0x806dda0]]}
+  fractured_2_blocks.0.mlp.c_fc.bias:                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 12], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[2, 0x5bad140], [3, 0x9f44960], [4, 0xc3d4140], [5, 0x7f7a140], [1, 0x803d160], [2, 0x5bc5760], [3, 0x9f5cf80], [4, 0xc3ec760]]}
+  fractured_2_blocks.0.mlp.c_proj.weight:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [96, 12], ublock: [4, 4], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[4, 0x7ab4100], [5, 0x365a100], [1, 0x371d120], [2, 0x371d120], [3, 0x7ab4940], [4, 0x9f44120], [5, 0x5aea120], [1, 0x5bad140]]}
+  fractured_3_blocks.0.mlp.c_fc.weight:                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [128, 12], ublock: [3, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x377f9c0], [2, 0x377f1a0], [3, 0x7b169c0], [4, 0x7b369a0], [5, 0x371d9a0], [1, 0x5c0f9e0], [2, 0x5c0f1c0], [3, 0x9fa69e0]]}
+  fractured_3_blocks.0.mlp.c_fc.bias:                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 12], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x9fc69c0], [5, 0x5bad9c0], [1, 0x809fa00], [2, 0x809f1e0], [3, 0xc436a00], [4, 0x9fdefe0], [5, 0x5bc5fe0], [1, 0x80b8020]]}
+  fractured_3_blocks.0.mlp.c_proj.weight:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [96, 12], ublock: [4, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x80b7800], [3, 0xc44f020], [4, 0x9ff7600], [5, 0x5bde600], [1, 0x80d0640], [2, 0xa547820], [3, 0xe8df040], [4, 0xc487620]]}
+  blocks.0.mlp.c_proj.bias:                                                 {input: HOST, type: ram, entries: 1, grid_size: [1, 4], t: 1, mblock: [1, 24], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0xa560660], [2, 0xc9d7840], [3, 0x10d6f060], [4, 0xe917640]]}
+
+  # constant
+  lc.input_tensor.layernorm_0.dc.reduce_sum.0.0:                            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[4, 0x106eef20]]}
+  dc.input_tensor.layernorm_0.1:                                            {input: HOST, type: queue, entries: 1, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xffb6420], [2, 0xd26ff20]]}
+  lc.input_tensor.layernorm_0.dc.reduce_sum.5.0:                            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[5, 0xf9bcb80]]}
+  dc.input_tensor.layernorm_0.6:                                            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[4, 0x1199f180]]}
+  dc.input_tensor.layernorm_0.8:                                            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[3, 0xf23f860]]}
+  lc.input_tensor.layernorm_0.dc.reciprocal.11_s_brcst_m1_0_0.0:            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[2, 0xd26f6e0]]}
+  lc.input_tensor.blocks.0.ln_1.weight_s_brcst_m2_0_0.0:                    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xffb5be0]]}
+  lc.input_tensor.blocks.0.ln_1.bias_s_brcst_m2_0_0.0:                      {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xffb53a0]]}
+  input_1_multiply_24_fork_clone805_tile_bcast_tile_bcast:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[4, 0x11f66ca0]]}
+  lc.input_tensor.attention_mask_s_brcst_m2_0_1.0:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 0, loc: dram, dram: [[3, 0x1163d340]]}
+  input_0_index_25:                                                         {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 16], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x7ab4940]]}
+  lc.input_tensor.fractured_0_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x365a100]]}
+  lc.input_tensor.fractured_0_softmax_31.dc.reduce_sum.3.0:                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[5, 0xb688f80]]}
+  dc.input_tensor.fractured_0_softmax_31.4:                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 0, loc: dram, dram: [[4, 0x11f5a980]]}
+  lc.input_tensor.fractured_0_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[3, 0x1163cb00]]}
+  input_1_multiply_24_fork_clone807_tile_bcast_tile_bcast:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[5, 0xdb07360]]}
+  lc.input_tensor.attention_mask_s_brcst_m2_1_1.0:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[4, 0x106e8540]]}
+  lc.input_tensor.fractured_1_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[3, 0xe8a1140]]}
+  lc.input_tensor.fractured_1_softmax_31.dc.reduce_sum.3.0:                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[2, 0xc8d0fc0]]}
+  dc.input_tensor.fractured_1_softmax_31.4:                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 1, loc: dram, dram: [[1, 0xed489c0]]}
+  lc.input_tensor.fractured_1_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[5, 0xdb06b20]]}
+  input_1_multiply_24_fork_clone809_tile_bcast_tile_bcast:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[4, 0xfdc4520]]}
+  lc.input_tensor.attention_mask_s_brcst_m2_2_1.0:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 2, loc: dram, dram: [[3, 0xd659940]]}
+  lc.input_tensor.fractured_2_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[2, 0xb74bfa0]]}
+  lc.input_tensor.fractured_2_softmax_31.dc.reduce_sum.3.0:                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[3, 0x7ab4100]]}
+  dc.input_tensor.fractured_2_softmax_31.4:                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 2, loc: dram, dram: [[1, 0xdbc39a0]]}
+  lc.input_tensor.fractured_2_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 2, loc: dram, dram: [[5, 0xd1e2b00]]}
+  input_1_multiply_24_tile_bcast_tile_bcast:                                {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x10a2f800]]}
+  lc.input_tensor.attention_mask_s_brcst_m2_3_1.0:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x12ea69e0]]}
+  lc.input_tensor.fractured_3_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x14db4380]]}
+  lc.input_tensor.fractured_3_softmax_31.dc.reduce_sum.3.0:                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0xee31400]]}
+  dc.input_tensor.fractured_3_softmax_31.4:                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x13555be0]]}
+  lc.input_tensor.fractured_3_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x10a30040]]}
+  lc.input_tensor.layernorm_54.dc.reduce_sum.0.0:                           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x7ab4100]]}
+  dc.input_tensor.layernorm_54.1:                                           {input: HOST, type: queue, entries: 1, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x365a100], [1, 0x371d120]]}
+  lc.input_tensor.layernorm_54.dc.reduce_sum.5.0:                           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x371d120]]}
+  dc.input_tensor.layernorm_54.6:                                           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x7ab4940]]}
+  dc.input_tensor.layernorm_54.8:                                           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x7ab4100]]}
+  lc.input_tensor.layernorm_54.dc.reciprocal.11_s_brcst_m1_0_0.0:           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x36bb920]]}
+  lc.input_tensor.blocks.0.ln_2.weight_s_brcst_m2_0_0.0:                    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x377e940]]}
+  lc.input_tensor.blocks.0.ln_2.bias_s_brcst_m2_0_0.0:                      {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x377f180]]}
+  lc.input_tensor.blocks.0.mlp.c_proj.bias_s_brcst_m2_0_0.0:                {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x806e620]]}
+
+  # epoch_to_epoch
+  e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0:                 {input: layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0, type: queue, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 2, loc: dram, dram: [[1, 0x365a100], [2, 0x365a100]]}
+  e2e_layernorm_0.dc.add.14_0:                                              {input: layernorm_0.dc.add.14, type: queue, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x365a100], [2, 0x365a100]]}
+  e2e_fractured_gather_t0_matmul_46_0:                                      {input: fractured_gather_t0_matmul_46, type: queue, entries: 2, grid_size: [1, 1], t: 96, mblock: [1, 1], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x14905560]]}
+  e2e_layernorm_54.dc.add.14_0:                                             {input: layernorm_54.dc.add.14, type: queue, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x16082d80], [4, 0x14842540]]}
+  e2e_fractured_gather_k0_matmul_61_cascade_sink_0:                         {input: fractured_gather_k0_matmul_61_cascade_sink, type: queue, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x14513820], [3, 0x161a75c0]]}
+  e2e_add_53_0:                                                             {input: add_53, type: queue, entries: 3, grid_size: [1, 2], t: 1, mblock: [1, 48], ublock: [1, 4], ublock_order: c, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x101d52a0], [1, 0x114b6060]]}
+  e2e_fractured_0_index_66.dc.buffer.1_0:                                   {input: fractured_0_index_66.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x144507e0]]}
+  e2e_fractured_1_index_66.dc.buffer.1_0:                                   {input: fractured_1_index_66.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[1, 0x11391820]]}
+  e2e_fractured_2_index_66.dc.buffer.1_0:                                   {input: fractured_2_index_66.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[5, 0x100b0a60]]}
+  e2e_fractured_3_index_66.dc.buffer.1_0:                                   {input: fractured_3_index_66.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x16145da0]]}
+  e2e_fractured_0_index_68.dc.buffer.1_0:                                   {input: fractured_0_index_68.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[4, 0x147e0d20]]}
+  e2e_fractured_1_index_68.dc.buffer.1_0:                                   {input: fractured_1_index_68.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[3, 0x16021560]]}
+  e2e_fractured_2_index_68.dc.buffer.1_0:                                   {input: fractured_2_index_68.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x143eefc0]]}
+  e2e_fractured_3_index_68.dc.buffer.1_0:                                   {input: fractured_3_index_68.dc.buffer.1, type: queue, entries: 2, grid_size: [1, 1], t: 24, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 3, loc: dram, dram: [[2, 0x144b2000]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 1
+    input_count: 1
+    layernorm_0.dc.reduce_sum.0.lc1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_1, lc.input_tensor.layernorm_0.dc.reduce_sum.0.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 384}],
+         attributes: {m_k: 4, min_buffer_input: 0, single_tile: [1], u_kt: 96}}
+    layernorm_0.dc.multiply.2: {type: multiply, grid_loc: [0, 1], grid_size: [1, 2], inputs: [dc.input_tensor.layernorm_0.1, layernorm_0.dc.reduce_sum.0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 384}],
+         attributes: {single_tile: [1]}}
+    layernorm_0.dc.subtract.3: {type: subtract, grid_loc: [0, 3], grid_size: [1, 2], inputs: [input_1, layernorm_0.dc.multiply.2],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_0.dc.multiply.4: {type: multiply, grid_loc: [0, 5], grid_size: [1, 2], inputs: [layernorm_0.dc.subtract.3, layernorm_0.dc.subtract.3],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_0.dc.reduce_sum.5.lc1: {type: matmul, grid_loc: [0, 7], grid_size: [1, 1], inputs: [layernorm_0.dc.multiply.4, lc.input_tensor.layernorm_0.dc.reduce_sum.5.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 384}],
+         attributes: {m_k: 4, min_buffer_input: 0, single_tile: [1], u_kt: 96}}
+    layernorm_0.dc.multiply.7: {type: multiply, grid_loc: [1, 0], grid_size: [1, 1], inputs: [dc.input_tensor.layernorm_0.6, layernorm_0.dc.reduce_sum.5.lc1],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_0.dc.add.9: {type: add, grid_loc: [1, 1], grid_size: [1, 1], inputs: [layernorm_0.dc.multiply.7, dc.input_tensor.layernorm_0.8],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_0.dc.sqrt.10: {type: sqrt, grid_loc: [1, 2], grid_size: [1, 1], inputs: [layernorm_0.dc.add.9],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_0.dc.reciprocal.11: {type: reciprocal, grid_loc: [1, 3], grid_size: [1, 1], inputs: [layernorm_0.dc.sqrt.10],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    layernorm_0.dc.reciprocal.11_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [1, 4], grid_size: [1, 1], inputs: [layernorm_0.dc.reciprocal.11, lc.input_tensor.layernorm_0.dc.reciprocal.11_s_brcst_m1_0_0.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_0.dc.multiply.12: {type: multiply, grid_loc: [1, 5], grid_size: [1, 2], inputs: [layernorm_0.dc.subtract.3, layernorm_0.dc.reciprocal.11_s_brcst_m1_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [100, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 384}],
+         attributes: {single_tile: [1]}}
+    blocks.0.ln_1.weight_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [2, 0], grid_size: [1, 4], inputs: [lc.input_tensor.blocks.0.ln_1.weight_s_brcst_m2_0_0.0, blocks.0.ln_1.weight],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_0.dc.multiply.13: {type: multiply, grid_loc: [2, 4], grid_size: [1, 2], inputs: [layernorm_0.dc.multiply.12, blocks.0.ln_1.weight_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 1}]}
+    blocks.0.ln_1.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [3, 0], grid_size: [1, 4], inputs: [lc.input_tensor.blocks.0.ln_1.bias_s_brcst_m2_0_0.0, blocks.0.ln_1.bias],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_0.dc.add.14: {type: add, grid_loc: [2, 6], grid_size: [1, 2], inputs: [layernorm_0.dc.multiply.13, blocks.0.ln_1.bias_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 1}]}
+    layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0: {type: nop, grid_loc: [3, 4], grid_size: [1, 2], inputs: [layernorm_0.dc.add.14],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+  fwd_0_1_temporal_epoch_1:
+    target_device: 0
+    input_count: 1
+    fractured_0_matmul_5: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone190_fork_clone264, blocks.0.attn.c_attn.bias_fork_clone192_fork_clone272],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_0_matmul_14: {type: matmul, grid_loc: [1, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone196_fork_clone300, blocks.0.attn.c_attn.bias_fork_clone198_fork_clone308],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_0_concatenate_19.dc.concatenate.0: {type: splice, grid_loc: [2, 0], grid_size: [1, 2], inputs: [fractured_0_tensor_1, fractured_0_matmul_14],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_0_matmul_22: {type: matmul, grid_loc: [4, 0], grid_size: [1, 8], inputs: [fractured_0_matmul_5, fractured_0_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [transpose], input_0_tms: [hslice: 24],
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 4}}
+    fractured_0_multiply_24: {type: multiply, grid_loc: [2, 2], grid_size: [1, 2], inputs: [fractured_0_matmul_22, input_1_multiply_24_fork_clone805_tile_bcast_tile_bcast],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}, broadcast: {c: 64}],
+         attributes: {single_tile: [1]}}
+    attention_mask_s_brcst_m2_0_1.lc1: {type: matmul, grid_loc: [2, 4], grid_size: [1, 1], inputs: [lc.input_tensor.attention_mask_s_brcst_m2_0_1.0, attention_mask],
+         t: 1, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    fractured_0_add_30: {type: add, grid_loc: [2, 5], grid_size: [1, 1], inputs: [input_0_index_25, attention_mask_s_brcst_m2_0_1.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}], input_0_tms: [broadcast: {z: 24}]}
+    fractured_0_add_29: {type: add, grid_loc: [2, 6], grid_size: [1, 1], inputs: [fractured_0_multiply_24, fractured_0_add_30],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_0_softmax_31.dc.reduce_max.0: {type: reduce, grid_loc: [2, 7], grid_size: [1, 1], inputs: [fractured_0_add_29],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 64}}
+    fractured_0_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 0], grid_size: [1, 1], inputs: [fractured_0_softmax_31.dc.reduce_max.0, lc.input_tensor.fractured_0_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_0_softmax_31.dc.subtract.1: {type: subtract, grid_loc: [5, 1], grid_size: [1, 1], inputs: [fractured_0_add_29, fractured_0_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_0_softmax_31.dc.exp.2: {type: exp, grid_loc: [6, 0], grid_size: [1, 8], inputs: [fractured_0_softmax_31.dc.subtract.1],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_0_softmax_31.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [5, 2], grid_size: [1, 1], inputs: [fractured_0_softmax_31.dc.exp.2, lc.input_tensor.fractured_0_softmax_31.dc.reduce_sum.3.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}, broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 64}}
+    fractured_0_softmax_31.dc.add.5: {type: add, grid_loc: [5, 3], grid_size: [1, 1], inputs: [fractured_0_softmax_31.dc.reduce_sum.3.lc1, dc.input_tensor.fractured_0_softmax_31.4],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_0_softmax_31.dc.reciprocal.6: {type: reciprocal, grid_loc: [5, 4], grid_size: [1, 1], inputs: [fractured_0_softmax_31.dc.add.5],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_0_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 5], grid_size: [1, 1], inputs: [fractured_0_softmax_31.dc.reciprocal.6, lc.input_tensor.fractured_0_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_0_softmax_31.dc.multiply.7: {type: multiply, grid_loc: [5, 6], grid_size: [1, 2], inputs: [fractured_0_softmax_31.dc.exp.2, fractured_0_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [232, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_0_matmul_37: {type: matmul, grid_loc: [3, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone376, blocks.0.attn.c_attn.bias_fork_clone384],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_0_concatenate_42.dc.concatenate.0: {type: splice, grid_loc: [7, 0], grid_size: [1, 2], inputs: [fractured_0_tensor_5, fractured_0_matmul_37],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_0_matmul_46: {type: matmul, grid_loc: [7, 2], grid_size: [1, 4], inputs: [fractured_0_softmax_31.dc.multiply.7, fractured_0_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 64}}
+    fractured_0_index_66.dc.select.0: {type: splice, grid_loc: [7, 6], grid_size: [1, 1], inputs: [fractured_0_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_0_index_66.dc.buffer.1: {type: nop, grid_loc: [7, 7], grid_size: [1, 1], inputs: [fractured_0_index_66.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_0_index_68.dc.select.0: {type: splice, grid_loc: [8, 0], grid_size: [1, 1], inputs: [fractured_0_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_0_index_68.dc.buffer.1: {type: nop, grid_loc: [8, 1], grid_size: [1, 1], inputs: [fractured_0_index_68.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_2_temporal_epoch_1:
+    target_device: 1
+    input_count: 1
+    fractured_1_matmul_5: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone190_fork_clone265, blocks.0.attn.c_attn.bias_fork_clone192_fork_clone273],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_1_matmul_14: {type: matmul, grid_loc: [1, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone196_fork_clone301, blocks.0.attn.c_attn.bias_fork_clone198_fork_clone309],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_1_concatenate_19.dc.concatenate.0: {type: splice, grid_loc: [2, 0], grid_size: [1, 2], inputs: [fractured_1_tensor_1, fractured_1_matmul_14],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_1_matmul_22: {type: matmul, grid_loc: [4, 0], grid_size: [1, 8], inputs: [fractured_1_matmul_5, fractured_1_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [transpose], input_0_tms: [hslice: 24],
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 4}}
+    fractured_1_multiply_24: {type: multiply, grid_loc: [2, 2], grid_size: [1, 2], inputs: [fractured_1_matmul_22, input_1_multiply_24_fork_clone807_tile_bcast_tile_bcast],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}, broadcast: {c: 64}],
+         attributes: {single_tile: [1]}}
+    attention_mask_s_brcst_m2_1_1.lc1: {type: matmul, grid_loc: [2, 4], grid_size: [1, 1], inputs: [lc.input_tensor.attention_mask_s_brcst_m2_1_1.0, attention_mask],
+         t: 1, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    fractured_1_add_30: {type: add, grid_loc: [2, 5], grid_size: [1, 1], inputs: [input_0_index_25, attention_mask_s_brcst_m2_1_1.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}], input_0_tms: [broadcast: {z: 24}]}
+    fractured_1_add_29: {type: add, grid_loc: [2, 6], grid_size: [1, 1], inputs: [fractured_1_multiply_24, fractured_1_add_30],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_1_softmax_31.dc.reduce_max.0: {type: reduce, grid_loc: [2, 7], grid_size: [1, 1], inputs: [fractured_1_add_29],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 64}}
+    fractured_1_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 0], grid_size: [1, 1], inputs: [fractured_1_softmax_31.dc.reduce_max.0, lc.input_tensor.fractured_1_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_1_softmax_31.dc.subtract.1: {type: subtract, grid_loc: [5, 1], grid_size: [1, 1], inputs: [fractured_1_add_29, fractured_1_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_1_softmax_31.dc.exp.2: {type: exp, grid_loc: [6, 0], grid_size: [1, 8], inputs: [fractured_1_softmax_31.dc.subtract.1],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_1_softmax_31.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [5, 2], grid_size: [1, 1], inputs: [fractured_1_softmax_31.dc.exp.2, lc.input_tensor.fractured_1_softmax_31.dc.reduce_sum.3.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}, broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 64}}
+    fractured_1_softmax_31.dc.add.5: {type: add, grid_loc: [5, 3], grid_size: [1, 1], inputs: [fractured_1_softmax_31.dc.reduce_sum.3.lc1, dc.input_tensor.fractured_1_softmax_31.4],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_1_softmax_31.dc.reciprocal.6: {type: reciprocal, grid_loc: [5, 4], grid_size: [1, 1], inputs: [fractured_1_softmax_31.dc.add.5],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_1_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 5], grid_size: [1, 1], inputs: [fractured_1_softmax_31.dc.reciprocal.6, lc.input_tensor.fractured_1_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_1_softmax_31.dc.multiply.7: {type: multiply, grid_loc: [5, 6], grid_size: [1, 2], inputs: [fractured_1_softmax_31.dc.exp.2, fractured_1_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [232, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_1_matmul_37: {type: matmul, grid_loc: [3, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone377, blocks.0.attn.c_attn.bias_fork_clone385],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_1_concatenate_42.dc.concatenate.0: {type: splice, grid_loc: [7, 0], grid_size: [1, 2], inputs: [fractured_1_tensor_5, fractured_1_matmul_37],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_1_matmul_46: {type: matmul, grid_loc: [7, 2], grid_size: [1, 4], inputs: [fractured_1_softmax_31.dc.multiply.7, fractured_1_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 64}}
+    fractured_1_index_66.dc.select.0: {type: splice, grid_loc: [7, 6], grid_size: [1, 1], inputs: [fractured_1_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_1_index_66.dc.buffer.1: {type: nop, grid_loc: [7, 7], grid_size: [1, 1], inputs: [fractured_1_index_66.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_1_index_68.dc.select.0: {type: splice, grid_loc: [8, 0], grid_size: [1, 1], inputs: [fractured_1_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_1_index_68.dc.buffer.1: {type: nop, grid_loc: [8, 1], grid_size: [1, 1], inputs: [fractured_1_index_68.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_3_temporal_epoch_1:
+    target_device: 2
+    input_count: 1
+    fractured_2_matmul_5: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone190_fork_clone266, blocks.0.attn.c_attn.bias_fork_clone192_fork_clone274],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_2_matmul_14: {type: matmul, grid_loc: [1, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0, blocks.0.attn.c_attn.weight_fork_clone196_fork_clone302, blocks.0.attn.c_attn.bias_fork_clone198_fork_clone310],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_2_concatenate_19.dc.concatenate.0: {type: splice, grid_loc: [2, 0], grid_size: [1, 2], inputs: [fractured_2_tensor_1, fractured_2_matmul_14],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_2_matmul_22: {type: matmul, grid_loc: [4, 0], grid_size: [1, 8], inputs: [fractured_2_matmul_5, fractured_2_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [transpose], input_0_tms: [hslice: 24],
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 4}}
+    fractured_2_multiply_24: {type: multiply, grid_loc: [2, 2], grid_size: [1, 2], inputs: [fractured_2_matmul_22, input_1_multiply_24_fork_clone809_tile_bcast_tile_bcast],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}, broadcast: {c: 64}],
+         attributes: {single_tile: [1]}}
+    attention_mask_s_brcst_m2_2_1.lc1: {type: matmul, grid_loc: [2, 4], grid_size: [1, 1], inputs: [lc.input_tensor.attention_mask_s_brcst_m2_2_1.0, attention_mask],
+         t: 1, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    fractured_2_add_30: {type: add, grid_loc: [2, 5], grid_size: [1, 1], inputs: [input_0_index_25, attention_mask_s_brcst_m2_2_1.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}], input_0_tms: [broadcast: {z: 24}]}
+    fractured_2_add_29: {type: add, grid_loc: [2, 6], grid_size: [1, 1], inputs: [fractured_2_multiply_24, fractured_2_add_30],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_2_softmax_31.dc.reduce_max.0: {type: reduce, grid_loc: [2, 7], grid_size: [1, 1], inputs: [fractured_2_add_29],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 64}}
+    fractured_2_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 0], grid_size: [1, 1], inputs: [fractured_2_softmax_31.dc.reduce_max.0, lc.input_tensor.fractured_2_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_2_softmax_31.dc.subtract.1: {type: subtract, grid_loc: [5, 1], grid_size: [1, 1], inputs: [fractured_2_add_29, fractured_2_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_2_softmax_31.dc.exp.2: {type: exp, grid_loc: [6, 0], grid_size: [1, 8], inputs: [fractured_2_softmax_31.dc.subtract.1],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_2_softmax_31.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [5, 2], grid_size: [1, 1], inputs: [fractured_2_softmax_31.dc.exp.2, lc.input_tensor.fractured_2_softmax_31.dc.reduce_sum.3.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}, broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 64}}
+    fractured_2_softmax_31.dc.add.5: {type: add, grid_loc: [5, 3], grid_size: [1, 1], inputs: [fractured_2_softmax_31.dc.reduce_sum.3.lc1, dc.input_tensor.fractured_2_softmax_31.4],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_2_softmax_31.dc.reciprocal.6: {type: reciprocal, grid_loc: [5, 4], grid_size: [1, 1], inputs: [fractured_2_softmax_31.dc.add.5],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_2_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 5], grid_size: [1, 1], inputs: [fractured_2_softmax_31.dc.reciprocal.6, lc.input_tensor.fractured_2_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_2_softmax_31.dc.multiply.7: {type: multiply, grid_loc: [5, 6], grid_size: [1, 2], inputs: [fractured_2_softmax_31.dc.exp.2, fractured_2_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [232, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_2_matmul_37: {type: matmul, grid_loc: [3, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_0, blocks.0.attn.c_attn.weight_fork_clone378, blocks.0.attn.c_attn.bias_fork_clone386],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_2_concatenate_42.dc.concatenate.0: {type: splice, grid_loc: [7, 0], grid_size: [1, 2], inputs: [fractured_2_tensor_5, fractured_2_matmul_37],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_2_matmul_46: {type: matmul, grid_loc: [7, 2], grid_size: [1, 4], inputs: [fractured_2_softmax_31.dc.multiply.7, fractured_2_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 64}}
+    fractured_2_index_66.dc.select.0: {type: splice, grid_loc: [7, 6], grid_size: [1, 1], inputs: [fractured_2_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_2_index_66.dc.buffer.1: {type: nop, grid_loc: [7, 7], grid_size: [1, 1], inputs: [fractured_2_index_66.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_2_index_68.dc.select.0: {type: splice, grid_loc: [8, 0], grid_size: [1, 1], inputs: [fractured_2_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_2_index_68.dc.buffer.1: {type: nop, grid_loc: [8, 1], grid_size: [1, 1], inputs: [fractured_2_index_68.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_4_temporal_epoch_1:
+    target_device: 3
+    input_count: 1
+    fractured_3_matmul_5: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_0, blocks.0.attn.c_attn.weight_fork_clone190, blocks.0.attn.c_attn.bias_fork_clone192],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_3_matmul_14: {type: matmul, grid_loc: [1, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_0, blocks.0.attn.c_attn.weight_fork_clone196, blocks.0.attn.c_attn.bias_fork_clone198],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_3_concatenate_19.dc.concatenate.0: {type: splice, grid_loc: [2, 0], grid_size: [1, 2], inputs: [fractured_3_tensor_1, fractured_3_matmul_14],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_3_matmul_22: {type: matmul, grid_loc: [4, 0], grid_size: [1, 8], inputs: [fractured_3_matmul_5, fractured_3_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [transpose], input_0_tms: [hslice: 24],
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 4}}
+    fractured_3_multiply_24: {type: multiply, grid_loc: [2, 2], grid_size: [1, 2], inputs: [fractured_3_matmul_22, input_1_multiply_24_tile_bcast_tile_bcast],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}, broadcast: {c: 64}],
+         attributes: {single_tile: [1]}}
+    attention_mask_s_brcst_m2_3_1.lc1: {type: matmul, grid_loc: [2, 4], grid_size: [1, 1], inputs: [lc.input_tensor.attention_mask_s_brcst_m2_3_1.0, attention_mask],
+         t: 1, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    fractured_3_add_30: {type: add, grid_loc: [2, 5], grid_size: [1, 1], inputs: [input_0_index_25, attention_mask_s_brcst_m2_3_1.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}, broadcast: {r: 1}], input_0_tms: [broadcast: {z: 24}]}
+    fractured_3_add_29: {type: add, grid_loc: [2, 6], grid_size: [1, 1], inputs: [fractured_3_multiply_24, fractured_3_add_30],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_3_softmax_31.dc.reduce_max.0: {type: reduce, grid_loc: [2, 7], grid_size: [1, 1], inputs: [fractured_3_add_29],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 64}}
+    fractured_3_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 0], grid_size: [1, 1], inputs: [fractured_3_softmax_31.dc.reduce_max.0, lc.input_tensor.fractured_3_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_3_softmax_31.dc.subtract.1: {type: subtract, grid_loc: [5, 1], grid_size: [1, 1], inputs: [fractured_3_add_29, fractured_3_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 16], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_3_softmax_31.dc.exp.2: {type: exp, grid_loc: [6, 0], grid_size: [1, 8], inputs: [fractured_3_softmax_31.dc.subtract.1],
+         t: 24, mblock: [1, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_3_softmax_31.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [5, 2], grid_size: [1, 1], inputs: [fractured_3_softmax_31.dc.exp.2, lc.input_tensor.fractured_3_softmax_31.dc.reduce_sum.3.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}, broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 64}}
+    fractured_3_softmax_31.dc.add.5: {type: add, grid_loc: [5, 3], grid_size: [1, 1], inputs: [fractured_3_softmax_31.dc.reduce_sum.3.lc1, dc.input_tensor.fractured_3_softmax_31.4],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_3_softmax_31.dc.reciprocal.6: {type: reciprocal, grid_loc: [5, 4], grid_size: [1, 1], inputs: [fractured_3_softmax_31.dc.add.5],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    fractured_3_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [5, 5], grid_size: [1, 1], inputs: [fractured_3_softmax_31.dc.reciprocal.6, lc.input_tensor.fractured_3_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {z: 24}],
+         attributes: {m_k: 1, min_buffer_input: 0, single_tile: [1], u_kt: 1}}
+    fractured_3_softmax_31.dc.multiply.7: {type: multiply, grid_loc: [5, 6], grid_size: [1, 2], inputs: [fractured_3_softmax_31.dc.exp.2, fractured_3_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.lc1],
+         t: 24, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [232, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    fractured_3_matmul_37: {type: matmul, grid_loc: [3, 0], grid_size: [1, 8], inputs: [e2e_layernorm_0.dc.add.14_0, blocks.0.attn.c_attn.weight, blocks.0.attn.c_attn.bias],
+         t: 1, mblock: [1, 3], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 24, min_buffer_input: 0, u_kt: 16}}
+    fractured_3_concatenate_42.dc.concatenate.0: {type: splice, grid_loc: [7, 0], grid_size: [1, 2], inputs: [fractured_3_tensor_5, fractured_3_matmul_37],
+         t: 24, mblock: [64, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 24], input_0_tms: [vstack: 63, hslice: 24],
+         attributes: {input0: [0, 63, 63], input1: [0, 1, 1]}}
+    fractured_3_matmul_46: {type: matmul, grid_loc: [7, 2], grid_size: [1, 4], inputs: [fractured_3_softmax_31.dc.multiply.7, fractured_3_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 64}}
+    fractured_gather_t0_matmul_46: {type: splice, grid_loc: [7, 6], grid_size: [1, 1], inputs: [fractured_0_matmul_46, fractured_1_matmul_46, fractured_2_matmul_46, fractured_3_matmul_46],
+         t: 96, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {granularity: t, input0: [0, 24, 24], input1: [0, 24, 24], input2: [0, 24, 24], input3: [0, 24, 24]}}
+    fractured_3_index_66.dc.select.0: {type: splice, grid_loc: [7, 7], grid_size: [1, 1], inputs: [fractured_3_concatenate_19.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_3_index_66.dc.buffer.1: {type: nop, grid_loc: [8, 0], grid_size: [1, 1], inputs: [fractured_3_index_66.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_3_index_68.dc.select.0: {type: splice, grid_loc: [8, 1], grid_size: [1, 1], inputs: [fractured_3_concatenate_42.dc.concatenate.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {input0: [63, 1, 1]}}
+    fractured_3_index_68.dc.buffer.1: {type: nop, grid_loc: [8, 2], grid_size: [1, 1], inputs: [fractured_3_index_68.dc.select.0],
+         t: 24, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_5_temporal_epoch_2:
+    target_device: 3
+    input_count: 1
+    matmul_49: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_fractured_gather_t0_matmul_46_0, blocks.0.attn.c_proj.weight, blocks.0.attn.c_proj.bias],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}], input_0_tms: [hstack: 96],
+         attributes: {bias: true, m_k: 192, min_buffer_input: 0, u_kt: 2}}
+    add_53: {type: add, grid_loc: [1, 0], grid_size: [1, 2], inputs: [matmul_49, input_1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.reduce_sum.0.lc1: {type: matmul, grid_loc: [2, 2], grid_size: [1, 1], inputs: [add_53, lc.input_tensor.layernorm_54.dc.reduce_sum.0.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 384}],
+         attributes: {m_k: 4, min_buffer_input: 0, single_tile: [1], u_kt: 96}}
+    layernorm_54.dc.multiply.2: {type: multiply, grid_loc: [2, 3], grid_size: [1, 2], inputs: [dc.input_tensor.layernorm_54.1, layernorm_54.dc.reduce_sum.0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 384}],
+         attributes: {single_tile: [1]}}
+    layernorm_54.dc.subtract.3: {type: subtract, grid_loc: [2, 5], grid_size: [1, 2], inputs: [add_53, layernorm_54.dc.multiply.2],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [100, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.multiply.4: {type: multiply, grid_loc: [3, 0], grid_size: [1, 2], inputs: [layernorm_54.dc.subtract.3, layernorm_54.dc.subtract.3],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.reduce_sum.5.lc1: {type: matmul, grid_loc: [2, 7], grid_size: [1, 1], inputs: [layernorm_54.dc.multiply.4, lc.input_tensor.layernorm_54.dc.reduce_sum.5.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 384}],
+         attributes: {m_k: 4, min_buffer_input: 0, single_tile: [1], u_kt: 96}}
+    layernorm_54.dc.multiply.7: {type: multiply, grid_loc: [3, 2], grid_size: [1, 1], inputs: [dc.input_tensor.layernorm_54.6, layernorm_54.dc.reduce_sum.5.lc1],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.add.9: {type: add, grid_loc: [3, 3], grid_size: [1, 1], inputs: [layernorm_54.dc.multiply.7, dc.input_tensor.layernorm_54.8],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.sqrt.10: {type: sqrt, grid_loc: [3, 4], grid_size: [1, 1], inputs: [layernorm_54.dc.add.9],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    layernorm_54.dc.reciprocal.11: {type: reciprocal, grid_loc: [3, 5], grid_size: [1, 1], inputs: [layernorm_54.dc.sqrt.10],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: false}}
+    layernorm_54.dc.reciprocal.11_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [3, 6], grid_size: [1, 1], inputs: [layernorm_54.dc.reciprocal.11, lc.input_tensor.layernorm_54.dc.reciprocal.11_s_brcst_m1_0_0.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_54.dc.multiply.12: {type: multiply, grid_loc: [4, 0], grid_size: [1, 2], inputs: [layernorm_54.dc.subtract.3, layernorm_54.dc.reciprocal.11_s_brcst_m1_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, input_buf_min_size_tiles: [100, 0], ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 384}],
+         attributes: {single_tile: [1]}}
+    blocks.0.ln_2.weight_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [4, 2], grid_size: [1, 4], inputs: [lc.input_tensor.blocks.0.ln_2.weight_s_brcst_m2_0_0.0, blocks.0.ln_2.weight],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_54.dc.multiply.13: {type: multiply, grid_loc: [4, 6], grid_size: [1, 2], inputs: [layernorm_54.dc.multiply.12, blocks.0.ln_2.weight_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 1}]}
+    blocks.0.ln_2.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [5, 0], grid_size: [1, 4], inputs: [lc.input_tensor.blocks.0.ln_2.bias_s_brcst_m2_0_0.0, blocks.0.ln_2.bias],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    layernorm_54.dc.add.14: {type: add, grid_loc: [5, 4], grid_size: [1, 2], inputs: [layernorm_54.dc.multiply.13, blocks.0.ln_2.bias_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 1}]}
+    fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop: {type: nop, grid_loc: [1, 2], grid_size: [1, 1], inputs: [e2e_fractured_0_index_66.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop: {type: nop, grid_loc: [1, 4], grid_size: [1, 1], inputs: [e2e_fractured_1_index_66.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop: {type: nop, grid_loc: [1, 6], grid_size: [1, 1], inputs: [e2e_fractured_2_index_66.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67_tm_nop: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [e2e_fractured_3_index_66.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop: {type: nop, grid_loc: [1, 3], grid_size: [1, 1], inputs: [e2e_fractured_0_index_68.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop: {type: nop, grid_loc: [1, 5], grid_size: [1, 1], inputs: [e2e_fractured_1_index_68.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop: {type: nop, grid_loc: [1, 7], grid_size: [1, 1], inputs: [e2e_fractured_2_index_68.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+    fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69_tm_nop: {type: nop, grid_loc: [2, 1], grid_size: [1, 1], inputs: [e2e_fractured_3_index_68.dc.buffer.1_0],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 24]}
+
+  fwd_0_6_temporal_epoch_3:
+    target_device: 0
+    input_count: 1
+    fractured_0_matmul_56: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_54.dc.add.14_0, fractured_0_blocks.0.mlp.c_fc.weight, fractured_0_blocks.0.mlp.c_fc.bias],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 128, min_buffer_input: 0, u_kt: 3}}
+    fractured_0_gelu_59: {type: gelu, grid_loc: [1, 0], grid_size: [1, 3], inputs: [fractured_0_matmul_56],
+         t: 1, mblock: [1, 32], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: true}}
+    fractured_0_matmul_61: {type: matmul, grid_loc: [2, 0], grid_size: [1, 8], inputs: [fractured_0_gelu_59, fractured_0_blocks.0.mlp.c_proj.weight],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 96, min_buffer_input: 0, u_kt: 4}}
+
+  fwd_0_7_temporal_epoch_3:
+    target_device: 1
+    input_count: 1
+    fractured_1_matmul_56: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_54.dc.add.14_0, fractured_1_blocks.0.mlp.c_fc.weight, fractured_1_blocks.0.mlp.c_fc.bias],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 128, min_buffer_input: 0, u_kt: 3}}
+    fractured_1_gelu_59: {type: gelu, grid_loc: [1, 0], grid_size: [1, 3], inputs: [fractured_1_matmul_56],
+         t: 1, mblock: [1, 32], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: true}}
+    fractured_1_matmul_61: {type: matmul, grid_loc: [2, 0], grid_size: [1, 8], inputs: [fractured_1_gelu_59, fractured_1_blocks.0.mlp.c_proj.weight],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 96, min_buffer_input: 0, u_kt: 4}}
+    fractured_gather_k0_matmul_61_cascade_0: {type: add, grid_loc: [1, 3], grid_size: [1, 2], inputs: [fractured_0_matmul_61, fractured_1_matmul_61],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_8_temporal_epoch_3:
+    target_device: 2
+    input_count: 1
+    fractured_2_matmul_56: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_54.dc.add.14_0, fractured_2_blocks.0.mlp.c_fc.weight, fractured_2_blocks.0.mlp.c_fc.bias],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 128, min_buffer_input: 0, u_kt: 3}}
+    fractured_2_gelu_59: {type: gelu, grid_loc: [1, 0], grid_size: [1, 3], inputs: [fractured_2_matmul_56],
+         t: 1, mblock: [1, 32], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: true}}
+    fractured_2_matmul_61: {type: matmul, grid_loc: [2, 0], grid_size: [1, 8], inputs: [fractured_2_gelu_59, fractured_2_blocks.0.mlp.c_proj.weight],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 96, min_buffer_input: 0, u_kt: 4}}
+
+  fwd_0_9_temporal_epoch_3:
+    target_device: 3
+    input_count: 1
+    fractured_3_matmul_56: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [e2e_layernorm_54.dc.add.14_0, fractured_3_blocks.0.mlp.c_fc.weight, fractured_3_blocks.0.mlp.c_fc.bias],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 1}],
+         attributes: {bias: true, m_k: 128, min_buffer_input: 0, u_kt: 3}}
+    fractured_3_gelu_59: {type: gelu, grid_loc: [1, 0], grid_size: [1, 3], inputs: [fractured_3_matmul_56],
+         t: 1, mblock: [1, 32], ublock: [1, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {approximate_mode: true}}
+    fractured_3_matmul_61: {type: matmul, grid_loc: [2, 0], grid_size: [1, 8], inputs: [fractured_3_gelu_59, fractured_3_blocks.0.mlp.c_proj.weight],
+         t: 1, mblock: [1, 12], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 96, min_buffer_input: 0, u_kt: 4}}
+    fractured_gather_k0_matmul_61_cascade_1: {type: add, grid_loc: [1, 3], grid_size: [1, 2], inputs: [fractured_2_matmul_61, fractured_3_matmul_61],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+    fractured_gather_k0_matmul_61_cascade_sink: {type: add, grid_loc: [1, 5], grid_size: [1, 2], inputs: [fractured_gather_k0_matmul_61_cascade_0, fractured_gather_k0_matmul_61_cascade_1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_10_temporal_epoch_4:
+    target_device: 3
+    input_count: 1
+    blocks.0.mlp.c_proj.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 4], inputs: [lc.input_tensor.blocks.0.mlp.c_proj.bias_s_brcst_m2_0_0.0, blocks.0.mlp.c_proj.bias],
+         t: 1, mblock: [1, 24], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    add_62: {type: add, grid_loc: [0, 4], grid_size: [1, 2], inputs: [e2e_fractured_gather_k0_matmul_61_cascade_sink_0, blocks.0.mlp.c_proj.bias_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 1}]}
+    add_65: {type: add, grid_loc: [0, 6], grid_size: [1, 2], inputs: [e2e_add_53_0, add_62],
+         t: 1, mblock: [1, 48], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+  fwd_0_11_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+
+  fwd_0_12_temporal_epoch_0:
+    target_device: 2
+    input_count: 1
+
+  fwd_0_13_temporal_epoch_0:
+    target_device: 3
+    input_count: 1
+
+  fwd_0_14_temporal_epoch_2:
+    target_device: 0
+    input_count: 1
+
+  fwd_0_15_temporal_epoch_2:
+    target_device: 1
+    input_count: 1
+
+  fwd_0_16_temporal_epoch_2:
+    target_device: 2
+    input_count: 1
+
+  fwd_0_17_temporal_epoch_4:
+    target_device: 0
+    input_count: 1
+
+  fwd_0_18_temporal_epoch_4:
+    target_device: 1
+    input_count: 1
+
+  fwd_0_19_temporal_epoch_4:
+    target_device: 2
+    input_count: 1
+
+
+programs:
+  - run_fwd_0:
+    - param: [$p_cache_write, $p_loop_count]
+    - var: {$gptr_q4: 0, $lptr_q4: 0, $gptr_q7: 0, $gptr_q8: 0, $lptr_q8: 0, $v_cache_write: 0, $c_microbatch_size: 1, $lptr_q7: 0, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0_shadow: 0, $v_cache_read: 0, $lptr_q6: 0, $gptr_q1: 0, $gptr_q6: 0, $lptr_q5: 0, $gptr_q5: 0, $lptr_q2: 0, $lptr_q3: 0, $lptr_q1: 0, $lptr_q0: 0, $gptr_q3: 0, $gptr_q2: 0, $gptr_q0: 0}
+    - varinst: [$v_cache_write, set, $p_cache_write]
+    - loop: $p_loop_count
+    -   varinst: [$gptr_q0, set, $gptr_q0_shadow]
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.layernorm_0.dc.reduce_sum.0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_0.1: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_0.dc.reduce_sum.5.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_0.6: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_0.8: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_0.dc.reciprocal.11_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.blocks.0.ln_1.weight_s_brcst_m2_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.ln_1.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.blocks.0.ln_1.bias_s_brcst_m2_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.ln_1.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_11_temporal_epoch_0}
+    -   execute: {graph_name: fwd_0_12_temporal_epoch_0}
+    -   execute: {graph_name: fwd_0_13_temporal_epoch_0}
+    -   varinst: [$gptr_q0_shadow, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 4]
+    -   allocate_queue: [e2e_fractured_gather_t0_matmul_46_0, e2e_fractured_3_index_66.dc.buffer.1_0, e2e_fractured_3_index_68.dc.buffer.1_0]
+    -   execute: {graph_name: fwd_0_1_temporal_epoch_1, queue_settings: {
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               blocks.0.attn.c_attn.weight_fork_clone190_fork_clone264: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone192_fork_clone272: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_0_tensor_1: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone196_fork_clone300: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone198_fork_clone308: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_1_multiply_24_fork_clone805_tile_bcast_tile_bcast: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.attention_mask_s_brcst_m2_0_1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               input_0_index_25: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_0_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_0_softmax_31.dc.reduce_sum.3.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.fractured_0_softmax_31.4: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_0_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               fractured_0_tensor_5: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone376: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone384: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_2_temporal_epoch_1, queue_settings: {
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               input_0_index_25: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone190_fork_clone265: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone192_fork_clone273: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_1_tensor_1: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone196_fork_clone301: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone198_fork_clone309: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_1_multiply_24_fork_clone807_tile_bcast_tile_bcast: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.attention_mask_s_brcst_m2_1_1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_1_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_1_softmax_31.dc.reduce_sum.3.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.fractured_1_softmax_31.4: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_1_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               fractured_1_tensor_5: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone377: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone385: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_3_temporal_epoch_1, queue_settings: {
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               e2e_layernorm_0.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               e2e_layernorm_0.dc.add.14_attempt_1_input_op_fork_nop0_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               input_0_index_25: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone190_fork_clone266: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone192_fork_clone274: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_2_tensor_1: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone196_fork_clone302: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone198_fork_clone310: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_1_multiply_24_fork_clone809_tile_bcast_tile_bcast: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.attention_mask_s_brcst_m2_2_1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_2_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_2_softmax_31.dc.reduce_sum.3.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.fractured_2_softmax_31.4: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_2_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               fractured_2_tensor_5: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone378: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone386: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_4_temporal_epoch_1, queue_settings: {
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               e2e_layernorm_0.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               input_0_index_25: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone190: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone192: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_3_tensor_1: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight_fork_clone196: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias_fork_clone198: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_1_multiply_24_tile_bcast_tile_bcast: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.attention_mask_s_brcst_m2_3_1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_3_softmax_31.dc.reduce_max.0_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_3_softmax_31.dc.reduce_sum.3.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.fractured_3_softmax_31.4: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.fractured_3_softmax_31.dc.reciprocal.6_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               fractured_3_tensor_5: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, read_only: true, rd_ptr_global: $v_cache_read, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_attn.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 4]
+    -   allocate_queue: [e2e_add_53_0]
+    -   execute: {graph_name: fwd_0_5_temporal_epoch_2, queue_settings: {
+               input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q3, rd_ptr_global: $gptr_q3},
+               fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_67: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_0_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_1_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_2_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               fractured_3_gpt3_block_decoder_1d_4af_4mf_4c_1L.output_hstack_69: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $v_cache_write, global_wrptr_autoinc: 63},
+               e2e_fractured_gather_t0_matmul_46_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q4, rd_ptr_global: $gptr_q4},
+               e2e_fractured_0_index_66.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_1_index_66.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_2_index_66.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_3_index_66.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q4, rd_ptr_global: $gptr_q4},
+               e2e_fractured_0_index_68.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_1_index_68.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_2_index_68.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5},
+               e2e_fractured_3_index_68.dc.buffer.1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q4, rd_ptr_global: $gptr_q4},
+               blocks.0.attn.c_proj.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               blocks.0.attn.c_proj.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_54.dc.reduce_sum.0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_54.1: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_54.dc.reduce_sum.5.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_54.6: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_54.8: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_54.dc.reciprocal.11_s_brcst_m1_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.blocks.0.ln_2.weight_s_brcst_m2_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.ln_2.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.blocks.0.ln_2.bias_s_brcst_m2_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.ln_2.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_14_temporal_epoch_2}
+    -   execute: {graph_name: fwd_0_15_temporal_epoch_2}
+    -   execute: {graph_name: fwd_0_16_temporal_epoch_2}
+    -   deallocate_queue: [e2e_fractured_gather_t0_matmul_46_0, e2e_fractured_3_index_66.dc.buffer.1_0, e2e_fractured_3_index_68.dc.buffer.1_0]
+    -   varinst: [$gptr_q3, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$gptr_q4, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$gptr_q5, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q3, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q4, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q5, incwrap, $c_microbatch_size, 4]
+    -   allocate_queue: [e2e_fractured_gather_k0_matmul_61_cascade_sink_0]
+    -   execute: {graph_name: fwd_0_6_temporal_epoch_3, queue_settings: {
+               e2e_layernorm_54.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q6, rd_ptr_global: $gptr_q6},
+               fractured_0_blocks.0.mlp.c_fc.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_0_blocks.0.mlp.c_fc.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_0_blocks.0.mlp.c_proj.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_7_temporal_epoch_3, queue_settings: {
+               e2e_layernorm_54.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q6, rd_ptr_global: $gptr_q6},
+               fractured_1_blocks.0.mlp.c_fc.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_1_blocks.0.mlp.c_fc.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_1_blocks.0.mlp.c_proj.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_8_temporal_epoch_3, queue_settings: {
+               e2e_layernorm_54.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q6, rd_ptr_global: $gptr_q6},
+               fractured_2_blocks.0.mlp.c_fc.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_2_blocks.0.mlp.c_fc.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_2_blocks.0.mlp.c_proj.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_9_temporal_epoch_3, queue_settings: {
+               e2e_layernorm_54.dc.add.14_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q6, rd_ptr_global: $gptr_q6},
+               fractured_3_blocks.0.mlp.c_fc.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_3_blocks.0.mlp.c_fc.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               fractured_3_blocks.0.mlp.c_proj.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q6, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q6, incwrap, $c_microbatch_size, 4]
+    -   execute: {graph_name: fwd_0_10_temporal_epoch_4, queue_settings: {
+               e2e_add_53_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q7, rd_ptr_global: $gptr_q7},
+               e2e_fractured_gather_k0_matmul_61_cascade_sink_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q8, rd_ptr_global: $gptr_q8},
+               lc.input_tensor.blocks.0.mlp.c_proj.bias_s_brcst_m2_0_0.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               blocks.0.mlp.c_proj.bias: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   execute: {graph_name: fwd_0_17_temporal_epoch_4}
+    -   execute: {graph_name: fwd_0_18_temporal_epoch_4}
+    -   execute: {graph_name: fwd_0_19_temporal_epoch_4}
+    -   deallocate_queue: [e2e_add_53_0, e2e_fractured_gather_k0_matmul_61_cascade_sink_0]
+    -   varinst: [$gptr_q7, incwrap, $c_microbatch_size, 6]
+    -   varinst: [$gptr_q8, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q7, incwrap, $c_microbatch_size, 6]
+    -   varinst: [$lptr_q8, incwrap, $c_microbatch_size, 4]
+    - endloop
+
+

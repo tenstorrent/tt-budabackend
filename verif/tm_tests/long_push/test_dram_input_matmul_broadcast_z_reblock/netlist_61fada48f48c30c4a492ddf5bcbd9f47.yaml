@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [3, 1]
+    t: 1
+    mblock: [3, 2]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x12310100], [1, 0x185fed40], [1, 0x2b084780]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [1, 8]
+    t: 1
+    mblock: [1, 1]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x19222380], [0, 0x1a52dfa0], [0, 0x31345300], [0, 0x329417a0], [0, 0x344ffb20], [0, 0x355177a0], [0, 0x3ed77060], [0, 0x3f3692c0]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 8
+    grid_size: [9, 2]
+    t: 8
+    mblock: [1, 4]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x110b53e0], [6, 0x116cc080], [6, 0x17397aa0], [6, 0x181d7880], [6, 0x20d82e00], [6, 0x25780b20], [6, 0x2730f700], [6, 0x2ab23cc0], [6, 0x2b8f8880], [6, 0x2c9e4d20], [6, 0x2d488100], [6, 0x2e9ee260], [6, 0x2f8c47a0], [6, 0x330fad00], [6, 0x345117e0], [6, 0x36314660], [6, 0x3858a9a0], [6, 0x3c45e820]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  4
+    op0: 
+      type: matmul
+      grid_loc: [1, 8]
+      grid_size: [9, 2]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 8
+      math_fidelity: HiFi4
+      attributes: {m_k: 2, u_kt: 1}
+      untilize_output: false
+      t: 8
+      mblock: [1, 4]
+      ublock: [1, 1]
+      input_0_tms: [broadcast: {z: 8 }]
+      input_1_tms: [broadcast: {z: 8 }]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 4, 8]
+      - varinst: [$gptr0, incwrap, 4, 8]
+      - varinst: [$lptr1, incwrap, 4, 8]
+      - varinst: [$gptr1, incwrap, 4, 8]
+      - endloop: 

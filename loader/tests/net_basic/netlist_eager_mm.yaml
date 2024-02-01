@@ -1,0 +1,42 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  # inputs
+  op0_in0: {type: queue, input: HOST    , entries: 256, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  op0_in1: {type: ram  , input: HOST    , entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float32, target_device: 0, loc: dram, dram: [[1, 0x21000000]]}
+
+  # outputs -- leave it in dram for next op to pick up
+  net2net_op0_out: {type: queue, input: matmul0 , entries: 256, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x31000000]]}
+
+graphs:
+  graph_op0:
+    target_device: 0
+    input_count: 256
+    matmul0: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [op0_in0, op0_in1], in_df: [Float32, Float32], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 2, u_kt: 2} }
+
+programs:
+  - op_matmul:
+    - var: {$p_microbatch_count: 1}
+    - var: {$c_microbatch_size: 256, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: graph_op0, queue_settings: {
+          op0_in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+          op0_in1: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 512]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 512]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.75
+    check_pcc: 0.97
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.25

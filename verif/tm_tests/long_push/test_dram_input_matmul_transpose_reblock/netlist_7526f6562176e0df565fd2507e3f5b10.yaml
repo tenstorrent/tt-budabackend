@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 16
+    grid_size: [2, 1]
+    t: 8
+    mblock: [1, 1]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x151394c0], [4, 0x1cccc4e0]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 24
+    grid_size: [2, 1]
+    t: 8
+    mblock: [3, 1]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x1e539980], [6, 0x3ee4eea0]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 8
+    grid_size: [2, 2]
+    t: 8
+    mblock: [1, 1]
+    ublock: [1, 6]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[7, 0x1ac12840], [7, 0x1df0f5a0], [7, 0x28899b40], [7, 0x3c522ec0]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  8
+    op0: 
+      type: matmul
+      grid_loc: [2, 0]
+      grid_size: [2, 2]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 1, u_kt: 1}
+      untilize_output: false
+      t: 8
+      mblock: [1, 1]
+      ublock: [1, 6]
+      input_0_tms: []
+      input_1_tms: [transpose]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 8, 32]
+      - varinst: [$gptr0, incwrap, 8, 32]
+      - varinst: [$lptr1, incwrap, 8, 48]
+      - varinst: [$gptr1, incwrap, 8, 48]
+      - endloop: 

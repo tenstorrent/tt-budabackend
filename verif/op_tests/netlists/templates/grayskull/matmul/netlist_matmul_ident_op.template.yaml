@@ -1,0 +1,76 @@
+devices:
+  arch: $TEMPLATE_device
+
+queues:
+  input0_sparse:  {type: ram, input: HOST, entries: 1, grid_size: [$TEMPLATE_grid_size_y, 1], t: 1, mblock: [1, $TEMPLATE_num_sparse_tiles], ublock: [1, 1], df: $TEMPLATE_in0_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in0_dram_buffers} #sparse tile input
+  input1:  {type: queue, input: HOST, entries: $TEMPLATE_entries, grid_size: [1, $TEMPLATE_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_mblock_k, $TEMPLATE_mblock_n], ublock: [$TEMPLATE_ublock_kt, $TEMPLATE_ublock_ct], df: $TEMPLATE_in1_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in1_dram_buffers}
+  input2_encoding:  {type: ram, input: HOST, entries: 1, grid_size: [$TEMPLATE_grid_size_y, 1], t: 1, mblock: [1, $TEMPLATE_num_index_tiles], ublock: [1, 1], df: RawUInt32, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in2_dram_buffers} #index tile encoding input
+  output0: {type: queue, input: op0 , entries: $TEMPLATE_entries, grid_size: [$TEMPLATE_out_grid_size_y, $TEMPLATE_out_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_out_mblock_m, $TEMPLATE_out_mblock_n], ublock: [$TEMPLATE_out_ublock_rt, $TEMPLATE_out_ublock_ct], df: $TEMPLATE_out_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_out_dram_buffers}
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count:  $TEMPLATE_input_count
+    op0:
+      type: matmul
+      grid_loc: [$TEMPLATE_grid_loc_y, $TEMPLATE_grid_loc_x]   # [r,c]
+      grid_size: [$TEMPLATE_grid_size_y, $TEMPLATE_grid_size_x] # [r,c]
+      inputs: [input0_sparse, input1, input2_encoding]
+      in_df: [$TEMPLATE_in0_data_format, $TEMPLATE_in1_data_format, RawUInt32]
+      acc_df: $TEMPLATE_dest_accumulate_data_format
+      out_df: $TEMPLATE_out_data_format
+      intermed_df: $TEMPLATE_intermed_data_format
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity
+      attributes: {m_k: $TEMPLATE_m_k, u_kt: $TEMPLATE_u_kt, identity: true,
+        num_sparse_tiles: $TEMPLATE_num_sparse_tiles, num_index_tiles: $TEMPLATE_num_index_tiles,
+        sparse_tile_ptr_bits: $TEMPLATE_sparse_tile_ptr_bits, l1_acc: $TEMPLATE_l1_acc,
+        stoch_rnd_mode: $TEMPLATE_stoch_rnd_mode} 
+      untilize_output: $TEMPLATE_untilize_output
+      t: $TEMPLATE_t
+      input_0_tms: [broadcast: {c: $TEMPLATE_grid_size_x}]
+      input_2_tms: [broadcast: {c: $TEMPLATE_grid_size_x}]
+      mblock: [$TEMPLATE_mblock_m,  $TEMPLATE_mblock_n]
+      ublock: [$TEMPLATE_ublock_rt, $TEMPLATE_ublock_ct]
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, $TEMPLATE_loop_count]  # load loop count
+      - varinst : [$c_input_count, set, $TEMPLATE_input_count]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0_sparse: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2_encoding: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$lptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: $TEMPLATE_loop_count
+  comparison-config:
+    type: $TEMPLATE_comparison_config_type
+    atol: $TEMPLATE_comparison_config_atol
+    rtol: $TEMPLATE_comparison_config_rtol
+    check_pct: $TEMPLATE_comparison_config_check_pct
+    check_pcc: $TEMPLATE_comparison_config_check_pcc
+    verbosity: $TEMPLATE_comparison_config_verbosity
+  stimulus-config:
+    type: $TEMPLATE_stimulus_config_type
+    uniform_lower_bound: $TEMPLATE_stimulus_config_uniform_lower_bound
+    uniform_upper_bound: $TEMPLATE_stimulus_config_uniform_upper_bound
+    overrides:
+      input0_sparse:
+        type: sparse
+        matmul_ident_name: op0
+      input2_encoding:
+        type: sparse_encoding
+        matmul_ident_name: op0
+        zero_strip_freq: 0.5  # a strip/block is zero. This will cover zero strip in the first/last position too.
+        zero_ublock_freq: 0.5 # an ublock within non-zero strip is zero. Ensure that non-zero strip contains an non-zero ublock.
+        zero_tile_freq: 0.5   # a tile within non-zero ublock is zero. Ensure that non-zero ublock contains a non-zero tile.
+        enc_tile_byte_size: 4096

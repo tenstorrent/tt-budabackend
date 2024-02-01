@@ -1,0 +1,24 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  weight0   : {type: ram, input: binary0 , entries: 1, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  gradient0 : {type: queue, input: HOST , entries: 16, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12400000], [0, 0x12800000], [0, 0x12c00000]]}
+
+graphs:
+  test_graph:
+    target_device: 0
+    input_count: 16
+    binary0: {type: add, grid_loc: [0, 0], grid_size: [2, 2], inputs: [gradient0, weight0], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_zero: 0, $c_one: 1, $c_num_loops: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_graph, queue_settings: { 
+          weight0: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+          gradient0: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $q_rdptr0, rd_ptr_local: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, 16, 32]
+      - endloop 
+

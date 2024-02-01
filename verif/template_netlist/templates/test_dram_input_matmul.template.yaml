@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input0_entries
+    grid_size: [$TEMPLATE_input0_grid_size_r, $TEMPLATE_input0_grid_size_c]
+    t: $TEMPLATE_input0_t
+    mblock: [$TEMPLATE_input0_mb_r, $TEMPLATE_input0_mb_c]
+    ublock: [$TEMPLATE_input0_ub_r, $TEMPLATE_input0_ub_c]
+    df: $TEMPLATE_input0_df
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input0_dram_buffers
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input1_entries
+    grid_size: [$TEMPLATE_input1_grid_size_r, $TEMPLATE_input1_grid_size_c]
+    t: $TEMPLATE_input1_t
+    mblock: [$TEMPLATE_input1_mb_r, $TEMPLATE_input1_mb_c]
+    ublock: [$TEMPLATE_input1_ub_r, $TEMPLATE_input1_ub_c]
+    df: $TEMPLATE_input1_df
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input1_dram_buffers
+
+  output:
+    type: queue
+    input: op0
+    entries: $TEMPLATE_output_entries
+    grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+    t: $TEMPLATE_output_t
+    mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+    ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+    df: $TEMPLATE_out_df
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output_dram_buffers
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  $TEMPLATE_input_count
+    op0: 
+      type: matmul
+      grid_loc: [$TEMPLATE_grid_loc_r, $TEMPLATE_grid_loc_c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [$TEMPLATE_input0_df, $TEMPLATE_input1_df] 
+      acc_df: $TEMPLATE_dest_accumulate_df
+      out_df: $TEMPLATE_out_df
+      intermed_df: $TEMPLATE_out_df
+      ublock_order: r
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      attributes: {m_k: $TEMPLATE_mb_inner, u_kt: $TEMPLATE_ub_inner}
+      untilize_output: false
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms: [$TEMPLATE_input0_tms]
+      input_1_tms: [$TEMPLATE_input1_tms]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: $TEMPLATE_dram_input0_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: $TEMPLATE_dram_input1_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size0]
+      - varinst: [$gptr0, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size0]
+      - varinst: [$lptr1, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size1]
+      - varinst: [$gptr1, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size1]
+      - endloop: 

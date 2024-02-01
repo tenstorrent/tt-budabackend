@@ -1,0 +1,85 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+  # writer : {type: ram,    input: unary0, entries: 224, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  # reader : {type: ram,    input: HOST, alias: writer, entries: 32, grid_size: [1, 1], t: 7, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+
+
+queues:
+  in0:                {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in1:                {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  cache_reader0:      {type: ram,   input: HOST                          , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  cache_reader1:      {type: ram,   input: HOST    , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  cache_writer0:      {type: ram,   input: unary0  , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  cache_writer1:      {type: ram,   input: unary2  , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  out0:               {type: queue, input: unary1  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  out1:               {type: queue, input: unary3  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+
+graphs:
+
+  graph0_writer:
+    target_device: 0
+    input_count: 4
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph0_reader:
+    target_device: 0
+    input_count: 4
+    unary1: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [cache_reader0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  graph1_writer:
+    target_device: 0
+    input_count: 4
+    unary2: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph1_reader:
+    target_device: 0
+    input_count: 4
+    unary3: {type: nop, grid_loc: [3, 0], grid_size: [1, 1], inputs: [cache_reader1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+
+programs:
+  - program_0:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 4, $c_input_wrap: 160, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph0_writer, queue_settings: {
+          in0:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer0: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph0_reader, queue_settings: {
+          cache_reader0: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+  - program_1:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 4, $c_input_wrap: 160, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph1_writer, queue_settings: {
+          in1:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer1: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph1_reader, queue_settings: {
+          cache_reader1: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0, in1]
+    outputs: [out0, out1]

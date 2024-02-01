@@ -1,0 +1,46 @@
+# Configuration for test
+test-config:
+  extra-config:
+    math-op: &math-op datacopy
+    bcast-type: &bcast-type broadcast_row
+  tensor-config:
+    input0:
+      dims: [1, 6, 32, 32]
+      data-format: Bfp8
+      stimulus-config:
+        min: -2.0
+        max: 2.0
+      stream-config:
+        type: input
+        stream-id: 8
+        src-name: srcA
+    output0:
+      dims: [1, 6, 32, 32]
+      data-format: Bfp8
+      stream-config:
+        type: output
+        stream-id: 24
+
+
+# Kernel Configuration
+#   -- Lists the kernels used + a sub-op param
+#      --  Sub-ops are a vector of operations that get appended to the base-name.  
+#          This is for ctest kernels that use kernel name to differentiate behaviour, 
+#          but the base kernel is the same.  
+kernels-config:
+  0-0:
+    unpack-kernel:
+      base-name: ctest_unpack_A
+      sub-ops: [*bcast-type]
+    math-kernel:
+      base-name: ctest_math_eltwise_unary
+      sub-ops: [*bcast-type, *math-op]
+    pack-kernel:
+      base-name: ctest_pack
+
+# Overlay blob generation controls 
+#   -- Can be used to override tile-size etc which infra will try to generate from test-spec.
+#   -- Verbose flag to see exact configuration passed to overlay-generation script
+overlay-config:
+  graph_name: unary_streaming_test
+  verbose: 0

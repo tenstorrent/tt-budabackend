@@ -1,0 +1,45 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+
+  # input
+  in0:   {input: HOST, type: queue, entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 2], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  out0:  {input: max0, type: queue, entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    max0: {type: reduce, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Int8], out_df: Int8, intermed_df: Int32, acc_df: Int32, math_fidelity: HiFi4,
+         attributes: {dim: c, type: max, m_k: 1, u_kt: 2}}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $c_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               in0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 32]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 32]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 4.0
+
+

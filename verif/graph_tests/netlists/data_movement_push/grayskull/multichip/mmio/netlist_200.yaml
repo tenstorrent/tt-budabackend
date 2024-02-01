@@ -1,0 +1,131 @@
+# GatherToPCIe - PCIeUnicast
+# GatherToPCIe - PCIeMulticast
+devices:
+  arch: grayskull
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 8
+    grid_size: [4, 5]
+    t: 1
+    mblock: [12, 2]
+    ublock: [1, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000040], [3, 0x10186060], [3, 0x1030c080], [3, 0x104920a0], [3, 0x106180c0], [3, 0x1079e0e0], [3, 0x10924100], [3, 0x10aaa120], [3, 0x10c30140], [3, 0x10db6160], [3, 0x10f3c180], [3, 0x110c21a0], [3, 0x112481c0], [3, 0x113ce1e0], [3, 0x11554200], [3, 0x116da220], [3, 0x11860240], [3, 0x119e6260], [3, 0x11b6c280], [3, 0x11cf22a0]]
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: 8
+    grid_size: [1, 1]
+    t: 80
+    mblock: [1, 2]
+    ublock: [1, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000020]]
+
+  output_dram:
+    type: queue
+    input: output
+    entries: 8
+    grid_size: [4, 1]
+    t: 20
+    mblock: [3, 2]
+    ublock: [1, 4]
+    df: Float16
+    target_device: 1
+    loc: dram
+    dram: [[7, 0x10000060], [7, 0x1079e080], [7, 0x10f3c0a0], [7, 0x116da0c0]]
+
+graphs:
+  graph_producer_chip_0:
+    target_device: 0
+    input_count: 2
+    feeder0:
+      type: datacopy
+      grid_loc: [2, 1]
+      grid_size: [4, 10]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [6, 2]
+      ublock: [2, 2]
+    feeder1:
+      type: datacopy
+      grid_loc: [1, 7]
+      grid_size: [1, 4]
+      inputs: [input1_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 8
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 80
+      mblock: [1, 1]
+      ublock: [1, 2]
+  graph_consumer_chip_1:
+    target_device: 1
+    input_count: 2
+    output:
+      type: matmul
+      grid_loc: [1, 2]
+      grid_size: [4, 1]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 8, u_kt: 1}
+      untilize_output: false
+      t: 20
+      mblock: [3, 2]
+      ublock: [1, 4]
+      input_0_tms: [vslice: 4, hslice: 5]
+      input_1_tms: [broadcast: {r: 2}, vstack: 4]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: graph_producer_chip_0,
+          queue_settings: {
+            input0_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            input1_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   execute: {
+          graph_name: graph_consumer_chip_1
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 4 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations

@@ -1,0 +1,74 @@
+# q0 - initial input
+# q1 - shared weight across epochs
+# q2 - epoch-to-epoch dram spill
+# q3 - final output of 1st program, input of 2nd program
+# q4 - final output of 2nd program
+
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  q0: {type: queue, input: HOST    , entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x10100000], [0, 0x10200000], [0, 0x10300000]]}
+  q1: {type: queue, input: HOST    , entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x18000000], [0, 0x18100000], [0, 0x18200000], [0, 0x18300000]]}
+  q2: {type: queue, input: binary0 , entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000], [0, 0x20100000], [0, 0x20200000], [0, 0x20300000]]}
+  q3: {type: queue, input: binary1 , entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x28000000], [0, 0x28100000], [0, 0x28200000], [0, 0x28300000]]}
+  q4: {type: queue, input: unary0  , entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x30100000], [0, 0x30200000], [0, 0x30300000]]}
+
+graphs:
+  test_binary_epoch0:
+    target_device: 0
+    input_count: 2
+    binary0: {type: add,     grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0, q1], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2] }
+  test_binary_epoch1:
+    target_device: 0
+    input_count: 2
+    binary1: {type: multiply, grid_loc: [0, 1], grid_size: [2, 2], inputs: [q2, q1], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2] }
+  test_unary_epoch0:
+    target_device: 0
+    input_count: 2
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - binary_program:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 4]  # load loop count
+      - varinst: [$c_input_count, set, 2] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_binary_epoch0, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: test_binary_epoch1, queue_settings: {
+          q2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+  - unary_program:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 4]  # load loop count
+      - varinst: [$c_input_count, set, 2] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_unary_epoch0, queue_settings: {
+          q3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  test-args:
+    microbatch_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.75
+    check_pcc: 0.97
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.25
+  io-config:
+    inputs: [q0, q1]
+    outputs: [q4]

@@ -1,0 +1,91 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in_0:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 3], ublock: [2, 4], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  output0:  {type: queue, input: op1 , entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 3], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  8
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [in_0]
+      in_df: [Bfp8]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 2
+      mblock: [3, 3]
+      ublock: [2, 4]
+      input_0_tms:
+
+    op1: 
+      type: fused_op
+      grid_loc: [1, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [op0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 2
+      mblock: [3, 3]
+      ublock: [2, 4]
+      input_0_tms:
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 8]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 16]
+      -   varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+fused_ops:
+  0: 
+    inputs: 1
+    intermediates: 0
+    schedules: 
+      -
+        - nop0: { type: nop, inputs: [input0], mblock: [3, 3], ublock: [2, 4], attributes: {relu_en: true, relu_threshold: 0.5, relu_mode: min}, output: dest}
+        - nop1: { type: nop, inputs: [dest], mblock: [3, 3], ublock: [2, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #constant_value: 1.0
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 3.0
+

@@ -1,0 +1,1581 @@
+#ntb_random_seed=0
+#Test id=0
+- device: WORMHOLE_B0
+  entries: 2
+  grid_size_x: 1
+  grid_size_y: 1
+  in1_grid_size_x: 1
+  in1_grid_size_y: 1
+  input_q_t: 4
+  output_q_t: 4
+  mblock_m: 1
+  mblock_n: 4
+  mblock_k: 2
+  ublock_rt: 1
+  ublock_ct: 5
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 4
+  in1_mblock_k: 2
+  in1_ublock_ct: 5
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 2
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Bfp8'
+  intermed_data_format: 'Bfp8'
+  in0_data_format: 'Bfp2'
+  in0_dram_buffers: '[[4, 0x1fca29e0]]'
+  in1_data_format: 'Bfp2'
+  in1_dram_buffers: '[[4, 0x25a4bac0]]'
+  in2_data_format: 'Float16'
+  in2_dram_buffers: '[[4, 0x32e72960]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'gelu'
+  sfpu_execution_thread: 'math'
+  relu_en: ' true'
+  relu_mode: 'max'
+  relu_threshold: '0.700000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 1
+  grid_loc_y: 7
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[4, 0x332531c0]]'
+  out_grid_size_x: 1
+  out_grid_size_y: 1
+  out_mblock_m: 1
+  out_mblock_n: 4
+  out_ublock_rt: 1
+  out_ublock_ct: 5
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 4
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.30
+  comparison_config_check_pct: 0.4
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=1
+- device: WORMHOLE_B0
+  entries: 8
+  grid_size_x: 3
+  grid_size_y: 3
+  in1_grid_size_x: 3
+  in1_grid_size_y: 3
+  input_q_t: 4
+  output_q_t: 4
+  mblock_m: 2
+  mblock_n: 1
+  mblock_k: 3
+  ublock_rt: 8
+  ublock_ct: 1
+  ublock_kt: 2
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 3
+  in1_ublock_ct: 1
+  in1_ublock_kt: 2
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 9
+  u_kt: 2
+  l1_acc: false
+  stoch_rnd_mode: pack
+  out_data_format: 'Bfp8_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[5, 0x1a1d8940], [1, 0x1a7f0960], [4, 0x1ae08980], [0, 0x1b4209a0], [5, 0x1ba389c0], [4, 0x1c0509e0], [0, 0x1c668a00], [0, 0x1cc80a20], [1, 0x1d298a40]]'
+  in1_data_format: 'Bfp8_b'
+  in1_dram_buffers: '[[5, 0x2057b100], [1, 0x205af920], [4, 0x205e4140], [0, 0x20618960], [5, 0x2064d180], [4, 0x206819a0], [0, 0x206b61c0], [0, 0x206ea9e0], [1, 0x2071f200]]'
+  in2_data_format: 'Bfp2_b'
+  in2_dram_buffers: '[[5, 0x24cce500], [1, 0x24cfa520], [4, 0x24d26540]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 4
+  grid_loc_x: 1
+  grid_loc_y: 3
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[5, 0x36f80fa0], [1, 0x3700cfc0], [4, 0x37098fe0], [0, 0x37125000], [5, 0x371b1020], [4, 0x3723d040], [0, 0x372c9060], [0, 0x37355080], [1, 0x373e10a0]]'
+  out_grid_size_x: 3
+  out_grid_size_y: 3
+  out_mblock_m: 2
+  out_mblock_n: 1
+  out_ublock_rt: 8
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 16
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.30
+  comparison_config_check_pct: 0.4
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=2
+- device: WORMHOLE_B0
+  entries: 1
+  grid_size_x: 8
+  grid_size_y: 4
+  in1_grid_size_x: 8
+  in1_grid_size_y: 4
+  input_q_t: 4
+  output_q_t: 4
+  mblock_m: 1
+  mblock_n: 1
+  mblock_k: 2
+  ublock_rt: 5
+  ublock_ct: 1
+  ublock_kt: 2
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 4
+  in1_ublock_ct: 1
+  in1_ublock_kt: 2
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 16
+  u_kt: 2
+  l1_acc: false
+  stoch_rnd_mode: all
+  out_data_format: 'Bfp8_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[4, 0x3db0b1c0], [5, 0x3db33be0], [5, 0x3db5c600], [0, 0x3db85020], [2, 0x3dbada40], [1, 0x3dbd6460], [3, 0x3dbfee80], [1, 0x3dc278a0], [0, 0x3dc502c0], [2, 0x3dc78ce0], [4, 0x3dca1700], [2, 0x3dcca120], [5, 0x3dcf2b40], [2, 0x3dd1b560], [1, 0x3dd43f80], [2, 0x3dd6c9a0], [0, 0x3dd953c0], [3, 0x3ddbdde0], [0, 0x3dde6800], [4, 0x3de0f220], [2, 0x3de37c40], [5, 0x3de60660], [5, 0x3de89080], [3, 0x3deb1aa0], [4, 0x3deda4c0], [5, 0x3df02ee0], [1, 0x3df2b900], [3, 0x3df54320], [1, 0x3df7cd40], [0, 0x3dfa5760], [3, 0x3dfce180], [3, 0x3dff6ba0]]'
+  in1_data_format: 'Bfp4_b'
+  in1_dram_buffers: '[[4, 0x3ecda5e0], [5, 0x3ecdf200], [5, 0x3ece3e20], [0, 0x3ece8a40], [2, 0x3eced660], [1, 0x3ecf2280], [3, 0x3ecf6ea0], [1, 0x3ecfbac0], [0, 0x3ed006e0], [2, 0x3ed05300], [4, 0x3ed09f20], [2, 0x3ed0eb40], [5, 0x3ed13760], [2, 0x3ed18380], [1, 0x3ed1cfa0], [2, 0x3ed21bc0], [0, 0x3ed267e0], [3, 0x3ed2b400], [0, 0x3ed30020], [4, 0x3ed34c40], [2, 0x3ed39860], [5, 0x3ed3e480], [5, 0x3ed430a0], [3, 0x3ed47cc0], [4, 0x3ed4c8e0], [5, 0x3ed51500], [1, 0x3ed56120], [3, 0x3ed5ad40], [1, 0x3ed5f960], [0, 0x3ed64580], [3, 0x3ed691a0], [3, 0x3ed6ddc0]]'
+  in2_data_format: 'Bfp8_b'
+  in2_dram_buffers: '[[4, 0x3f2c20e0], [5, 0x3f2c7880], [5, 0x3f2cd020], [0, 0x3f2d27c0], [2, 0x3f2d7f60], [1, 0x3f2dd700], [3, 0x3f2e2ea0], [1, 0x3f2e8640]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 0
+  grid_loc_y: 4
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[4, 0x3fa97b80], [5, 0x3fa9d320], [5, 0x3faa2ac0], [0, 0x3faa8260], [2, 0x3faada00], [1, 0x3fab31a0], [3, 0x3fab8940], [1, 0x3fabe0e0], [0, 0x3fac3880], [2, 0x3fac9020], [4, 0x3face7c0], [2, 0x3fad3f60], [5, 0x3fad9700], [2, 0x3fadeea0], [1, 0x3fae4640], [2, 0x3fae9de0], [0, 0x3faef580], [3, 0x3faf4d20], [0, 0x3fafa4c0], [4, 0x3faffc60], [2, 0x3fb05400], [5, 0x3fb0aba0], [5, 0x3fb10340], [3, 0x3fb15ae0], [4, 0x3fb1b280], [5, 0x3fb20a20], [1, 0x3fb261c0], [3, 0x3fb2b960], [1, 0x3fb31100], [0, 0x3fb368a0], [3, 0x3fb3c040], [3, 0x3fb417e0]]'
+  out_grid_size_x: 8
+  out_grid_size_y: 4
+  out_mblock_m: 1
+  out_mblock_n: 1
+  out_ublock_rt: 5
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 2
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.30
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=3
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 8
+  grid_size_y: 2
+  in1_grid_size_x: 8
+  in1_grid_size_y: 2
+  input_q_t: 1
+  output_q_t: 1
+  mblock_m: 9
+  mblock_n: 1
+  mblock_k: 1
+  ublock_rt: 1
+  ublock_ct: 1
+  ublock_kt: 14
+  in_0_tile_dim_r: 1
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 4
+  in1_ublock_ct: 1
+  in1_ublock_kt: 14
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 8
+  u_kt: 14
+  l1_acc: false
+  stoch_rnd_mode: all
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[0, 0x19601040], [2, 0x19700f60], [4, 0x19800e80], [0, 0x19900da0], [3, 0x19a00cc0], [1, 0x19b00be0], [5, 0x19c00b00], [0, 0x19d00a20], [3, 0x19e00940], [3, 0x19f00860], [2, 0x1a000780], [5, 0x1a1006a0], [5, 0x1a2005c0], [2, 0x1a3004e0], [0, 0x1a400400], [1, 0x1a500320]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[0, 0x2343f180], [2, 0x234b0da0], [4, 0x235229c0], [0, 0x235945e0], [3, 0x23606200], [1, 0x23677e20], [5, 0x236e9a40], [0, 0x2375b660], [3, 0x237cd280], [3, 0x2383eea0], [2, 0x238b0ac0], [5, 0x239226e0], [5, 0x23994300], [2, 0x23a05f20], [0, 0x23a77b40], [1, 0x23ae9760]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[0, 0x253fb040], [2, 0x2540d4e0], [4, 0x2541f980], [0, 0x25431e20], [3, 0x254442c0], [1, 0x25456760], [5, 0x25468c00], [0, 0x2547b0a0]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 0
+  grid_loc_y: 6
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[0, 0x2b130aa0], [2, 0x2b142f40], [4, 0x2b1553e0], [0, 0x2b167880], [3, 0x2b179d20], [1, 0x2b18c1c0], [5, 0x2b19e660], [0, 0x2b1b0b00], [3, 0x2b1c2fa0], [3, 0x2b1d5440], [2, 0x2b1e78e0], [5, 0x2b1f9d80], [5, 0x2b20c220], [2, 0x2b21e6c0], [0, 0x2b230b60], [1, 0x2b243000]]'
+  out_grid_size_x: 8
+  out_grid_size_y: 2
+  out_mblock_m: 9
+  out_mblock_n: 1
+  out_ublock_rt: 1
+  out_ublock_ct: 1
+  out_tile_dim_r: 16
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=4
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 7
+  grid_size_y: 2
+  in1_grid_size_x: 7
+  in1_grid_size_y: 2
+  input_q_t: 14
+  output_q_t: 14
+  mblock_m: 1
+  mblock_n: 2
+  mblock_k: 2
+  ublock_rt: 7
+  ublock_ct: 1
+  ublock_kt: 10
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 2
+  in1_mblock_k: 7
+  in1_ublock_ct: 1
+  in1_ublock_kt: 10
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 14
+  u_kt: 10
+  l1_acc: false
+  stoch_rnd_mode: pack
+  out_data_format: 'Float16'
+  intermed_data_format: 'Bfp8'
+  in0_data_format: 'Float16'
+  in0_dram_buffers: '[[5, 0x2087d1a0], [4, 0x2180a5c0], [2, 0x227979e0], [2, 0x23724e00], [1, 0x246b2220], [0, 0x2563f640], [2, 0x265cca60], [0, 0x27559e80], [1, 0x284e72a0], [5, 0x294746c0], [1, 0x2a401ae0], [4, 0x2b38ef00], [5, 0x2c31c320], [5, 0x2d2a9740]]'
+  in1_data_format: 'Float16'
+  in1_dram_buffers: '[[5, 0x2ec1f180], [4, 0x2fbac5a0], [2, 0x30b399c0], [2, 0x31ac6de0], [1, 0x32a54200], [0, 0x339e1620], [2, 0x3496ea40], [0, 0x358fbe60], [1, 0x36889280], [5, 0x378166a0], [1, 0x387a3ac0], [4, 0x39730ee0], [5, 0x3a6be300], [5, 0x3b64b720]]'
+  in2_data_format: 'Float16'
+  in2_dram_buffers: '[[5, 0x3cff10c0], [4, 0x3d17f2e0], [2, 0x3d30d500], [2, 0x3d49b720], [1, 0x3d629940], [0, 0x3d7b7b60], [2, 0x3d945d80]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 1
+  grid_loc_y: 5
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[5, 0x3e871da0], [4, 0x3e9fffc0], [2, 0x3eb8e1e0], [2, 0x3ed1c400], [1, 0x3eeaa620], [0, 0x3f038840], [2, 0x3f1c6a60], [0, 0x3f354c80], [1, 0x3f4e2ea0], [5, 0x3f6710c0], [1, 0x3f7ff2e0], [4, 0x3f98d500], [5, 0x3fb1b720], [5, 0x3fca9940]]'
+  out_grid_size_x: 7
+  out_grid_size_y: 2
+  out_mblock_m: 1
+  out_mblock_n: 2
+  out_ublock_rt: 7
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=5
+- device: WORMHOLE_B0
+  entries: 8
+  grid_size_x: 2
+  grid_size_y: 2
+  in1_grid_size_x: 2
+  in1_grid_size_y: 2
+  input_q_t: 52
+  output_q_t: 52
+  mblock_m: 2
+  mblock_n: 1
+  mblock_k: 14
+  ublock_rt: 1
+  ublock_ct: 2
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 14
+  in1_mblock_k: 1
+  in1_ublock_ct: 1
+  in1_ublock_kt: 2
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 28
+  u_kt: 1
+  l1_acc:  true
+  stoch_rnd_mode: fpu
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[2, 0x1c741100], [4, 0x1de5c120], [3, 0x1f577140], [0, 0x20c92160]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[2, 0x233e84a0], [4, 0x24b034c0], [3, 0x2621e4e0], [0, 0x27939500]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[2, 0x290e4dc0], [4, 0x29431de0]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 0
+  grid_loc_y: 2
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1: [transpose]
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[2, 0x35143b80], [4, 0x35490ba0], [3, 0x357ddbc0], [0, 0x35b2abe0]]'
+  out_grid_size_x: 2
+  out_grid_size_y: 2
+  out_mblock_m: 2
+  out_mblock_n: 1
+  out_ublock_rt: 1
+  out_ublock_ct: 2
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 16
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.7
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=6
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 7
+  grid_size_y: 7
+  in1_grid_size_x: 7
+  in1_grid_size_y: 7
+  input_q_t: 26
+  output_q_t: 26
+  mblock_m: 5
+  mblock_n: 2
+  mblock_k: 1
+  ublock_rt: 1
+  ublock_ct: 1
+  ublock_kt: 6
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 2
+  in1_mblock_k: 1
+  in1_ublock_ct: 1
+  in1_ublock_kt: 6
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 7
+  u_kt: 6
+  l1_acc:  true
+  stoch_rnd_mode: none
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[3, 0x10087120], [5, 0x106b7740], [1, 0x10ce7d60], [1, 0x11318380], [3, 0x119489a0], [0, 0x11f78fc0], [4, 0x125a95e0], [5, 0x12bd9c00], [4, 0x1320a220], [0, 0x1383a840], [1, 0x13e6ae60], [0, 0x1449b480], [1, 0x14acbaa0], [3, 0x150fc0c0], [5, 0x1572c6e0], [2, 0x15d5cd00], [0, 0x1638d320], [2, 0x169bd940], [2, 0x16fedf60], [1, 0x1761e580], [4, 0x17c4eba0], [3, 0x1827f1c0], [5, 0x188af7e0], [5, 0x18edfe00], [1, 0x19510420], [0, 0x19b40a40], [5, 0x1a171060], [2, 0x1a7a1680], [2, 0x1add1ca0], [3, 0x1b4022c0], [0, 0x1ba328e0], [3, 0x1c062f00], [2, 0x1c693520], [2, 0x1ccc3b40], [1, 0x1d2f4160], [0, 0x1d924780], [1, 0x1df54da0], [3, 0x1e5853c0], [5, 0x1ebb59e0], [4, 0x1f1e6000], [5, 0x1f816620], [3, 0x1fe46c40], [4, 0x20477260], [3, 0x20aa7880], [5, 0x210d7ea0], [3, 0x217084c0], [1, 0x21d38ae0], [1, 0x22369100], [5, 0x22999720]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[3, 0x23357640], [5, 0x235d1260], [1, 0x2384ae80], [1, 0x23ac4aa0], [3, 0x23d3e6c0], [0, 0x23fb82e0], [4, 0x24231f00], [5, 0x244abb20], [4, 0x24725740], [0, 0x2499f360], [1, 0x24c18f80], [0, 0x24e92ba0], [1, 0x2510c7c0], [3, 0x253863e0], [5, 0x25600000], [2, 0x25879c20], [0, 0x25af3840], [2, 0x25d6d460], [2, 0x25fe7080], [1, 0x26260ca0], [4, 0x264da8c0], [3, 0x267544e0], [5, 0x269ce100], [5, 0x26c47d20], [1, 0x26ec1940], [0, 0x2713b560], [5, 0x273b5180], [2, 0x2762eda0], [2, 0x278a89c0], [3, 0x27b225e0], [0, 0x27d9c200], [3, 0x28015e20], [2, 0x2828fa40], [2, 0x28509660], [1, 0x28783280], [0, 0x289fcea0], [1, 0x28c76ac0], [3, 0x28ef06e0], [5, 0x2916a300], [4, 0x293e3f20], [5, 0x2965db40], [3, 0x298d7760], [4, 0x29b51380], [3, 0x29dcafa0], [5, 0x2a044bc0], [3, 0x2a2be7e0], [1, 0x2a538400], [1, 0x2a7b2020], [5, 0x2aa2bc40]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[3, 0x2fd72b20], [5, 0x2ff82d40], [1, 0x30192f60], [1, 0x303a3180], [3, 0x305b33a0], [0, 0x307c35c0], [4, 0x309d37e0]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 1
+  grid_loc_y: 1
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[3, 0x393ea6c0], [5, 0x395fa8e0], [1, 0x3980ab00], [1, 0x39a1ad20], [3, 0x39c2af40], [0, 0x39e3b160], [4, 0x3a04b380], [5, 0x3a25b5a0], [4, 0x3a46b7c0], [0, 0x3a67b9e0], [1, 0x3a88bc00], [0, 0x3aa9be20], [1, 0x3acac040], [3, 0x3aebc260], [5, 0x3b0cc480], [2, 0x3b2dc6a0], [0, 0x3b4ec8c0], [2, 0x3b6fcae0], [2, 0x3b90cd00], [1, 0x3bb1cf20], [4, 0x3bd2d140], [3, 0x3bf3d360], [5, 0x3c14d580], [5, 0x3c35d7a0], [1, 0x3c56d9c0], [0, 0x3c77dbe0], [5, 0x3c98de00], [2, 0x3cb9e020], [2, 0x3cdae240], [3, 0x3cfbe460], [0, 0x3d1ce680], [3, 0x3d3de8a0], [2, 0x3d5eeac0], [2, 0x3d7fece0], [1, 0x3da0ef00], [0, 0x3dc1f120], [1, 0x3de2f340], [3, 0x3e03f560], [5, 0x3e24f780], [4, 0x3e45f9a0], [5, 0x3e66fbc0], [3, 0x3e87fde0], [4, 0x3ea90000], [3, 0x3eca0220], [5, 0x3eeb0440], [3, 0x3f0c0660], [1, 0x3f2d0880], [1, 0x3f4e0aa0], [5, 0x3f6f0cc0]]'
+  out_grid_size_x: 7
+  out_grid_size_y: 7
+  out_mblock_m: 5
+  out_mblock_n: 2
+  out_ublock_rt: 1
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.7
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=7
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 3
+  grid_size_y: 7
+  in1_grid_size_x: 3
+  in1_grid_size_y: 7
+  input_q_t: 24
+  output_q_t: 24
+  mblock_m: 1
+  mblock_n: 3
+  mblock_k: 7
+  ublock_rt: 1
+  ublock_ct: 1
+  ublock_kt: 8
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 3
+  in1_mblock_k: 3
+  in1_ublock_ct: 1
+  in1_ublock_kt: 8
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 21
+  u_kt: 8
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float32'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[1, 0x16281ea0], [4, 0x16d2bec0], [4, 0x177d5ee0], [2, 0x1827ff00], [2, 0x18d29f20], [0, 0x197d3f40], [3, 0x1a27df60], [1, 0x1ad27f80], [4, 0x1b7d1fa0], [3, 0x1c27bfc0], [3, 0x1cd25fe0], [4, 0x1d7d0000], [2, 0x1e27a020], [5, 0x1ed24040], [2, 0x1f7ce060], [0, 0x20278080], [3, 0x20d220a0], [5, 0x217cc0c0], [2, 0x222760e0], [2, 0x22d20100], [2, 0x237ca120]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[1, 0x2665cb20], [4, 0x27412b40], [4, 0x281c8b60], [2, 0x28f7eb80], [2, 0x29d34ba0], [0, 0x2aaeabc0], [3, 0x2b8a0be0], [1, 0x2c656c00], [4, 0x2d40cc20], [3, 0x2e1c2c40], [3, 0x2ef78c60], [4, 0x2fd2ec80], [2, 0x30ae4ca0], [5, 0x3189acc0], [2, 0x32650ce0], [0, 0x33406d00], [3, 0x341bcd20], [5, 0x34f72d40], [2, 0x35d28d60], [2, 0x36aded80], [2, 0x37894da0]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[1, 0x3a4ca5c0], [4, 0x3a55c9e0], [4, 0x3a5eee00]]'
+  dest_accumulate_data_format: 'Float32'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 1
+  grid_loc_y: 1
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[1, 0x3f1c7380], [4, 0x3f2597a0], [4, 0x3f2ebbc0], [2, 0x3f37dfe0], [2, 0x3f410400], [0, 0x3f4a2820], [3, 0x3f534c40], [1, 0x3f5c7060], [4, 0x3f659480], [3, 0x3f6eb8a0], [3, 0x3f77dcc0], [4, 0x3f8100e0], [2, 0x3f8a2500], [5, 0x3f934920], [2, 0x3f9c6d40], [0, 0x3fa59160], [3, 0x3faeb580], [5, 0x3fb7d9a0], [2, 0x3fc0fdc0], [2, 0x3fca21e0], [2, 0x3fd34600]]'
+  out_grid_size_x: 3
+  out_grid_size_y: 7
+  out_mblock_m: 1
+  out_mblock_n: 3
+  out_ublock_rt: 1
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.55
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=8
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 1
+  grid_size_y: 1
+  in1_grid_size_x: 1
+  in1_grid_size_y: 1
+  input_q_t: 16
+  output_q_t: 16
+  mblock_m: 12
+  mblock_n: 1
+  mblock_k: 1
+  ublock_rt: 1
+  ublock_ct: 3
+  ublock_kt: 10
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 1
+  in1_ublock_ct: 10
+  in1_ublock_kt: 3
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 1
+  u_kt: 10
+  l1_acc: false
+  stoch_rnd_mode: fpu
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[2, 0x36cd1ae0]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[2, 0x3985dc00]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[2, 0x3afd1600]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 1
+  grid_loc_y: 1
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1: [transpose]
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[2, 0x3ded9040]]'
+  out_grid_size_x: 1
+  out_grid_size_y: 1
+  out_mblock_m: 12
+  out_mblock_n: 1
+  out_ublock_rt: 1
+  out_ublock_ct: 3
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.4
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=9
+- device: WORMHOLE_B0
+  entries: 16
+  grid_size_x: 1
+  grid_size_y: 1
+  in1_grid_size_x: 1
+  in1_grid_size_y: 1
+  input_q_t: 2
+  output_q_t: 2
+  mblock_m: 1
+  mblock_n: 7
+  mblock_k: 14
+  ublock_rt: 4
+  ublock_ct: 1
+  ublock_kt: 10
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 7
+  in1_mblock_k: 14
+  in1_ublock_ct: 1
+  in1_ublock_kt: 10
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 14
+  u_kt: 10
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[5, 0x1d92e040]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[5, 0x26874d20]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[5, 0x3d40f0a0]]'
+  dest_accumulate_data_format: 'Float32'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 4
+  grid_loc_x: 5
+  grid_loc_y: 4
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[5, 0x3e030a60]]'
+  out_grid_size_x: 1
+  out_grid_size_y: 1
+  out_mblock_m: 1
+  out_mblock_n: 7
+  out_ublock_rt: 4
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 32
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.7
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=10
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 2
+  grid_size_y: 4
+  in1_grid_size_x: 4
+  in1_grid_size_y: 2
+  input_q_t: 22
+  output_q_t: 22
+  mblock_m: 1
+  mblock_n: 2
+  mblock_k: 8
+  ublock_rt: 1
+  ublock_ct: 1
+  ublock_kt: 8
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 4
+  in1_mblock_k: 2
+  in1_ublock_ct: 8
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 16
+  u_kt: 8
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float16'
+  intermed_data_format: 'Bfp8'
+  in0_data_format: 'Float16'
+  in0_dram_buffers: '[[3, 0x189d10c0], [1, 0x194fd0e0], [2, 0x1a029100], [3, 0x1ab55120], [3, 0x1b681140], [2, 0x1c1ad160], [4, 0x1ccd9180], [2, 0x1d8051a0]]'
+  in1_data_format: 'Float16'
+  in1_dram_buffers: '[[3, 0x2628bc80], [1, 0x26db7ca0], [2, 0x278e3cc0], [3, 0x2840fce0], [3, 0x28f3bd00], [2, 0x29a67d20], [4, 0x2a593d40], [2, 0x2b0bfd60]]'
+  in2_data_format: 'Float16'
+  in2_dram_buffers: '[[3, 0x2c3eb520], [1, 0x2c444b40]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'gelu'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 2
+  grid_loc_y: 2
+  math_fidelity: LoFi
+  untilize_output: 'false'
+  transpose_in1: [transpose]
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[3, 0x34c19600], [1, 0x34c72c20], [2, 0x34ccc240], [3, 0x34d25860], [3, 0x34d7ee80], [2, 0x34dd84a0], [4, 0x34e31ac0], [2, 0x34e8b0e0]]'
+  out_grid_size_x: 2
+  out_grid_size_y: 4
+  out_mblock_m: 1
+  out_mblock_n: 2
+  out_ublock_rt: 1
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=11
+- device: WORMHOLE_B0
+  entries: 16
+  grid_size_x: 7
+  grid_size_y: 6
+  in1_grid_size_x: 7
+  in1_grid_size_y: 6
+  input_q_t: 1
+  output_q_t: 1
+  mblock_m: 1
+  mblock_n: 1
+  mblock_k: 6
+  ublock_rt: 3
+  ublock_ct: 1
+  ublock_kt: 10
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 7
+  in1_ublock_ct: 1
+  in1_ublock_kt: 10
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 42
+  u_kt: 10
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[3, 0x1941ed80], [2, 0x199d55a0], [3, 0x19f8bdc0], [0, 0x1a5425e0], [3, 0x1aaf8e00], [1, 0x1b0af620], [3, 0x1b665e40], [4, 0x1bc1c660], [0, 0x1c1d2e80], [4, 0x1c7896a0], [4, 0x1cd3fec0], [5, 0x1d2f66e0], [3, 0x1d8acf00], [0, 0x1de63720], [4, 0x1e419f40], [5, 0x1e9d0760], [2, 0x1ef86f80], [1, 0x1f53d7a0], [4, 0x1faf3fc0], [3, 0x200aa7e0], [2, 0x20661000], [4, 0x20c17820], [1, 0x211ce040], [5, 0x21784860], [3, 0x21d3b080], [3, 0x222f18a0], [0, 0x228a80c0], [2, 0x22e5e8e0], [1, 0x23415100], [2, 0x239cb920], [3, 0x23f82140], [3, 0x24538960], [4, 0x24aef180], [1, 0x250a59a0], [5, 0x2565c1c0], [1, 0x25c129e0], [4, 0x261c9200], [4, 0x2677fa20], [2, 0x26d36240], [1, 0x272eca60], [0, 0x278a3280], [2, 0x27e59aa0]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[3, 0x2edc3bc0], [2, 0x2effc7e0], [3, 0x2f235400], [0, 0x2f46e020], [3, 0x2f6a6c40], [1, 0x2f8df860], [3, 0x2fb18480], [4, 0x2fd510a0], [0, 0x2ff89cc0], [4, 0x301c28e0], [4, 0x303fb500], [5, 0x30634120], [3, 0x3086cd40], [0, 0x30aa5960], [4, 0x30cde580], [5, 0x30f171a0], [2, 0x3114fdc0], [1, 0x313889e0], [4, 0x315c1600], [3, 0x317fa220], [2, 0x31a32e40], [4, 0x31c6ba60], [1, 0x31ea4680], [5, 0x320dd2a0], [3, 0x32315ec0], [3, 0x3254eae0], [0, 0x32787700], [2, 0x329c0320], [1, 0x32bf8f40], [2, 0x32e31b60], [3, 0x3306a780], [3, 0x332a33a0], [4, 0x334dbfc0], [1, 0x33714be0], [5, 0x3394d800], [1, 0x33b86420], [4, 0x33dbf040], [4, 0x33ff7c60], [2, 0x34230880], [1, 0x344694a0], [0, 0x346a20c0], [2, 0x348dace0]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[3, 0x3869d5a0], [2, 0x386b5bc0], [3, 0x386ce1e0], [0, 0x386e6800], [3, 0x386fee20], [1, 0x38717440], [3, 0x3872fa60]]'
+  dest_accumulate_data_format: 'Float32'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 4
+  grid_loc_x: 1
+  grid_loc_y: 0
+  math_fidelity: LoFi
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[3, 0x3db0cb00], [2, 0x3db25120], [3, 0x3db3d740], [0, 0x3db55d60], [3, 0x3db6e380], [1, 0x3db869a0], [3, 0x3db9efc0], [4, 0x3dbb75e0], [0, 0x3dbcfc00], [4, 0x3dbe8220], [4, 0x3dc00840], [5, 0x3dc18e60], [3, 0x3dc31480], [0, 0x3dc49aa0], [4, 0x3dc620c0], [5, 0x3dc7a6e0], [2, 0x3dc92d00], [1, 0x3dcab320], [4, 0x3dcc3940], [3, 0x3dcdbf60], [2, 0x3dcf4580], [4, 0x3dd0cba0], [1, 0x3dd251c0], [5, 0x3dd3d7e0], [3, 0x3dd55e00], [3, 0x3dd6e420], [0, 0x3dd86a40], [2, 0x3dd9f060], [1, 0x3ddb7680], [2, 0x3ddcfca0], [3, 0x3dde82c0], [3, 0x3de008e0], [4, 0x3de18f00], [1, 0x3de31520], [5, 0x3de49b40], [1, 0x3de62160], [4, 0x3de7a780], [4, 0x3de92da0], [2, 0x3deab3c0], [1, 0x3dec39e0], [0, 0x3dedc000], [2, 0x3def4620]]'
+  out_grid_size_x: 7
+  out_grid_size_y: 6
+  out_mblock_m: 1
+  out_mblock_n: 1
+  out_ublock_rt: 3
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 32
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.7
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=12
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 4
+  grid_size_y: 4
+  in1_grid_size_x: 4
+  in1_grid_size_y: 4
+  input_q_t: 1
+  output_q_t: 1
+  mblock_m: 9
+  mblock_n: 2
+  mblock_k: 13
+  ublock_rt: 1
+  ublock_ct: 3
+  ublock_kt: 11
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 2
+  in1_mblock_k: 13
+  in1_ublock_ct: 3
+  in1_ublock_kt: 11
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 52
+  u_kt: 11
+  l1_acc: false
+  stoch_rnd_mode: all
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[3, 0x23348220], [1, 0x23d7e5c0], [1, 0x247b4960], [1, 0x251ead00], [3, 0x25c210a0], [5, 0x26657440], [3, 0x2708d7e0], [5, 0x27ac3b80], [5, 0x284f9f20], [0, 0x28f302c0], [2, 0x29966660], [4, 0x2a39ca00], [1, 0x2add2da0], [5, 0x2b809140], [2, 0x2c23f4e0], [1, 0x2cc75880]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[3, 0x2de672c0], [1, 0x2e535fe0], [1, 0x2ec04d00], [1, 0x2f2d3a20], [3, 0x2f9a2740], [5, 0x30071460], [3, 0x30740180], [5, 0x30e0eea0], [5, 0x314ddbc0], [0, 0x31bac8e0], [2, 0x3227b600], [4, 0x3294a320], [1, 0x33019040], [5, 0x336e7d60], [2, 0x33db6a80], [1, 0x344857a0]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[3, 0x34f8b880], [1, 0x34ff93a0], [1, 0x35066ec0], [1, 0x350d49e0]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'max'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 3
+  grid_loc_y: 2
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[3, 0x3bf3f520], [1, 0x3bfad040], [1, 0x3c01ab60], [1, 0x3c088680], [3, 0x3c0f61a0], [5, 0x3c163cc0], [3, 0x3c1d17e0], [5, 0x3c23f300], [5, 0x3c2ace20], [0, 0x3c31a940], [2, 0x3c388460], [4, 0x3c3f5f80], [1, 0x3c463aa0], [5, 0x3c4d15c0], [2, 0x3c53f0e0], [1, 0x3c5acc00]]'
+  out_grid_size_x: 4
+  out_grid_size_y: 4
+  out_mblock_m: 9
+  out_mblock_n: 2
+  out_ublock_rt: 1
+  out_ublock_ct: 3
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=13
+- device: WORMHOLE_B0
+  entries: 16
+  grid_size_x: 5
+  grid_size_y: 5
+  in1_grid_size_x: 5
+  in1_grid_size_y: 5
+  input_q_t: 2
+  output_q_t: 2
+  mblock_m: 3
+  mblock_n: 1
+  mblock_k: 3
+  ublock_rt: 8
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 3
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 15
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float32'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Bfp4_b'
+  in0_dram_buffers: '[[5, 0x371670c0], [5, 0x372bd0e0], [5, 0x37413100], [3, 0x37569120], [2, 0x376bf140], [3, 0x37815160], [3, 0x3796b180], [1, 0x37ac11a0], [3, 0x37c171c0], [3, 0x37d6d1e0], [5, 0x37ec3200], [2, 0x38019220], [4, 0x3816f240], [4, 0x382c5260], [2, 0x3841b280], [2, 0x385712a0], [3, 0x386c72c0], [4, 0x3881d2e0], [2, 0x38973300], [2, 0x38ac9320], [4, 0x38c1f340], [4, 0x38d75360], [0, 0x38ecb380], [5, 0x390213a0], [2, 0x391773c0]]'
+  in1_data_format: 'Bfp8_b'
+  in1_dram_buffers: '[[5, 0x39547400], [5, 0x39561820], [5, 0x3957bc40], [3, 0x39596060], [2, 0x395b0480], [3, 0x395ca8a0], [3, 0x395e4cc0], [1, 0x395ff0e0], [3, 0x39619500], [3, 0x39633920], [5, 0x3964dd40], [2, 0x39668160], [4, 0x39682580], [4, 0x3969c9a0], [2, 0x396b6dc0], [2, 0x396d11e0], [3, 0x396eb600], [4, 0x39705a20], [2, 0x3971fe40], [2, 0x3973a260], [4, 0x39754680], [4, 0x3976eaa0], [0, 0x39788ec0], [5, 0x397a32e0], [2, 0x397bd700]]'
+  in2_data_format: 'Bfp8_b'
+  in2_dram_buffers: '[[5, 0x39af3c60], [5, 0x39bc5c80], [5, 0x39c97ca0], [3, 0x39d69cc0], [2, 0x39e3bce0]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 4
+  grid_loc_x: 2
+  grid_loc_y: 2
+  math_fidelity: LoFi
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[5, 0x3b35d3c0], [5, 0x3b6633e0], [5, 0x3b969400], [3, 0x3bc6f420], [2, 0x3bf75440], [3, 0x3c27b460], [3, 0x3c581480], [1, 0x3c8874a0], [3, 0x3cb8d4c0], [3, 0x3ce934e0], [5, 0x3d199500], [2, 0x3d49f520], [4, 0x3d7a5540], [4, 0x3daab560], [2, 0x3ddb1580], [2, 0x3e0b75a0], [3, 0x3e3bd5c0], [4, 0x3e6c35e0], [2, 0x3e9c9600], [2, 0x3eccf620], [4, 0x3efd5640], [4, 0x3f2db660], [0, 0x3f5e1680], [5, 0x3f8e76a0], [2, 0x3fbed6c0]]'
+  out_grid_size_x: 5
+  out_grid_size_y: 5
+  out_mblock_m: 3
+  out_mblock_n: 1
+  out_ublock_rt: 8
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 32
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.55
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=14
+- device: WORMHOLE_B0
+  entries: 8
+  grid_size_x: 3
+  grid_size_y: 6
+  in1_grid_size_x: 6
+  in1_grid_size_y: 3
+  input_q_t: 1
+  output_q_t: 1
+  mblock_m: 1
+  mblock_n: 4
+  mblock_k: 2
+  ublock_rt: 4
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 1
+  in1_mblock_k: 4
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 6
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Bfp8_b'
+  intermed_data_format: 'Bfp8_b'
+  in0_data_format: 'Bfp2_b'
+  in0_dram_buffers: '[[1, 0x30623c20], [3, 0x30629440], [3, 0x3062ec60], [4, 0x30634480], [4, 0x30639ca0], [2, 0x3063f4c0], [4, 0x30644ce0], [0, 0x3064a500], [5, 0x3064fd20], [3, 0x30655540], [0, 0x3065ad60], [5, 0x30660580], [1, 0x30665da0], [0, 0x3066b5c0], [5, 0x30670de0], [1, 0x30676600], [2, 0x3067be20], [4, 0x30681640]]'
+  in1_data_format: 'Bfp4_b'
+  in1_dram_buffers: '[[1, 0x30a85b80], [3, 0x30a8a7a0], [3, 0x30a8f3c0], [4, 0x30a93fe0], [4, 0x30a98c00], [2, 0x30a9d820], [4, 0x30aa2440], [0, 0x30aa7060], [5, 0x30aabc80], [3, 0x30ab08a0], [0, 0x30ab54c0], [5, 0x30aba0e0], [1, 0x30abed00], [0, 0x30ac3920], [5, 0x30ac8540], [1, 0x30acd160], [2, 0x30ad1d80], [4, 0x30ad69a0]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[1, 0x36d90da0], [3, 0x36dd1dc0], [3, 0x36e12de0]]'
+  dest_accumulate_data_format: 'Float32'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 3
+  grid_loc_y: 1
+  math_fidelity: HiFi3
+  untilize_output: 'false'
+  transpose_in1: [transpose]
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[1, 0x3a4a1740], [3, 0x3a4c4760], [3, 0x3a4e7780], [4, 0x3a50a7a0], [4, 0x3a52d7c0], [2, 0x3a5507e0], [4, 0x3a573800], [0, 0x3a596820], [5, 0x3a5b9840], [3, 0x3a5dc860], [0, 0x3a5ff880], [5, 0x3a6228a0], [1, 0x3a6458c0], [0, 0x3a6688e0], [5, 0x3a68b900], [1, 0x3a6ae920], [2, 0x3a6d1940], [4, 0x3a6f4960]]'
+  out_grid_size_x: 3
+  out_grid_size_y: 6
+  out_mblock_m: 1
+  out_mblock_n: 4
+  out_ublock_rt: 4
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 16
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.30
+  comparison_config_check_pct: 0.4
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=15
+# - device: WORMHOLE_B0
+#   entries: 2
+#   grid_size_x: 5
+#   grid_size_y: 2
+#   in1_grid_size_x: 5
+#   in1_grid_size_y: 2
+#   input_q_t: 8
+#   output_q_t: 8
+#   mblock_m: 5
+#   mblock_n: 1
+#   mblock_k: 6
+#   ublock_rt: 1
+#   ublock_ct: 3
+#   ublock_kt: 5
+#   in_0_tile_dim_r: 2
+#   in_0_tile_dim_c: 32
+#   in1_mblock_n: 1
+#   in1_mblock_k: 15
+#   in1_ublock_ct: 3
+#   in1_ublock_kt: 5
+#   in_1_tile_dim_r: 16
+#   in_1_tile_dim_c: 32
+#   in_2_tile_dim_r: 32
+#   in_2_tile_dim_c: 32
+#   m_k: 30
+#   u_kt: 5
+#   l1_acc: false
+#   stoch_rnd_mode: none
+#   out_data_format: 'Float16_b'
+#   intermed_data_format: 'Bfp8_b'
+#   in0_data_format: 'Float16_b'
+#   in0_dram_buffers: '[[1, 0x29b3c5e0], [0, 0x29fff200], [1, 0x2a4c1e20], [0, 0x2a984a40], [2, 0x2ae47660], [4, 0x2b30a280], [0, 0x2b7ccea0], [2, 0x2bc8fac0], [0, 0x2c1526e0], [3, 0x2c615300]]'
+#   in1_data_format: 'Float16_b'
+#   in1_dram_buffers: '[[1, 0x331421a0], [0, 0x338663c0], [1, 0x33f8a5e0], [0, 0x346ae800], [2, 0x34dd2a20], [4, 0x354f6c40], [0, 0x35c1ae60], [2, 0x3633f080], [0, 0x36a632a0], [3, 0x371874c0]]'
+#   in2_data_format: 'Float16_b'
+#   in2_dram_buffers: '[[1, 0x3dd07940], [0, 0x3dd81760], [1, 0x3ddfb580], [0, 0x3de753a0], [2, 0x3deef1c0]]'
+#   dest_accumulate_data_format: 'Float32'
+#   sfpu_op: 'invalid'
+#   sfpu_execution_thread: 'pack'
+#   relu_en: ' true'
+#   relu_mode: 'max'
+#   relu_threshold: '0.720000'
+#   z: 0
+#   min_buffer_input: 0
+#   target_device: 0
+#   input_count: 1
+#   grid_loc_x: 1
+#   grid_loc_y: 3
+#   math_fidelity: LoFi
+#   untilize_output: 'false'
+#   transpose_in1:            
+#   bcast_in2: '[broadcast: {r: 1}]'
+#   ublock_order: r
+#   buf_size_mb: 2
+#   # Scale output queue grid and mblock size if output is untilized
+#   # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+#   out_dram_buffers: '[[1, 0x3f2eb160], [0, 0x3f364f80], [1, 0x3f3deda0], [0, 0x3f458bc0], [2, 0x3f4d29e0], [4, 0x3f54c800], [0, 0x3f5c6620], [2, 0x3f640440], [0, 0x3f6ba260], [3, 0x3f734080]]'
+#   out_grid_size_x: 5
+#   out_grid_size_y: 2
+#   out_mblock_m: 5
+#   out_mblock_n: 1
+#   out_ublock_rt: 1
+#   out_ublock_ct: 3
+#   out_tile_dim_r: 1
+#   out_tile_dim_c: 32
+#   # Program vars
+#   loop_count: 1
+#   queue_wrap_size: 4
+#   # Test and stimulus config
+#   comparison_config_type: 'AllCloseHw'
+#   comparison_config_atol: 0.01
+#   comparison_config_rtol: 0.15
+#   comparison_config_check_pct: 0
+#   comparison_config_check_pcc: 0.9
+#   comparison_config_verbosity: 'Concise'
+#   stimulus_config_type: 'Uniform'
+#   stimulus_config_uniform_lower_bound: '-2.0'
+#   stimulus_config_uniform_upper_bound: '2.0'
+#Test id=16
+- device: WORMHOLE_B0
+  entries: 1
+  grid_size_x: 1
+  grid_size_y: 7
+  in1_grid_size_x: 1
+  in1_grid_size_y: 7
+  input_q_t: 8
+  output_q_t: 8
+  mblock_m: 2
+  mblock_n: 8
+  mblock_k: 14
+  ublock_rt: 7
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 8
+  in1_mblock_k: 2
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 14
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: fpu
+  out_data_format: 'Float16'
+  intermed_data_format: 'Bfp8'
+  in0_data_format: 'Float16'
+  in0_dram_buffers: '[[4, 0x114d5d80], [4, 0x117f21a0], [1, 0x11b0e5c0], [2, 0x11e2a9e0], [0, 0x12146e00], [0, 0x12463220], [0, 0x1277f640]]'
+  in1_data_format: 'Float16'
+  in1_dram_buffers: '[[4, 0x12f0f060], [4, 0x12f50080], [1, 0x12f910a0], [2, 0x12fd20c0], [0, 0x130130e0], [0, 0x13054100], [0, 0x13095120]]'
+  in2_data_format: 'Float16'
+  in2_dram_buffers: '[[4, 0x2a02fa20]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'math'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 5
+  grid_loc_y: 0
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[4, 0x346a1d60], [4, 0x34868d80], [1, 0x34a2fda0], [2, 0x34bf6dc0], [0, 0x34dbdde0], [0, 0x34f84e00], [0, 0x3514be20]]'
+  out_grid_size_x: 1
+  out_grid_size_y: 7
+  out_mblock_m: 2
+  out_mblock_n: 8
+  out_ublock_rt: 7
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 2
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.4
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=17
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 7
+  grid_size_y: 7
+  in1_grid_size_x: 7
+  in1_grid_size_y: 7
+  input_q_t: 2
+  output_q_t: 2
+  mblock_m: 7
+  mblock_n: 4
+  mblock_k: 9
+  ublock_rt: 3
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 4
+  in1_mblock_k: 9
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 32
+  in_2_tile_dim_c: 32
+  m_k: 63
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: none
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float32'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[2, 0x1444c260], [0, 0x1474bf80], [1, 0x14a4bca0], [4, 0x14d4b9c0], [5, 0x1504b6e0], [1, 0x1534b400], [1, 0x1564b120], [1, 0x1594ae40], [4, 0x15c4ab60], [2, 0x15f4a880], [4, 0x1624a5a0], [0, 0x1654a2c0], [0, 0x16849fe0], [1, 0x16b49d00], [3, 0x16e49a20], [3, 0x17149740], [2, 0x17449460], [2, 0x17749180], [3, 0x17a48ea0], [5, 0x17d48bc0], [2, 0x180488e0], [1, 0x18348600], [5, 0x18648320], [1, 0x18948040], [4, 0x18c47d60], [0, 0x18f47a80], [0, 0x192477a0], [5, 0x195474c0], [1, 0x198471e0], [5, 0x19b46f00], [2, 0x19e46c20], [2, 0x1a146940], [5, 0x1a446660], [3, 0x1a746380], [2, 0x1aa460a0], [5, 0x1ad45dc0], [0, 0x1b045ae0], [3, 0x1b345800], [3, 0x1b645520], [3, 0x1b945240], [2, 0x1bc44f60], [3, 0x1bf44c80], [1, 0x1c2449a0], [0, 0x1c5446c0], [0, 0x1c8443e0], [5, 0x1cb44100], [1, 0x1ce43e20], [1, 0x1d143b40], [2, 0x1d443860]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[2, 0x1ee483c0], [0, 0x1eeda7e0], [1, 0x1ef6cc00], [4, 0x1efff020], [5, 0x1f091440], [1, 0x1f123860], [1, 0x1f1b5c80], [1, 0x1f2480a0], [4, 0x1f2da4c0], [2, 0x1f36c8e0], [4, 0x1f3fed00], [0, 0x1f491120], [0, 0x1f523540], [1, 0x1f5b5960], [3, 0x1f647d80], [3, 0x1f6da1a0], [2, 0x1f76c5c0], [2, 0x1f7fe9e0], [3, 0x1f890e00], [5, 0x1f923220], [2, 0x1f9b5640], [1, 0x1fa47a60], [5, 0x1fad9e80], [1, 0x1fb6c2a0], [4, 0x1fbfe6c0], [0, 0x1fc90ae0], [0, 0x1fd22f00], [5, 0x1fdb5320], [1, 0x1fe47740], [5, 0x1fed9b60], [2, 0x1ff6bf80], [2, 0x1fffe3a0], [5, 0x200907c0], [3, 0x20122be0], [2, 0x201b5000], [5, 0x20247420], [0, 0x202d9840], [3, 0x2036bc60], [3, 0x203fe080], [3, 0x204904a0], [2, 0x205228c0], [3, 0x205b4ce0], [1, 0x20647100], [0, 0x206d9520], [0, 0x2076b940], [5, 0x207fdd60], [1, 0x20890180], [1, 0x209225a0], [2, 0x209b49c0]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[2, 0x230b15c0], [0, 0x232069e0], [1, 0x2335be00], [4, 0x234b1220], [5, 0x23606640], [1, 0x2375ba60], [1, 0x238b0e80]]'
+  dest_accumulate_data_format: 'Float32'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: ' true'
+  relu_mode: 'max'
+  relu_threshold: '0.500000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 2
+  grid_loc_x: 1
+  grid_loc_y: 1
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[2, 0x35427a80], [0, 0x3557cea0], [1, 0x356d22c0], [4, 0x358276e0], [5, 0x3597cb00], [1, 0x35ad1f20], [1, 0x35c27340], [1, 0x35d7c760], [4, 0x35ed1b80], [2, 0x36026fa0], [4, 0x3617c3c0], [0, 0x362d17e0], [0, 0x36426c00], [1, 0x3657c020], [3, 0x366d1440], [3, 0x36826860], [2, 0x3697bc80], [2, 0x36ad10a0], [3, 0x36c264c0], [5, 0x36d7b8e0], [2, 0x36ed0d00], [1, 0x37026120], [5, 0x3717b540], [1, 0x372d0960], [4, 0x37425d80], [0, 0x3757b1a0], [0, 0x376d05c0], [5, 0x378259e0], [1, 0x3797ae00], [5, 0x37ad0220], [2, 0x37c25640], [2, 0x37d7aa60], [5, 0x37ecfe80], [3, 0x380252a0], [2, 0x3817a6c0], [5, 0x382cfae0], [0, 0x38424f00], [3, 0x3857a320], [3, 0x386cf740], [3, 0x38824b60], [2, 0x38979f80], [3, 0x38acf3a0], [1, 0x38c247c0], [0, 0x38d79be0], [0, 0x38ecf000], [5, 0x39024420], [1, 0x39179840], [1, 0x392cec60], [2, 0x39424080]]'
+  out_grid_size_x: 7
+  out_grid_size_y: 7
+  out_mblock_m: 7
+  out_mblock_n: 4
+  out_ublock_rt: 3
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.55
+  comparison_config_check_pcc: 0.95
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=18
+- device: WORMHOLE_B0
+  entries: 2
+  grid_size_x: 6
+  grid_size_y: 6
+  in1_grid_size_x: 6
+  in1_grid_size_y: 6
+  input_q_t: 60
+  output_q_t: 60
+  mblock_m: 1
+  mblock_n: 2
+  mblock_k: 13
+  ublock_rt: 2
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 13
+  in1_mblock_k: 2
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 78
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: pack
+  out_data_format: 'Float16'
+  intermed_data_format: 'Bfp8'
+  in0_data_format: 'Float16'
+  in0_dram_buffers: '[[0, 0x188f57c0], [5, 0x18f25de0], [3, 0x19556400], [1, 0x19b86a20], [1, 0x1a1b7040], [4, 0x1a7e7660], [1, 0x1ae17c80], [0, 0x1b4482a0], [3, 0x1ba788c0], [5, 0x1c0a8ee0], [1, 0x1c6d9500], [1, 0x1cd09b20], [3, 0x1d33a140], [0, 0x1d96a760], [3, 0x1df9ad80], [3, 0x1e5cb3a0], [2, 0x1ebfb9c0], [5, 0x1f22bfe0], [2, 0x1f85c600], [5, 0x1fe8cc20], [0, 0x204bd240], [1, 0x20aed860], [3, 0x2111de80], [1, 0x2174e4a0], [2, 0x21d7eac0], [3, 0x223af0e0], [1, 0x229df700], [2, 0x2300fd20], [5, 0x23640340], [3, 0x23c70960], [1, 0x242a0f80], [1, 0x248d15a0], [0, 0x24f01bc0], [2, 0x255321e0], [1, 0x25b62800], [2, 0x26192e20]]'
+  in1_data_format: 'Float16'
+  in1_dram_buffers: '[[0, 0x293099c0], [5, 0x29939fe0], [3, 0x29f6a600], [1, 0x2a59ac20], [1, 0x2abcb240], [4, 0x2b1fb860], [1, 0x2b82be80], [0, 0x2be5c4a0], [3, 0x2c48cac0], [5, 0x2cabd0e0], [1, 0x2d0ed700], [1, 0x2d71dd20], [3, 0x2dd4e340], [0, 0x2e37e960], [3, 0x2e9aef80], [3, 0x2efdf5a0], [2, 0x2f60fbc0], [5, 0x2fc401e0], [2, 0x30270800], [5, 0x308a0e20], [0, 0x30ed1440], [1, 0x31501a60], [3, 0x31b32080], [1, 0x321626a0], [2, 0x32792cc0], [3, 0x32dc32e0], [1, 0x333f3900], [2, 0x33a23f20], [5, 0x34054540], [3, 0x34684b60], [1, 0x34cb5180], [1, 0x352e57a0], [0, 0x35915dc0], [2, 0x35f463e0], [1, 0x36576a00], [2, 0x36ba7020]]'
+  in2_data_format: 'Float16'
+  in2_dram_buffers: '[[0, 0x3854b3a0], [5, 0x3863efc0], [3, 0x38732be0], [1, 0x38826800], [1, 0x3891a420], [4, 0x38a0e040]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'invalid'
+  sfpu_execution_thread: 'pack'
+  relu_en: ' true'
+  relu_mode: 'min'
+  relu_threshold: '0.370000'
+  z: 0
+  min_buffer_input: 0
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 1
+  grid_loc_y: 2
+  math_fidelity: LoFi
+  untilize_output: 'false'
+  transpose_in1: [transpose]
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[0, 0x3af77020], [5, 0x3b06ac40], [3, 0x3b15e860], [1, 0x3b252480], [1, 0x3b3460a0], [4, 0x3b439cc0], [1, 0x3b52d8e0], [0, 0x3b621500], [3, 0x3b715120], [5, 0x3b808d40], [1, 0x3b8fc960], [1, 0x3b9f0580], [3, 0x3bae41a0], [0, 0x3bbd7dc0], [3, 0x3bccb9e0], [3, 0x3bdbf600], [2, 0x3beb3220], [5, 0x3bfa6e40], [2, 0x3c09aa60], [5, 0x3c18e680], [0, 0x3c2822a0], [1, 0x3c375ec0], [3, 0x3c469ae0], [1, 0x3c55d700], [2, 0x3c651320], [3, 0x3c744f40], [1, 0x3c838b60], [2, 0x3c92c780], [5, 0x3ca203a0], [3, 0x3cb13fc0], [1, 0x3cc07be0], [1, 0x3ccfb800], [0, 0x3cdef420], [2, 0x3cee3040], [1, 0x3cfd6c60], [2, 0x3d0ca880]]'
+  out_grid_size_x: 6
+  out_grid_size_y: 6
+  out_mblock_m: 1
+  out_mblock_n: 2
+  out_ublock_rt: 2
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 1
+  queue_wrap_size: 4
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0
+  comparison_config_check_pcc: 0.9
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'
+#Test id=19
+- device: WORMHOLE_B0
+  entries: 4
+  grid_size_x: 4
+  grid_size_y: 4
+  in1_grid_size_x: 4
+  in1_grid_size_y: 4
+  input_q_t: 14
+  output_q_t: 14
+  mblock_m: 5
+  mblock_n: 8
+  mblock_k: 15
+  ublock_rt: 1
+  ublock_ct: 1
+  ublock_kt: 1
+  in_0_tile_dim_r: 32
+  in_0_tile_dim_c: 32
+  in1_mblock_n: 8
+  in1_mblock_k: 15
+  in1_ublock_ct: 1
+  in1_ublock_kt: 1
+  in_1_tile_dim_r: 32
+  in_1_tile_dim_c: 32
+  in_2_tile_dim_r: 1
+  in_2_tile_dim_c: 32
+  m_k: 60
+  u_kt: 1
+  l1_acc: false
+  stoch_rnd_mode: all
+  out_data_format: 'Float16_b'
+  intermed_data_format: 'Float16_b'
+  in0_data_format: 'Float16_b'
+  in0_dram_buffers: '[[0, 0x1e7a0260], [0, 0x1eff4f80], [0, 0x1f849ca0], [0, 0x2009e9c0], [4, 0x208f36e0], [2, 0x21148400], [3, 0x2199d120], [3, 0x221f1e40], [1, 0x22a46b60], [0, 0x2329b880], [4, 0x23af05a0], [5, 0x243452c0], [5, 0x24b99fe0], [0, 0x253eed00], [4, 0x25c43a20], [2, 0x26498740]]'
+  in1_data_format: 'Float16_b'
+  in1_dram_buffers: '[[0, 0x2845a980], [0, 0x291af1a0], [0, 0x29f039c0], [0, 0x2ac581e0], [4, 0x2b9aca00], [2, 0x2c701220], [3, 0x2d455a40], [3, 0x2e1aa260], [1, 0x2eefea80], [0, 0x2fc532a0], [4, 0x309a7ac0], [5, 0x316fc2e0], [5, 0x32450b00], [0, 0x331a5320], [4, 0x33ef9b40], [2, 0x34c4e360]]'
+  in2_data_format: 'Float16_b'
+  in2_dram_buffers: '[[0, 0x3644bec0], [0, 0x368bd6e0], [0, 0x36d2ef00], [0, 0x371a0720]]'
+  dest_accumulate_data_format: 'Float16'
+  sfpu_op: 'gelu'
+  sfpu_execution_thread: 'pack'
+  relu_en: 'false'
+  relu_mode: 'min'
+  relu_threshold: '0.000000'
+  z: 0
+  min_buffer_input: 1
+  target_device: 0
+  input_count: 1
+  grid_loc_x: 1
+  grid_loc_y: 0
+  math_fidelity: HiFi2
+  untilize_output: 'false'
+  transpose_in1:            
+  bcast_in2: '[broadcast: {r: 1}]'
+  ublock_order: r
+  buf_size_mb: 2
+  # Scale output queue grid and mblock size if output is untilized
+  # Net2pipe requires grid size 1x1 if untilized output is written to the queue
+  out_dram_buffers: '[[0, 0x3b52d9e0], [0, 0x3b99f200], [0, 0x3be10a20], [0, 0x3c282240], [4, 0x3c6f3a60], [2, 0x3cb65280], [3, 0x3cfd6aa0], [3, 0x3d4482c0], [1, 0x3d8b9ae0], [0, 0x3dd2b300], [4, 0x3e19cb20], [5, 0x3e60e340], [5, 0x3ea7fb60], [0, 0x3eef1380], [4, 0x3f362ba0], [2, 0x3f7d43c0]]'
+  out_grid_size_x: 4
+  out_grid_size_y: 4
+  out_mblock_m: 5
+  out_mblock_n: 8
+  out_ublock_rt: 1
+  out_ublock_ct: 1
+  out_tile_dim_r: 32
+  out_tile_dim_c: 32
+  # Program vars
+  loop_count: 2
+  queue_wrap_size: 8
+  # Test and stimulus config
+  comparison_config_type: 'AllCloseHw'
+  comparison_config_atol: 0.01
+  comparison_config_rtol: 0.15
+  comparison_config_check_pct: 0.7
+  comparison_config_check_pcc: 0.99
+  comparison_config_verbosity: 'Concise'
+  stimulus_config_type: 'Uniform'
+  stimulus_config_uniform_lower_bound: '-2.0'
+  stimulus_config_uniform_upper_bound: '2.0'

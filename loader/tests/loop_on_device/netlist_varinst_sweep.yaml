@@ -1,0 +1,103 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in0:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in1:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  in2:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  in3:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+  in4:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x34000000]]}
+  out0:               {type: queue, input: unary0  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  out1:               {type: queue, input: unary1  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  out2:               {type: queue, input: unary2  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000]]}
+  out3:               {type: queue, input: unary3  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x13000000]]}
+  out4:               {type: queue, input: unary4  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x14000000]]}
+
+graphs:
+  graph0_incwrap:
+    target_device: 0
+    input_count: 4
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph1_inc:
+    target_device: 0
+    input_count: 4
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph2_set:
+    target_device: 0
+    input_count: 4
+    unary2: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph3_add:
+    target_device: 0
+    input_count: 4
+    unary3: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph4_mul:
+    target_device: 0
+    input_count: 4
+    unary4: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in4], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+programs:
+  - program0_incwrap:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count: 4, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph0_incwrap, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap]
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap]
+      - endloop
+  - program1_inc:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count: 4, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph1_inc, queue_settings: {
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, inc, $c_input_count]
+      - varinst: [$gptr0, inc, $c_input_count]
+      - endloop
+  - program2_set:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count: 4, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph2_set, queue_settings: {
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, set, $c_input_count]
+      - varinst: [$gptr0, set, $c_input_count]
+      - endloop
+  - program3_add:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count_div2: 2, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph3_add, queue_settings: {
+          in3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, add, $c_input_count_div2, $c_input_count_div2]
+      - varinst: [$gptr0, add, $c_input_count_div2, $c_input_count_div2]
+      - endloop
+  - program4_mul:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count_div4: 1, $c_four: 4, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph4_mul, queue_settings: {
+          in4: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, mul, $c_input_count_div4, $c_four]
+      - varinst: [$gptr0, mul, $c_input_count_div4, $c_four]
+      - endloop
+
+  # TODO - More interesting cases to do with EpochCmdVarinst optimizations/merging.
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0,in1,in2,in3,in4]
+    outputs: [out0,out1,out2,out3,out4]

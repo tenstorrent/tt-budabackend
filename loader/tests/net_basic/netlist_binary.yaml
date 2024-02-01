@@ -1,0 +1,42 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  q0: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  q1: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  q2: {type: queue, input: binary0 , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+graphs:
+  test_binary:
+    target_device: 0
+    input_count: 2
+    binary0: {type: add, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0, q1], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [1, 1] }
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_input_count, set, 2]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_binary, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.75
+    check_pcc: 0.97
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.25
+  io-config:
+    inputs: [q0, q1]
+    outputs: [q2]

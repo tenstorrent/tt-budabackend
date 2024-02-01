@@ -1,0 +1,73 @@
+devices:
+  arch: [wormhole, wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 6, loc: dram, dram: [[0, 0x10000000]]}
+  q1    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 7, loc: dram, dram: [[1, 0x10000000]]}
+  q2    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 2, loc: dram, dram: [[2, 0x10000000]]}
+  output: {type: queue, input: matmul1, entries: 2, grid_size: [1, 1], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[3, 0x10000000]]}
+
+graphs:
+
+  test_matmul_chip0:
+    target_device: 0
+    input_count: 2
+    matmul0: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0,      q1], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 2, u_kt: 2}}
+
+  test_matmul_chip1:
+    target_device: 1
+    input_count: 2
+
+  test_matmul_chip2:
+    target_device: 2
+    input_count: 2
+    matmul1: {type: matmul, grid_loc: [0, 2], grid_size: [1, 1], inputs: [matmul0, q2], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 2, u_kt: 2}}
+
+  test_matmul_chip3:
+    target_device: 3
+    input_count: 2
+
+  test_matmul_chip4:
+    target_device: 4
+    input_count: 2
+
+  test_matmul_chip5:
+    target_device: 5
+    input_count: 2
+
+  test_matmul_chip6:
+    target_device: 6
+    input_count: 2
+
+  test_matmul_chip7:
+    target_device: 7
+    input_count: 2
+    
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_matmul_chip0, queue_settings: {
+        q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}, 
+        q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $1, rd_ptr_global: $1}
+      }}
+      - execute: {graph_name: test_matmul_chip1, queue_settings: {
+      }}
+      - execute: {graph_name: test_matmul_chip2, queue_settings: {
+        q2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0} 
+      }}
+      - execute: {graph_name: test_matmul_chip3, queue_settings: {
+      }}
+      - execute: {graph_name: test_matmul_chip4, queue_settings: {
+      }}
+      - execute: {graph_name: test_matmul_chip5, queue_settings: {
+      }}
+      - execute: {graph_name: test_matmul_chip6, queue_settings: {
+      }}
+      - execute: {graph_name: test_matmul_chip7, queue_settings: {
+      }}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop 

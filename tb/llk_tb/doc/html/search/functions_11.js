@@ -1,0 +1,12 @@
+var searchData=
+[
+  ['unary',['unary',['../namespacellk_1_1tensor__ops.html#a9727143b8fd7719345cbfd05a3fafb35',1,'llk::tensor_ops::unary()'],['../namespacellk_1_1tensor__ops_1_1tile__ops.html#a3d2947958d24366977b0b37efe452d59',1,'llk::tensor_ops::tile_ops::unary()']]],
+  ['unary_5fbroadcast',['unary_broadcast',['../namespacellk_1_1tensor__ops.html#a4430dd9c877f3b6fef3fd296131db096',1,'llk::tensor_ops']]],
+  ['unpack',['unpack',['../namespacellk_1_1tensor__ops.html#a2aba5bcddb604c8d7fad329330782df4',1,'llk::tensor_ops']]],
+  ['untilize',['untilize',['../classllk_1_1Tensor.html#afd6dfcbe2f92dfd0d94fb1e43f1676fb',1,'llk::Tensor']]],
+  ['update_5fextra_5fconfig',['update_extra_config',['../namespacetests_1_1test__config__api.html#a6907c47ab33d9fc64929313ace78cd37',1,'tests::test_config_api']]],
+  ['update_5fkernel_5fparameters',['update_kernel_parameters',['../namespacetests_1_1test__config__api.html#a056c9a76c1c2ac345492adad043a41f1',1,'tests::test_config_api::update_kernel_parameters(TestConfig &amp;test_config, llk::xy_pair coord, tests::KernelType kernel_type, std::string key, std::string value)'],['../namespacetests_1_1test__config__api.html#aaedc4b39408b717d3868dbb7387bdc48',1,'tests::test_config_api::update_kernel_parameters(TestConfig &amp;test_config, llk::xy_pair coord, tests::KernelType kernel_type, std::map&lt; std::string, std::string &gt; param_mappings)'],['../namespacetests_1_1test__config__api.html#a7c5f36113ab125d7740af42d52f9939c',1,'tests::test_config_api::update_kernel_parameters(TestConfig &amp;test_config, llk::xy_pair coord, tests::KernelType kernel_type, tests::KernelParams kernel_params)']]],
+  ['update_5fkernel_5fused',['update_kernel_used',['../namespacetests_1_1test__config__api.html#af3c341ace6617f546990ef3f49e55a24',1,'tests::test_config_api']]],
+  ['update_5foverlay_5fconfig_5ffor_5ftensor',['update_overlay_config_for_tensor',['../namespacetests.html#aa762ecf88c7b287d4a449b8bfd701d82',1,'tests']]],
+  ['update_5ftensor_5fconfig',['update_tensor_config',['../namespacetests_1_1test__config__api.html#afe5e56a2088573bf1a4ceabb01b2424d',1,'tests::test_config_api::update_tensor_config(TestConfig &amp;test_config, string tensor_name, tests::TensorConfig &amp;tensor_config)'],['../namespacetests_1_1test__config__api.html#a06e47de4d6e6c2de865838ded3f52764',1,'tests::test_config_api::update_tensor_config(TestConfig &amp;test_config, string tensor_name, llk::TensorDims dim, DataFormat data_format)']]]
+];
