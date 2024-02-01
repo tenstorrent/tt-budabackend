@@ -40,11 +40,9 @@ ifdef HLK_INC
 # these are the includes for the HLK auto-generated flow
 # todo.pp line 57 (-I$(CKERNEL_INC_DIR)/gen/out \) might not be needed
 INCLUDES = \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/common/inc \
 	-I$(HLK_INC) \
 	-I$(HLK_LIB_INC) \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/llk_lib/ \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_io \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_api \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/ \
@@ -56,17 +54,23 @@ else
 # these are the includes for the TB LLK flow
 INCLUDES = \
 	-I$(CKERNEL_DIR)/test/inc \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/common/inc \
 	-I$(CKERNEL_DIR)/hlkc/inc \
 	-I$(CKERNEL_DIR)/hlkc/src \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/llk_lib/ \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_io \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_api \
 	-I$(CKERNEL_INC_DIR)/gen/out \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
 	-I$(BUDA_HOME)/perf_lib/
+endif
+
+ifeq ("$(ARCH_NAME)", "grayskull")
+  	INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/common/inc
+  	INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/llk_lib/
+else
+	INCLUDES += -I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc
+	INCLUDES += -I$(CKERNEL_DIR)/$(ARCH_NAME)/llk_lib/
 endif
 
 DISABLE_FWLOG ?= 1

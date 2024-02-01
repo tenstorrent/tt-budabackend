@@ -54,8 +54,13 @@ FIRMWARE_NAME = brisc
 INFO_NAME = brisc
 
 INCLUDES += -I$(BUDA_HOME)/src/firmware/riscv/targets/ncrisc \
-	-I$(BUDA_HOME)/src/ckernels/$(ARCH_NAME)/common/inc \
 	-I$(BUDA_HOME)
+
+ifeq ("$(ARCH_NAME)", "grayskull")
+  INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/common/inc
+else
+  INCLUDES += -I$(BUDA_HOME)/src/ckernels/$(ARCH_NAME)/common/inc
+endif
 
 LINKER_SCRIPT_NAME = brisc.ld
 LINKER_SECTIONS_PREFIX = brisc
