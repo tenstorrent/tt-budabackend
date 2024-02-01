@@ -1,0 +1,71 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in0:            {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  e2e_fwd0_fwd1:  {type: queue, input: unary0  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  e2e_fwd1_bwd2:  {type: queue, input: unary1  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21000000]]}
+  e2e_bwd2_bwd3:  {type: queue, input: unary2  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22000000]]}
+  out0:           {type: queue, input: unary3  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+graphs:
+  fwd0:
+    target_device: 0
+    input_count: 4
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  fwd1:
+    target_device: 0
+    input_count: 4
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_fwd0_fwd1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  bwd2:
+    target_device: 0
+    input_count: 4
+    unary2: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_fwd1_bwd2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  bwd3:
+    target_device: 0
+    input_count: 4
+    unary3: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_bwd2_bwd3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+programs:
+  - training_program0:
+      - staticvar: {$lptr0_fwd: 0, $gptr0_fwd: 0, $lptr0_bwd: 0, $gptr0_bwd: 0}
+      - var: {$c_loop_count_batches: 5, $c_loop_count_bwd_fwd: 4, $c_input_count: 4, $c_input_wrap: 160}
+      - loop: $c_loop_count_batches
+
+      - loop: $c_loop_count_bwd_fwd
+      - execute: {graph_name: fwd0, queue_settings: {
+          in0:           {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0_fwd, rd_ptr_global: $gptr0_fwd}}}
+      - execute: {graph_name: fwd1, queue_settings: {
+          e2e_fwd0_fwd1: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0_fwd, rd_ptr_global: $gptr0_fwd}}}
+      - varinst: [$lptr0_fwd, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0_fwd, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+      - loop: $c_loop_count_bwd_fwd
+      - execute: {graph_name: bwd2, queue_settings: {
+          e2e_fwd1_bwd2: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0_bwd, rd_ptr_global: $gptr0_bwd}}}
+      - execute: {graph_name: bwd3, queue_settings: {
+          e2e_bwd2_bwd3: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0_bwd, rd_ptr_global: $gptr0_bwd}}}
+      - varinst: [$lptr0_bwd, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0_bwd, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0]
+    outputs: [out0]

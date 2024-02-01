@@ -1,0 +1,78 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  q0                : {type: queue, input: HOST            , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  test_unary0_output: {type: queue, input: test_unary0_op0 , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12100000], [0, 0x12200000], [0, 0x12300000]]}
+  test_unary1_output: {type: queue, input: test_unary1_op0 , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x13000000], [0, 0x13100000], [0, 0x13200000], [0, 0x13300000]]}
+  test_unary2_output: {type: queue, input: test_unary2_op0 , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x14000000], [0, 0x14100000], [0, 0x14200000], [0, 0x14300000]]}
+  test_unary4_output: {type: queue, input: test_unary4_op0 , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x15000000], [0, 0x15100000], [0, 0x15200000], [0, 0x15300000]]}
+  output            : {type: queue, input: test_unary3_op0 , entries: 2, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x16000000], [0, 0x16100000], [0, 0x16200000], [0, 0x16300000]]}
+
+graphs:
+  test_unary0:
+    target_device: 0
+    input_count: 2
+    test_unary0_op0: {type: sqrt, grid_loc: [0, 0], grid_size: [2, 2], inputs: [test_unary1_output], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+  test_unary1:
+    target_device: 0
+    input_count: 2
+    test_unary1_op0: {type: exp, grid_loc: [0, 0], grid_size: [2, 2], inputs: [test_unary2_output], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+  test_unary2:
+    target_device: 0
+    input_count: 2
+    test_unary2_op0: {type: datacopy, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+  test_unary3:
+    target_device: 0
+    input_count: 2
+    test_unary3_op0: {type: sqrt, grid_loc: [0, 0], grid_size: [2, 2], inputs: [test_unary4_output], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+  test_unary4:
+    target_device: 0
+    input_count: 2
+    test_unary4_op0: {type: exp, grid_loc: [0, 0], grid_size: [2, 2], inputs: [test_unary0_output], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1, $input_count: 2}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary0, queue_settings: {test_unary1_output: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 4]
+      - varinst: [$q_rdptr1, incwrap, $input_count, 4]
+      - endloop
+  - program1:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1, $input_count: 2}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary1, queue_settings: {test_unary2_output: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 4]
+      - varinst: [$q_rdptr1, incwrap, $input_count, 4]
+      - endloop
+  - program2:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1, $input_count: 2}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary2, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 4]
+      - varinst: [$q_rdptr1, incwrap, $input_count, 4]
+      - endloop
+  - program3:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1, $input_count: 2}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary3, queue_settings: {test_unary4_output: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 4]
+      - varinst: [$q_rdptr1, incwrap, $input_count, 4]
+      - endloop
+  - program4:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1, $input_count: 2}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary4, queue_settings: {test_unary0_output: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 4]
+      - varinst: [$q_rdptr1, incwrap, $input_count, 4]
+      - endloop

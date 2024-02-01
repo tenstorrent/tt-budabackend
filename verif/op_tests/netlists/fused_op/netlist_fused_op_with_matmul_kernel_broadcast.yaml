@@ -1,0 +1,79 @@
+# git checkout 1f6687ed
+# pytest pybuda/test/test_fusing.py::test_layernorm_manual[inference-Grayskull-1-fuse_reduce]
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  act1:                                      {input: HOST, type: queue, entries: 32, grid_size: [2, 1], t: 8, mblock: [2, 2], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000], [1, 0x30000000]] }
+
+  # output
+  fuse_layernorm_reduce.output_reduce_avg2:  {input: _fused_op_0_output_nop_0, type: queue, entries: 32, grid_size: [1, 1], t: 8, mblock: [4, 2], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+  # constant
+  lc.input_tensor.reduce_avg.0:              {input: HOST, type: queue, entries: 32, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  lc.input_tensor.reduce_avg2.0:             {input: HOST, type: queue, entries: 32, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x34000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 32
+    _fused_op_0: {type: fused_op, grid_loc: [0, 0], grid_size: [2, 1], inputs: [act1, lc.input_tensor.reduce_avg.0, lc.input_tensor.reduce_avg2.0],
+         t: 8, mblock: [2, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16, Float16, Float16], out_df: Float32, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {r: 4}, broadcast: {z: 8}], input_1_tms: [broadcast: {r: 4}, broadcast: {z: 8}],
+         attributes: {fused_op_id: 0, kernel_broadcast: {input_2: 8, input_1: 2}}}
+    _fused_op_0_output_nop_0: {type: nop, grid_loc: [0, 2], grid_size: [2, 1], inputs: [_fused_op_0], untilize_output: true,
+         t: 8, mblock: [2, 2], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 32, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.reduce_avg.0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.reduce_avg2.0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 64]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 64]
+    - endloop
+
+
+fused_ops:
+  0: 
+    inputs: 3
+    intermediates: 3
+    schedules: 
+      -
+        - reduce_avg.lc1: { type: matmul, inputs: [input0, input1], attributes: {m_k: 1, u_kt: 8}, pop: [input1], mblock: [2, 1], ublock: [1, 1], output: intermed0}
+      -
+        - subtract_6: { type: add, inputs: [input0, intermed0], input_1_tms: [broadcast: {c: 8}], pop: [input0], pop_last: [intermed0], mblock: [2, 2], ublock: [1, 4], output: intermed1}
+        - multiply: { type: multiply, inputs: [intermed1, input2], pop: [intermed1, input2], mblock: [2, 2], ublock: [1, 4], output: intermed2}
+        #- reduce_avg2.lc1: { type: matmul, inputs: [intermed1, input2], attributes: {m_k: 2, u_kt: 4}, pop: [intermed1, input2], mblock: [2, 1], ublock: [1, 1], output: intermed2}
+      -
+        - nop: { type: nop, inputs: [intermed2], pop: [intermed2], mblock: [2, 2], ublock: [1, 4], output: output}
+        #- nop: { type: nop, inputs: [intermed2], pop: [intermed2], mblock: [2, 1], ublock: [1, 1], output: output}
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #type: DebugTileId
+    constant_value: 0.5
+    debug_tile_id_base: 0.25
+    debug_tile_id_step: 0.25
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+

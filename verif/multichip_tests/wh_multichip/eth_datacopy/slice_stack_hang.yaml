@@ -1,0 +1,32 @@
+# This test is expected to run on a system with 2 WH chips, where each one has PCIe connectivity to host
+devices:
+ arch: [wormhole,wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 32, grid_size: [1, 1], t: 1, mblock: [1, 64], ublock: [1, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x391a000]]} 
+  output: {type: queue, input: unary1 , entries: 32, grid_size: [1, 1], t: 1, mblock: [1, 64], ublock: [1, 4], df: Float16, target_device: 1, loc: dram, dram: [[1, 0x391a000]]}
+
+graphs:
+  test_unary_chip0:
+    target_device: 0
+    input_count: 16
+    unary0: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 64], ublock: [1, 4], input_0_tms: []}
+    # datacopy: {type: datacopy, grid_loc: [1,0], grid_size: [1,1], inputs: [unary0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 64, mblock: [1, 1], ublock: [1, 4], input_0_tms: [hslice: 64]}
+    eth_datacopy: {type: ethernet_datacopy,  grid_size: [1,1], attributes: {ingress_channels: [8], egress_channels: [0], dest_device: 1}, inputs: [unary0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 64, mblock: [1, 1], ublock: [1, 4], input_0_tms: [hslice: 64]}
+
+  test_unary_chip1:
+    target_device: 1
+    input_count: 16
+    unary1: {type: datacopy, grid_loc: [2, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 64, mblock: [1, 64], ublock: [1, 4], input_0_tms: []}
+
+programs:
+  - program0:
+      - var: {$loop_count: 1, $lptr: 0, $gptr: 0, $c_microbatch_size: 16, $wrap: 64, $c_one: 1, $c_zero: 0}
+      - varinst: [$loop_count, set, 1] # LOAD an 8 into $5
+      - loop: $loop_count
+      - execute: {graph_name: test_unary_chip0, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - varinst: [$lptr, incwrap, $c_microbatch_size, $wrap] # add two variables
+      - varinst: [$gptr, incwrap, $c_microbatch_size, $wrap] # add two variables
+      - endloop: 
+

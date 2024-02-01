@@ -1,0 +1,858 @@
+# test_simple_training
+# test_config_id=$TEMPLATE_test_config_id
+# act1_size_r=$TEMPLATE_act1_size_r
+# act1_size_c=$TEMPLATE_act1_size_c
+# act2_size_r=$TEMPLATE_act2_size_r
+# act2_size_c=$TEMPLATE_act2_size_c
+
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  # input
+  act1:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_1,
+      grid_size: [$TEMPLATE_grid_size_0_var_2, $TEMPLATE_grid_size_1_var_3],
+      t: $TEMPLATE_t_var_4,
+      mblock: [$TEMPLATE_mblock_0_var_5, $TEMPLATE_mblock_1_var_6],
+      ublock: [$TEMPLATE_ublock_0_var_7, $TEMPLATE_ublock_1_var_8],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_9,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_10,
+      $TEMPLATE_loc_var_10: $TEMPLATE_loc_var_480,
+    }
+  act2:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_12,
+      grid_size: [$TEMPLATE_grid_size_0_var_13, $TEMPLATE_grid_size_1_var_14],
+      t: $TEMPLATE_t_var_15,
+      mblock: [$TEMPLATE_mblock_0_var_16, $TEMPLATE_mblock_1_var_17],
+      ublock: [$TEMPLATE_ublock_0_var_18, $TEMPLATE_ublock_1_var_19],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_20,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_21,
+      $TEMPLATE_loc_var_21: $TEMPLATE_loc_var_481,
+    }
+  # output
+  verify_module.output_add:
+    {
+      input: add,
+      type: queue,
+      entries: $TEMPLATE_entries_var_23,
+      grid_size: [$TEMPLATE_grid_size_0_var_24, $TEMPLATE_grid_size_1_var_25],
+      t: $TEMPLATE_t_var_26,
+      mblock: [$TEMPLATE_mblock_0_var_27, $TEMPLATE_mblock_1_var_28],
+      ublock: [$TEMPLATE_ublock_0_var_29, $TEMPLATE_ublock_1_var_30],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_31,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_32,
+      $TEMPLATE_loc_var_32: $TEMPLATE_loc_var_482,
+    }
+  output_grad_act2:
+    {
+      input: bw_in0_matmul2_matmul_1_output_nop_0,
+      type: queue,
+      entries: $TEMPLATE_entries_var_34,
+      grid_size: [$TEMPLATE_grid_size_0_var_35, $TEMPLATE_grid_size_1_var_36],
+      t: $TEMPLATE_t_var_37,
+      mblock: [$TEMPLATE_mblock_0_var_38, $TEMPLATE_mblock_1_var_39],
+      ublock: [$TEMPLATE_ublock_0_var_40, $TEMPLATE_ublock_1_var_41],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_42,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_43,
+      $TEMPLATE_loc_var_43: $TEMPLATE_loc_var_483,
+    }
+  output_grad_act1:
+    {
+      input: bw_in0_matmul1_matmul_1_output_nop_0,
+      type: queue,
+      entries: $TEMPLATE_entries_var_45,
+      grid_size: [$TEMPLATE_grid_size_0_var_46, $TEMPLATE_grid_size_1_var_47],
+      t: $TEMPLATE_t_var_48,
+      mblock: [$TEMPLATE_mblock_0_var_49, $TEMPLATE_mblock_1_var_50],
+      ublock: [$TEMPLATE_ublock_0_var_51, $TEMPLATE_ublock_1_var_52],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_53,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_54,
+      $TEMPLATE_loc_var_54: $TEMPLATE_loc_var_484,
+    }
+  # parameter
+  verify_module.weights1:
+    {
+      input: opt_in0_verify_module.weights1_subtract_2,
+      type: ram,
+      entries: $TEMPLATE_entries_var_56,
+      grid_size: [$TEMPLATE_grid_size_0_var_57, $TEMPLATE_grid_size_1_var_58],
+      t: $TEMPLATE_t_var_59,
+      mblock: [$TEMPLATE_mblock_0_var_60, $TEMPLATE_mblock_1_var_61],
+      ublock: [$TEMPLATE_ublock_0_var_62, $TEMPLATE_ublock_1_var_63],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_64,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_65,
+      $TEMPLATE_loc_var_65: $TEMPLATE_loc_var_485,
+    }
+  verify_module.weights2:
+    {
+      input: opt_in0_verify_module.weights2_subtract_2,
+      type: ram,
+      entries: $TEMPLATE_entries_var_67,
+      grid_size: [$TEMPLATE_grid_size_0_var_68, $TEMPLATE_grid_size_1_var_69],
+      t: $TEMPLATE_t_var_70,
+      mblock: [$TEMPLATE_mblock_0_var_71, $TEMPLATE_mblock_1_var_72],
+      ublock: [$TEMPLATE_ublock_0_var_73, $TEMPLATE_ublock_1_var_74],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_75,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_76,
+      $TEMPLATE_loc_var_76: $TEMPLATE_loc_var_486,
+    }
+  # constant
+  constant_sqrt_1:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_78,
+      grid_size: [$TEMPLATE_grid_size_0_var_79, $TEMPLATE_grid_size_1_var_80],
+      t: $TEMPLATE_t_var_81,
+      mblock: [$TEMPLATE_mblock_0_var_82, $TEMPLATE_mblock_1_var_83],
+      ublock: [$TEMPLATE_ublock_0_var_84, $TEMPLATE_ublock_1_var_85],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_86,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_87,
+      $TEMPLATE_loc_var_87: $TEMPLATE_loc_var_487,
+    }
+  # epoch_to_epoch
+  e2e_sqrt_0:
+    {
+      input: sqrt,
+      type: queue,
+      entries: $TEMPLATE_entries_var_89,
+      grid_size: [$TEMPLATE_grid_size_0_var_90, $TEMPLATE_grid_size_1_var_91],
+      t: $TEMPLATE_t_var_92,
+      mblock: [$TEMPLATE_mblock_0_var_93, $TEMPLATE_mblock_1_var_94],
+      ublock: [$TEMPLATE_ublock_0_var_95, $TEMPLATE_ublock_1_var_96],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_97,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_98,
+      $TEMPLATE_loc_var_98: $TEMPLATE_loc_var_488,
+    }
+
+  # optimizer_parameter
+  input_opt_verify_module.weights1_0.lr:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_100,
+      grid_size: [$TEMPLATE_grid_size_0_var_101, $TEMPLATE_grid_size_1_var_102],
+      t: $TEMPLATE_t_var_103,
+      mblock: [$TEMPLATE_mblock_0_var_104, $TEMPLATE_mblock_1_var_105],
+      ublock: [$TEMPLATE_ublock_0_var_106, $TEMPLATE_ublock_1_var_107],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_108,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_109,
+      $TEMPLATE_loc_var_109: $TEMPLATE_loc_var_489,
+    }
+  input_opt_verify_module.weights2_0.lr:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_111,
+      grid_size: [$TEMPLATE_grid_size_0_var_112, $TEMPLATE_grid_size_1_var_113],
+      t: $TEMPLATE_t_var_114,
+      mblock: [$TEMPLATE_mblock_0_var_115, $TEMPLATE_mblock_1_var_116],
+      ublock: [$TEMPLATE_ublock_0_var_117, $TEMPLATE_ublock_1_var_118],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_119,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_120,
+      $TEMPLATE_loc_var_120: $TEMPLATE_loc_var_490,
+    }
+  # loss
+  loss_verify_module.output_add:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_122,
+      grid_size: [$TEMPLATE_grid_size_0_var_123, $TEMPLATE_grid_size_1_var_124],
+      t: $TEMPLATE_t_var_125,
+      mblock: [$TEMPLATE_mblock_0_var_126, $TEMPLATE_mblock_1_var_127],
+      ublock: [$TEMPLATE_ublock_0_var_128, $TEMPLATE_ublock_1_var_129],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_130,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_131,
+      $TEMPLATE_loc_var_131: $TEMPLATE_loc_var_491,
+    }
+  # grad_accumulator
+  grad_acc_verify_module.weights2:
+    {
+      input: bw_in1_matmul2_matmul_1,
+      type: ram,
+      entries: $TEMPLATE_entries_var_133,
+      grid_size: [$TEMPLATE_grid_size_0_var_134, $TEMPLATE_grid_size_1_var_135],
+      t: $TEMPLATE_t_var_136,
+      mblock: [$TEMPLATE_mblock_0_var_137, $TEMPLATE_mblock_1_var_138],
+      ublock: [$TEMPLATE_ublock_0_var_139, $TEMPLATE_ublock_1_var_140],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_141,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_142,
+      $TEMPLATE_loc_var_142: $TEMPLATE_loc_var_492,
+    }
+  grad_acc_verify_module.weights1:
+    {
+      input: bw_in1_matmul1_matmul_1,
+      type: ram,
+      entries: $TEMPLATE_entries_var_144,
+      grid_size: [$TEMPLATE_grid_size_0_var_145, $TEMPLATE_grid_size_1_var_146],
+      t: $TEMPLATE_t_var_147,
+      mblock: [$TEMPLATE_mblock_0_var_148, $TEMPLATE_mblock_1_var_149],
+      ublock: [$TEMPLATE_ublock_0_var_150, $TEMPLATE_ublock_1_var_151],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_152,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_153,
+      $TEMPLATE_loc_var_153: $TEMPLATE_loc_var_493,
+    }
+
+graphs:
+  # forward
+  fwd_0:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_155
+    matmul1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_156, $TEMPLATE_grid_loc_1_var_157],
+        grid_size: [$TEMPLATE_grid_size_0_var_158, $TEMPLATE_grid_size_1_var_159],
+        inputs: [act1, verify_module.weights1],
+        t: $TEMPLATE_t_var_160,
+        mblock: [$TEMPLATE_mblock_0_var_161, $TEMPLATE_mblock_1_var_162],
+        ublock: [$TEMPLATE_ublock_0_var_163, $TEMPLATE_ublock_1_var_164],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_495, $TEMPLATE_input_buf_min_size_tiles_1_var_496],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_165,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_166, $TEMPLATE_in_df_1_var_167],
+        out_df: $TEMPLATE_out_df_var_168,
+        intermed_df: $TEMPLATE_intermed_df_var_169,
+        acc_df: $TEMPLATE_acc_df_var_170,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_171, u_kt: $TEMPLATE_u_kt_var_172 },
+      }
+    sqrt:
+      {
+        type: sqrt,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_173, $TEMPLATE_grid_loc_1_var_174],
+        grid_size: [$TEMPLATE_grid_size_0_var_175, $TEMPLATE_grid_size_1_var_176],
+        inputs: [matmul1],
+        t: $TEMPLATE_t_var_177,
+        mblock: [$TEMPLATE_mblock_0_var_178, $TEMPLATE_mblock_1_var_179],
+        ublock: [$TEMPLATE_ublock_0_var_180, $TEMPLATE_ublock_1_var_181],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_497],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_182,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_183],
+        out_df: $TEMPLATE_out_df_var_184,
+        intermed_df: $TEMPLATE_intermed_df_var_185,
+        acc_df: $TEMPLATE_acc_df_var_186,
+        math_fidelity: HiFi3,
+      }
+    matmul2:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_187, $TEMPLATE_grid_loc_1_var_188],
+        grid_size: [$TEMPLATE_grid_size_0_var_189, $TEMPLATE_grid_size_1_var_190],
+        inputs: [act2, verify_module.weights2],
+        t: $TEMPLATE_t_var_191,
+        mblock: [$TEMPLATE_mblock_0_var_192, $TEMPLATE_mblock_1_var_193],
+        ublock: [$TEMPLATE_ublock_0_var_194, $TEMPLATE_ublock_1_var_195],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_498, $TEMPLATE_input_buf_min_size_tiles_1_var_499],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_196,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_197, $TEMPLATE_in_df_1_var_198],
+        out_df: $TEMPLATE_out_df_var_199,
+        intermed_df: $TEMPLATE_intermed_df_var_200,
+        acc_df: $TEMPLATE_acc_df_var_201,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_202, u_kt: $TEMPLATE_u_kt_var_203 },
+      }
+    add:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_204, $TEMPLATE_grid_loc_1_var_205],
+        grid_size: [$TEMPLATE_grid_size_0_var_206, $TEMPLATE_grid_size_1_var_207],
+        inputs: [sqrt, matmul2],
+        untilize_output: $TEMPLATE_untilize_output_var_208,
+        t: $TEMPLATE_t_var_209,
+        mblock: [$TEMPLATE_mblock_0_var_210, $TEMPLATE_mblock_1_var_211],
+        ublock: [$TEMPLATE_ublock_0_var_212, $TEMPLATE_ublock_1_var_213],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_500, $TEMPLATE_input_buf_min_size_tiles_1_var_501],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_214,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_215, $TEMPLATE_in_df_1_var_216],
+        out_df: $TEMPLATE_out_df_var_217,
+        intermed_df: $TEMPLATE_intermed_df_var_218,
+        acc_df: $TEMPLATE_acc_df_var_219,
+        math_fidelity: HiFi3,
+      }
+  # backward
+  bwd_1:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_220
+    bw_in0_matmul2_matmul_1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_221, $TEMPLATE_grid_loc_1_var_222],
+        grid_size: [$TEMPLATE_grid_size_0_var_223, $TEMPLATE_grid_size_1_var_224],
+        inputs: [loss_verify_module.output_add, verify_module.weights2],
+        t: $TEMPLATE_t_var_225,
+        mblock: [$TEMPLATE_mblock_0_var_226, $TEMPLATE_mblock_1_var_227],
+        ublock: [$TEMPLATE_ublock_0_var_228, $TEMPLATE_ublock_1_var_229],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_502, $TEMPLATE_input_buf_min_size_tiles_1_var_503],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_230,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_231, $TEMPLATE_in_df_1_var_232],
+        out_df: $TEMPLATE_out_df_var_233,
+        intermed_df: $TEMPLATE_intermed_df_var_234,
+        acc_df: $TEMPLATE_acc_df_var_235,
+        math_fidelity: HiFi3,
+        input_1_tms: [transpose],
+        attributes: { m_k: $TEMPLATE_m_k_var_236, u_kt: $TEMPLATE_u_kt_var_237 },
+      }
+    bw_in1_matmul2_matmul_1_transpose_nop_0:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_238, $TEMPLATE_grid_loc_1_var_239],
+        grid_size: [$TEMPLATE_grid_size_0_var_240, $TEMPLATE_grid_size_1_var_241],
+        inputs: [act2],
+        t: $TEMPLATE_t_var_242,
+        mblock: [$TEMPLATE_mblock_0_var_243, $TEMPLATE_mblock_1_var_244],
+        ublock: [$TEMPLATE_ublock_0_var_245, $TEMPLATE_ublock_1_var_246],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_504],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_247,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_248],
+        out_df: $TEMPLATE_out_df_var_249,
+        intermed_df: $TEMPLATE_intermed_df_var_250,
+        acc_df: $TEMPLATE_acc_df_var_251,
+        math_fidelity: HiFi3,
+        input_0_tms: [transpose],
+      }
+    bw_in1_matmul2_matmul_1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_252, $TEMPLATE_grid_loc_1_var_253],
+        grid_size: [$TEMPLATE_grid_size_0_var_254, $TEMPLATE_grid_size_1_var_255],
+        inputs:
+          [
+            bw_in1_matmul2_matmul_1_transpose_nop_0,
+            loss_verify_module.output_add,
+          ],
+        gradient_op: true,
+        t: $TEMPLATE_t_var_256,
+        mblock: [$TEMPLATE_mblock_0_var_257, $TEMPLATE_mblock_1_var_258],
+        ublock: [$TEMPLATE_ublock_0_var_259, $TEMPLATE_ublock_1_var_260],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_505, $TEMPLATE_input_buf_min_size_tiles_1_var_506],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_261,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_262, $TEMPLATE_in_df_1_var_263],
+        out_df: $TEMPLATE_out_df_var_264,
+        intermed_df: $TEMPLATE_intermed_df_var_265,
+        acc_df: $TEMPLATE_acc_df_var_266,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_267, u_kt: $TEMPLATE_u_kt_var_268 },
+      }
+    bw_in0_matmul2_matmul_1_output_nop_0:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_269, $TEMPLATE_grid_loc_1_var_270],
+        grid_size: [$TEMPLATE_grid_size_0_var_271, $TEMPLATE_grid_size_1_var_272],
+        inputs: [bw_in0_matmul2_matmul_1],
+        untilize_output: $TEMPLATE_untilize_output_var_273,
+        t: $TEMPLATE_t_var_274,
+        mblock: [$TEMPLATE_mblock_0_var_275, $TEMPLATE_mblock_1_var_276],
+        ublock: [$TEMPLATE_ublock_0_var_277, $TEMPLATE_ublock_1_var_278],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_507],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_279,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_280],
+        out_df: $TEMPLATE_out_df_var_281,
+        intermed_df: $TEMPLATE_intermed_df_var_282,
+        acc_df: $TEMPLATE_acc_df_var_283,
+        math_fidelity: HiFi3,
+      }
+    bw_in0_sqrt_reciprocal_0:
+      {
+        type: reciprocal,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_284, $TEMPLATE_grid_loc_1_var_285],
+        grid_size: [$TEMPLATE_grid_size_0_var_286, $TEMPLATE_grid_size_1_var_287],
+        inputs: [e2e_sqrt_0],
+        t: $TEMPLATE_t_var_288,
+        mblock: [$TEMPLATE_mblock_0_var_289, $TEMPLATE_mblock_1_var_290],
+        ublock: [$TEMPLATE_ublock_0_var_291, $TEMPLATE_ublock_1_var_292],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_508],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_293,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_294],
+        out_df: $TEMPLATE_out_df_var_295,
+        intermed_df: $TEMPLATE_intermed_df_var_296,
+        acc_df: $TEMPLATE_acc_df_var_297,
+        math_fidelity: HiFi3,
+      }
+    bw_in0_sqrt_multiply_2:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_298, $TEMPLATE_grid_loc_1_var_299],
+        grid_size: [$TEMPLATE_grid_size_0_var_300, $TEMPLATE_grid_size_1_var_301],
+        inputs: [bw_in0_sqrt_reciprocal_0, constant_sqrt_1],
+        t: $TEMPLATE_t_var_302,
+        mblock: [$TEMPLATE_mblock_0_var_303, $TEMPLATE_mblock_1_var_304],
+        ublock: [$TEMPLATE_ublock_0_var_305, $TEMPLATE_ublock_1_var_306],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_509, $TEMPLATE_input_buf_min_size_tiles_1_var_510],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_307,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_308, $TEMPLATE_in_df_1_var_309],
+        out_df: $TEMPLATE_out_df_var_310,
+        intermed_df: $TEMPLATE_intermed_df_var_311,
+        acc_df: $TEMPLATE_acc_df_var_312,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_313 }, broadcast: { r: $TEMPLATE_r_var_314 }, broadcast: { z: $TEMPLATE_z_var_494 }],
+      }
+    bw_in0_sqrt_multiply_3:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_315, $TEMPLATE_grid_loc_1_var_316],
+        grid_size: [$TEMPLATE_grid_size_0_var_317, $TEMPLATE_grid_size_1_var_318],
+        inputs: [bw_in0_sqrt_multiply_2, loss_verify_module.output_add],
+        t: $TEMPLATE_t_var_319,
+        mblock: [$TEMPLATE_mblock_0_var_320, $TEMPLATE_mblock_1_var_321],
+        ublock: [$TEMPLATE_ublock_0_var_322, $TEMPLATE_ublock_1_var_323],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_511, $TEMPLATE_input_buf_min_size_tiles_1_var_512],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_324,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_325, $TEMPLATE_in_df_1_var_326],
+        out_df: $TEMPLATE_out_df_var_327,
+        intermed_df: $TEMPLATE_intermed_df_var_328,
+        acc_df: $TEMPLATE_acc_df_var_329,
+        math_fidelity: HiFi3,
+      }
+    bw_in0_matmul1_matmul_1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_330, $TEMPLATE_grid_loc_1_var_331],
+        grid_size: [$TEMPLATE_grid_size_0_var_332, $TEMPLATE_grid_size_1_var_333],
+        inputs: [bw_in0_sqrt_multiply_3, verify_module.weights1],
+        t: $TEMPLATE_t_var_334,
+        mblock: [$TEMPLATE_mblock_0_var_335, $TEMPLATE_mblock_1_var_336],
+        ublock: [$TEMPLATE_ublock_0_var_337, $TEMPLATE_ublock_1_var_338],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_513, $TEMPLATE_input_buf_min_size_tiles_1_var_514],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_339,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_340, $TEMPLATE_in_df_1_var_341],
+        out_df: $TEMPLATE_out_df_var_342,
+        intermed_df: $TEMPLATE_intermed_df_var_343,
+        acc_df: $TEMPLATE_acc_df_var_344,
+        math_fidelity: HiFi3,
+        input_1_tms: [transpose],
+        attributes: { m_k: $TEMPLATE_m_k_var_345, u_kt: $TEMPLATE_u_kt_var_346 },
+      }
+    bw_in1_matmul1_matmul_1_transpose_nop_0:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_347, $TEMPLATE_grid_loc_1_var_348],
+        grid_size: [$TEMPLATE_grid_size_0_var_349, $TEMPLATE_grid_size_1_var_350],
+        inputs: [act1],
+        t: $TEMPLATE_t_var_351,
+        mblock: [$TEMPLATE_mblock_0_var_352, $TEMPLATE_mblock_1_var_353],
+        ublock: [$TEMPLATE_ublock_0_var_354, $TEMPLATE_ublock_1_var_355],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_515],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_356,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_357],
+        out_df: $TEMPLATE_out_df_var_358,
+        intermed_df: $TEMPLATE_intermed_df_var_359,
+        acc_df: $TEMPLATE_acc_df_var_360,
+        math_fidelity: HiFi3,
+        input_0_tms: [transpose],
+      }
+    bw_in1_matmul1_matmul_1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_361, $TEMPLATE_grid_loc_1_var_362],
+        grid_size: [$TEMPLATE_grid_size_0_var_363, $TEMPLATE_grid_size_1_var_364],
+        inputs: [bw_in1_matmul1_matmul_1_transpose_nop_0, bw_in0_sqrt_multiply_3],
+        gradient_op: true,
+        t: $TEMPLATE_t_var_365,
+        mblock: [$TEMPLATE_mblock_0_var_366, $TEMPLATE_mblock_1_var_367],
+        ublock: [$TEMPLATE_ublock_0_var_368, $TEMPLATE_ublock_1_var_369],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_516, $TEMPLATE_input_buf_min_size_tiles_1_var_517],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_370,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_371, $TEMPLATE_in_df_1_var_372],
+        out_df: $TEMPLATE_out_df_var_373,
+        intermed_df: $TEMPLATE_intermed_df_var_374,
+        acc_df: $TEMPLATE_acc_df_var_375,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_376, u_kt: $TEMPLATE_u_kt_var_377 },
+      }
+    bw_in0_matmul1_matmul_1_output_nop_0:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_378, $TEMPLATE_grid_loc_1_var_379],
+        grid_size: [$TEMPLATE_grid_size_0_var_380, $TEMPLATE_grid_size_1_var_381],
+        inputs: [bw_in0_matmul1_matmul_1],
+        untilize_output: $TEMPLATE_untilize_output_var_382,
+        t: $TEMPLATE_t_var_383,
+        mblock: [$TEMPLATE_mblock_0_var_384, $TEMPLATE_mblock_1_var_385],
+        ublock: [$TEMPLATE_ublock_0_var_386, $TEMPLATE_ublock_1_var_387],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_518],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_388,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_389],
+        out_df: $TEMPLATE_out_df_var_390,
+        intermed_df: $TEMPLATE_intermed_df_var_391,
+        acc_df: $TEMPLATE_acc_df_var_392,
+        math_fidelity: HiFi3,
+      }
+  # optimizer
+  opt_2:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_393
+    opt_in0_verify_module.weights1_multiply_1:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_394, $TEMPLATE_grid_loc_1_var_395],
+        grid_size: [$TEMPLATE_grid_size_0_var_396, $TEMPLATE_grid_size_1_var_397],
+        inputs:
+          [
+            grad_acc_verify_module.weights1,
+            input_opt_verify_module.weights1_0.lr,
+          ],
+        t: $TEMPLATE_t_var_398,
+        mblock: [$TEMPLATE_mblock_0_var_399, $TEMPLATE_mblock_1_var_400],
+        ublock: [$TEMPLATE_ublock_0_var_401, $TEMPLATE_ublock_1_var_402],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_519, $TEMPLATE_input_buf_min_size_tiles_1_var_520],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_403,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_404, $TEMPLATE_in_df_1_var_405],
+        out_df: $TEMPLATE_out_df_var_406,
+        intermed_df: $TEMPLATE_intermed_df_var_407,
+        acc_df: $TEMPLATE_acc_df_var_408,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_409 }, broadcast: { r: $TEMPLATE_r_var_410 }],
+      }
+    opt_in0_verify_module.weights1_subtract_2:
+      {
+        type: subtract,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_411, $TEMPLATE_grid_loc_1_var_412],
+        grid_size: [$TEMPLATE_grid_size_0_var_413, $TEMPLATE_grid_size_1_var_414],
+        inputs: [verify_module.weights1, opt_in0_verify_module.weights1_multiply_1],
+        t: $TEMPLATE_t_var_415,
+        mblock: [$TEMPLATE_mblock_0_var_416, $TEMPLATE_mblock_1_var_417],
+        ublock: [$TEMPLATE_ublock_0_var_418, $TEMPLATE_ublock_1_var_419],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_521, $TEMPLATE_input_buf_min_size_tiles_1_var_522],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_420,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_421, $TEMPLATE_in_df_1_var_422],
+        out_df: $TEMPLATE_out_df_var_423,
+        intermed_df: $TEMPLATE_intermed_df_var_424,
+        acc_df: $TEMPLATE_acc_df_var_425,
+        math_fidelity: HiFi3,
+      }
+    opt_in0_verify_module.weights2_multiply_1:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_426, $TEMPLATE_grid_loc_1_var_427],
+        grid_size: [$TEMPLATE_grid_size_0_var_428, $TEMPLATE_grid_size_1_var_429],
+        inputs:
+          [
+            grad_acc_verify_module.weights2,
+            input_opt_verify_module.weights2_0.lr,
+          ],
+        t: $TEMPLATE_t_var_430,
+        mblock: [$TEMPLATE_mblock_0_var_431, $TEMPLATE_mblock_1_var_432],
+        ublock: [$TEMPLATE_ublock_0_var_433, $TEMPLATE_ublock_1_var_434],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_523, $TEMPLATE_input_buf_min_size_tiles_1_var_524],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_435,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_436, $TEMPLATE_in_df_1_var_437],
+        out_df: $TEMPLATE_out_df_var_438,
+        intermed_df: $TEMPLATE_intermed_df_var_439,
+        acc_df: $TEMPLATE_acc_df_var_440,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_441 }, broadcast: { r: $TEMPLATE_r_var_442 }],
+      }
+    opt_in0_verify_module.weights2_subtract_2:
+      {
+        type: subtract,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_443, $TEMPLATE_grid_loc_1_var_444],
+        grid_size: [$TEMPLATE_grid_size_0_var_445, $TEMPLATE_grid_size_1_var_446],
+        inputs: [verify_module.weights2, opt_in0_verify_module.weights2_multiply_1],
+        t: $TEMPLATE_t_var_447,
+        mblock: [$TEMPLATE_mblock_0_var_448, $TEMPLATE_mblock_1_var_449],
+        ublock: [$TEMPLATE_ublock_0_var_450, $TEMPLATE_ublock_1_var_451],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_525, $TEMPLATE_input_buf_min_size_tiles_1_var_526],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_452,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_453, $TEMPLATE_in_df_1_var_454],
+        out_df: $TEMPLATE_out_df_var_455,
+        intermed_df: $TEMPLATE_intermed_df_var_456,
+        acc_df: $TEMPLATE_acc_df_var_457,
+        math_fidelity: HiFi3,
+      }
+
+programs:
+  # forward
+  - run_fwd:
+      - param: [$p_microbatch_count, $p_microbatch_size]
+      - staticvar: { $gptr_q0: 0, $lptr_q0: 0, $gptr_q0_shadow: 0 }
+      - varinst: [$gptr_q0, set, $gptr_q0_shadow]
+      - var: { $c_zero: 0, $c_wrap: 2 }
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]
+      - loop: $p_microbatch_count
+      - execute:
+          {
+            graph_name: fwd_0,
+            queue_settings:
+              {
+                act1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_458,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                act2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_459,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                verify_module.weights1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_460,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                verify_module.weights2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_461,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+              },
+          }
+      - varinst: [$gptr_q0_shadow, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - endloop
+  # backward
+  - run_bwd:
+      - param: [$p_zero_grad, $p_microbatch_count, $p_microbatch_size]
+      - staticvar: { $lptr_q0: 0, $gptr_q0: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q1: 0, $lptr_q1: 0 }
+      - var: { $c_zero: 0, $c_wrap: 2 }
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]
+      - varinst: [$v_zero_grad, set, $p_zero_grad]
+      - loop: $p_microbatch_count
+      - execute:
+          {
+            graph_name: bwd_1,
+            queue_settings:
+              {
+                act1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_462,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                act2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_463,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                loss_verify_module.output_add:
+                  {
+                    prologue: $TEMPLATE_prologue_var_464,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q1,
+                    rd_ptr_global: $gptr_q1,
+                  },
+                e2e_sqrt_0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_465,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q2,
+                    rd_ptr_global: $gptr_q2,
+                  },
+                verify_module.weights1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_466,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                verify_module.weights2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_467,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                constant_sqrt_1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_468,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                grad_acc_verify_module.weights2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_469,
+                    epilogue: true,
+                    zero: $v_zero_grad,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                grad_acc_verify_module.weights1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_470,
+                    epilogue: true,
+                    zero: $v_zero_grad,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+              },
+          }
+      - varinst: [$gptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$gptr_q1, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$gptr_q2, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q1, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q2, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$v_zero_grad, set, 0]
+      - endloop
+  # optimizer
+  - run_opt:
+      - var: { $c_zero: 0 }
+      - execute:
+          {
+            graph_name: opt_2,
+            queue_settings:
+              {
+                verify_module.weights1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_471,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                verify_module.weights2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_472,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                grad_acc_verify_module.weights2:
+                  {
+                    prologue: $TEMPLATE_prologue_var_473,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                grad_acc_verify_module.weights1:
+                  {
+                    prologue: $TEMPLATE_prologue_var_474,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                input_opt_verify_module.weights1_0.lr:
+                  {
+                    prologue: $TEMPLATE_prologue_var_475,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                input_opt_verify_module.weights2_0.lr:
+                  {
+                    prologue: $TEMPLATE_prologue_var_476,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+              },
+          }
+
+test-config:
+  test-args:
+    minibatch_count: $TEMPLATE_minibatch_count_var_477
+    microbatch_count: $TEMPLATE_microbatch_count_var_478
+    microbatch_size: $TEMPLATE_microbatch_size_var_479
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.1
+    rtol: 1.0
+    check_pct: 0.80
+    check_pcc: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.2
+    uniform_upper_bound: 0.8
+    overrides:
+      verify_module.weights.*:
+        type: Normal
+        normal_mean: 0.5
+        normal_stddev: 0.1
+      loss_verify_module.output_add:
+        type: Uniform
+        uniform_lower_bound: -0.2
+        uniform_upper_bound: 0.2
+      input_opt_verify_module.weights2_0.lr:
+        type: Constant
+        constant_value: 0.1
+      input_opt_verify_module.weights1_0.lr:
+        type: Constant
+        constant_value: 0.1
+      constant_sqrt_1:
+        type: Constant
+        constant_value: 0.5

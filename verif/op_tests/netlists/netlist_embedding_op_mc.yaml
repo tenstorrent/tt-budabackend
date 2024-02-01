@@ -1,0 +1,51 @@
+# git checkout d4b4ebcf
+# pytest pybuda/test/test_sanity.py::test_embedding[Golden]
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  x:                                                         {input: HOST, type: queue, entries: 8, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x32000000]]}
+
+  # output
+  PyTorchModuleBuilder_simple_embedding.output_embedding_0:  {input: embedding_0, type: queue, entries: 8, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3f000000], [0, 0x3e000000]]}
+
+  # parameter
+  table:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  #table:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x31000000]]} #FIXME: hack table size to match size tiles between queue and output
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 4
+    embedding_0: {type: embedding, grid_loc: [0, 0], grid_size: [2, 1], inputs: [table, x], untilize_output: false,
+         t: 1, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, RawUInt32], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {num_indices: 32}}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 4, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               x: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               table: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 16]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 16]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+  stimulus-config:
+    #type: Uniform
+    type: Constant
+    constant_value: 1.0
+    uniform_lower_bound: 0.001
+    uniform_upper_bound: 1.000

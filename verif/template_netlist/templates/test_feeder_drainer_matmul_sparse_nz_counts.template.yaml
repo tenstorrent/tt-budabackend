@@ -1,0 +1,157 @@
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  dram_input0:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [$TEMPLATE_input0_grid_size_r, $TEMPLATE_input0_grid_size_c]
+    t: $TEMPLATE_input0_t
+    mblock: [$TEMPLATE_input0_mb_r, $TEMPLATE_input0_mb_c]
+    ublock: [$TEMPLATE_input0_ub_r, $TEMPLATE_input0_ub_c]
+    ublock_order: $TEMPLATE_input0_ublock_order
+    df: $TEMPLATE_input0_df
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_input0_dram_buffers
+
+  dram_input1:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [$TEMPLATE_input1_grid_size_r, $TEMPLATE_input1_grid_size_c]
+    t: $TEMPLATE_input1_t
+    mblock: [$TEMPLATE_input1_mb_r, $TEMPLATE_input1_mb_c]
+    ublock: [$TEMPLATE_input1_ub_r, $TEMPLATE_input1_ub_c]
+    ublock_order: $TEMPLATE_input1_ublock_order
+    df: $TEMPLATE_input1_df
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_input1_dram_buffers
+
+  dram_input2:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [$TEMPLATE_input2_grid_size_r, $TEMPLATE_input2_grid_size_c]
+    t: $TEMPLATE_input2_t
+    mblock: [$TEMPLATE_input2_mb_r, $TEMPLATE_input2_mb_c]
+    ublock: [$TEMPLATE_input2_ub_r, $TEMPLATE_input2_ub_c]
+    ublock_order: $TEMPLATE_input2_ublock_order
+    df: $TEMPLATE_input2_df
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_input2_dram_buffers
+
+  output:
+    type: queue
+    input: drainer
+    entries: $TEMPLATE_input_count
+    grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+    t: $TEMPLATE_output_t
+    mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+    ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+    ublock_order: $TEMPLATE_output_ublock_order
+    df: $TEMPLATE_output_df
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_output_dram_buffers
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count:  $TEMPLATE_input_count
+    feeder1: 
+      type: datacopy
+      grid_loc: [$TEMPLATE_input1_grid_loc_r, $TEMPLATE_input1_grid_loc_c]
+      grid_size: [$TEMPLATE_input1_grid_size_r, $TEMPLATE_input1_grid_size_c]
+      inputs: [dram_input1] 
+      in_df: [$TEMPLATE_input1_df] 
+      acc_df: $TEMPLATE_input1_dest_acc_df
+      out_df: $TEMPLATE_input1_df
+      intermed_df: $TEMPLATE_input1_df
+      ublock_order: $TEMPLATE_input1_ublock_order
+      buf_size_mb: $TEMPLATE_input1_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: false
+      t: $TEMPLATE_input1_t
+      mblock: [$TEMPLATE_input1_mb_r, $TEMPLATE_input1_mb_c]
+      ublock: [$TEMPLATE_input1_ub_r, $TEMPLATE_input1_ub_c]
+      input_0_tms:
+    $TEMPLATE_target_op_name: 
+      type: matmul
+      grid_loc: [$TEMPLATE_grid_loc_r, $TEMPLATE_grid_loc_c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [dram_input0, feeder1, dram_input2]
+      in_df: [$TEMPLATE_input0_df, $TEMPLATE_input1_df, $TEMPLATE_input2_df]
+      acc_df: $TEMPLATE_output_dest_acc_df
+      out_df: $TEMPLATE_output_df
+      intermed_df: $TEMPLATE_intermed_df
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      attributes: {m_k: $TEMPLATE_mb_inner, u_kt: $TEMPLATE_ub_inner, l1_acc: $TEMPLATE_l1_acc, identity: true, num_sparse_tiles: $TEMPLATE_sparse_num_tiles, num_index_tiles: $TEMPLATE_num_index_tiles, sparse_tile_ptr_bits: 10, act_t: $TEMPLATE_input1_t}
+      untilize_output: false
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms: [$TEMPLATE_input0_tms]
+      input_1_tms: [$TEMPLATE_input1_tms]
+    drainer: 
+      type: datacopy
+      grid_loc: [$TEMPLATE_output_grid_loc_r, $TEMPLATE_output_grid_loc_c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [$TEMPLATE_target_op_name] 
+      in_df: [$TEMPLATE_output_df] 
+      out_df: $TEMPLATE_output_df  
+      acc_df: $TEMPLATE_output_dest_acc_df
+      intermed_df: $TEMPLATE_intermed_df
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: $TEMPLATE_untilize_output
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms:
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count, $c_zero]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_zero, set, 0]  # load loop count
+      - varinst: [$c_input_count, set, $TEMPLATE_input_count]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         dram_input0: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+         dram_input1: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+         dram_input2: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+    overrides:
+      dram_input0:
+        type: sparse
+        matmul_ident_name: $TEMPLATE_target_op_name
+      dram_input2:
+        type: sparse_encoding_nz_counts
+        matmul_ident_name: $TEMPLATE_target_op_name
+        nz_strips: $TEMPLATE_nz_strips 
+        nz_ublocks: $TEMPLATE_nz_ublocks
+        nz_tiles: $TEMPLATE_nz_tiles
+        enc_tile_byte_size: 4096
+

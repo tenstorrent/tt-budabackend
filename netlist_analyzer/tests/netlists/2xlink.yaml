@@ -1,0 +1,34 @@
+devices:
+    arch: grayskull
+  
+queues:
+  in0  : {type: queue, input: HOST, entries: 256, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  out0 : {type: queue, input: wr0 , entries: 256, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[4, 0x20000000]]}
+  
+  in1  : {type: queue, input: HOST, entries: 256, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x18000000]]}
+  out1 : {type: queue, input: wr1 , entries: 256, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[5, 0x28000000]]}
+  
+graphs:
+  test0:
+    target_device: 0
+    input_count: 256 
+    rd0: {type: datacopy, grid_loc: [0, 0],  grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [5, 4], ublock: [4, 2]}
+    wr0: {type: datacopy, grid_loc: [0, 10], grid_size: [1, 1], inputs: [rd0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [5, 4], ublock: [4, 2]}
+    rd1: {type: datacopy, grid_loc: [0, 3],  grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [5, 4], ublock: [4, 2]}
+    wr1: {type: datacopy, grid_loc: [0, 1],  grid_size: [1, 1], inputs: [rd1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [5, 4], ublock: [4, 2]}
+    
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test0, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+
+test-config:
+  io-config:
+    inputs: [in0, in1]
+    outputs: [out0, out1]

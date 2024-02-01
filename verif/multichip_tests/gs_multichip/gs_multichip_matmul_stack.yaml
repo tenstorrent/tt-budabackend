@@ -1,0 +1,33 @@
+devices:
+  arch: grayskull
+queues:
+  q0    : {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x10000000]]}
+  q2    : {type: queue, input: HOST   , entries: 64, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [1, 0x10000000], [2, 0x10000000], [3, 0x10000000]]}
+  output: {type: queue, input: matmul1, entries: 64, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[4, 0x10000000], [5, 0x10000000], [6, 0x10000000], [7, 0x10000000]]}
+
+graphs:
+  test_matmul:
+    target_device: 0
+    input_count: 64
+    matmul1: {type: matmul, grid_loc: [0, 0], grid_size: [2, 2], inputs: [datacopy0, q2], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 4, u_kt: 2}, input_0_tms: [hstack: 2, vstack: 2]}
+
+  test_datacopy:
+    target_device: 1
+    input_count: 64
+    datacopy0: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+    
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_datacopy, queue_settings: {
+        q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+        }}
+      - execute: {graph_name: test_matmul, queue_settings: {
+        q2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+        }}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop 

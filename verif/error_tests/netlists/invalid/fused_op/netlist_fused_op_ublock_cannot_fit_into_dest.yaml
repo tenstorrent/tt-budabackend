@@ -1,0 +1,62 @@
+# This netlist is invalid because subop0 ublock cannot fit into dest register.
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+queues:
+  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [4, 3], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  output0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [4, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    op0:
+      type: fused_op
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 1
+      mblock: [2, 1]
+      ublock: [4, 1]
+      input_0_tms:
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 2]  # input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 4]
+      -   varinst: [$gptr, incwrap, $c_input_count, 4]
+      - endloop
+fused_ops:
+  0:
+    inputs: 1
+    intermediates: 1
+    schedules:
+      -
+        - subop0: {type: datacopy, inputs: [input0], mblock: [2, 1], ublock: [4, 3], output: intermed0}
+        - subop1: { type: reduce, inputs: [intermed0], pop: [intermed0], attributes: {type: max, dim: c, m_k: 1, u_kt: 3}, mblock: [2, 1], ublock: [4, 1], output: output}
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 2.0

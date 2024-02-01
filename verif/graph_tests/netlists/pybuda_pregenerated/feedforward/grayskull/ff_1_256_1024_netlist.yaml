@@ -1,0 +1,93 @@
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  input_0_ff_0_ff1:                                                                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [4, 32], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000840], [1, 0x31000840]]}
+
+  # output
+  ff.output_ff_0_ff2.bias:                                                           {input: ff_0_ff2.bias, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [8, 32], ublock: [1, 1], df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # parameter
+  ff.bert.encoder.layer.0.output.dense.bias:                                         {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 4], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x30000000], [2, 0x31000000], [2, 0x32000000], [2, 0x33000000], [2, 0x34000000], [2, 0x35000000], [2, 0x36000000], [2, 0x37000000]]}
+  ff.bert.encoder.layer.0.intermediate.dense.bias:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [1, 16], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x30000000], [4, 0x31000000], [4, 0x32000000], [4, 0x33000000], [4, 0x34000000], [4, 0x35000000], [4, 0x36000000], [4, 0x37000000]]}
+  ff.bert.encoder.layer.0.intermediate.dense.weight:                                 {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [32, 16], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x30000000], [5, 0x31000000], [5, 0x32000000], [5, 0x33000000], [5, 0x34000000], [5, 0x35000000], [5, 0x36000000], [5, 0x37000000]]}
+  ff.bert.encoder.layer.0.output.dense.weight:                                       {input: HOST, type: ram, entries: 1, grid_size: [1, 8], t: 1, mblock: [128, 4], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000], [0, 0x34000000], [0, 0x35000000], [0, 0x36000000], [0, 0x37000000]]}
+
+  # constant
+  lc.input_tensor.ff.bert.encoder.layer.0.output.dense.bias_s_brcst_m2_0_0.0:        {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+  lc.input_tensor.ff.bert.encoder.layer.0.intermediate.dense.bias_s_brcst_m2_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x30000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    ff.bert.encoder.layer.0.output.dense.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [lc.input_tensor.ff.bert.encoder.layer.0.output.dense.bias_s_brcst_m2_0_0.0, ff.bert.encoder.layer.0.output.dense.bias],
+         t: 1, mblock: [1, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    ff.bert.encoder.layer.0.intermediate.dense.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [1, 0], grid_size: [1, 8], inputs: [lc.input_tensor.ff.bert.encoder.layer.0.intermediate.dense.bias_s_brcst_m2_0_0.0, ff.bert.encoder.layer.0.intermediate.dense.bias],
+         t: 1, mblock: [1, 16], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    ff_0_ff1: {type: matmul, grid_loc: [2, 0], grid_size: [2, 8], inputs: [input_0_ff_0_ff1, ff.bert.encoder.layer.0.intermediate.dense.weight],
+         t: 1, mblock: [4, 16], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 32, u_kt: 1}}
+    ff_0_ff1.bias: {type: add, grid_loc: [4, 0], grid_size: [2, 8], inputs: [ff_0_ff1, ff.bert.encoder.layer.0.intermediate.dense.bias_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [4, 16], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 8}]}
+    ff0_gelu: {type: gelu, grid_loc: [6, 0], grid_size: [2, 8], inputs: [ff_0_ff1.bias],
+         t: 1, mblock: [4, 16], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    ff_0_ff2: {type: matmul, grid_loc: [8, 0], grid_size: [2, 8], inputs: [ff0_gelu, ff.bert.encoder.layer.0.output.dense.weight],
+         t: 1, mblock: [4, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 128, u_kt: 1}}
+    ff_0_ff2.bias: {type: add, grid_loc: [8, 8], grid_size: [1, 1], inputs: [ff_0_ff2, ff.bert.encoder.layer.0.output.dense.bias_s_brcst_m2_0_0.lc1], untilize_output: true,
+         t: 1, mblock: [8, 32], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 8}]}
+
+
+programs:
+  - run_fwd:
+    - param: [$p_microbatch_count]
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               lc.input_tensor.ff.bert.encoder.layer.0.output.dense.bias_s_brcst_m2_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               ff.bert.encoder.layer.0.output.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.ff.bert.encoder.layer.0.intermediate.dense.bias_s_brcst_m2_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               ff.bert.encoder.layer.0.intermediate.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               ff.bert.encoder.layer.0.intermediate.dense.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               ff.bert.encoder.layer.0.output.dense.weight: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_0_ff_0_ff1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      .*\.weight: 
+        type: Normal
+        normal_mean: 0.0
+        normal_stddev: 0.001
+      .*\.bias:
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+      .*\.bias_s_brcst.*:
+        type: Constant
+        constant_value: 1.0
+        set_tile_cols: [1, 1]
+  io-config:
+    inputs: [input_0_ff_0_ff1]
+    outputs: [ff.output_ff_0_ff2.bias]

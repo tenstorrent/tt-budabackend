@@ -1,0 +1,31 @@
+devices:
+ arch: grayskull
+
+queues:
+  q0    : {type: ram, input: HOST    , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30000000]]}
+  output: {input: datacopy0, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [20, 20], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x0]}
+
+graphs:
+  test_unary_chip0: 
+    target_device: 0
+    input_count: 256
+    datacopy0: {type: datacopy, grid_loc: [0, 0], grid_size: [10, 10], inputs: [datacopy_stack], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: [hstack: 10, vstack: 10]}
+    datacopy_stack: {type: datacopy, grid_loc: [0, 10], grid_size: [1, 1], inputs: [datacopy_slice], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, input_buf_min_size_tiles: [256], math_fidelity: HiFi3, untilize_output: false, t: 100, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+  
+  test_unary_chip1:
+    target_device: 1
+    input_count: 256
+    datacopy1: {type: datacopy, grid_loc: [0, 0], grid_size: [10, 10], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: [broadcast: {c: 20}, broadcast: {r: 20}]}
+    datacopy_slice: {type: datacopy, grid_loc: [0, 10], grid_size: [1, 1], inputs: [datacopy1], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 4, math_fidelity: HiFi3, untilize_output: false, t: 100, mblock: [1, 1], ublock: [2, 2], input_0_tms: [hslice: 10, vslice: 10]}
+
+programs:
+  - program0:
+      - var: [$0, $1, $5]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {
+            }}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {
+            q0: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $0, wr_ptr_global: $1 }}}
+      - endloop
+

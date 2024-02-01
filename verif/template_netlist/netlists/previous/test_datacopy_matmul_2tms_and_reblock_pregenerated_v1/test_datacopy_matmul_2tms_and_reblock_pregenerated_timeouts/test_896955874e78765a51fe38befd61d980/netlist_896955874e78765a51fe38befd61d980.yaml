@@ -1,0 +1,123 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [6, 8]
+    t: 43
+    mblock: [1, 1]
+    ublock: [3, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x10000000], [6, 0x10083060], [6, 0x101060c0], [6, 0x10189120], [6, 0x1020c180], [6, 0x1028f1e0], [6, 0x10312240], [6, 0x103952a0], [6, 0x10418300], [6, 0x1049b360], [6, 0x1051e3c0], [6, 0x105a1420], [6, 0x10624480], [6, 0x106a74e0], [6, 0x1072a540], [6, 0x107ad5a0], [6, 0x10830600], [6, 0x108b3660], [6, 0x109366c0], [6, 0x109b9720], [6, 0x10a3c780], [6, 0x10abf7e0], [6, 0x10b42840], [6, 0x10bc58a0], [6, 0x10c48900], [6, 0x10ccb960], [6, 0x10d4e9c0], [6, 0x10dd1a20], [6, 0x10e54a80], [6, 0x10ed7ae0], [6, 0x10f5ab40], [6, 0x10fddba0], [6, 0x11060c00], [6, 0x110e3c60], [6, 0x11166cc0], [6, 0x111e9d20], [6, 0x1126cd80], [6, 0x112efde0], [6, 0x11372e40], [6, 0x113f5ea0], [6, 0x11478f00], [6, 0x114fbf60], [6, 0x1157efc0], [6, 0x11602020], [6, 0x11685080], [6, 0x117080e0], [6, 0x1178b140], [6, 0x1180e1a0]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [4, 1]
+    t: 1
+    mblock: [86, 1]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x10000040], [2, 0x100575e0], [2, 0x100aeb80], [2, 0x10106120]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 2
+    grid_size: [2, 8]
+    t: 1
+    mblock: [3, 13]
+    ublock: [3, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000020], [5, 0x10076d80], [5, 0x100edae0], [5, 0x10164840], [5, 0x101db5a0], [5, 0x10252300], [5, 0x102c9060], [5, 0x1033fdc0], [5, 0x103b6b20], [5, 0x1042d880], [5, 0x104a45e0], [5, 0x1051b340], [5, 0x105920a0], [5, 0x10608e00], [5, 0x1067fb60], [5, 0x106f68c0]]
+
+graphs:
+  test_multi_tm_datacopy_matmul:
+    target_device: 0
+    input_count: 2
+    feeder0:
+      type: datacopy
+      grid_loc: [2, 0]
+      grid_size: [6, 8]
+      inputs: [dram_input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 86
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 43
+      mblock: [1, 1]
+      ublock: [3, 1]
+    feeder1:
+      type: datacopy
+      grid_loc: [5, 9]
+      grid_size: [4, 1]
+      inputs: [dram_input1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [86, 1]
+      ublock: [1, 1]
+    op0:
+      type: matmul
+      grid_loc: [0, 4]
+      grid_size: [2, 8]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 344, u_kt: 1}
+      untilize_output: false
+      t: 1
+      mblock: [3, 13]
+      ublock: [3, 1]
+      input_0_tms: [hstack: 43, broadcast: {z: 1}]
+      input_1_tms: [broadcast: {z: 104}, hstack: 104]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_matmul,
+          queue_settings: {
+            dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations

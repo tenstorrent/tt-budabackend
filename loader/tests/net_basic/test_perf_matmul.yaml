@@ -1,0 +1,79 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [2, 2]
+    t: 1
+    mblock: [2, 4]
+    ublock: [2, 8]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000000], [0, 0x11000000], [0, 0x12000000], [0, 0x13000000]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [2, 2]
+    t: 1
+    mblock: [4, 2]
+    ublock: [8, 2]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x20000000], [0, 0x21000000], [0, 0x22000000], [0, 0x23000000]]
+
+  output:
+    type: queue
+    input: target_op
+    entries: 32
+    grid_size: [2, 2]
+    t: 1
+    mblock: [2, 2]
+    ublock: [2, 2]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  32
+    target_op: 
+      type: matmul
+      grid_loc: [2, 0]
+      grid_size: [2, 2]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Bfp8_b, Bfp8_b] 
+      acc_df: Bfp8_b
+      out_df: Bfp8_b
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      attributes: {m_k: 8, u_kt: 8}
+      untilize_output: false
+      t: 1
+      mblock: [2, 2]
+      ublock: [2, 2]
+      input_0_tms: []
+      input_1_tms: []
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 32]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         dram_input0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         dram_input1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 

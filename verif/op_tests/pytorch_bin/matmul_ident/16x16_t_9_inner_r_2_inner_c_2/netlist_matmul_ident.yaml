@@ -1,0 +1,56 @@
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  input_1_sparse0:                                    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 9, mblock: [4, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  ModuleBuilder.simple_sparse_matmul.output_sparse0:  {input: sparse0.lc2_output_nop_0, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+
+  # constant
+  lc.input_tensor.sparse0.0:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [10, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x8200100]]}
+  lc.input_tensor.sparse0.1:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[1, 0x8200100]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    sparse0.lc2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [lc.input_tensor.sparse0.0, input_1_sparse0, lc.input_tensor.sparse0.1],
+         t: 1, mblock: [4, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, RawUInt32], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16, math_fidelity: HiFi3,
+         attributes: {m_k: 109, u_kt: 1, identity: true, num_index_tiles: 1, num_sparse_tiles: 10, num_columns: 2, indices_len: 170, starting_row: 0, act_t: 9}}
+    sparse0.lc2_output_nop_0: {type: nop, grid_loc: [0, 1], grid_size: [1, 1], inputs: [sparse0.lc2], untilize_output: true,
+         t: 1, mblock: [4, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $c_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               input_1_sparse0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.sparse0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.sparse0.1: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.95
+    verbosity: Verbose
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+    overrides:
+      input2: 
+        type: Constant
+        constant_value: -2.0
+

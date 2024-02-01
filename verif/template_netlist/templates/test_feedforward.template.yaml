@@ -1,0 +1,383 @@
+# test_feedforward
+# test_config_id=$TEMPLATE_test_config_id
+# input_activations_size_r=$TEMPLATE_input_activations_size_r
+# input_activations_size_c=$TEMPLATE_input_activations_size_c
+
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  # input
+  input_activations:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_1,
+      grid_size: [$TEMPLATE_grid_size_0_var_2, $TEMPLATE_grid_size_1_var_3],
+      t: $TEMPLATE_t_var_4,
+      mblock: [$TEMPLATE_mblock_0_var_5, $TEMPLATE_mblock_1_var_6],
+      ublock: [$TEMPLATE_ublock_0_var_7, $TEMPLATE_ublock_1_var_8],
+      df: $TEMPLATE_df_var_9,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_10,
+      $TEMPLATE_loc_var_10: $TEMPLATE_loc_var_217,
+    }
+  # output
+  output_activations:
+    {
+      input: ff_0_ff2.bias,
+      type: queue,
+      entries: $TEMPLATE_entries_var_12,
+      grid_size: [$TEMPLATE_grid_size_0_var_13, $TEMPLATE_grid_size_1_var_14],
+      t: $TEMPLATE_t_var_15,
+      mblock: [$TEMPLATE_mblock_0_var_16, $TEMPLATE_mblock_1_var_17],
+      ublock: [$TEMPLATE_ublock_0_var_18, $TEMPLATE_ublock_1_var_19],
+      df: $TEMPLATE_df_var_20,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_21,
+      $TEMPLATE_loc_var_21: $TEMPLATE_loc_var_218,
+    }
+  # parameter
+  ff.output.dense.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_23,
+      grid_size: [$TEMPLATE_grid_size_0_var_24, $TEMPLATE_grid_size_1_var_25],
+      t: $TEMPLATE_t_var_26,
+      mblock: [$TEMPLATE_mblock_0_var_27, $TEMPLATE_mblock_1_var_28],
+      ublock: [$TEMPLATE_ublock_0_var_29, $TEMPLATE_ublock_1_var_30],
+      df: $TEMPLATE_df_var_31,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_32,
+      $TEMPLATE_loc_var_32: $TEMPLATE_loc_var_219,
+    }
+  ff.intermediate.dense.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_34,
+      grid_size: [$TEMPLATE_grid_size_0_var_35, $TEMPLATE_grid_size_1_var_36],
+      t: $TEMPLATE_t_var_37,
+      mblock: [$TEMPLATE_mblock_0_var_38, $TEMPLATE_mblock_1_var_39],
+      ublock: [$TEMPLATE_ublock_0_var_40, $TEMPLATE_ublock_1_var_41],
+      df: $TEMPLATE_df_var_42,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_43,
+      $TEMPLATE_loc_var_43: $TEMPLATE_loc_var_220,
+    }
+  ff.intermediate.dense.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_45,
+      grid_size: [$TEMPLATE_grid_size_0_var_46, $TEMPLATE_grid_size_1_var_47],
+      t: $TEMPLATE_t_var_48,
+      mblock: [$TEMPLATE_mblock_0_var_49, $TEMPLATE_mblock_1_var_50],
+      ublock: [$TEMPLATE_ublock_0_var_51, $TEMPLATE_ublock_1_var_52],
+      df: $TEMPLATE_df_var_53,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_54,
+      $TEMPLATE_loc_var_54: $TEMPLATE_loc_var_221,
+    }
+  ff.output.dense.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_56,
+      grid_size: [$TEMPLATE_grid_size_0_var_57, $TEMPLATE_grid_size_1_var_58],
+      t: $TEMPLATE_t_var_59,
+      mblock: [$TEMPLATE_mblock_0_var_60, $TEMPLATE_mblock_1_var_61],
+      ublock: [$TEMPLATE_ublock_0_var_62, $TEMPLATE_ublock_1_var_63],
+      df: $TEMPLATE_df_var_64,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_65,
+      $TEMPLATE_loc_var_65: $TEMPLATE_loc_var_222,
+    }
+  # constant
+  lc.input_tensor.ff.output.dense.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_67,
+      grid_size: [$TEMPLATE_grid_size_0_var_68, $TEMPLATE_grid_size_1_var_69],
+      t: $TEMPLATE_t_var_70,
+      mblock: [$TEMPLATE_mblock_0_var_71, $TEMPLATE_mblock_1_var_72],
+      ublock: [$TEMPLATE_ublock_0_var_73, $TEMPLATE_ublock_1_var_74],
+      df: $TEMPLATE_df_var_75,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_76,
+      $TEMPLATE_loc_var_76: $TEMPLATE_loc_var_223,
+    }
+  lc.input_tensor.ff.intermediate.dense.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_78,
+      grid_size: [$TEMPLATE_grid_size_0_var_79, $TEMPLATE_grid_size_1_var_80],
+      t: $TEMPLATE_t_var_81,
+      mblock: [$TEMPLATE_mblock_0_var_82, $TEMPLATE_mblock_1_var_83],
+      ublock: [$TEMPLATE_ublock_0_var_84, $TEMPLATE_ublock_1_var_85],
+      df: $TEMPLATE_df_var_86,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_87,
+      $TEMPLATE_loc_var_87: $TEMPLATE_loc_var_224,
+    }
+
+graphs:
+  # forward
+  fwd_0:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_89
+    ff.output.dense.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_90, $TEMPLATE_grid_loc_1_var_91],
+        grid_size: [$TEMPLATE_grid_size_0_var_92, $TEMPLATE_grid_size_1_var_93],
+        inputs:
+          [
+            lc.input_tensor.ff.output.dense.bias_s_brcst_m2_0_0.0,
+            ff.output.dense.bias,
+          ],
+        t: $TEMPLATE_t_var_94,
+        mblock: [$TEMPLATE_mblock_0_var_95, $TEMPLATE_mblock_1_var_96],
+        ublock: [$TEMPLATE_ublock_0_var_97, $TEMPLATE_ublock_1_var_98],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_225, $TEMPLATE_input_buf_min_size_tiles_1_var_226],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_99,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_100, $TEMPLATE_in_df_1_var_101],
+        out_df: $TEMPLATE_out_df_var_102,
+        intermed_df: $TEMPLATE_intermed_df_var_103,
+        acc_df: $TEMPLATE_acc_df_var_104,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_105, u_kt: $TEMPLATE_u_kt_var_106 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_107 }],
+      }
+    ff.intermediate.dense.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_108, $TEMPLATE_grid_loc_1_var_109],
+        grid_size: [$TEMPLATE_grid_size_0_var_110, $TEMPLATE_grid_size_1_var_111],
+        inputs:
+          [
+            lc.input_tensor.ff.intermediate.dense.bias_s_brcst_m2_0_0.0,
+            ff.intermediate.dense.bias,
+          ],
+        t: $TEMPLATE_t_var_112,
+        mblock: [$TEMPLATE_mblock_0_var_113, $TEMPLATE_mblock_1_var_114],
+        ublock: [$TEMPLATE_ublock_0_var_115, $TEMPLATE_ublock_1_var_116],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_227, $TEMPLATE_input_buf_min_size_tiles_1_var_228],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_117,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_118, $TEMPLATE_in_df_1_var_119],
+        out_df: $TEMPLATE_out_df_var_120,
+        intermed_df: $TEMPLATE_intermed_df_var_121,
+        acc_df: $TEMPLATE_acc_df_var_122,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_123, u_kt: $TEMPLATE_u_kt_var_124 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_125 }],
+      }
+    ff_0_ff1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_126, $TEMPLATE_grid_loc_1_var_127],
+        grid_size: [$TEMPLATE_grid_size_0_var_128, $TEMPLATE_grid_size_1_var_129],
+        inputs: [input_activations, ff.intermediate.dense.weight],
+        t: $TEMPLATE_t_var_130,
+        mblock: [$TEMPLATE_mblock_0_var_131, $TEMPLATE_mblock_1_var_132],
+        ublock: [$TEMPLATE_ublock_0_var_133, $TEMPLATE_ublock_1_var_134],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_229, $TEMPLATE_input_buf_min_size_tiles_1_var_230],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_135,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_136, $TEMPLATE_in_df_1_var_137],
+        out_df: $TEMPLATE_out_df_var_138,
+        intermed_df: $TEMPLATE_intermed_df_var_139,
+        acc_df: $TEMPLATE_acc_df_var_140,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_141, u_kt: $TEMPLATE_u_kt_var_142 },
+      }
+    ff_0_ff1.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_143, $TEMPLATE_grid_loc_1_var_144],
+        grid_size: [$TEMPLATE_grid_size_0_var_145, $TEMPLATE_grid_size_1_var_146],
+        inputs: [ff_0_ff1, ff.intermediate.dense.bias_s_brcst_m2_0_0.lc1],
+        t: $TEMPLATE_t_var_147,
+        mblock: [$TEMPLATE_mblock_0_var_148, $TEMPLATE_mblock_1_var_149],
+        ublock: [$TEMPLATE_ublock_0_var_150, $TEMPLATE_ublock_1_var_151],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_231, $TEMPLATE_input_buf_min_size_tiles_1_var_232],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_152,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_153, $TEMPLATE_in_df_1_var_154],
+        out_df: $TEMPLATE_out_df_var_155,
+        intermed_df: $TEMPLATE_intermed_df_var_156,
+        acc_df: $TEMPLATE_acc_df_var_157,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_158 }],
+      }
+    ff0_gelu:
+      {
+        type: gelu,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_159, $TEMPLATE_grid_loc_1_var_160],
+        grid_size: [$TEMPLATE_grid_size_0_var_161, $TEMPLATE_grid_size_1_var_162],
+        inputs: [ff_0_ff1.bias],
+        t: $TEMPLATE_t_var_163,
+        mblock: [$TEMPLATE_mblock_0_var_164, $TEMPLATE_mblock_1_var_165],
+        ublock: [$TEMPLATE_ublock_0_var_166, $TEMPLATE_ublock_1_var_167],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_233],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_168,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_169],
+        out_df: $TEMPLATE_out_df_var_170,
+        intermed_df: $TEMPLATE_intermed_df_var_171,
+        acc_df: $TEMPLATE_acc_df_var_172,
+        math_fidelity: HiFi3,
+      }
+    ff_0_ff2:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_173, $TEMPLATE_grid_loc_1_var_174],
+        grid_size: [$TEMPLATE_grid_size_0_var_175, $TEMPLATE_grid_size_1_var_176],
+        inputs: [ff0_gelu, ff.output.dense.weight],
+        t: $TEMPLATE_t_var_177,
+        mblock: [$TEMPLATE_mblock_0_var_178, $TEMPLATE_mblock_1_var_179],
+        ublock: [$TEMPLATE_ublock_0_var_180, $TEMPLATE_ublock_1_var_181],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_234, $TEMPLATE_input_buf_min_size_tiles_1_var_235],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_182,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_183, $TEMPLATE_in_df_1_var_184],
+        out_df: $TEMPLATE_out_df_var_185,
+        intermed_df: $TEMPLATE_intermed_df_var_186,
+        acc_df: $TEMPLATE_acc_df_var_187,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_188, u_kt: $TEMPLATE_u_kt_var_189 },
+      }
+    ff_0_ff2.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_190, $TEMPLATE_grid_loc_1_var_191],
+        grid_size: [$TEMPLATE_grid_size_0_var_192, $TEMPLATE_grid_size_1_var_193],
+        inputs: [ff_0_ff2, ff.output.dense.bias_s_brcst_m2_0_0.lc1],
+        untilize_output: $TEMPLATE_untilize_output_var_194,
+        t: $TEMPLATE_t_var_195,
+        mblock: [$TEMPLATE_mblock_0_var_196, $TEMPLATE_mblock_1_var_197],
+        ublock: [$TEMPLATE_ublock_0_var_198, $TEMPLATE_ublock_1_var_199],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_236, $TEMPLATE_input_buf_min_size_tiles_1_var_237],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_200,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_201, $TEMPLATE_in_df_1_var_202],
+        out_df: $TEMPLATE_out_df_var_203,
+        intermed_df: $TEMPLATE_intermed_df_var_204,
+        acc_df: $TEMPLATE_acc_df_var_205,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_206 }],
+      }
+
+programs:
+  # forward
+  - run_fwd:
+      - param: [$p_microbatch_count, $p_microbatch_size]
+      - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+      - var: { $c_zero: 0, $c_wrap: 2 } # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size] # c_wrap = 2*microbatch_size
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+      - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+      - execute:
+          {
+            graph_name: fwd_0,
+            queue_settings:
+              {
+                lc.input_tensor.ff.output.dense.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_207,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                ff.output.dense.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_208,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.ff.intermediate.dense.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_209,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                ff.intermediate.dense.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_210,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                ff.intermediate.dense.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_211,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                ff.output.dense.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_212,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                input_activations:
+                  {
+                    prologue: $TEMPLATE_prologue_var_213,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+              },
+          }
+      - varinst: [$gptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      .*\.weight:
+        type: Normal
+        normal_mean: 0.0
+        normal_stddev: $TEMPLATE_normal_stddev
+      .*\.bias:
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+      .*\.bias_s_brcst.*:
+        type: Constant
+        constant_value: 1.0
+        set_tile_cols: [1, 1]
+  io-config:
+    inputs: [input_activations]
+    outputs: [output_activations]
+  test-args:
+    minibatch_count: $TEMPLATE_minibatch_count_var_214
+    microbatch_count: $TEMPLATE_microbatch_count_var_215
+    microbatch_size: $TEMPLATE_microbatch_size_var_216

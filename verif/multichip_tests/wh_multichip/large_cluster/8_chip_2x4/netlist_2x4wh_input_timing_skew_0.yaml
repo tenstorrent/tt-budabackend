@@ -1,0 +1,144 @@
+# This test forces us to route a longer way around the cluster because one of the data edges input add0 will use all eth streams between chip0 and chip1.
+# So the other pipes must go through chip0 -> chip2 -> chip3 -> chip1
+
+devices:
+ arch: [wormhole, wormhole_b0]
+
+# device map
+#     0   1   2   3   4   5   6   7
+#    -------------------------------
+# 0 |   |   |   |   |   |   |   |   |
+#    -------------------------------
+# 1 |   |   |   |   |   |   |   |   |
+#    -------------------------------
+# 2 |   |   |   |   | 2 | 1 | 4 | 7 |
+#    -------------------------------
+# 3 |   |   |   |   | 3 | 0*| 5 | 6 |
+#    -------------------------------
+# 4 |   |   |   |   |   |   |   |   |
+#    -------------------------------
+
+
+
+queues:
+  add0_in0    : {type: queue, input: HOST   , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 0, loc: dram, dram: [
+    [0, 0x10000000], [0, 0x14000000], [0, 0x18000000], [0, 0x1c000000], [0, 0x20000000], [0, 0x24000000], [0, 0x28000000], [0, 0x2c000000], 
+    [0, 0x11000000], [0, 0x15000000], [0, 0x19000000], [0, 0x1d000000], [0, 0x21000000], [0, 0x25000000], [0, 0x29000000], [0, 0x2d000000], 
+    [0, 0x12000000], [0, 0x16000000], [0, 0x1a000000], [0, 0x1e000000], [0, 0x22000000], [0, 0x26000000], [0, 0x2a000000], [0, 0x2e000000], 
+    [0, 0x13000000], [0, 0x17000000], [0, 0x1b000000], [0, 0x1f000000], [0, 0x23000000], [0, 0x27000000], [0, 0x2b000000], [0, 0x2f000000]
+    ]}
+  add0_in1    : {type: queue, input: HOST   , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 0, loc: dram, dram: [
+    [1, 0x10000000], [1, 0x14000000], [1, 0x18000000], [1, 0x1c000000], [1, 0x20000000], [1, 0x24000000], [1, 0x28000000], [1, 0x2c000000], 
+    [1, 0x11000000], [1, 0x15000000], [1, 0x19000000], [1, 0x1d000000], [1, 0x21000000], [1, 0x25000000], [1, 0x29000000], [1, 0x2d000000], 
+    [1, 0x12000000], [1, 0x16000000], [1, 0x1a000000], [1, 0x1e000000], [1, 0x22000000], [1, 0x26000000], [1, 0x2a000000], [1, 0x2e000000], 
+    [1, 0x13000000], [1, 0x17000000], [1, 0x1b000000], [1, 0x1f000000], [1, 0x23000000], [1, 0x27000000], [1, 0x2b000000], [1, 0x2f000000]
+    ]}
+  nop_c_in    : {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 0, loc: dram, dram: [
+    [3, 0x10000000] #, [3, 0x14000000], [3, 0x18000000], [3, 0x1c000000], [3, 0x20000000], [3, 0x24000000], [3, 0x28000000], [3, 0x2c000000], 
+    # [3, 0x11000000], [3, 0x15000000], [3, 0x19000000], [3, 0x1d000000], [3, 0x21000000], [3, 0x25000000], [3, 0x29000000], [3, 0x2d000000], 
+    # [3, 0x12000000], [3, 0x16000000], [3, 0x1a000000], [3, 0x1e000000], [3, 0x22000000], [3, 0x26000000], [3, 0x2a000000], [3, 0x2e000000] #, 
+    # [3, 0x13000000], [3, 0x17000000], [3, 0x1b000000], [3, 0x1f000000], [3, 0x23000000], [3, 0x27000000], [3, 0x2b000000], [3, 0x2f000000]
+  ]}
+  nop_e_in    : {type: queue, input: HOST   , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 0, loc: dram, dram: [
+    [4, 0x10000000], [4, 0x14000000], [4, 0x18000000], [4, 0x1c000000], [4, 0x20000000], [4, 0x24000000], [4, 0x28000000], [4, 0x2c000000], 
+    [4, 0x11000000], [4, 0x15000000], [4, 0x19000000], [4, 0x1d000000], [4, 0x21000000], [4, 0x25000000], [4, 0x29000000], [4, 0x2d000000], 
+    [4, 0x12000000], [4, 0x16000000], [4, 0x1a000000], [4, 0x1e000000], [4, 0x22000000], [4, 0x26000000], [4, 0x2a000000], [4, 0x2e000000], 
+    [4, 0x13000000], [4, 0x17000000], [4, 0x1b000000], [4, 0x1f000000], [4, 0x23000000], [4, 0x27000000], [4, 0x2b000000], [4, 0x2f000000]
+    ]}
+  nop_d_out    : {type: queue, input: nop_d   , entries: 64, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 5, loc: dram, dram: [
+    [0, 0x10000000] #, [0, 0x14000000], [0, 0x18000000], [0, 0x1c000000], [0, 0x20000000], [0, 0x24000000], [0, 0x28000000], [0, 0x2c000000], 
+    # [0, 0x11000000], [0, 0x15000000], [0, 0x19000000], [0, 0x1d000000], [0, 0x21000000], [0, 0x25000000], [0, 0x29000000], [0, 0x2d000000], 
+    # [0, 0x12000000], [0, 0x16000000], [0, 0x1a000000], [0, 0x1e000000], [0, 0x22000000], [0, 0x26000000], [0, 0x2a000000], [0, 0x2e000000] #, 
+    # [0, 0x13000000], [0, 0x17000000], [0, 0x1b000000], [0, 0x1f000000], [0, 0x23000000], [0, 0x27000000], [0, 0x2b000000], [0, 0x2f000000]
+  ]}
+  nop_g_in    : {type: queue, input: HOST   , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 5, loc: dram, dram: [
+    [1, 0x10000000], [1, 0x14000000], [1, 0x18000000], [1, 0x1c000000], [1, 0x20000000], [1, 0x24000000], [1, 0x28000000], [1, 0x2c000000], 
+    [1, 0x11000000], [1, 0x15000000], [1, 0x19000000], [1, 0x1d000000], [1, 0x21000000], [1, 0x25000000], [1, 0x29000000], [1, 0x2d000000], 
+    [1, 0x12000000], [1, 0x16000000], [1, 0x1a000000], [1, 0x1e000000], [1, 0x22000000], [1, 0x26000000], [1, 0x2a000000], [1, 0x2e000000], 
+    [1, 0x13000000], [1, 0x17000000], [1, 0x1b000000], [1, 0x1f000000], [1, 0x23000000], [1, 0x27000000], [1, 0x2b000000], [1, 0x2f000000]
+    ]}
+  output0: {type: queue, input: receivers_1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [8, 16], ublock: [2, 1], df: Float16, target_device: 5, loc: dram, dram: [
+    [0, 0x20000000] #, [2, 0x90000000], [2, 0xA0000000], [2, 0xB0000000], [2, 0xC0000000], [2, 0xD0000000], [2, 0xE0000000], [2, 0xF0000000], 
+    # [2, 0x81000000], [2, 0x91000000], [2, 0xA1000000], [2, 0xB1000000], [2, 0xC1000000], [2, 0xD1000000], [2, 0xE1000000], [2, 0xF1000000], 
+    # [2, 0x82000000], [2, 0x92000000], [2, 0xA2000000], [2, 0xB2000000], [2, 0xC2000000], [2, 0xD2000000], [2, 0xE2000000], [2, 0xF2000000], 
+    # [2, 0x83000000], [2, 0x93000000], [2, 0xA3000000], [2, 0xB3000000], [2, 0xC3000000], [2, 0xD3000000], [2, 0xE3000000], [2, 0xF3000000]
+    ]}
+
+
+
+  nop_f_out: {type: queue, input: nop_f , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 2, loc: dram, dram: [
+    [0, 0x10000000], [0, 0x14000000], [0, 0x18000000], [0, 0x1c000000], [0, 0x20000000], [0, 0x24000000], [0, 0x28000000], [0, 0x2c000000], 
+    [0, 0x11000000], [0, 0x15000000], [0, 0x19000000], [0, 0x1d000000], [0, 0x21000000], [0, 0x25000000], [0, 0x29000000], [0, 0x2d000000], 
+    [0, 0x12000000], [0, 0x16000000], [0, 0x1a000000], [0, 0x1e000000], [0, 0x22000000], [0, 0x26000000], [0, 0x2a000000], [0, 0x2e000000], 
+    [0, 0x13000000], [0, 0x17000000], [0, 0x1b000000], [0, 0x1f000000], [0, 0x23000000], [0, 0x27000000], [0, 0x2b000000], [0, 0x2f000000]
+    ]}
+  nop_h_out: {type: queue, input: nop_h , entries: 64, grid_size: [4, 8], t: 1, mblock: [2, 2], ublock: [2, 1], df: Float16, target_device: 4, loc: dram, dram: [
+    [0, 0x10000000], [0, 0x14000000], [0, 0x18000000], [0, 0x1c000000], [0, 0x20000000], [0, 0x24000000], [0, 0x28000000], [0, 0x2c000000], 
+    [0, 0x11000000], [0, 0x15000000], [0, 0x19000000], [0, 0x1d000000], [0, 0x21000000], [0, 0x25000000], [0, 0x29000000], [0, 0x2d000000], 
+    [0, 0x12000000], [0, 0x16000000], [0, 0x1a000000], [0, 0x1e000000], [0, 0x22000000], [0, 0x26000000], [0, 0x2a000000], [0, 0x2e000000], 
+    [0, 0x13000000], [0, 0x17000000], [0, 0x1b000000], [0, 0x1f000000], [0, 0x23000000], [0, 0x27000000], [0, 0x2b000000], [0, 0x2f000000]
+    ]}
+
+graphs:
+  test_unary_chip3:
+    target_device: 3
+    input_count: 64
+  test_unary_chip0:
+    target_device: 0
+    input_count: 64
+    add0: {type: add, grid_loc: [0, 0], grid_size: [4,8], inputs: [add0_in0,add0_in1], acc_df: Float16, in_df: [Float16, Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+    nop_c: {type: datacopy, grid_loc: [4, 0], grid_size: [1,1], inputs: [nop_c_in], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+    nop_e: {type: datacopy, grid_loc: [6, 0], grid_size: [4,8], inputs: [nop_e_in], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+  test_unary_chip5:
+    target_device: 5
+    input_count: 64
+    nop_d: {type: datacopy, grid_loc: [4, 0], grid_size: [1,1], inputs: [nop_c], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+    nop_g: {type: datacopy, grid_loc: [0, 0], grid_size: [4,8], inputs: [nop_g_in], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+    receivers_0: {type: datacopy, grid_loc: [5, 0], grid_size: [4,8], inputs: [add0], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+    receivers_1: {type: datacopy, grid_loc: [9, 0], grid_size: [1,1], inputs: [receivers_0], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [8, 16], ublock: [2, 1], input_0_tms: []}
+  test_unary_chip6:
+    target_device: 6
+    input_count: 64
+
+
+  test_unary_chip1:
+    target_device: 1
+    input_count: 64
+  test_unary_chip2:
+    target_device: 2
+    input_count: 64
+    nop_f: {type: datacopy, grid_loc: [0, 0], grid_size: [4,8], inputs: [nop_e], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+  test_unary_chip4:
+    target_device: 4
+    input_count: 64
+    nop_h: {type: datacopy, grid_loc: [0, 0], grid_size: [4,8], inputs: [nop_g], acc_df: Float16, in_df: [Float16], out_df: Float16, ublock_order: r, buf_size_mb: 2,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 1], input_0_tms: []}
+  test_unary_chip7:
+    target_device: 7
+    input_count: 64
+
+
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {
+        add0_in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0},
+        add0_in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0},
+        nop_c_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0},
+        nop_e_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+      }}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip2, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip3, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip4, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip5, queue_settings: {
+        nop_g_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+      }}
+      - execute: {graph_name: test_unary_chip6, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip7, queue_settings: {}}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop: 
+

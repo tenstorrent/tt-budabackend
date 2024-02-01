@@ -1,0 +1,61 @@
+devices:
+  arch: [wormhole, wormhole_b0]
+queues:
+  input0:  {type: queue, input: HOST, entries: 12, grid_size: [4, 1], t: 1, mblock: [6, 3], ublock: [4, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x382d0f40], [3, 0x38719d60], [2, 0x38b62b80], [4, 0x38fab9a0]]}
+  input1:  {type: queue, input: HOST, entries: 12, grid_size: [4, 1], t: 1, mblock: [6, 3], ublock: [4, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x395813c0], [3, 0x399ca1e0], [2, 0x39e13000], [4, 0x3a25be20]]}
+  output: {type: ram, input: op0 , entries: 1, grid_size: [4, 1], t: 1, mblock: [6, 3], ublock: [4, 1], df: Float32, target_device: 0, loc: dram, dram: [[3, 0x3b592240], [3, 0x3b9db060], [2, 0x3be23e80], [4, 0x3c26cca0]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  6
+    op0: 
+      type: multiply
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [4, 1] # [r,c]
+      inputs: [input0, input1] 
+      in_df: [Float16_b, Float16_b] 
+      acc_df: Float32
+      out_df: Float32  
+      intermed_df: Float32
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi2
+      untilize_output: false 
+      gradient_op: true
+      t: 1
+      mblock: [6,  3]
+      ublock: [4, 1]
+      input_0_tms:
+      input_1_tms:
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set,  1]   # load loop count
+      - varinst: [$c_input_count, set, 6]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 24]
+      - varinst: [$gptr, incwrap, $c_input_count, 24]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+

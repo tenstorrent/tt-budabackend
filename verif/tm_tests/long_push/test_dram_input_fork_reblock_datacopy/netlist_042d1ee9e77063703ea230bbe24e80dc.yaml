@@ -1,0 +1,101 @@
+# input_grid_size_r = 3
+# input_grid_size_c = 6
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [3, 6]
+    t: 2
+    mblock: [1, 1]
+    ublock: [3, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x101091e0], [0, 0x10e19460], [0, 0x1862ee20], [0, 0x1a115fe0], [0, 0x1c159a00], [0, 0x206bad60], [0, 0x2466f160], [0, 0x256b55c0], [0, 0x28e674e0], [0, 0x2a2d75c0], [0, 0x2ad8c0e0], [0, 0x2cb32d20], [0, 0x2d84df60], [0, 0x2ffce3a0], [0, 0x350f5a40], [0, 0x39204e80], [0, 0x3c3c80a0], [0, 0x3e249c60]]
+
+  dram_output0:
+    type: queue
+    input: datacopy0
+    entries: 1
+    grid_size: [9, 4]
+    t: 2
+    mblock: [1, 1]
+    ublock: [1, 3]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x1025c720], [1, 0x10ed9740], [1, 0x11e60fc0], [1, 0x12e97b60], [1, 0x138b0520], [1, 0x143c0de0], [1, 0x15c60fe0], [1, 0x16da66c0], [1, 0x1806b820], [1, 0x1933eb40], [1, 0x1bfb43e0], [1, 0x1cf7e080], [1, 0x1f422240], [1, 0x1ff121c0], [1, 0x2100ede0], [1, 0x23641fa0], [1, 0x245a5540], [1, 0x25ee4fc0], [1, 0x27d14cc0], [1, 0x2904f020], [1, 0x299366a0], [1, 0x2a992720], [1, 0x2cc5c620], [1, 0x2df8b1a0], [1, 0x2eecd8a0], [1, 0x3011ee80], [1, 0x30e39e80], [1, 0x339033a0], [1, 0x34f4fbe0], [1, 0x36dc6e80], [1, 0x38c68c80], [1, 0x3a442dc0], [1, 0x3c2852e0], [1, 0x3d4a2f20], [1, 0x3e82db40], [1, 0x3f6d4f40]]
+
+  dram_output1:
+    type: queue
+    input: datacopy1
+    entries: 1
+    grid_size: [1, 4]
+    t: 2
+    mblock: [9, 1]
+    ublock: [1, 3]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x119211e0], [2, 0x308e16a0], [2, 0x3955e7e0], [2, 0x3c779e60]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [0, 2]
+      grid_size: [9, 4]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 2
+      mblock: [1, 1]
+      ublock: [1, 3]
+      input_0_tms: []
+    datacopy1: 
+      type: datacopy 
+      grid_loc: [9, 8]
+      grid_size: [1, 4]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 2
+      mblock: [9, 1]
+      ublock: [1, 3]
+      input_0_tms: []
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - staticvar: {$lptr0 : 0, $gptr0: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      # - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      # - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - varinst: [$lptr0, incwrap, 1, 2]
+      - varinst: [$gptr0, incwrap, 1, 2]
+      - endloop
+
+
+

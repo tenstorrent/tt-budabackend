@@ -1,0 +1,71 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in0:  {type: queue, input: HOST   , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  out0: {type: queue, input: unary0 , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  in1:  {type: queue, input: HOST   , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  out1: {type: queue, input: unary1 , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20000000]]}
+  in2:  {type: queue, input: HOST   , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  out2: {type: queue, input: unary2 , entries: 16, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+
+graphs:
+  test_multiple_unaries:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    unary1: {type: nop, grid_loc: [0, 1], grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    unary2: {type: nop, grid_loc: [0, 2], grid_size: [1, 1], inputs: [in2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - multi_queue_fast_slow:
+      - var: [$lptr, $gptr_fast, $gptr_slow, $c_loop_count, $c_incr_fast, $c_incr_slow, $c_input_wrap]
+      - varinst: [$c_loop_count, set, 4]  # load loop count
+      - varinst: [$c_incr_slow, set, 2]
+      - varinst: [$c_incr_fast, set, 4]
+      - varinst: [$c_input_wrap, set, 16]
+      - varinst: [$lptr, set, 15]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_multiple_unaries, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr_fast},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr_slow},
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr_fast}}}
+      - varinst: [$gptr_fast, incwrap, $c_incr_fast, $c_input_wrap] # incr fast queues
+      - varinst: [$gptr_slow, incwrap, $c_incr_slow, $c_input_wrap] # incr slow queues
+      - endloop 
+      # expected: fast ptr 0->4->8->12->16 wraparound to 0
+      #           slow ptr 0->2->4->6->8
+
+  - multi_queue_all:
+      - var: [$lptr, $gptr0, $gptr1, $gptr2, $gptr3, $c_incr]
+      - varinst: [$c_incr, set, 2]
+      - varinst: [$lptr, set, 15]
+      - execute: {graph_name: test_multiple_unaries, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr0},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr0},
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr0}}}
+      # device: 0, 0, 0
+      - varinst: [$gptr0, add, $gptr0, $c_incr] # incr gptr0 aliased to all queues (side effects: in0/1/2)
+      - varinst: [$gptr1, add, $gptr1, $gptr0]
+      # expected: in0/1/2: 2, 2, 2, lptr: 1
+
+      - execute: {graph_name: test_multiple_unaries, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr0},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr1},
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr1}}}
+      # device: 2, 2, 2
+      - varinst: [$gptr1, add, $gptr1, $c_incr] # incr gptr1 aliased to 2 queues (side effects: in1/2)
+      - varinst: [$gptr2, add, $gptr2, $gptr1]
+      # expected: in0/1/2: 2, 4, 4, lptr: 1
+
+      - execute: {graph_name: test_multiple_unaries, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr0},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr1},
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr2}}}
+      # device: 2, 4, 4
+      - varinst: [$gptr0, add, $gptr0, $c_incr] # 2 + 2 = 4
+      - varinst: [$gptr1, add, $gptr2, $c_incr] # 4 + 2 = 6
+      - varinst: [$gptr1, add, $gptr1, $c_incr] # 6 + 2 = 8
+      - varinst: [$gptr3, add, $gptr0, $gptr1] # don't care
+      - varinst: [$gptr3, add, $gptr2, $gptr1] # don't care
+      # expected: in0/1/2: 4, 8, 4, lptr: 1

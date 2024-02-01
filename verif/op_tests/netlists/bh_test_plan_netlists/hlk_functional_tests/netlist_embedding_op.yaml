@@ -1,0 +1,55 @@
+devices:
+  arch: [blackhole]
+
+queues:
+
+  # input
+  inputs:                                           {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x45d0100]]}
+
+  # output
+  ModuleBuilder.simple_embedding.output_embedding:  {input: embedding, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x4ad0100]]}
+
+  # parameter
+  ModuleBuilder.simple_embedding.table:             {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: Float32, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x40d0100]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    embedding: {type: embedding, grid_loc: [0, 0], grid_size: [1, 1], inputs: [ModuleBuilder.simple_embedding.table, inputs], untilize_output: true,
+         t: 1, mblock: [2, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float32, RawUInt32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi2,
+         attributes: {num_indices: 64}}
+
+
+programs:
+  - run_fwd_0:
+    - var: {$p_loop_count: 1, $c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               inputs: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               ModuleBuilder.simple_embedding.table: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Verbose
+  stimulus-config:
+    type: Uniform
+    # type: Constant
+    constant_value: 1.0
+    uniform_lower_bound: 0.001
+    uniform_upper_bound: 1.000
+    debug_tile_id_base: 1.0
+    debug_tile_id_step: 1.0
+
+    overrides:
+      inputs:
+        type: Uniform
+        uniform_lower_bound: 0
+        uniform_upper_bound: 63  # embedding table size - 1

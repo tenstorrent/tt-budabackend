@@ -1,0 +1,76 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [4, 6]
+    t: 2
+    mblock: [7, 4]
+    ublock: [1, 5]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000020], [0, 0x1008e340], [0, 0x1011c660], [0, 0x101aa980], [0, 0x10238ca0], [0, 0x102c6fc0], [0, 0x103552e0], [0, 0x103e3600], [0, 0x10471920], [0, 0x104ffc40], [0, 0x1058df60], [0, 0x1061c280], [0, 0x106aa5a0], [0, 0x107388c0], [0, 0x107c6be0], [0, 0x10854f00], [0, 0x108e3220], [0, 0x10971540], [0, 0x109ff860], [0, 0x10a8db80], [0, 0x10b1bea0], [0, 0x10baa1c0], [0, 0x10c384e0], [0, 0x10cc6800]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 1
+    grid_size: [7, 10]
+    t: 1
+    mblock: [1, 12]
+    ublock: [8, 1]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000040], [1, 0x10030c60], [1, 0x10061880], [1, 0x100924a0], [1, 0x100c30c0], [1, 0x100f3ce0], [1, 0x10124900], [1, 0x10155520], [1, 0x10186140], [1, 0x101b6d60], [1, 0x101e7980], [1, 0x102185a0], [1, 0x102491c0], [1, 0x10279de0], [1, 0x102aaa00], [1, 0x102db620], [1, 0x1030c240], [1, 0x1033ce60], [1, 0x1036da80], [1, 0x1039e6a0], [1, 0x103cf2c0], [1, 0x103ffee0], [1, 0x10430b00], [1, 0x10461720], [1, 0x10492340], [1, 0x104c2f60], [1, 0x104f3b80], [1, 0x105247a0], [1, 0x105553c0], [1, 0x10585fe0], [1, 0x105b6c00], [1, 0x105e7820], [1, 0x10618440], [1, 0x10649060], [1, 0x10679c80], [1, 0x106aa8a0], [1, 0x106db4c0], [1, 0x1070c0e0], [1, 0x1073cd00], [1, 0x1076d920], [1, 0x1079e540], [1, 0x107cf160], [1, 0x107ffd80], [1, 0x108309a0], [1, 0x108615c0], [1, 0x108921e0], [1, 0x108c2e00], [1, 0x108f3a20], [1, 0x10924640], [1, 0x10955260], [1, 0x10985e80], [1, 0x109b6aa0], [1, 0x109e76c0], [1, 0x10a182e0], [1, 0x10a48f00], [1, 0x10a79b20], [1, 0x10aaa740], [1, 0x10adb360], [1, 0x10b0bf80], [1, 0x10b3cba0], [1, 0x10b6d7c0], [1, 0x10b9e3e0], [1, 0x10bcf000], [1, 0x10bffc20], [1, 0x10c30840], [1, 0x10c61460], [1, 0x10c92080], [1, 0x10cc2ca0], [1, 0x10cf38c0], [1, 0x10d244e0]]
+
+graphs:
+  test_multi_tm_dram_op:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [3, 0] 
+      grid_size: [7, 10]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [1, 12]
+      ublock: [8, 1]
+      input_0_tms: [vstack: 2, vstack: 1]
+      
+programs:
+  - multi_tm_test_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_op,
+          queue_settings: {
+               dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

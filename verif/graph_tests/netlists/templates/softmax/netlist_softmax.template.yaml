@@ -1,0 +1,149 @@
+devices:
+  arch: $TEMPLATE_device
+
+queues:
+  input_activation:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_num_entries # microbatch_size * microbatch_count
+    grid_size: [$TEMPLATE_inp_act_grid_size_y, $TEMPLATE_inp_act_grid_size_x]
+    t: $TEMPLATE_t
+    mblock: [$TEMPLATE_inp_act_mblock_m, $TEMPLATE_inp_act_mblock_n]
+    ublock: [$TEMPLATE_inp_act_ublock_rt, $TEMPLATE_inp_act_ublock_ct]
+    df: $TEMPLATE_data_format
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_inp_act_dram_buffers
+  input_constant:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_inp_con_entries
+    grid_size: [$TEMPLATE_inp_con_grid_size_y, $TEMPLATE_inp_con_grid_size_x]
+    t: $TEMPLATE_t
+    mblock: [$TEMPLATE_inp_con_mblock_m, $TEMPLATE_inp_con_mblock_n]
+    ublock: [$TEMPLATE_inp_con_ublock_rt, $TEMPLATE_inp_con_ublock_ct]
+    df: $TEMPLATE_data_format
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_inp_con_dram_buffers
+  output_softmax: 
+    type: queue
+    input: mul
+    entries: $TEMPLATE_num_entries # microbatch_size * microbatch_count
+    grid_size: [$TEMPLATE_out_grid_size_y, $TEMPLATE_out_grid_size_x]
+    t: $TEMPLATE_t
+    mblock: [$TEMPLATE_out_mblock_m, $TEMPLATE_out_mblock_n]
+    ublock: [$TEMPLATE_out_ublock_rt, $TEMPLATE_out_ublock_ct]
+    df: $TEMPLATE_data_format
+    target_device: $TEMPLATE_target_device
+    loc: $TEMPLATE_out_buffer_loc
+    $TEMPLATE_out_buffer_loc: $TEMPLATE_out_dram_buffers
+
+graphs:
+  softmax:
+    target_device: $TEMPLATE_target_device
+    input_count: $TEMPLATE_input_count
+    exp:
+      type: exp
+      grid_loc: [$TEMPLATE_exp_grid_loc_y, $TEMPLATE_exp_grid_loc_x]
+      grid_size: [$TEMPLATE_exp_grid_size_y, $TEMPLATE_exp_grid_size_x]
+      inputs: [input_activation]
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_exp_mblock_m, $TEMPLATE_exp_mblock_n]
+      ublock: [$TEMPLATE_exp_ublock_rt, $TEMPLATE_exp_ublock_ct]
+      in_df: [$TEMPLATE_data_format]
+      acc_df: $TEMPLATE_data_format_acc
+      out_df: $TEMPLATE_data_format
+      intermed_df: $TEMPLATE_data_format
+      math_fidelity: $TEMPLATE_math_fidelity
+      ublock_order: r
+      buf_size_mb: 2
+    sum:
+      type: matmul
+      grid_loc: [$TEMPLATE_sum_grid_loc_y, $TEMPLATE_sum_grid_loc_x]
+      grid_size: [$TEMPLATE_sum_grid_size_y, $TEMPLATE_sum_grid_size_x]
+      inputs: $TEMPLATE_sum_inputs
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_sum_mblock_m, $TEMPLATE_sum_mblock_n]
+      ublock: [$TEMPLATE_sum_ublock_rt, $TEMPLATE_sum_ublock_ct]
+      in_df: [$TEMPLATE_data_format, $TEMPLATE_data_format]
+      acc_df: $TEMPLATE_data_format_acc
+      out_df: $TEMPLATE_data_format
+      intermed_df: $TEMPLATE_data_format
+      math_fidelity: $TEMPLATE_math_fidelity
+      ublock_order: r
+      buf_size_mb: 2
+      $TEMPLATE_sum_inp_con_broadcast
+      attributes: {m_k: $TEMPLATE_sum_m_k, u_kt: $TEMPLATE_sum_u_kt}
+    rec:
+      type: reciprocal
+      grid_loc: [$TEMPLATE_rec_grid_loc_y, $TEMPLATE_rec_grid_loc_x]
+      grid_size: [$TEMPLATE_rec_grid_size_y, $TEMPLATE_rec_grid_size_x]
+      inputs: [sum]
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_rec_mblock_m, $TEMPLATE_rec_mblock_n]
+      ublock: [$TEMPLATE_rec_ublock_rt, $TEMPLATE_rec_ublock_ct]
+      in_df: [$TEMPLATE_data_format]
+      acc_df: $TEMPLATE_data_format_acc
+      out_df: $TEMPLATE_data_format
+      intermed_df: $TEMPLATE_data_format
+      math_fidelity: $TEMPLATE_math_fidelity
+      ublock_order: r
+      buf_size_mb: 2
+    mul:
+      type: multiply
+      grid_loc: [$TEMPLATE_mul_grid_loc_y, $TEMPLATE_mul_grid_loc_x]
+      grid_size: [$TEMPLATE_mul_grid_size_y, $TEMPLATE_mul_grid_size_x]
+      inputs: [exp, rec]
+      untilize_output: $TEMPLATE_mul_untilize_output
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_mul_mblock_m, $TEMPLATE_mul_mblock_n]
+      ublock: [$TEMPLATE_mul_ublock_rt, $TEMPLATE_mul_ublock_ct]
+      in_df: [$TEMPLATE_data_format, $TEMPLATE_data_format]
+      acc_df: $TEMPLATE_data_format_acc
+      out_df: $TEMPLATE_data_format
+      intermed_df: $TEMPLATE_data_format
+      math_fidelity: $TEMPLATE_math_fidelity
+      ublock_order: r
+      buf_size_mb: 2
+      $TEMPLATE_mul_inp_rec_broadcast
+
+programs:
+  - run_softmax:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: softmax,
+          queue_settings: {
+               input_constant:   {prologue: $TEMPLATE_inp_con_prologue, epilogue: false, zero: false, rd_ptr_local: $TEMPLATE_inp_con_lptr, rd_ptr_global: $TEMPLATE_inp_con_gptr},
+               input_activation: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: $TEMPLATE_microbatch_count # input_activation.entries / input_count
+    microbatch_size: $TEMPLATE_input_count
+    minibatch_count: $TEMPLATE_minibatch_count   # host loop iterations
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      input_constant:
+        type: Constant
+        constant_value: 1.0

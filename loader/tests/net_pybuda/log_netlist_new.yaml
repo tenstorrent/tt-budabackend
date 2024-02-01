@@ -1,0 +1,34 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+
+  # input
+# input_0_log:            {type: queue, input: HOST, entries: 2, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1000], [1, 0x1000]]}
+  input_0_log:            {type: queue, input: HOST, entries: 2, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000],[0, 0x32000000]]}
+
+  # output
+# log_module.output_log:  {type: queue, input: log, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 1], ublock: [2, 1], df: Float16_b, target_device: 0, loc: host}
+  log_module.output_log:  {type: queue, input: log, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x100]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    log: {type: log, grid_loc: [0, 0], grid_size: [1, 2], inputs: [input_0_log], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 1], in_df: [Float16_b], acc_df: Float16, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - var: [$c_one, $c_zero, $gptr_q0, $c_num_microbatches, $lptr_q0]
+    - varinst: [$c_zero, set, 0]
+    - varinst: [$c_one, set, 1]
+    - varinst: [$c_num_microbatches, set, 1]
+    - loop: $c_num_microbatches
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               input_0_log: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, add, $lptr_q0, $c_one]
+    -   varinst: [$gptr_q0, add, $gptr_q0, $c_one]
+    - endloop
+

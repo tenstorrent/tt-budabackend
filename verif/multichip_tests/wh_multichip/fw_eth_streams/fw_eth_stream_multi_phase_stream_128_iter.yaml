@@ -1,0 +1,44 @@
+devices:
+ arch: [wormhole, wormhole_b0]
+
+queues:
+  q0:  {input: HOST, type: queue, entries: 2, grid_size: [1, 8], t: 32, mblock: [3, 2], ublock: [1, 4], tile_dim: [32, 32], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [
+            [0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000], [0, 0x34000000], [0, 0x35000000], [0, 0x36000000], [0, 0x37000000]]}
+  q1:  {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 32, mblock: [3, 1], ublock: [1, 1], tile_dim: [32, 32], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [
+    [0, 0x38000000]]}
+
+  output: {input: softmax_55.dc.exp.2, type: queue, entries: 2, grid_size: [3, 8], t: 256, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], ublock_order: r, df: Float16_b, target_device: 1, loc: dram, dram: [
+    [0, 0x40000000], [0, 0x41000000], [0, 0x42000000], [0, 0x43000000], [0, 0x44000000], [0, 0x45000000], [0, 0x46000000], [0, 0x47000000],
+    [1, 0x40000000], [1, 0x41000000], [1, 0x42000000], [1, 0x43000000], [1, 0x44000000], [1, 0x45000000], [1, 0x46000000], [1, 0x47000000],
+    [2, 0x40000000], [2, 0x41000000], [2, 0x42000000], [2, 0x43000000], [2, 0x44000000], [2, 0x45000000], [2, 0x46000000], [2, 0x47000000]
+    ]}
+
+graphs:
+  test_unary_chip0:
+    target_device: 0
+    input_count: 1
+    buffer_0_add_54_softmax_55.dc.subtract.1: {type: nop, grid_loc: [0, 0], grid_size: [1, 8], inputs: [q0],
+      t: 32, mblock: [3, 2], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    softmax_55.dc.subtract.1: {type: subtract, grid_loc: [1, 0], grid_size: [1, 8], inputs: [buffer_0_add_54_softmax_55.dc.subtract.1, q1],
+         t: 256, mblock: [3, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}, hslice: 8], input_0_tms: [hslice: 8]}
+
+  test_unary_chip1:
+    target_device: 1
+    input_count: 1
+    softmax_55.dc.exp.2: {type: nop, grid_loc: [0, 0], grid_size: [3, 8], inputs: [softmax_55.dc.subtract.1],
+      t: 256, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+      attributes: {approximate_mode: false}}
+
+programs:
+  - program0:
+      - staticvar: {$0: 0, $ubatch: 1, $q_wrap: 4, $5: 1}
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {
+        q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0},
+        q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+        }}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - varinst: [$0, incwrap, $ubatch, $q_wrap] # add two variables
+      - endloop: 
+

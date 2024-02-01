@@ -1,0 +1,56 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  input0:  {type: ram, input: HOST, entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000]]}
+  output:  {type: queue, input: op1 , entries: 512, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x30000000], [1, 0x31000000], [1, 0x32000000], [1, 0x33000000]]}
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 512
+    op0: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [1, 1]
+      inputs: [input0] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [2, 2]
+      ublock: [2, 2]
+    op1: 
+      type: datacopy 
+      grid_loc: [0, 1] 
+      grid_size: [2, 2]
+      inputs: [op0] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [1, 1]
+      ublock: [2, 2]
+      input_0_tms: 
+      
+programs:
+  - program0:
+    - var: {$gptr: 0, $p_microbatch_count: 1}
+    - loop: $p_microbatch_count
+    -   execute: {
+          graph_name: test_tm,
+          queue_settings: {
+            input0: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $gptr, wr_ptr_global: $gptr}
+          }
+        }
+    - endloop

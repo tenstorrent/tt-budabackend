@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [3, 2]
+    t: 6
+    mblock: [2, 1]
+    ublock: [2, 8]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10b54440], [1, 0x17f585a0], [1, 0x232f2ee0], [1, 0x23830f20], [1, 0x3f4a9640], [1, 0x3fe399a0]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [4, 1]
+    t: 3
+    mblock: [1, 4]
+    ublock: [4, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[7, 0x1c69afa0], [7, 0x2cbcc480], [7, 0x318bf640], [7, 0x37d4f0c0]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 2
+    grid_size: [6, 4]
+    t: 6
+    mblock: [2, 1]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x1031f140], [6, 0x1163eac0], [6, 0x12a1d1a0], [6, 0x12d948c0], [6, 0x150647e0], [6, 0x186ba440], [6, 0x1e81f720], [6, 0x1ed793c0], [6, 0x1ee51c40], [6, 0x215fd6e0], [6, 0x29ef01e0], [6, 0x2b7da080], [6, 0x2cd1d060], [6, 0x2f418080], [6, 0x30d41a80], [6, 0x315327a0], [6, 0x333ee820], [6, 0x3679b600], [6, 0x38827fa0], [6, 0x38c22600], [6, 0x3a3cef20], [6, 0x3d9a4920], [6, 0x3f42da80], [6, 0x3ff461c0]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  2
+    op0: 
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [6, 4]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 4
+      math_fidelity: HiFi4
+      attributes: {m_k: 8, u_kt: 2}
+      untilize_output: false
+      t: 6
+      mblock: [2, 1]
+      ublock: [1, 2]
+      input_0_tms: [hslice: 1]
+      input_1_tms: [hslice: 2]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 2, 4]
+      - varinst: [$gptr0, incwrap, 2, 4]
+      - varinst: [$lptr1, incwrap, 2, 8]
+      - varinst: [$gptr1, incwrap, 2, 8]
+      - endloop: 
