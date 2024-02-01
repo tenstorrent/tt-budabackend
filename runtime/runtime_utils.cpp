@@ -204,8 +204,7 @@ void handle_pipegen2_internal_error(
 
     std::stringstream ss;
     ss << "Pipegen2 internal error: " << ex.what() << ". This error indicates a bug in pipegen - please open an issue "
-       << "https://yyz-gitlab.local.tenstorrent.com/tenstorrent/budabackend/-/issues with repro steps and assign it "
-       << "Pipegen2 label.";
+       << "with repro steps and assign it `Pipegen2` label.";
 
     compile_result.failure_message = ss.str();
 }
