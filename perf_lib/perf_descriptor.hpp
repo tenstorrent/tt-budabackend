@@ -14,6 +14,7 @@
 #include "scratch_api.h"
 #include "perf_base.hpp"
 #include "netlist/netlist_workload_data.hpp"
+#include "common/env_lib.hpp"
 
 extern std::mutex backend_profiler_mutex;
 
@@ -304,8 +305,7 @@ inline uint64_t get_timestamp() {
 ////////////////////////////////////////////////////////
 struct tt_backend_perf {
 private:
-    const bool en = std::getenv("TT_BACKEND_PROFILER") ?
-                        atoi(std::getenv("TT_BACKEND_PROFILER")): false;
+    const bool en = parse_env("TT_BACKEND_PROFILER", false);
 
 public:
     vector<uint64_t> perf_buffer;

@@ -444,10 +444,8 @@ PerfDesc::PerfDesc() {
 
 PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     
-    const bool decouple_overlay_for_all_ops = std::getenv("TT_BACKEND_PERF_ANALYZER") ?
-                                        atoi(std::getenv("TT_BACKEND_PERF_ANALYZER")): false;
-    const bool fork_join_analyzer_en = std::getenv("TT_BACKEND_FORK_JOIN_ANALYZER") ?
-                                        atoi(std::getenv("TT_BACKEND_FORK_JOIN_ANALYZER")): false;
+    const bool decouple_overlay_for_all_ops = parse_env("TT_BACKEND_PERF_ANALYZER", false);
+    const bool fork_join_analyzer_en = parse_env("TT_BACKEND_FORK_JOIN_ANALYZER", false);
     const bool force_enable_perf_trace = fork_join_analyzer_en || decouple_overlay_for_all_ops;
     if (args.size() == 0 && !decouple_overlay_for_all_ops) {
         return;
@@ -521,8 +519,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     }
     perf_dump_level = perf_level;
 
-    const string perf_output_dir_override_env = std::getenv("TT_BACKEND_PERF_OUTPUT_DIR") ?
-                                        std::getenv("TT_BACKEND_PERF_OUTPUT_DIR"): "";
+    const string perf_output_dir_override_env = parse_env("TT_BACKEND_PERF_OUTPUT_DIR", std::string(""));
 
     if (!perf_output_dir_override_env.empty()) {
         log_assert(override_perf_output_dir.empty(), "The performance output directory override can only either be specified by the cmdline option or the env var");
@@ -532,8 +529,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     trisc_decouplings = set_trisc_perf_decouplings(perf_op_mode_desc);
     initial_trisc_decouplings = trisc_decouplings;
     
-    const string overlay_decoupling_desc_path = std::getenv("TT_BACKEND_OVERLAY_DECOUPLE_DESC_PATH") ?
-                                        std::getenv("TT_BACKEND_OVERLAY_DECOUPLE_DESC_PATH"): "";
+    const string overlay_decoupling_desc_path = parse_env("TT_BACKEND_OVERLAY_DECOUPLE_DESC_PATH", std::string(""));
     log_assert(overlay_decoupling_desc_config.empty() || overlay_decoupling_desc_path.empty(), "Both decouple-overlay config and decouple-overlay descriptor path are set");
     if (!overlay_decoupling_desc_path.empty()) {
         log_assert(overlay_decoupling_desc_config.empty(), "When overlay decouple descriptor path is provided to the test, the --decoule-overlay config should be empty");
