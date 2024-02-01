@@ -522,7 +522,7 @@ class tt_epoch_loader
     void get_unique_consumer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
     void get_unique_consumer_cores_from_queues(const unordered_set<string> &queues, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empyt_set = false);
     void get_unique_producer_cores_from_queues(const unordered_set<string> &queues, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set = false);
-    void get_unique_consumer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, uint target_device, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
+    void get_unique_consumer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
     void get_unique_producer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set = false);
     void preload_epoch_queues(const map<string, tt_digraph> &graphs, const std::vector<string> &graph_order);
     void get_unique_epoch_trisc_binaries(const map<string, tt_digraph> &graphs, const std::vector<string> &graph_order);

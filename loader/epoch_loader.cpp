@@ -2196,7 +2196,6 @@ void tt_epoch_loader::get_unique_consumer_cores_from_queues(const unordered_set<
 void tt_epoch_loader::get_unique_consumer_cores_from_queue_buffer(
         const string& queue_name,
         const tt_queue_allocation_info& alloc_info,
-        uint target_device,
         std::unordered_set<tt_xy_pair>& all_readers,
         bool allow_empty_set) {
 
@@ -2635,16 +2634,16 @@ void tt_epoch_loader::update_io_queue_setting_from_device(const tt_queue_info &q
                                          ? sdesc.get_core_for_dram_channel(alloc.channel, 0)
                                          : sdesc.get_pcie_core();
 
-            // For dual-view RAMS, will sync on producers+consumers (pre-populated for both views), share single cache entry via base name.
-            const auto buffer_name =
-                get_base_queue_name(queue_info) + "_sync_type_" + std::to_string((int)sync_type) + "_buffer_" + std::to_string(buffer_index);
+            // For dual-view RAMS, will sync on producers+consumers (must use base name), share single cache entry via base name.
+            const auto queue_base_name = get_base_queue_name(queue_info);
+            const auto buffer_name = queue_base_name + "_sync_type_" + std::to_string((int)sync_type) + "_buffer_" + std::to_string(buffer_index);
 
             if (state.sync_cores_cache.find(buffer_name) == state.sync_cores_cache.end()) {
                 if ((sync_type == tt_queue_settings_sync_type::SyncOnProducers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
-                    get_unique_producer_cores_from_queue_buffer(queue_name, alloc, state.sync_cores_cache[buffer_name], true);
+                    get_unique_producer_cores_from_queue_buffer(queue_base_name, alloc, state.sync_cores_cache[buffer_name], true);
                 }
                 if ((sync_type == tt_queue_settings_sync_type::SyncOnConsumers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
-                    get_unique_consumer_cores_from_queue_buffer(queue_name, alloc, queue_info.target_device, state.sync_cores_cache[buffer_name], true);
+                    get_unique_consumer_cores_from_queue_buffer(queue_base_name, alloc, state.sync_cores_cache[buffer_name], true);
                 }
             }
 
@@ -3411,14 +3410,15 @@ void tt_epoch_loader::generate_and_send_varinst_cmds_inline(const tt_varinst_que
                                          ? sdesc.get_core_for_dram_channel(alloc.channel, 0)
                                          : sdesc.get_pcie_core();
 
-            // For dual-view RAMS, will sync on producers+consumers (pre-populated for both views), share single cache entry via base name.
-            const auto buffer_name = get_base_queue_name(queue_info) + "_varinst_sync_type_" + std::to_string((int)info.sync_type) + "_buffer_" + std::to_string(buffer_index);
+            // For dual-view RAMS, will sync on producers+consumers (must use base name), share single cache entry via base name.
+            const auto queue_base_name = get_base_queue_name(queue_info);
+            const auto buffer_name = queue_base_name + "_varinst_sync_type_" + std::to_string((int)info.sync_type) + "_buffer_" + std::to_string(buffer_index);
             if (state.sync_cores_cache.find(buffer_name) == state.sync_cores_cache.end()) {
                 if ((info.sync_type == tt_queue_settings_sync_type::SyncOnConsumers) || (info.sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
-                    get_unique_consumer_cores_from_queue_buffer(queue_name, alloc, queue_info.target_device, state.sync_cores_cache[buffer_name], true);
+                    get_unique_consumer_cores_from_queue_buffer(queue_base_name, alloc, state.sync_cores_cache[buffer_name], true);
                 }
                 if ((info.sync_type == tt_queue_settings_sync_type::SyncOnProducers) || (info.sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
-                    get_unique_producer_cores_from_queue_buffer(queue_name, alloc, state.sync_cores_cache[buffer_name], true);
+                    get_unique_producer_cores_from_queue_buffer(queue_base_name, alloc, state.sync_cores_cache[buffer_name], true);
                 }
             }
             uint8_t num_sync_cores  = state.sync_cores_cache[buffer_name].size();
