@@ -8,7 +8,6 @@ queues:
 
   # parameter
   flat_input:                                               {input: HOST, type: queue, entries: 8, grid_size: [2, 2], t: 2, mblock: [2, 2], ublock: [1, 16], ublock_order: r, df: Float16, layout: flat, target_device: 0, tile_dim: [32, 16], loc: dram, dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000]]}
-  #table:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x31000000]]} #FIXME: hack table size to match size tiles between queue and output
 
 graphs:
   fwd_0:
@@ -37,8 +36,6 @@ test-config:
     verbosity: Concise
   stimulus-config:
     type: Uniform
-    #type: Constant
-    #type: DebugTileId
     constant_value: 1.0
     debug_tile_id_base: 1.0
     debug_tile_id_step: 1.0
