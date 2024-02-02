@@ -4,8 +4,8 @@
 import argparse
 import os
 
-from pipegen_refactor_test import DEFAULT_SG_COMPARISON_STRATEGY, compare_blob_yamls
 from blob_comparator import StreamGraphComparisonStrategy
+from pipegen_refactor_test import DEFAULT_SG_COMPARISON_STRATEGY, compare_blob_yamls
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -24,7 +24,9 @@ if __name__ == "__main__":
     if os.path.exists(args.log_path):
         os.remove(args.log_path)
 
-    print(f"Blob comparator is using: '{args.sg_comparison_strategy}' as the comparison strategy")
+    print(
+        f"Blob comparator is using: '{args.sg_comparison_strategy}' as the comparison strategy"
+    )
     match = compare_blob_yamls(
         args.original_blob,
         args.generated_blob,

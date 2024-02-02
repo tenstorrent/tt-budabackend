@@ -8,13 +8,17 @@ versions of pipegen.
 """
 from __future__ import annotations
 
-from datetime import datetime
-
 import argparse
 import os
 import time
+from datetime import datetime
 
-from pipegen_runner import DeviceArchs, run_pipegen, PIPEGEN_BIN_NAME, PIPEGEN_MASTER_BIN_NAME
+from pipegen_runner import (
+    PIPEGEN_BIN_NAME,
+    PIPEGEN_MASTER_BIN_NAME,
+    DeviceArchs,
+    run_pipegen,
+)
 from pipegen_tests_utils import *
 
 logger = get_logger(__name__)
@@ -45,12 +49,20 @@ def find_pipegen_yamls(net2pipe_out_dir: str, arch: str) -> list[str]:
     return pipegen_yamls
 
 
-def measure_pipegen_time(pipegen_yaml: str, out_dir: str, arch: str, pipegen_bin_name: str) -> float:
+def measure_pipegen_time(
+    pipegen_yaml: str, out_dir: str, arch: str, pipegen_bin_name: str
+) -> float:
     blob_yaml_path = f"{out_dir}/blob.yaml"
 
     pipegen_start_time = time.perf_counter()
-    retcode, _ = run_pipegen(pipegen_yaml, blob_yaml_path, arch, 0,
-                             pipegen_bin_name=pipegen_bin_name, timeout=PIPEGEN_TIMEOUT)
+    retcode, _ = run_pipegen(
+        pipegen_yaml,
+        blob_yaml_path,
+        arch,
+        0,
+        pipegen_bin_name=pipegen_bin_name,
+        timeout=PIPEGEN_TIMEOUT,
+    )
     if retcode != 0:
         if os.path.exists(blob_yaml_path):
             os.remove(blob_yaml_path)
@@ -63,25 +75,44 @@ def measure_pipegen_time(pipegen_yaml: str, out_dir: str, arch: str, pipegen_bin
     return pipegen_time
 
 
-def run_compile_perf_comparison_on_yaml(pipegen_yaml: str, pipegen2_master_times: list[float],
-                                        pipegen2_times: list[float], out_dir: str, arch: str):
+def run_compile_perf_comparison_on_yaml(
+    pipegen_yaml: str,
+    pipegen2_master_times: list[float],
+    pipegen2_times: list[float],
+    out_dir: str,
+    arch: str,
+):
     pipegen2_master_min_time = None
     pipegen2_min_time = None
     for _ in range(NUM_RUNS_PER_YAML):
-        pipegen2_master_time = measure_pipegen_time(pipegen_yaml, out_dir, arch, PIPEGEN_MASTER_BIN_NAME)
+        pipegen2_master_time = measure_pipegen_time(
+            pipegen_yaml, out_dir, arch, PIPEGEN_MASTER_BIN_NAME
+        )
         if pipegen2_master_time < 0:
             return
-        pipegen2_min_time = pipegen2_master_time if pipegen2_min_time is None else min(pipegen2_master_time, pipegen2_master_min_time)
+        pipegen2_min_time = (
+            pipegen2_master_time
+            if pipegen2_min_time is None
+            else min(pipegen2_master_time, pipegen2_master_min_time)
+        )
 
-        pipegen2_time = measure_pipegen_time(pipegen_yaml, out_dir, arch, PIPEGEN_BIN_NAME)
+        pipegen2_time = measure_pipegen_time(
+            pipegen_yaml, out_dir, arch, PIPEGEN_BIN_NAME
+        )
         if pipegen2_time < 0:
             return
-        pipegen2_min_time = pipegen2_time if pipegen2_min_time is None else min(pipegen2_time, pipegen2_min_time)
+        pipegen2_min_time = (
+            pipegen2_time
+            if pipegen2_min_time is None
+            else min(pipegen2_time, pipegen2_min_time)
+        )
 
     pipegen2_master_times.append(pipegen2_master_min_time)
     pipegen2_times.append(pipegen2_min_time)
 
-    logger.info(f"Pipegen2_master took {pipegen2_master_min_time} seconds on {pipegen_yaml}")
+    logger.info(
+        f"Pipegen2_master took {pipegen2_master_min_time} seconds on {pipegen_yaml}"
+    )
     logger.info(f"Pipegen2 took {pipegen2_min_time} seconds on {pipegen_yaml}")
 
 
@@ -92,15 +123,21 @@ def run_compile_perf_comparison(pipegen_yamls: list[str], results_dir: str, arch
     os.makedirs(out_dir)
 
     for pipegen_yaml in pipegen_yamls:
-        run_compile_perf_comparison_on_yaml(pipegen_yaml, pipegen2_master_times, pipegen2_times, out_dir, arch)
+        run_compile_perf_comparison_on_yaml(
+            pipegen_yaml, pipegen2_master_times, pipegen2_times, out_dir, arch
+        )
 
     os.system(f"rm -rf {out_dir}")
 
     logger.info(f"Finished running on {len(pipegen2_master_times)} pipegen yamls")
     logger.info(f"Pipegen2_master took total of {sum(pipegen2_master_times)} seconds")
     logger.info(f"Pipegen2 took total of {sum(pipegen2_times)} seconds")
-    logger.info(f"Pipegen2_master took {sum(pipegen2_master_times) / len(pipegen2_master_times)} seconds on average")
-    logger.info(f"Pipegen2 took {sum(pipegen2_times) / len(pipegen2_times)} seconds on average")
+    logger.info(
+        f"Pipegen2_master took {sum(pipegen2_master_times) / len(pipegen2_master_times)} seconds on average"
+    )
+    logger.info(
+        f"Pipegen2 took {sum(pipegen2_times) / len(pipegen2_times)} seconds on average"
+    )
 
 
 def compare_compile_perf(net2pipe_out_dir: str, out_dir: str, arch: str):
@@ -129,7 +166,10 @@ if __name__ == "__main__":
         help="Folder where net2pipe outputs are stored",
     )
     parser.add_argument(
-        "--out_dir", type=str, required=True, help="Folder where output data are stored."
+        "--out_dir",
+        type=str,
+        required=True,
+        help="Folder where output data are stored.",
     )
     parser.add_argument(
         "--arch",

@@ -3,7 +3,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 """
-Collects netlists in a given folder recursively, that pass net2pipe sucessfully.
+Collects netlists in a given folder recursively, that pass net2pipe successfully.
 """
 from __future__ import annotations
 
@@ -19,23 +19,21 @@ from pipegen_tests_utils import *
 
 MAX_NUM_THREADS = 8
 
-non_netlist_names = [
-    "netlist_queues",
-    "blob",
-    "pipegen",
-    "queue_to_consumer"
-]
+non_netlist_names = ["netlist_queues", "blob", "pipegen", "queue_to_consumer"]
 
 invalid_netlists_names = [
     # This netlist has overlapping DRAM queues.
     "default_netlist"
 ]
 
-def validate_netlist(netlist_path: str, tmp_output_dir: str, builds_dir: str, arch: str) -> bool:
+
+def validate_netlist(
+    netlist_path: str, tmp_output_dir: str, builds_dir: str, arch: str
+) -> bool:
     """Checks if given netlist passes net2pipe."""
     netlist_name = get_netlist_name(netlist_path)
     out_dir = f"{tmp_output_dir}/{netlist_name}/{arch}"
-    assert(not os.path.exists(out_dir))
+    assert not os.path.exists(out_dir)
     os.makedirs(out_dir)
     # Expecting to find subfolders for different architectures inside builds_dir.
     bin_dir = f"{builds_dir}/{arch}/bin"
@@ -44,9 +42,18 @@ def validate_netlist(netlist_path: str, tmp_output_dir: str, builds_dir: str, ar
     os.system(f"rm -rf {out_dir}/*")
     return net2pipe_retcode == 0
 
-def validate_netlists(netlist_paths: list[str], tmp_output_dir: str, builds_dir: str,
-                      start_idx: int, end_idx: int, netlist_valid: list[bool],
-                      netlist_failing: list[bool],thread_idx: int, lock: threading.Lock):
+
+def validate_netlists(
+    netlist_paths: list[str],
+    tmp_output_dir: str,
+    builds_dir: str,
+    start_idx: int,
+    end_idx: int,
+    netlist_valid: list[bool],
+    netlist_failing: list[bool],
+    thread_idx: int,
+    lock: threading.Lock,
+):
     """Checks which netlists in a subset of netlist paths pass net2pipe."""
     for idx in range(start_idx, end_idx):
         netlist_path = netlist_paths[idx]
@@ -62,6 +69,7 @@ def validate_netlists(netlist_paths: list[str], tmp_output_dir: str, builds_dir:
                     netlist_failing[idx] = True
         netlist_valid[idx] = netlist_valid[idx] and has_valid_archs
         print_thread_info(thread_idx, lock, idx, start_idx, end_idx)
+
 
 def find_netlists(root_dir: str, existing_names: set[str]) -> list[str]:
     """Finds netlists recursively starting from the given root folder.
@@ -90,19 +98,27 @@ def find_netlists(root_dir: str, existing_names: set[str]) -> list[str]:
             netlist_paths.extend(find_netlists(full_entry_path, existing_names))
         elif full_entry_path.endswith(".yaml"):
             netlist_name = get_netlist_name(entry_path)
-            if (netlist_name in existing_names
+            if (
+                netlist_name in existing_names
                 or netlist_name in non_netlist_names
-                or netlist_name in invalid_netlists_names):
+                or netlist_name in invalid_netlists_names
+            ):
                 continue
             netlist_paths.append(full_entry_path)
             existing_names.add(netlist_name)
 
     return netlist_paths
 
-def filter_valid_netlists(netlist_paths: list[str], out_dir: str, builds_dir: str,
-                          num_threads: int, valid_netlist_paths: list[str],
-                          failing_netlist_paths: list[str]):
-    """Runs net2pipe on given netlists, and returns list of those who pass sucessfully.
+
+def filter_valid_netlists(
+    netlist_paths: list[str],
+    out_dir: str,
+    builds_dir: str,
+    num_threads: int,
+    valid_netlist_paths: list[str],
+    failing_netlist_paths: list[str],
+):
+    """Runs net2pipe on given netlists, and returns list of those who pass successfully.
 
     Parameters
     ----------
@@ -132,10 +148,21 @@ def filter_valid_netlists(netlist_paths: list[str], out_dir: str, builds_dir: st
     for thread_idx in range(num_threads):
         start_idx = thread_idx * num_netlists_per_thread
         end_idx = min(start_idx + num_netlists_per_thread, len(netlist_paths))
-        threads.append(threading.Thread(
-            target=validate_netlists,
-            args=(netlist_paths, tmp_output_dir, builds_dir, start_idx, end_idx, netlist_valid,
-                  netlist_failing, thread_idx, lock))
+        threads.append(
+            threading.Thread(
+                target=validate_netlists,
+                args=(
+                    netlist_paths,
+                    tmp_output_dir,
+                    builds_dir,
+                    start_idx,
+                    end_idx,
+                    netlist_valid,
+                    netlist_failing,
+                    thread_idx,
+                    lock,
+                ),
+            )
         )
 
     for thread in threads:
@@ -152,11 +179,13 @@ def filter_valid_netlists(netlist_paths: list[str], out_dir: str, builds_dir: st
         if netlist_failing[idx]:
             failing_netlist_paths.append(netlist_paths[idx])
 
+
 def log_failing_netlists(failing_netlist_paths: list[str], log_path: str):
     """Logs paths of netlists that failed net2pipe."""
     with open(log_path, "w") as log_file:
         for netlist_path in failing_netlist_paths:
             log_file.write(f"{netlist_path}\n")
+
 
 def copy_netlists(netlist_paths: list[str], out_dir: str):
     """Copies found netlists to output folder.
@@ -173,8 +202,9 @@ def copy_netlists(netlist_paths: list[str], out_dir: str):
     for netlist_path in netlist_paths:
         os.system(f"cp {netlist_path} {out_dir}/{os.path.basename(netlist_path)}")
 
+
 def collect_netlists(root_dir: str, out_dir: str, builds_dir: str, num_threads: int):
-    """Collects netlists in a given folder recursively, that pass net2pipe sucessfully.
+    """Collects netlists in a given folder recursively, that pass net2pipe successfully.
 
     Parameters
     ----------
@@ -201,8 +231,14 @@ def collect_netlists(root_dir: str, out_dir: str, builds_dir: str, num_threads: 
     print("\nValidating netlists...")
     valid_netlist_paths = []
     failing_netlist_paths = []
-    filter_valid_netlists(netlist_paths, out_dir, builds_dir, num_threads, valid_netlist_paths,
-                          failing_netlist_paths)
+    filter_valid_netlists(
+        netlist_paths,
+        out_dir,
+        builds_dir,
+        num_threads,
+        valid_netlist_paths,
+        failing_netlist_paths,
+    )
     if len(valid_netlist_paths) == 0:
         print_fail("No netlists that pass net2pipe found in a given folder!")
         return
@@ -216,17 +252,31 @@ def collect_netlists(root_dir: str, out_dir: str, builds_dir: str, num_threads: 
     copy_netlists(valid_netlist_paths, out_dir)
     print_success(f"Copied {len(valid_netlist_paths)} netlists to output folder.")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--out-dir',  type=str, required=True,
-                        help='Folder where to store the found netlists')
-    parser.add_argument('--builds-dir',  type=str, required=True,
-                        help='Folder with net2pipe builds for different architectures')
-    parser.add_argument('--num-threads',  type=int, required=False, default=8,
-                        help='Number of threads to utilize')
+    parser.add_argument(
+        "--out-dir",
+        type=str,
+        required=True,
+        help="Folder where to store the found netlists",
+    )
+    parser.add_argument(
+        "--builds-dir",
+        type=str,
+        required=True,
+        help="Folder with net2pipe builds for different architectures",
+    )
+    parser.add_argument(
+        "--num-threads",
+        type=int,
+        required=False,
+        default=8,
+        help="Number of threads to utilize",
+    )
     args = parser.parse_args()
 
-    assert(args.num_threads > 0 and args.num_threads <= MAX_NUM_THREADS)
+    assert args.num_threads > 0 and args.num_threads <= MAX_NUM_THREADS
 
     start_time = time.ctime()
 

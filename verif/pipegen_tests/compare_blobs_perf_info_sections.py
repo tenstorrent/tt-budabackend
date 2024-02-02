@@ -2,13 +2,20 @@
 
 # SPDX-License-Identifier: Apache-2.0
 import argparse
-import os, fnmatch
-from ruamel.yaml import YAML
-from typing import List, Tuple, Dict
+import fnmatch
+import os
+from typing import Dict, List, Tuple
 
-from pipegen_tests_utils import get_netlist_arch, get_logger, setup_logger, create_or_clean_dir, get_epoch_dir
-from pipegen_runner import *
 from blob_comparator import BlobComparator
+from pipegen_runner import *
+from pipegen_tests_utils import (
+    create_or_clean_dir,
+    get_epoch_dir,
+    get_logger,
+    get_netlist_arch,
+    setup_logger,
+)
+from ruamel.yaml import YAML
 
 # This netlists supports both GS and WH_B0 architectures and will produce only one epoch.
 DEFAULT_NETLIST_PATH = "verif/graph_tests/netlists/netlist_softmax_single_tile.yaml"
@@ -31,7 +38,9 @@ def get_soc_descr_name(soc_descr_path: str) -> str:
     return soc_descr_path.split("/")[-1][0:-5]
 
 
-def get_run_id(soc_descriptor: str, perf_mode: PerfDumpMode, perf_level: PerfDumpLevel) -> Tuple[Dict, str]:
+def get_run_id(
+    soc_descriptor: str, perf_mode: PerfDumpMode, perf_level: PerfDumpLevel
+) -> Tuple[Dict, str]:
     """
     Returns dict and str which uniquely represent run with chosen parameters. Used for logging and naming blobs.
     """
@@ -43,7 +52,10 @@ def get_run_id(soc_descriptor: str, perf_mode: PerfDumpMode, perf_level: PerfDum
 
 
 def compare_blob_yamls_perf_info_section(
-    original_blob_yaml_path: str, new_blob_yaml_path: str, comparison_log_path: str, comparison_id: Dict
+    original_blob_yaml_path: str,
+    new_blob_yaml_path: str,
+    comparison_log_path: str,
+    comparison_id: Dict,
 ) -> None:
     """Convenience wrapper around BlobComparator.compare_dram_perf_info_section()."""
     logger.info(f"Comparing {comparison_id}")
@@ -54,15 +66,21 @@ def compare_blob_yamls_perf_info_section(
         yaml = YAML(typ="safe")
         orig_blob_yaml = yaml.load(open(original_blob_yaml_path))
         new_blob_yaml = yaml.load(open(new_blob_yaml_path))
-        blob_comparator = BlobComparator(orig_blob_yaml, new_blob_yaml, comparison_log_path)
+        blob_comparator = BlobComparator(
+            orig_blob_yaml, new_blob_yaml, comparison_log_path
+        )
         match = blob_comparator.compare_dram_perf_info_section()
     except Exception as e:
-        print(f"Exception occured during comparison of ({original_blob_yaml_path} vs " f"{new_blob_yaml_path}) \n {e}")
+        print(
+            f"Exception occurred during comparison of ({original_blob_yaml_path} vs "
+            f"{new_blob_yaml_path}) \n {e}"
+        )
         match = False
 
     if match:
         logger.info(
-            f"Successfully compared blobs ({original_blob_yaml_path} vs {new_blob_yaml_path}). " f"Blobs match.\n"
+            f"Successfully compared blobs ({original_blob_yaml_path} vs {new_blob_yaml_path}). "
+            f"Blobs match.\n"
         )
     else:
         logger.error(
@@ -80,7 +98,9 @@ def validate_arch_and_netlist(arch: str, netlist: str) -> str:
         raise RuntimeError(f"Invalid architecture {arch}!")
 
     if arch not in get_netlist_arch(netlist):
-        raise RuntimeError(f"Netlist {netlist} does not support chosen architecture {arch}!")
+        raise RuntimeError(
+            f"Netlist {netlist} does not support chosen architecture {arch}!"
+        )
 
 
 def exec_net2pipe(netlist: str, out_dir: str, arch: str) -> None:
@@ -92,25 +112,54 @@ def exec_net2pipe(netlist: str, out_dir: str, arch: str) -> None:
 
 
 def exec_pipegen2_master(
-    pipegen_yaml_path: str, blob_path: str, arch: str, perf_mode: int, perf_level: int, soc_decriptor: str
+    pipegen_yaml_path: str,
+    blob_path: str,
+    arch: str,
+    perf_mode: int,
+    perf_level: int,
+    soc_descriptor: str,
 ) -> None:
     """Convenience wrapper to catch retcode from pipegen run."""
-    retcode, command = run_pipegen(pipegen_yaml_path, blob_path, arch, EPOCH_ID, perf_mode,
-                                   perf_level, soc_decriptor, pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME)
+    retcode, command = run_pipegen(
+        pipegen_yaml_path,
+        blob_path,
+        arch,
+        EPOCH_ID,
+        perf_mode,
+        perf_level,
+        soc_descriptor,
+        pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
+    )
 
     if retcode != 0:
-        raise RuntimeError(f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!")
+        raise RuntimeError(
+            f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!"
+        )
 
 
 def exec_pipegen2(
-    pipegen_yaml_path: str, blob_path: str, arch: str, perf_mode: int, perf_level: int, soc_decriptor: str
+    pipegen_yaml_path: str,
+    blob_path: str,
+    arch: str,
+    perf_mode: int,
+    perf_level: int,
+    soc_descriptor: str,
 ) -> None:
     """Convenience wrapper to catch retcode from pipegen run."""
-    retcode, command = run_pipegen(pipegen_yaml_path, blob_path, arch, EPOCH_ID, perf_mode,
-                                   perf_level, soc_decriptor)
+    retcode, command = run_pipegen(
+        pipegen_yaml_path,
+        blob_path,
+        arch,
+        EPOCH_ID,
+        perf_mode,
+        perf_level,
+        soc_descriptor,
+    )
 
     if retcode != 0:
-        raise RuntimeError(f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!")
+        raise RuntimeError(
+            f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!"
+        )
 
 
 def setup_logging(out_dir: str) -> str:
@@ -133,22 +182,40 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
 
     pipegen_yaml_path = os.path.join(get_epoch_dir(out_dir, EPOCH_ID), "pipegen.yaml")
 
-    # Iterate over SoC descriptors for chosen arch and over diffrent PerfDumpModes and PerfDumpLevels to make sure
+    # Iterate over SoC descriptors for chosen arch and over different PerfDumpModes and PerfDumpLevels to make sure
     # pipegens output the same blobs for these combinations.
     for soc_descr in get_all_soc_descriptors(arch):
         for perf_mode in PerfDumpMode:
             for perf_level in PerfDumpLevel:
                 # Create unique ID of this run to log nice results.
-                comparison_id, blob_prefix = get_run_id(soc_descr, perf_mode, perf_level)
+                comparison_id, blob_prefix = get_run_id(
+                    soc_descr, perf_mode, perf_level
+                )
 
                 # Generated blobs are uniquely IDd, while everything is logged to one log file.
                 blob1_path = os.path.join(out_dir, f"{blob_prefix}_blob1.yaml")
                 blob2_path = os.path.join(out_dir, f"{blob_prefix}_blob2.yaml")
 
-                exec_pipegen2_master(pipegen_yaml_path, blob1_path, arch, perf_mode.value, perf_level.value, soc_descr)
-                exec_pipegen2(pipegen_yaml_path, blob2_path, arch, perf_mode.value, perf_level.value, soc_descr)
+                exec_pipegen2_master(
+                    pipegen_yaml_path,
+                    blob1_path,
+                    arch,
+                    perf_mode.value,
+                    perf_level.value,
+                    soc_descr,
+                )
+                exec_pipegen2(
+                    pipegen_yaml_path,
+                    blob2_path,
+                    arch,
+                    perf_mode.value,
+                    perf_level.value,
+                    soc_descr,
+                )
 
-                compare_blob_yamls_perf_info_section(blob1_path, blob2_path, log_path, comparison_id)
+                compare_blob_yamls_perf_info_section(
+                    blob1_path, blob2_path, log_path, comparison_id
+                )
 
 
 if __name__ == "__main__":

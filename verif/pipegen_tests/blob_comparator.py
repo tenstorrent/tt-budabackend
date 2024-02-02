@@ -3,12 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import os
+import re
 from collections import deque
 from enum import Enum
 from logging import Logger
-
-import os
-import re
 
 from pipegen_tests_utils import get_process_shared_logger
 
@@ -24,7 +23,7 @@ def get_blog_logger_name() -> str:
 
 # Keys that will potentially ignored during comparison.
 # If the value is None, key is always ignored.
-# Also, if the value in original dict mathes the default value key will be ignored.
+# Also, if the value in original dict matches the default value key will be ignored.
 # Otherwise, key will not be ignored.
 DEFAULT_KEYS_AND_VALUES = {
     "buf_addr": None,
@@ -84,12 +83,18 @@ DEFAULT_KEYS_AND_VALUES = {
 
 # Custom functions which will be called for specific fields.
 # Need to wrap functions in a lambda call in order to avoid non-declared function problems.
-# TODO: Rethink if these comparators should be moved to a spearate file.
+# TODO: Rethink if these comparators should be moved to a separate file.
 CUSTOM_BLOB_FIELD_COMPARATORS = {
-    "dram_scatter_offsets": lambda *args, **kwargs: compare_dram_scatter_offsets(*args, **kwargs),
-    "phase_auto_config": lambda *args, **kwargs: compare_phase_auto_config_field(*args, **kwargs),
+    "dram_scatter_offsets": lambda *args, **kwargs: compare_dram_scatter_offsets(
+        *args, **kwargs
+    ),
+    "phase_auto_config": lambda *args, **kwargs: compare_phase_auto_config_field(
+        *args, **kwargs
+    ),
     "num_msgs": lambda *args, **kwargs: compare_num_msgs(*args, **kwargs),
-    "incoming_data_noc": lambda *args, **kwargs: compare_incoming_data_noc(*args, **kwargs),
+    "incoming_data_noc": lambda *args, **kwargs: compare_incoming_data_noc(
+        *args, **kwargs
+    ),
     "next_phase_dest_change": lambda *args, **kwargs: compare_next_phase_dest_change(
         *args, **kwargs
     ),
@@ -97,7 +102,9 @@ CUSTOM_BLOB_FIELD_COMPARATORS = {
         *args, **kwargs
     ),
     "ptrs_not_zero": lambda *args, **kwargs: compare_ptrs_not_zero(*args, **kwargs),
-    "next_phase_src_change": lambda *args, **kwargs: compare_next_phase_src_change(*args, **kwargs),
+    "next_phase_src_change": lambda *args, **kwargs: compare_next_phase_src_change(
+        *args, **kwargs
+    ),
 }
 
 DRAM_IO_IS_SCATTER_LOOP = 0x8000000000000000
@@ -110,7 +117,9 @@ def decode_scatter_magic_number(scatter_offset_magic_number: int) -> tuple:
     return num_loops, pattern_length
 
 
-def decompress_scatter_pattern(scatter_pattern: list, increment: int, num_loop: int) -> list:
+def decompress_scatter_pattern(
+    scatter_pattern: list, increment: int, num_loop: int
+) -> list:
     """Repeats scatter pattern number of loop times always incrementing elements by a given value."""
     decompressed_offsets = []
     for loop_idx in range(1, num_loop + 1):
@@ -154,7 +163,7 @@ def compare_dram_scatter_offsets(
 ) -> bool:
     """Compares compressed original and generated dram scatter offsets. Uncompressed offsets has to match and the
     length of generated compressed offsets has to be smaller than the length of the original compressed offsets
-    for comparison to be successfull."""
+    for comparison to be successful."""
     original_length = len(original_scatter_offsets)
     generated_length = len(generated_scatter_offsets)
 
@@ -179,7 +188,9 @@ def compare_dram_scatter_offsets(
         )
         return False
     else:
-        for original_offset, generated_offset in zip(original_decompressed, generated_decompressed):
+        for original_offset, generated_offset in zip(
+            original_decompressed, generated_decompressed
+        ):
             if original_offset != generated_offset:
                 logger.error(
                     f"{msg_prefix}: Decompressed scatter offsets are different: "
@@ -226,7 +237,11 @@ def compare_incoming_data_noc(
 
 
 def compare_num_msgs(
-    original_num_msgs: int, generated_num_msgs: int, msg_prefix: str, logger: Logger, **kwargs
+    original_num_msgs: int,
+    generated_num_msgs: int,
+    msg_prefix: str,
+    logger: Logger,
+    **kwargs,
 ) -> bool:
     """Compare num_msgs field. Skip comparison if field is part of a prefetch NCRISC config as it is not relevant in
     that case. Also, skip it if it is part of dram write config because pipegen2 may generate greater number of messages
@@ -240,7 +255,10 @@ def compare_num_msgs(
 
     is_dram_write = kwargs.get("is_dram_write", False)
     if is_dram_write:
-        if generated_num_msgs < original_num_msgs or generated_num_msgs % original_num_msgs != 0:
+        if (
+            generated_num_msgs < original_num_msgs
+            or generated_num_msgs % original_num_msgs != 0
+        ):
             logger.error(
                 f"{msg_prefix}: Found different values ({original_num_msgs} vs {generated_num_msgs}) for key "
                 "num_msgs in the case of dram write"
@@ -253,7 +271,9 @@ def compare_num_msgs(
     original_num_unroll_iter = kwargs.get("original_num_unroll_iter", 1)
     generated_num_unroll_iter = kwargs.get("generated_num_unroll_iter", 1)
 
-    original_product = original_num_iters_in_epoch * original_num_unroll_iter * original_num_msgs
+    original_product = (
+        original_num_iters_in_epoch * original_num_unroll_iter * original_num_msgs
+    )
     generated_product = (
         generated_num_iters_in_epoch * generated_num_unroll_iter * generated_num_msgs
     )
@@ -307,8 +327,10 @@ def compare_ptrs_not_zero(
     generated_num_iters_in_epoch = kwargs.get("generated_num_iters_in_epoch", 1)
     original_num_unroll_iter = kwargs.get("original_num_unroll_iter", 1)
     generated_num_unroll_iter = kwargs.get("generated_num_unroll_iter", 1)
-    if (original_num_iters_in_epoch != generated_num_iters_in_epoch
-        or original_num_unroll_iter != generated_num_unroll_iter):
+    if (
+        original_num_iters_in_epoch != generated_num_iters_in_epoch
+        or original_num_unroll_iter != generated_num_unroll_iter
+    ):
         return True
     if original != generated:
         logger.error(
@@ -326,8 +348,8 @@ def compare_next_phase_src_change(
     In case when pipegen2 calculates different ptrs_not_zero than pipegen1 there is no point
     comparing next_phase_src_change since its calculation depends on ptrs_not_zero.
     """
-    original_ptrs_not_zero  = kwargs.get("original_ptrs_not_zero", False)
-    generated_ptrs_not_zero  = kwargs.get("generated_ptrs_not_zero", False)
+    original_ptrs_not_zero = kwargs.get("original_ptrs_not_zero", False)
+    generated_ptrs_not_zero = kwargs.get("generated_ptrs_not_zero", False)
     if original_ptrs_not_zero != generated_ptrs_not_zero:
         return True
     if original != generated:
@@ -354,7 +376,9 @@ def compare_dicts(
     have_different_keys = have_different_common_keys(
         original_dict, generated_dict, msg_prefix, logger, **kwargs
     )
-    return not (original_has_extra_keys or generated_has_extra_keys or have_different_keys)
+    return not (
+        original_has_extra_keys or generated_has_extra_keys or have_different_keys
+    )
 
 
 def has_extra_keys(
@@ -368,8 +392,12 @@ def has_extra_keys(
     """Checks if first dict has some extra keys not present in second dict, with non-default value."""
     result = False
     for k, v in first_dict.items():
-        if (k in second_dict or key_is_ignored(k) or key_has_same_default_value(k, v)
-            or key_has_custom_comparator_and_default_value(k)):
+        if (
+            k in second_dict
+            or key_is_ignored(k)
+            or key_has_same_default_value(k, v)
+            or key_has_custom_comparator_and_default_value(k)
+        ):
             continue
         logger.error(
             f"{msg_prefix}: Found key {k} in {first_dict_name} dict but not in {second_dict_name} one"
@@ -384,12 +412,16 @@ def have_different_common_keys(
     """Checks if two dicts have some common keys with different values."""
     result = False
     for k, v in original_dict.items():
-        if ((k not in generated_dict and not key_has_custom_comparator_and_default_value(k))
-            or key_is_ignored(k)):
+        if (
+            k not in generated_dict
+            and not key_has_custom_comparator_and_default_value(k)
+        ) or key_is_ignored(k):
             continue
         elif k in CUSTOM_BLOB_FIELD_COMPARATORS:
             comparator_func = CUSTOM_BLOB_FIELD_COMPARATORS[k]
-            gen_val = generated_dict[k] if k in generated_dict else DEFAULT_KEYS_AND_VALUES[k]
+            gen_val = (
+                generated_dict[k] if k in generated_dict else DEFAULT_KEYS_AND_VALUES[k]
+            )
             if not comparator_func(v, gen_val, msg_prefix, logger, **kwargs):
                 # Logging for this case is done inside custom comparator functions.
                 result = True
@@ -401,7 +433,9 @@ def have_different_common_keys(
     for k, v in generated_dict.items():
         if k in original_dict or not key_has_custom_comparator_and_default_value(k):
             continue
-        if not comparator_func(DEFAULT_KEYS_AND_VALUES[k], v, msg_prefix, logger, **kwargs):
+        if not comparator_func(
+            DEFAULT_KEYS_AND_VALUES[k], v, msg_prefix, logger, **kwargs
+        ):
             # Logging for this case is done inside custom comparator functions.
             result = True
     return result
@@ -551,17 +585,23 @@ class StreamEdge:
             )
             return False
         if self.source.get_loc() != other_edge.source.get_loc():
-            self.logger.error(f"Found different location of source of edge: {self} vs {other_edge}")
+            self.logger.error(
+                f"Found different location of source of edge: {self} vs {other_edge}"
+            )
             return False
         if self.dest.get_loc() != other_edge.dest.get_loc():
-            self.logger.error(f"Found different location of dest of edge: {self} vs {other_edge}")
+            self.logger.error(
+                f"Found different location of dest of edge: {self} vs {other_edge}"
+            )
             return False
 
         # Now that we know edges have the same source & dest, and same number of phases, compare each phase.
         if not compare_phase_dicts(
             self.phases, other_edge.phases, f"{self} vs {other_edge}", self.logger
         ):
-            self.logger.error(f"Found difference in phases for edges {self} vs {other_edge}")
+            self.logger.error(
+                f"Found difference in phases for edges {self} vs {other_edge}"
+            )
             return False
 
         return True
@@ -591,7 +631,10 @@ class StreamEdge:
 
 class StreamGraph:
     def __init__(
-        self, starting_phase, logger: Logger, comparison_strategy: StreamGraphComparisonStrategy
+        self,
+        starting_phase,
+        logger: Logger,
+        comparison_strategy: StreamGraphComparisonStrategy,
     ):
         self.starting_phase = starting_phase
         self.edges = {}
@@ -600,7 +643,9 @@ class StreamGraph:
         self.logger = logger
         self.comparison_strategy = comparison_strategy
 
-    def add_edge(self, source: StreamDesc, dest: StreamDesc, phase_num: int, phase_cfg: dict):
+    def add_edge(
+        self, source: StreamDesc, dest: StreamDesc, phase_num: int, phase_cfg: dict
+    ):
         edge = StreamEdge(source, dest, self.logger)
         dict_key = str(edge)
         if not dict_key in self.edges:
@@ -632,8 +677,12 @@ class StreamGraph:
             )
             return False
 
-        my_sinks = sorted(self.sink_configs.keys(), key=lambda x: x.get_comparator_tuple())
-        other_sinks = sorted(other_sg.sink_configs.keys(), key=lambda x: x.get_comparator_tuple())
+        my_sinks = sorted(
+            self.sink_configs.keys(), key=lambda x: x.get_comparator_tuple()
+        )
+        other_sinks = sorted(
+            other_sg.sink_configs.keys(), key=lambda x: x.get_comparator_tuple()
+        )
 
         sinks_equal = True
         for sink_key, other_sink_key in zip(my_sinks, other_sinks):
@@ -646,10 +695,14 @@ class StreamGraph:
                 )
                 return False
             if not compare_phase_dicts(
-                my_configs, other_configs, f"{sink_key} vs {other_sink_key}", self.logger
+                my_configs,
+                other_configs,
+                f"{sink_key} vs {other_sink_key}",
+                self.logger,
             ):
                 self.logger.error(
-                    "Found difference in phases for sinks " f"{sink_key} vs {other_sink_key}"
+                    "Found difference in phases for sinks "
+                    f"{sink_key} vs {other_sink_key}"
                 )
                 sinks_equal = False
 
@@ -664,7 +717,9 @@ class StreamGraph:
             # functions from StreamGraph into BlobComparator class and create function which
             # compares generated with original stream graph instead of the __eq__ function here.
             if StreamGraph.is_optimized_gather_difference(self, other_sg):
-                self.logger.warning("Ignored full graph comparison for optimized gather situation")
+                self.logger.warning(
+                    "Ignored full graph comparison for optimized gather situation"
+                )
                 # In this situation we can only match graphs' sinks.
                 return self.compare_sinks(other_sg)
             else:
@@ -692,8 +747,9 @@ class StreamGraph:
         """
         # This is working good enough for now, in case we find situations where it hides some other
         # illegitimate graph structures we should update this logic to be more sophisticated.
-        return ((orig_graph.graph_depth == 2 and generated_graph.graph_depth == 3)
-                or (orig_graph.graph_depth == 3 and generated_graph.graph_depth == 2))
+        return (orig_graph.graph_depth == 2 and generated_graph.graph_depth == 3) or (
+            orig_graph.graph_depth == 3 and generated_graph.graph_depth == 2
+        )
 
     def compare_graphs_by_edges(
         self,
@@ -703,7 +759,9 @@ class StreamGraph:
     ) -> bool:
         # Purposefully extracted into separate statements because we want to run both comparisons
         # in order to report all errors in the log.
-        edges_equal = all(e1.compare_phases(e2) for e1, e2 in zip(edges_list, other_edges_list))
+        edges_equal = all(
+            e1.compare_phases(e2) for e1, e2 in zip(edges_list, other_edges_list)
+        )
         sinks_equal = self.compare_sinks(other_sg)
         return edges_equal and sinks_equal
 
@@ -723,7 +781,9 @@ class StreamGraph:
 
         return source_streams
 
-    def find_root_stream(self, source_streams: dict[StreamDesc, list[StreamEdge]]) -> StreamDesc:
+    def find_root_stream(
+        self, source_streams: dict[StreamDesc, list[StreamEdge]]
+    ) -> StreamDesc:
         root_stream = None
 
         # Find root stream, i.e. the stream which has no ingoing edges.
@@ -802,7 +862,9 @@ class BlobComparator:
     ) -> None:
         self.orig_blob = orig_blob
         self.new_blob = new_blob
-        self.logger = get_process_shared_logger(get_blog_logger_name(), comparison_log_path)
+        self.logger = get_process_shared_logger(
+            get_blog_logger_name(), comparison_log_path
+        )
 
     def compare(self, sg_comparison_strategy: StreamGraphComparisonStrategy) -> bool:
         """Returns whether blobs are considered same or not."""
@@ -811,8 +873,12 @@ class BlobComparator:
 
         orig_phase_map = self.parse_phase_map(self.orig_blob)
         self.propagate_scatter_idxs(orig_phase_map)
-        self.orig_streams_to_node_id = self.find_streams_to_node_id_mapping(orig_phase_map)
-        self.orig_graphs = self.create_data_flow_graphs(orig_phase_map, sg_comparison_strategy)
+        self.orig_streams_to_node_id = self.find_streams_to_node_id_mapping(
+            orig_phase_map
+        )
+        self.orig_graphs = self.create_data_flow_graphs(
+            orig_phase_map, sg_comparison_strategy
+        )
 
         generated_phase_map = self.parse_phase_map(self.new_blob)
         self.propagate_scatter_idxs(generated_phase_map)
@@ -828,7 +894,9 @@ class BlobComparator:
         dram_section_equal = self.compare_dram_section()
         phase_section_equal = self.compare_phase_section()
         dram_perf_info_section_equal = self.compare_dram_perf_info_section()
-        return dram_section_equal and phase_section_equal and dram_perf_info_section_equal
+        return (
+            dram_section_equal and phase_section_equal and dram_perf_info_section_equal
+        )
 
     def compare_phase_section(self):
         orig_sinks_per_id = {}
@@ -863,7 +931,9 @@ class BlobComparator:
             for sink in self.orig_graphs.keys():
                 if sink.get_sink_id() in generated_sink_ids:
                     continue
-                self.logger.error(f"Did not find matching sink for {sink} in generated blob")
+                self.logger.error(
+                    f"Did not find matching sink for {sink} in generated blob"
+                )
                 return False
 
         return result
@@ -913,8 +983,12 @@ class BlobComparator:
         return True
 
     def compare_dram_section(self):
-        orig_ncriscs = self.parse_ncriscs(self.orig_blob[BlobComparator.DRAM_SECTION_KEY])
-        generated_ncriscs = self.parse_ncriscs(self.new_blob[BlobComparator.DRAM_SECTION_KEY])
+        orig_ncriscs = self.parse_ncriscs(
+            self.orig_blob[BlobComparator.DRAM_SECTION_KEY]
+        )
+        generated_ncriscs = self.parse_ncriscs(
+            self.new_blob[BlobComparator.DRAM_SECTION_KEY]
+        )
 
         if len(orig_ncriscs) != len(generated_ncriscs):
             self.logger.error(
@@ -924,7 +998,9 @@ class BlobComparator:
 
         # We first have to compare and remove PCIe NCRISC configs, because they can have different dram_buf_noc_addr
         # between pipegen1 and pipegen2.
-        ncrisc_configs_equal = self.compare_pcie_ncriscs(orig_ncriscs, generated_ncriscs)
+        ncrisc_configs_equal = self.compare_pcie_ncriscs(
+            orig_ncriscs, generated_ncriscs
+        )
 
         # Temporarily removing this field from defaults so it can be checked for DRAM NCRISC configs.
         DEFAULT_KEYS_AND_VALUES.pop("dram_buf_noc_addr")
@@ -987,8 +1063,12 @@ class BlobComparator:
 
     def compare_dram_perf_info_section(self):
         """Comparison is run only if both blobs have dram_perf_dump_blob section, otherwise it is disregarded."""
-        orig_perf_info = self.orig_blob.get(BlobComparator.DRAM_PERF_INFO_SECTION_KEY, None)
-        generated_perf_info = self.new_blob.get(BlobComparator.DRAM_PERF_INFO_SECTION_KEY, None)
+        orig_perf_info = self.orig_blob.get(
+            BlobComparator.DRAM_PERF_INFO_SECTION_KEY, None
+        )
+        generated_perf_info = self.new_blob.get(
+            BlobComparator.DRAM_PERF_INFO_SECTION_KEY, None
+        )
 
         if orig_perf_info == None:
             self.logger.warning(
@@ -1026,7 +1106,9 @@ class BlobComparator:
                 match = False
                 continue
 
-            orig_noc_addr = orig_subdict[BlobComparator.DRAM_PERF_INFO_SECTION_NOC_ADDR_KEY]
+            orig_noc_addr = orig_subdict[
+                BlobComparator.DRAM_PERF_INFO_SECTION_NOC_ADDR_KEY
+            ]
             generated_noc_addr = generated_subdict[
                 BlobComparator.DRAM_PERF_INFO_SECTION_NOC_ADDR_KEY
             ]
@@ -1039,8 +1121,12 @@ class BlobComparator:
                 )
                 match = False
 
-            orig_max_req = orig_subdict[BlobComparator.DRAM_PERF_INFO_SECTION_MAX_REQ_KEY]
-            generated_max_req = generated_subdict[BlobComparator.DRAM_PERF_INFO_SECTION_MAX_REQ_KEY]
+            orig_max_req = orig_subdict[
+                BlobComparator.DRAM_PERF_INFO_SECTION_MAX_REQ_KEY
+            ]
+            generated_max_req = generated_subdict[
+                BlobComparator.DRAM_PERF_INFO_SECTION_MAX_REQ_KEY
+            ]
 
             if orig_max_req != generated_max_req:
                 self.logger.error(
@@ -1072,12 +1158,16 @@ class BlobComparator:
         return ncrisc_map
 
     def compare_pcie_ncriscs(self, orig_ncriscs: dict, generated_ncriscs: dict) -> bool:
-        orig_pcie_ncriscs = self.find_pcie_ncriscs(orig_ncriscs, self.orig_streams_to_node_id)
+        orig_pcie_ncriscs = self.find_pcie_ncriscs(
+            orig_ncriscs, self.orig_streams_to_node_id
+        )
         generated_pcie_ncriscs = self.find_pcie_ncriscs(
             generated_ncriscs, self.generated_streams_to_node_id
         )
         if len(orig_pcie_ncriscs) != len(generated_pcie_ncriscs):
-            self.logger.error(f"Found different number of PCIe ncrisc configs between two pipegens")
+            self.logger.error(
+                f"Found different number of PCIe ncrisc configs between two pipegens"
+            )
             return False
 
         ncrisc_configs_equal = True
@@ -1120,7 +1210,10 @@ class BlobComparator:
             assert (
                 stream_desc in streams_to_node_id
             ), "Expected to find node id for PCIe sending stream"
-            pcie_ncriscs[streams_to_node_id[stream_desc]] = (stream_desc, ncrisc_list[0])
+            pcie_ncriscs[streams_to_node_id[stream_desc]] = (
+                stream_desc,
+                ncrisc_list[0],
+            )
 
             receiving_stream_desc = StreamDesc(ncrisc_list[0]["dram_streaming_dest"])
             assert (
@@ -1142,7 +1235,10 @@ class BlobComparator:
         return pcie_ncriscs
 
     def compare_generated_ncrisc_with_original_reader_config(
-        self, stream_desc: StreamDesc, generated_ncrisc_cfg: dict, dram_buf_reader_configs: dict
+        self,
+        stream_desc: StreamDesc,
+        generated_ncrisc_cfg: dict,
+        dram_buf_reader_configs: dict,
     ):
         chip_id = stream_desc.chip_id
         dram_buf_noc_addr = generated_ncrisc_cfg["dram_buf_noc_addr"]
@@ -1174,7 +1270,10 @@ class BlobComparator:
         )
 
     def compare_generated_ncrisc_with_original_writer_config(
-        self, stream_desc: StreamDesc, generated_ncrisc_cfg: dict, dram_buf_writer_configs: dict
+        self,
+        stream_desc: StreamDesc,
+        generated_ncrisc_cfg: dict,
+        dram_buf_writer_configs: dict,
     ):
         chip_id = stream_desc.chip_id
         dram_buf_noc_addr = generated_ncrisc_cfg["dram_buf_noc_addr"]
@@ -1225,7 +1324,9 @@ class BlobComparator:
                 scatter_idx = stream_cfg["scatter_idx"]
                 self.propagate_scatter_idx(scatter_idx, stream_cfg, phase_content)
 
-    def propagate_scatter_idx(self, scatter_idx: int, stream_cfg: dict, phase_content: dict):
+    def propagate_scatter_idx(
+        self, scatter_idx: int, stream_cfg: dict, phase_content: dict
+    ):
         """Propagates scatter index to destination streams of stream with a given config."""
         dests = self.get_stream_dests(stream_cfg)
         for dest in dests:
@@ -1313,7 +1414,9 @@ class BlobComparator:
         while source:
             stream_graph.graph_depth = stream_graph.graph_depth + 1
             source_cfg = phase_map[starting_phase][str(source)]
-            stream_graph.add_edge(StreamDesc(source), StreamDesc(dest), starting_phase, source_cfg)
+            stream_graph.add_edge(
+                StreamDesc(source), StreamDesc(dest), starting_phase, source_cfg
+            )
             dest = source
             data_path.add(source)
             if "scatter_idx" in source_cfg:
@@ -1351,7 +1454,10 @@ class BlobComparator:
                         if dest not in data_path:
                             continue
                         stream_graph.add_edge(
-                            StreamDesc(stream_key), StreamDesc(dest), phase_num, stream_cfg
+                            StreamDesc(stream_key),
+                            StreamDesc(dest),
+                            phase_num,
+                            stream_cfg,
                         )
                         data_path.add(stream_key)
                         added_streams.add(stream_key)

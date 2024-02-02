@@ -12,14 +12,8 @@ import argparse
 import os
 import uuid
 
-root_dirs_to_skip = [
-    "build",
-    "ci",
-    "dbd",
-    "docs",
-    "test_pipegen",
-    "umd"
-]
+root_dirs_to_skip = ["build", "ci", "dbd", "docs", "test_pipegen", "umd"]
+
 
 def find_netlist_zips_in_dir(dir_path: str) -> list[str]:
     """Finds netlist zips recursively starting from the given directory.
@@ -44,6 +38,7 @@ def find_netlist_zips_in_dir(dir_path: str) -> list[str]:
             netlist_zips.append(full_entry_path)
 
     return netlist_zips
+
 
 def find_netlist_zips(root_dir: str) -> list[str]:
     """Finds netlist zips recursively starting from the given root repo folder and excluding some
@@ -73,12 +68,13 @@ def find_netlist_zips(root_dir: str) -> list[str]:
 
     return netlist_zips
 
+
 def unzip_netlists(netlist_zips: list[str]):
     """Unzips netlist zips each into separate folder with unique name.
 
     Parameters
     ----------
-    roonetlist_zipst_dir: list[str]
+    netlist_zips: list[str]
         List of netlist zips paths.
     """
     for netlist_zip in netlist_zips:
@@ -89,16 +85,21 @@ def unzip_netlists(netlist_zips: list[str]):
         os.system(f"unzip -qq {netlist_zip}")
         os.chdir("..")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--out-dir',  type=str, required=True,
-                        help='Folder where to store the found netlists')
+    parser.add_argument(
+        "--out-dir",
+        type=str,
+        required=True,
+        help="Folder where to store the found netlists",
+    )
     args = parser.parse_args()
 
     root_dir = os.getcwd()
     out_dir = args.out_dir
 
-    assert{out_dir != root_dir}
+    assert {out_dir != root_dir}
 
     print("Collecting netlist zips")
     netlist_zips = find_netlist_zips(root_dir)

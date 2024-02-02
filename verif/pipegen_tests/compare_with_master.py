@@ -4,22 +4,25 @@
 import argparse
 import os
 
-from pipegen_yaml_filter import FilterType
+import pipegen_runner
 from pipegen_refactor_test import (
-    filter_yamls,
-    compare_pipegens_on_yamls,
+    DEFAULT_SG_COMPARISON_STRATEGY,
     FILTERED_YAMLS_OUT_DIR_NAME,
     StreamGraphComparisonStrategy,
-    DEFAULT_SG_COMPARISON_STRATEGY,
+    compare_pipegens_on_yamls,
+    filter_yamls,
 )
-import pipegen_runner
-
+from pipegen_yaml_filter import FilterType
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument(
-        "--out", type=str, required=True, default=None, help="Folder where output data are stored."
+        "--out",
+        type=str,
+        required=True,
+        default=None,
+        help="Folder where output data are stored.",
     )
     parser.add_argument(
         "--netlists",
@@ -34,7 +37,7 @@ if __name__ == "__main__":
         required=False,
         default=pipegen_runner.DEFAULT_TOP_LEVEL_BUILD_DIR,
         help=f"Top level 'build' folder which contains subfolders for different architectures "
-             f"(f.e. 'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {pipegen_runner.DEFAULT_TOP_LEVEL_BUILD_DIR}",
+        f"(f.e. 'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {pipegen_runner.DEFAULT_TOP_LEVEL_BUILD_DIR}",
     )
     parser.add_argument(
         "--pipegens-bin-dir",
@@ -42,7 +45,7 @@ if __name__ == "__main__":
         required=False,
         default=pipegen_runner.DEFAULT_BIN_DIR,
         help=f"Folder containing pipegen binaries (for example 'build/bin' or 'build/grayskull/bin'). "
-             f"DEFAULT: {pipegen_runner.DEFAULT_BIN_DIR}",
+        f"DEFAULT: {pipegen_runner.DEFAULT_BIN_DIR}",
     )
     parser.add_argument(
         "--arch",
@@ -75,7 +78,10 @@ if __name__ == "__main__":
     # Run filters.
     for f in filters:
         filtered_yamls_dir_name = f"{FILTERED_YAMLS_OUT_DIR_NAME}_{f.name}"
-        if os.path.exists(f"{args.out}/{filtered_yamls_dir_name}") and not args.force_run_filter:
+        if (
+            os.path.exists(f"{args.out}/{filtered_yamls_dir_name}")
+            and not args.force_run_filter
+        ):
             continue
 
         os.makedirs(f"{args.out}/{filtered_yamls_dir_name}", exist_ok=True)
@@ -91,7 +97,7 @@ if __name__ == "__main__":
                 args.num_samples,
             )
         except Exception as e:
-            print(f"Exception occured during filtering {f.name}: {e}")
+            print(f"Exception occurred during filtering {f.name}: {e}")
 
     # Run comparison.
     failed_filters = []
@@ -117,7 +123,7 @@ if __name__ == "__main__":
                 StreamGraphComparisonStrategy[args.sg_comparison_strategy],
             )
         except Exception as e:
-            print(f"Exception occured during comparison {filtered_dir}: {e}")
+            print(f"Exception occurred during comparison {filtered_dir}: {e}")
 
         if not result:
             failed_filters.append(f.name)

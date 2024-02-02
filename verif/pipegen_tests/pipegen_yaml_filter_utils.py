@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 from enum import IntEnum
-from typing import Callable, Tuple, Optional
+from typing import Callable, Optional, Tuple
 
 
 class BufferLocation(IntEnum):
@@ -97,7 +97,10 @@ class BufferNode(GraphNode):
         self.hw_tilize: bool = False
 
     def __str__(self) -> str:
-        return f"Buffer\n{self.id}\n{self.md_op_name}\n" f"core [{self.core_x}, {self.core_y}]\n{self.buffer_type.name}"
+        return (
+            f"Buffer\n{self.id}\n{self.md_op_name}\n"
+            f"core [{self.core_x}, {self.core_y}]\n{self.buffer_type.name}"
+        )
 
     def add_input_pipe(self, pipe: PipeNode):
         self.inputs.append(pipe)
@@ -127,7 +130,11 @@ class BufferNode(GraphNode):
             return BufferLocation.L1
 
     def is_buf_dram_prefetch(self) -> bool:
-        return self.dram_buf_flag and not self.dram_buf_streaming and not self.is_buf_kernel_intermediate()
+        return (
+            self.dram_buf_flag
+            and not self.dram_buf_streaming
+            and not self.is_buf_kernel_intermediate()
+        )
 
     def is_buf_kernel_intermediate(self) -> bool:
         return len(self.inputs) == 0 and len(self.outputs) == 0 and not self.is_scatter
@@ -220,7 +227,9 @@ class PipeGraph:
     def add_buffer(self, buffer: BufferNode, throw_if_exist: bool):
         if buffer.id in self.buffers_map:
             if throw_if_exist:
-                raise Exception(f"Buffer with same id ({buffer.id}) already exists in graph!")
+                raise Exception(
+                    f"Buffer with same id ({buffer.id}) already exists in graph!"
+                )
             return
         self.buffers.append(buffer)
         self.buffers_map[buffer.id] = buffer
@@ -228,7 +237,9 @@ class PipeGraph:
     def add_pipe(self, pipe: PipeNode, throw_if_exist: bool):
         if pipe.id in self.pipes_map:
             if throw_if_exist:
-                raise Exception(f"Pipe with same id ({pipe.id}) already exists in graph!")
+                raise Exception(
+                    f"Pipe with same id ({pipe.id}) already exists in graph!"
+                )
             return
         self.pipes.append(pipe)
         self.pipes_map[pipe.id] = pipe
@@ -241,12 +252,20 @@ class PipeGraph:
 
     @staticmethod
     def parse_int_list(attr_value: str) -> list[int]:
-        assert len(attr_value) >= 2 and attr_value.startswith("[") and attr_value.endswith("]")
+        assert (
+            len(attr_value) >= 2
+            and attr_value.startswith("[")
+            and attr_value.endswith("]")
+        )
         return eval(attr_value)
 
     @staticmethod
     def parse_nested_int_list(attr_value: str) -> list[list[int]]:
-        assert len(attr_value) >= 4 and attr_value.startswith("[[") and attr_value.endswith("]]")
+        assert (
+            len(attr_value) >= 4
+            and attr_value.startswith("[[")
+            and attr_value.endswith("]]")
+        )
         return eval(attr_value)
 
     def parse_buffer_list(self, buffer_ids: list[int]) -> list[BufferNode]:
@@ -255,7 +274,9 @@ class PipeGraph:
             buffer_list.append(self.buffers_map[buffer_id])
         return buffer_list
 
-    def parse_nested_buffer_list(self, buffer_ids: list[list[int]]) -> list[list[BufferNode]]:
+    def parse_nested_buffer_list(
+        self, buffer_ids: list[list[int]]
+    ) -> list[list[BufferNode]]:
         buffer_list = []
         for scatter_ids in buffer_ids:
             scatter_list = []
@@ -271,7 +292,9 @@ class PipeGraph:
             if attr_name == "uniqid":
                 buffer.id = int(attr_value)
             elif attr_name == "md_op_name":
-                buffer.md_op_name = "relay_core" if attr_value.isnumeric() else attr_value
+                buffer.md_op_name = (
+                    "relay_core" if attr_value.isnumeric() else attr_value
+                )
             elif attr_name == "id":
                 buffer.operand_id = int(attr_value)
             elif attr_name == "epoch_tiles":
@@ -300,7 +323,9 @@ class PipeGraph:
             elif attr_name == "untilized_output":
                 buffer.untilized_output = bool(int(attr_value))
             elif attr_name == "prefetch_type":
-                buffer.prefetch_type = PrefetchType.PreTM if int(attr_value) == 0 else PrefetchType.PostTM
+                buffer.prefetch_type = (
+                    PrefetchType.PreTM if int(attr_value) == 0 else PrefetchType.PostTM
+                )
             elif attr_name == "tile_clear_granularity":
                 buffer.tile_clear_granularity = int(attr_value)
             elif attr_name == "write_dram_buf_flag":
@@ -399,7 +424,9 @@ class PipeGraph:
     def find_pipes_connections(self):
         for pipe in self.pipes:
             pipe.inputs = self.parse_buffer_list(pipe.input_ids)
-            pipe.output_padding_list = self.parse_buffer_list([x for x in pipe.output_padding_ids if x > 0])
+            pipe.output_padding_list = self.parse_buffer_list(
+                [x for x in pipe.output_padding_ids if x > 0]
+            )
             for buffer in pipe.get_unique_inputs():
                 buffer.add_output_pipe(pipe)
             for buffer in pipe.get_unique_output_padding_buffers():
@@ -421,9 +448,13 @@ class PipeGraph:
         with open(yaml_path, "w") as yaml_writer:
             written_buffers = set()
             for buffer in self.buffers:
-                buffer_to_write = buffer.scatter_group_parent if buffer.is_scatter else buffer
+                buffer_to_write = (
+                    buffer.scatter_group_parent if buffer.is_scatter else buffer
+                )
                 if buffer_to_write not in written_buffers:
-                    PipeGraph.write_node_yaml_lines(yaml_writer, buffer_to_write.yaml_lines)
+                    PipeGraph.write_node_yaml_lines(
+                        yaml_writer, buffer_to_write.yaml_lines
+                    )
                     written_buffers.add(buffer_to_write)
 
             for pipe in self.pipes:
@@ -445,7 +476,9 @@ def add_pipe_connections(pipe: PipeNode, pipe_graph: PipeGraph, visited_node_ids
         add_buffer_connections(buffer, pipe_graph, visited_node_ids)
 
 
-def add_buffer_connections(buffer: BufferNode, pipe_graph: PipeGraph, visited_node_ids: set):
+def add_buffer_connections(
+    buffer: BufferNode, pipe_graph: PipeGraph, visited_node_ids: set
+):
     if buffer.id in visited_node_ids:
         return
 
@@ -459,8 +492,12 @@ def add_buffer_connections(buffer: BufferNode, pipe_graph: PipeGraph, visited_no
         visited_node_ids.add(curr_buffer.id)
 
         add_unvisited_pipes(curr_buffer.inputs, pipe_graph, visited_node_ids, buf_queue)
-        add_unvisited_pipes(curr_buffer.get_scatter_outputs(), pipe_graph, visited_node_ids, buf_queue)
-        add_unvisited_pipes(curr_buffer.outputs, pipe_graph, visited_node_ids, buf_queue)
+        add_unvisited_pipes(
+            curr_buffer.get_scatter_outputs(), pipe_graph, visited_node_ids, buf_queue
+        )
+        add_unvisited_pipes(
+            curr_buffer.outputs, pipe_graph, visited_node_ids, buf_queue
+        )
 
 
 def add_unvisited_pipes(
@@ -482,7 +519,9 @@ def add_unvisited_pipes(
             buf_queue.append(pipe_buf)
 
 
-def filter_graph_by_buffers(pipe_graph: PipeGraph, buffer_condition: Callable[[BufferNode], bool]):
+def filter_graph_by_buffers(
+    pipe_graph: PipeGraph, buffer_condition: Callable[[BufferNode], bool]
+):
     filtered_pipe_graph = PipeGraph()
 
     visited_node_ids = set()
@@ -493,7 +532,9 @@ def filter_graph_by_buffers(pipe_graph: PipeGraph, buffer_condition: Callable[[B
     return filtered_pipe_graph
 
 
-def filter_graph_by_pipes(pipe_graph: PipeGraph, pipe_condition: Callable[[PipeNode], bool]):
+def filter_graph_by_pipes(
+    pipe_graph: PipeGraph, pipe_condition: Callable[[PipeNode], bool]
+):
     filtered_pipe_graph = PipeGraph()
 
     visited_node_ids = set()
@@ -517,11 +558,14 @@ def find_max_graph_depth(src_buf: BufferNode, depth: int = 0):
 
     return max_depth
 
+
 def does_pipe_have_input_padding(pipe: PipeNode) -> bool:
     return any(in_buffer.is_padding for in_buffer in pipe.inputs)
 
+
 def does_pipe_have_output_padding(pipe: PipeNode) -> bool:
     return sum(pipe.output_padding_ids) > 0
+
 
 def does_pipe_have_padding(pipe: PipeNode) -> bool:
     return does_pipe_have_input_padding(pipe) or does_pipe_have_output_padding(pipe)
@@ -537,12 +581,14 @@ def gathering_from_diff_cores(pipe: PipeNode) -> bool:
 
 
 def gathering_from_diff_buffers(pipe: PipeNode) -> bool:
-    # We could figure this out by decomposing buffers IDs and comparing the base parts, but chosing
+    # We could figure this out by decomposing buffers IDs and comparing the base parts, but choosing
     # to do it this way instead to avoid being dependent on ID structure coming from net2pipe.
-    unique_parrent_buf_ids = set()
+    unique_parent_buf_ids = set()
     for buf in pipe.inputs:
-        unique_parrent_buf_ids.add(buf.scatter_group_parent.id if buf.is_scatter else buf.id)
-    return len(unique_parrent_buf_ids) > 1
+        unique_parent_buf_ids.add(
+            buf.scatter_group_parent.id if buf.is_scatter else buf.id
+        )
+    return len(unique_parent_buf_ids) > 1
 
 
 def has_repeated_inputs(pipe: PipeNode) -> bool:
@@ -571,11 +617,15 @@ def has_output_of_type(pipe: PipeNode, buffer_type: BufferType) -> bool:
 
 
 def is_mixed_inputs_pipe(pipe: PipeNode) -> bool:
-    return has_input_of_type(pipe, BufferType.dram_io) and has_input_of_type(pipe, BufferType.packer)
+    return has_input_of_type(pipe, BufferType.dram_io) and has_input_of_type(
+        pipe, BufferType.packer
+    )
 
 
 def is_mixed_outputs_pipe(pipe: PipeNode) -> bool:
-    return has_output_of_type(pipe, BufferType.dram_io) and has_output_of_type(pipe, BufferType.unpacker)
+    return has_output_of_type(pipe, BufferType.dram_io) and has_output_of_type(
+        pipe, BufferType.unpacker
+    )
 
 
 def is_1_to_1_pipe(pipe: PipeNode) -> bool:
@@ -652,7 +702,11 @@ def is_multicast_to_dram_pipe(pipe: PipeNode) -> bool:
 
 
 def is_packer_specific_fork(buffer: BufferNode) -> bool:
-    if not (buffer.buffer_type == BufferType.dram_io and not buffer.is_scatter and len(buffer.outputs) == 2):
+    if not (
+        buffer.buffer_type == BufferType.dram_io
+        and not buffer.is_scatter
+        and len(buffer.outputs) == 2
+    ):
         return False
     dram_io = False
     unpacker = False
@@ -663,7 +717,10 @@ def is_packer_specific_fork(buffer: BufferNode) -> bool:
 
 
 def is_dram_specific_fork(buffer: BufferNode) -> bool:
-    if not (buffer.buffer_type == BufferType.dram_io and len(buffer.get_scatter_outputs()) == 2):
+    if not (
+        buffer.buffer_type == BufferType.dram_io
+        and len(buffer.get_scatter_outputs()) == 2
+    ):
         return False
     for pipe in buffer.get_scatter_outputs():
         if len(pipe.inputs) != 1:
@@ -770,7 +827,11 @@ def are_all_buffers_on_same_chip(pipe: PipeNode) -> bool:
 
 def is_unicast_rg_pipe(pipe: PipeNode) -> bool:
     # Check if it has single output and it is unpacker
-    if len(pipe.outputs) > 1 or len(pipe.outputs[0]) > 1 or pipe.outputs[0][0].buffer_type != BufferType.unpacker:
+    if (
+        len(pipe.outputs) > 1
+        or len(pipe.outputs[0]) > 1
+        or pipe.outputs[0][0].buffer_type != BufferType.unpacker
+    ):
         return False
 
     # Check if it has no repeats for now, later we might enable this.
@@ -879,7 +940,10 @@ def is_dram_unicast_pipe(pipe: PipeNode) -> bool:
 
     in_buffer = pipe.inputs[0]
     out_buffer = pipe.outputs[0][0]
-    if in_buffer.buffer_type != BufferType.dram_io or out_buffer.buffer_type != BufferType.unpacker:
+    if (
+        in_buffer.buffer_type != BufferType.dram_io
+        or out_buffer.buffer_type != BufferType.unpacker
+    ):
         return False
     if in_buffer.is_forked():
         return False
@@ -1014,13 +1078,15 @@ def is_multicast_rg_pipe(pipe: PipeNode) -> bool:
 
 
 def is_dram_multicast_rg_pipe(pipe: PipeNode) -> bool:
-
     if not check_common_multicast_conditions(pipe):
         return False
 
     # Check if input is dram
     for in_buffer in pipe.inputs:
-        if in_buffer.buffer_type != BufferType.dram_io and in_buffer.buffer_type != BufferType.dram_prolog:
+        if (
+            in_buffer.buffer_type != BufferType.dram_io
+            and in_buffer.buffer_type != BufferType.dram_prolog
+        ):
             return False
 
     return True
@@ -1055,6 +1121,7 @@ def is_dram_gather_multicast_rg_pipe(pipe: PipeNode) -> bool:
             return False
 
     return True
+
 
 def is_consumer_repeated_pipe(pipe: PipeNode) -> bool:
     # Try gather
@@ -1154,13 +1221,16 @@ def is_embedding_pipe(pipe: PipeNode) -> bool:
     return False
 
 
-def get_shared_packer_buffer(pipe_graph: PipeGraph, intermed_id: BufferNode) -> Optional[BufferNode]:
+def get_shared_packer_buffer(
+    pipe_graph: PipeGraph, intermed_id: BufferNode
+) -> Optional[BufferNode]:
     for buffer in pipe_graph.buffers:
         if buffer.buffer_space_shared == intermed_id:
             return buffer
 
     # Intermediates used in fused ops don't share space with other buffers.
     return None
+
 
 def is_mmio_unicast_pipe(pipe: PipeNode) -> bool:
     if not pipe.mmio_pipe:
@@ -1172,6 +1242,7 @@ def is_mmio_unicast_pipe(pipe: PipeNode) -> bool:
 
     return True
 
+
 def is_mmio_gather_pipe(pipe: PipeNode) -> bool:
     if not pipe.mmio_pipe:
         return False
@@ -1181,6 +1252,7 @@ def is_mmio_gather_pipe(pipe: PipeNode) -> bool:
         return False
 
     return True
+
 
 def is_mmio_multicast_pipe(pipe: PipeNode) -> bool:
     if not pipe.mmio_pipe:
@@ -1192,6 +1264,7 @@ def is_mmio_multicast_pipe(pipe: PipeNode) -> bool:
 
     return True
 
+
 def is_mmio_gather_multicast_pipe(pipe: PipeNode) -> bool:
     if not pipe.mmio_pipe:
         return False
@@ -1202,6 +1275,7 @@ def is_mmio_gather_multicast_pipe(pipe: PipeNode) -> bool:
 
     return True
 
+
 def is_direct_packer_multicast_pipe(pipe: PipeNode) -> bool:
     if not pipe.direct_mcast:
         return False
@@ -1211,23 +1285,36 @@ def is_direct_packer_multicast_pipe(pipe: PipeNode) -> bool:
 
     return True
 
+
 def is_output_padding_pipe(pipe: PipeNode) -> bool:
     return does_pipe_have_output_padding(pipe)
 
+
 def is_input_padding_pipe(pipe: PipeNode) -> bool:
-    return does_pipe_have_input_padding(pipe) and not does_pipe_have_output_padding(pipe)
+    return does_pipe_have_input_padding(pipe) and not does_pipe_have_output_padding(
+        pipe
+    )
+
 
 def is_e2e_queue(buffer: BufferNode) -> bool:
     return buffer.dram_io_flag and len(buffer.inputs) > 0 and len(buffer.outputs) > 0
 
+
 def is_scatter_prefetch_post_tm_buffer(buffer: BufferNode) -> bool:
-    return buffer.is_scatter and buffer.is_buf_dram_prefetch() and buffer.prefetch_type == PrefetchType.PostTM
+    return (
+        buffer.is_scatter
+        and buffer.is_buf_dram_prefetch()
+        and buffer.prefetch_type == PrefetchType.PostTM
+    )
+
 
 def is_scatter_prefetch_post_tm_pipe(pipe: PipeNode) -> bool:
     return all(is_scatter_prefetch_post_tm_buffer(buffer) for buffer in pipe.inputs)
 
+
 def is_single_output_pipe(pipe: PipeNode) -> bool:
     return len(pipe.outputs) == 1 and len(pipe.outputs[0]) == 1
+
 
 def can_do_post_tm_optimization(src_pipe: PipeNode) -> bool:
     """
@@ -1235,12 +1322,14 @@ def can_do_post_tm_optimization(src_pipe: PipeNode) -> bool:
     DRAM scatter buffer -> pipe (with single output) -> post tm relay buffer -> pipe (with single input)
     case.
     """
-    if not (is_single_output_pipe(src_pipe) and is_scatter_prefetch_post_tm_pipe(src_pipe)):
+    if not (
+        is_single_output_pipe(src_pipe) and is_scatter_prefetch_post_tm_pipe(src_pipe)
+    ):
         return False
 
     middle_buffer = src_pipe.outputs[0][0]
 
-    if (len(middle_buffer.outputs) != 1 or not middle_buffer.is_post_tm_relay_buf):
+    if len(middle_buffer.outputs) != 1 or not middle_buffer.is_post_tm_relay_buf:
         return False
 
     dest_pipe = middle_buffer.outputs[0]

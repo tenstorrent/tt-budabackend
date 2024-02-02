@@ -7,29 +7,28 @@ Testing between pipegen2 from master and pipegen2 with your changes.
 """
 from __future__ import annotations
 
-from datetime import datetime
-from dataclasses import dataclass
-from itertools import repeat
-from typing import Optional
-from ruamel.yaml import YAML
-
 import argparse
 import multiprocessing as mp
 import os
 import shutil
 import time
+from dataclasses import dataclass
+from datetime import datetime
+from itertools import repeat
+from typing import Optional
 
 from blob_comparator import BlobComparator, StreamGraphComparisonStrategy
 from pipegen_runner import (
+    DEFAULT_BIN_DIR,
+    DEFAULT_TOP_LEVEL_BUILD_DIR,
+    PIPEGEN_MASTER_BIN_NAME,
     DeviceArchs,
     run_net2pipe,
     run_pipegen,
-    DEFAULT_TOP_LEVEL_BUILD_DIR,
-    DEFAULT_BIN_DIR,
-    PIPEGEN_MASTER_BIN_NAME,
 )
-from pipegen_yaml_filter import *
 from pipegen_tests_utils import *
+from pipegen_yaml_filter import *
+from ruamel.yaml import YAML
 
 logger = get_logger(__name__)
 
@@ -94,7 +93,10 @@ def write_cmd_logs(log_path: str, commands: list[str], retcodes: list[int]):
 # TODO remove the old func when filtering switches to logger too.
 def write_cmd_logs_v2(pipegen_run_results: list[PipegenRunResult]):
     for pipegen_run_result in pipegen_run_results:
-        if pipegen_run_result.pipegen_master_retcode and pipegen_run_result.pipegen_retcode:
+        if (
+            pipegen_run_result.pipegen_master_retcode
+            and pipegen_run_result.pipegen_retcode
+        ):
             # If both pipegens are failing on some yaml we consider such yaml invalid for the
             # purpose of these tests, which is to compare difference in outputs not to test if
             # pipegen is working on some netlist.
@@ -127,7 +129,9 @@ def _run_net2pipe_worker(
 
         netlist_out_dir = f"{net2pipe_out_dir}/{arch}/{get_netlist_name(netlist_path)}"
 
-        retcode, net2pipe_cmd = run_net2pipe(netlist_path, netlist_out_dir, arch, bin_dir)
+        retcode, net2pipe_cmd = run_net2pipe(
+            netlist_path, netlist_out_dir, arch, bin_dir
+        )
 
     with net2pipe_run_count.get_lock():
         net2pipe_run_count.value += 1
@@ -144,8 +148,12 @@ def _run_net2pipe_worker(
     return retcode, net2pipe_cmd
 
 
-def generate_net2pipe_outputs(netlists_dir: str, net2pipe_out_dir: str, builds_dir: str):
-    netlist_paths = [f"{netlists_dir}/{netlist_name}" for netlist_name in os.listdir(netlists_dir)]
+def generate_net2pipe_outputs(
+    netlists_dir: str, net2pipe_out_dir: str, builds_dir: str
+):
+    netlist_paths = [
+        f"{netlists_dir}/{netlist_name}" for netlist_name in os.listdir(netlists_dir)
+    ]
     total_netlist_count = len(netlist_paths)
     net2pipe_run_sync_var = mp.Value("i", 0)
 
@@ -162,17 +170,26 @@ def generate_net2pipe_outputs(netlists_dir: str, net2pipe_out_dir: str, builds_d
             ),
         )
 
-    netlist_retcodes = [net2pipe_run_res[0] for net2pipe_run_res in net2pipe_run_results]
-    netlist_commands = [net2pipe_run_res[1] for net2pipe_run_res in net2pipe_run_results]
+    netlist_retcodes = [
+        net2pipe_run_res[0] for net2pipe_run_res in net2pipe_run_results
+    ]
+    netlist_commands = [
+        net2pipe_run_res[1] for net2pipe_run_res in net2pipe_run_results
+    ]
 
     if any(retcode > 0 for retcode in netlist_retcodes):
         print_warning("Some of the netlists failed on net2pipe, see log!")
 
-    write_cmd_logs(f"{net2pipe_out_dir}/net2pipe.log", netlist_commands, netlist_retcodes)
+    write_cmd_logs(
+        f"{net2pipe_out_dir}/net2pipe.log", netlist_commands, netlist_retcodes
+    )
 
 
 def filter_netlist_yamls(
-    netlist_dir: str, filtered_netlist_dir: str, filter_type: FilterType, num_samples: int
+    netlist_dir: str,
+    filtered_netlist_dir: str,
+    filter_type: FilterType,
+    num_samples: int,
 ) -> int:
     with filtered_pipegen_yamls_count_sync.get_lock():
         if num_samples > 0 and filtered_pipegen_yamls_count_sync.value >= num_samples:
@@ -190,7 +207,9 @@ def filter_netlist_yamls(
         # Check if pipegen.yaml exists, if not, skip this epoch.
         if os.path.isfile(pipegen_yaml_path):
             if filter_type == FilterType.Nothing:
-                os.system(f"cp {pipegen_yaml_path} {filtered_netlist_dir}/pipegen_{epoch_id}.yaml")
+                os.system(
+                    f"cp {pipegen_yaml_path} {filtered_netlist_dir}/pipegen_{epoch_id}.yaml"
+                )
             else:
                 filtered = filter_pipegen_yaml(
                     f"{pipegen_yaml_path}",
@@ -206,7 +225,10 @@ def filter_netlist_yamls(
             num_processed += 1
             with filtered_pipegen_yamls_count_sync.get_lock():
                 filtered_pipegen_yamls_count_sync.value += 1
-                if num_samples > 0 and filtered_pipegen_yamls_count_sync.value >= num_samples:
+                if (
+                    num_samples > 0
+                    and filtered_pipegen_yamls_count_sync.value >= num_samples
+                ):
                     break
 
     if not os.listdir(filtered_netlist_dir):
@@ -248,8 +270,12 @@ def _run_pipegens_worker(
     total_pipegen_yaml_count: int,
 ) -> PipegenRunResult:
     pipegen_master_retcode, pipegen_master_command = run_pipegen(
-        pipegen_yaml_path, original_blob_yaml_path, arch, epoch_id, bin_dir=bins_dir,
-        pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME
+        pipegen_yaml_path,
+        original_blob_yaml_path,
+        arch,
+        epoch_id,
+        bin_dir=bins_dir,
+        pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
     )
     pipegen_retcode, pipegen_command = run_pipegen(
         pipegen_yaml_path, new_blob_yaml_path, arch, epoch_id, bin_dir=bins_dir
@@ -283,7 +309,9 @@ def run_pipegens(
 ):
     total_pipegen_count = len(pipegen_yaml_paths)
     pipegen_run_sync_var = mp.Value("i", 0)
-    with mp.Pool(initializer=init_run_pipegens_sync_var, initargs=(pipegen_run_sync_var,)) as pool:
+    with mp.Pool(
+        initializer=init_run_pipegens_sync_var, initargs=(pipegen_run_sync_var,)
+    ) as pool:
         pipegen_run_results = pool.starmap(
             _run_pipegens_worker,
             zip(
@@ -300,7 +328,9 @@ def run_pipegens(
     write_cmd_logs_v2(pipegen_run_results)
 
 
-def run_filter_netlist_yamls_worker(worker_config: PipegenYamlFilterWorkerConfig) -> int:
+def run_filter_netlist_yamls_worker(
+    worker_config: PipegenYamlFilterWorkerConfig,
+) -> int:
     num_processed = filter_netlist_yamls(
         netlist_dir=worker_config.netlist_dir,
         filtered_netlist_dir=worker_config.filtered_netlist_dir,
@@ -370,7 +400,9 @@ def filter_yamls(
                 )
             )
 
-    processed_netlist_sync = {arch: mp.Value("i", 0) for arch in DeviceArchs.get_all_archs()}
+    processed_netlist_sync = {
+        arch: mp.Value("i", 0) for arch in DeviceArchs.get_all_archs()
+    }
     filtered_pipegen_yamls_sync = mp.Value("i", 0)
     with mp.Pool(
         initializer=init_global_sync_vars,
@@ -399,12 +431,12 @@ def compare_blob_yamls(
         yaml = YAML(typ="safe")
         orig_blob_yaml = yaml.load(open(original_blob_yaml_path))
         new_blob_yaml = yaml.load(open(new_blob_yaml_path))
-        return BlobComparator(orig_blob_yaml, new_blob_yaml, comparison_log_path).compare(
-            sg_comparison_strategy
-        )
+        return BlobComparator(
+            orig_blob_yaml, new_blob_yaml, comparison_log_path
+        ).compare(sg_comparison_strategy)
     except Exception as e:
         logger.info(
-            f"Exception occured during comparison of ({original_blob_yaml_path} vs "
+            f"Exception occurred during comparison of ({original_blob_yaml_path} vs "
             f"{new_blob_yaml_path}) \n {e}"
         )
         return False
@@ -442,10 +474,13 @@ def run_blob_comparator_worker(
         remove_comparison_log_file(comparison_log_path)
         return failed_pipegen_yamls
 
-    comparison_successfull = False
+    comparison_successful = False
     if new_blob_exists:
         match = compare_blob_yamls(
-            original_blob_yaml_path, new_blob_yaml_path, comparison_log_path, sg_comparison_strategy
+            original_blob_yaml_path,
+            new_blob_yaml_path,
+            comparison_log_path,
+            sg_comparison_strategy,
         )
         file_message = read_comparison_log_file(comparison_log_path)
         if match:
@@ -453,14 +488,14 @@ def run_blob_comparator_worker(
                 f"Successfully compared blobs ({original_blob_yaml_path} vs {new_blob_yaml_path})"
                 f"{file_message}"
             )
-            comparison_successfull = True
+            comparison_successful = True
         else:
             logger.error(
                 f"Failed comparing blobs ({original_blob_yaml_path} vs {new_blob_yaml_path})"
                 f"{file_message}"
             )
 
-    if not comparison_successfull:
+    if not comparison_successful:
         failed_pipegen_yamls.append(pipegen_yaml_path)
         shutil.copy(pipegen_yaml_path, os.path.dirname(original_blob_yaml_path))
 
@@ -496,7 +531,12 @@ def run_comparison(
     )
 
     run_pipegens(
-        pipegen_yaml_paths, original_blob_yaml_paths, new_blob_yaml_paths, epoch_ids, arch, bins_dir
+        pipegen_yaml_paths,
+        original_blob_yaml_paths,
+        new_blob_yaml_paths,
+        epoch_ids,
+        arch,
+        bins_dir,
     )
 
     logger.info("Running pipegens done")
@@ -544,7 +584,9 @@ def compare_pipegens_on_yamls(
     logger.info(
         f"Blob comparator is using: '{sg_comparison_strategy.name}' as the comparison strategy"
     )
-    result = run_comparison(yamls, results_dir, arch, bins_dir, num_samples, sg_comparison_strategy)
+    result = run_comparison(
+        yamls, results_dir, arch, bins_dir, num_samples, sg_comparison_strategy
+    )
     logger.info(f"Log file path: {log_file_path}")
     return result
 
@@ -552,10 +594,18 @@ def compare_pipegens_on_yamls(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--command", type=str, required=True, default=None, help="Commands [filter | test]"
+        "--command",
+        type=str,
+        required=True,
+        default=None,
+        help="Commands [filter | test]",
     )
     parser.add_argument(
-        "--out", type=str, required=True, default=None, help="Folder where output data are stored."
+        "--out",
+        type=str,
+        required=True,
+        default=None,
+        help="Folder where output data are stored.",
     )
     parser.add_argument(
         "--netlists",
@@ -565,7 +615,11 @@ if __name__ == "__main__":
         help="Folder where netlists are stored",
     )
     parser.add_argument(
-        "--type", type=str, required=False, default=FilterType.Nothing.name, help="Filter type"
+        "--type",
+        type=str,
+        required=False,
+        default=FilterType.Nothing.name,
+        help="Filter type",
     )
     parser.add_argument(
         "--yamls",
@@ -587,7 +641,7 @@ if __name__ == "__main__":
         required=False,
         default=DEFAULT_TOP_LEVEL_BUILD_DIR,
         help=f"Top level 'build' folder which contains subfolders for different architectures "
-             f"(for example'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {DEFAULT_TOP_LEVEL_BUILD_DIR}",
+        f"(for example'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {DEFAULT_TOP_LEVEL_BUILD_DIR}",
     )
     parser.add_argument(
         "--pipegens-bin-dir",
@@ -595,7 +649,7 @@ if __name__ == "__main__":
         required=False,
         default=DEFAULT_BIN_DIR,
         help=f"Folder containing pipegen binaries (for example 'build/bin' or 'build/grayskull/bin'). "
-             f"DEFAULT: {DEFAULT_BIN_DIR}",
+        f"DEFAULT: {DEFAULT_BIN_DIR}",
     )
     parser.add_argument(
         "--num-samples",

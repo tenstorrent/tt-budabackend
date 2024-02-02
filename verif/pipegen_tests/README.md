@@ -1,3 +1,22 @@
+# Contributing
+This folder is formatted using default configuration of Black python formatting, and using isort for sorting imports.
+
+To make the development easier in VSCode, install [Black Formatter extension](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter), and [isort extension](https://marketplace.visualstudio.com/items?itemName=ms-python.isort). Open one of the settings.json files:
+- Workspace settings, which are at .vscode/settings.json from the root of the opened workspace
+- User settings, which can be opened using CMD+SHIFT+P and then "Preferences: Open User Settings (JSON)
+
+Add the following snippet:
+```
+"[python]": {
+	"editor.defaultFormatter": "ms-python.black-formatter",
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": true
+	},
+},
+"isort.args":["--profile", "black"],
+```
+
 # Net2Pipe and Pipegen Blackbox Testing
 
 This test executes  [net2pipe](#net2pipe) and [pipegen2](#pipegen) on a set of predefined netlists. Netlists and their baseline overlay results are stored in zip files located at: `verif/pipegen_tests/netlists/{ARCH_NAME}/{push|nightly}/baseline.zip"`.
@@ -108,7 +127,7 @@ ex.
 
 #### Soc Descriptors
 
-soc descriptior - defines location of cores, dram, ethernet, memory sizes, packer/unpacker version...<br/>
+soc descriptor - defines location of cores, dram, ethernet, memory sizes, packer/unpacker version...<br/>
 - [Grayskull   - grayskull_120_arch](../../soc_descriptors/grayskull_10x12.yaml)
 - [Wormhole    - wormhole_8x10](../../soc_descriptors/wormhole_8x10.yaml)
 - [Wormhole b0 - wormhole_b0_80_arch](../../soc_descriptors/wormhole_b0_8x10.yaml)
@@ -144,7 +163,7 @@ ex.
 ```
 
 - input pipe graph yaml - file generated in net2pipe ex. ```"output_directory/temporal_epoch_0/overlay/pipegen.yaml"```
-- soc decriptor yaml    - same as for [net2pipe](#soc-descriptors)
+- soc descriptor yaml   - same as for [net2pipe](#soc-descriptors)
 - output blob yaml      - output file ex. ```"output_directory/temporal_epoch_0/blob.yaml"```
 - epoch start phase     - epoch_id -> for temporal_epoch_0 folder it is 0
 - perf dump level       - 0 | 1

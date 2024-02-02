@@ -7,8 +7,6 @@ Blackbox testing of net2pipe and pipegen component.
 """
 from __future__ import annotations
 
-from itertools import repeat
-
 import argparse
 import hashlib
 import math
@@ -20,10 +18,10 @@ import sys
 import time
 import uuid
 import zipfile
-import yaml
-
 from enum import IntEnum
+from itertools import repeat
 
+import yaml
 from pipegen_runner import DeviceArchs, run_net2pipe, run_pipegen
 from pipegen_tests_utils import *
 
@@ -39,6 +37,7 @@ BLACKBOX_CI_TEST_LISTS = {
     "pipegen_wormhole_b0_model_nightly.yaml",
     "pipegen_wormhole_b0_model_push.yaml",
 }
+
 
 class CITestExitCode(IntEnum):
     Success = 0
@@ -74,7 +73,9 @@ def update_baseline_data(baseline_file_path: str, out_dir: str, num_cores: int):
     print_success(f"Done. Found {len(netlist_paths)} netlists.")
 
     print(f"\nGenerating overlay results:")
-    overlay_results = generate_overlay_results(netlist_paths, out_dir, arch_name, num_cores)
+    overlay_results = generate_overlay_results(
+        netlist_paths, out_dir, arch_name, num_cores
+    )
     print_success(f"Done. {len(overlay_results)} netlists passed overlay.")
 
     print(f"\nPacking baseline zip...")
@@ -236,11 +237,15 @@ def generate_overlay_results(
     shared_done_counter = mp.Value("i", 0)
     num_netlists = len(netlist_paths)
     with mp.Pool(
-        processes=num_cores, initializer=init_done_counter, initargs=(shared_done_counter,)
+        processes=num_cores,
+        initializer=init_done_counter,
+        initargs=(shared_done_counter,),
     ) as pool:
         results_list = pool.starmap(
             generate_overlay_result,
-            zip(netlist_paths, repeat(num_netlists), repeat(out_dir), repeat(arch_name)),
+            zip(
+                netlist_paths, repeat(num_netlists), repeat(out_dir), repeat(arch_name)
+            ),
         )
 
     return {k: v for k, v in results_list if v}
@@ -311,14 +316,18 @@ def get_overlay_output_hash(netlist_path: str, temp_dir: str, arch_name: str) ->
     # Running net2pipe
     net2pipe_retcode, net2pipe_cmd = run_net2pipe(netlist_path, temp_dir, arch_name)
     if net2pipe_retcode:
-        raise Exception(f"Net2pipe failed with error code: {net2pipe_retcode}. Command: {net2pipe_cmd}")
+        raise Exception(
+            f"Net2pipe failed with error code: {net2pipe_retcode}. Command: {net2pipe_cmd}"
+        )
     # Running pipegen
     epoch_id = 0
     epoch_dir = get_epoch_dir(temp_dir, epoch_id)
     while os.path.isdir(epoch_dir):
         pipegen_yaml_path = f"{epoch_dir}/pipegen.yaml"
         blob_yaml_path = f"{epoch_dir}/blob.yaml"
-        pipegen_retcode, _ = run_pipegen(pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id)
+        pipegen_retcode, _ = run_pipegen(
+            pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id
+        )
         if pipegen_retcode:
             raise Exception(f"Pipegen failed with error code: {pipegen_retcode}")
         epoch_id = epoch_id + 1
@@ -378,7 +387,9 @@ def zip_dir(dir_path, zip_path: str):
                 zipf.writestr(info, file_data.read())
 
 
-def pack_new_baseline_zip(overlay_results: dict[str, str], baseline_file_path: str, out_dir: str):
+def pack_new_baseline_zip(
+    overlay_results: dict[str, str], baseline_file_path: str, out_dir: str
+):
     """
     Packs the new baseline zip with the given overlay results and netlists. Netlist names are
     prepended with a random salt to make sure their names are unique.
@@ -398,8 +409,12 @@ def pack_new_baseline_zip(overlay_results: dict[str, str], baseline_file_path: s
     with open(results_path, "w") as results_writer:
         for netlist_path, overlay_hash in overlay_results.items():
             # Adding random uuid because there can be different netlists with the same name.
-            netlist_baseline_name = f"{uuid.uuid4().hex}_{os.path.basename(netlist_path)}"
-            shutil.copyfile(netlist_path, os.path.join(netlists_dir, netlist_baseline_name))
+            netlist_baseline_name = (
+                f"{uuid.uuid4().hex}_{os.path.basename(netlist_path)}"
+            )
+            shutil.copyfile(
+                netlist_path, os.path.join(netlists_dir, netlist_baseline_name)
+            )
             results_writer.write(f"{netlist_baseline_name} {overlay_hash}\n")
     os.remove(baseline_file_path)
     zip_dir(out_dir, baseline_file_path)
@@ -435,18 +450,26 @@ def update_baseline_results(
     arch_name = os.path.basename(os.path.dirname(os.path.dirname(baseline_file_path)))
     netlists_dir = os.path.join(out_dir, NETLISTS_DIR_NAME)
     netlist_paths = [
-        os.path.join(netlists_dir, netlist_name) for netlist_name in os.listdir(netlists_dir)
+        os.path.join(netlists_dir, netlist_name)
+        for netlist_name in os.listdir(netlists_dir)
     ]
-    overlay_results = generate_overlay_results(netlist_paths, out_dir, arch_name, num_cores)
+    overlay_results = generate_overlay_results(
+        netlist_paths, out_dir, arch_name, num_cores
+    )
     print_success("Done.")
 
     print(f"\nUpdating baseline zip...")
-    if pack_updated_baseline_zip(overlay_results, baseline_file_path, out_dir, force_update):
+    if pack_updated_baseline_zip(
+        overlay_results, baseline_file_path, out_dir, force_update
+    ):
         print_success(f"Done.")
 
 
 def pack_updated_baseline_zip(
-    overlay_results: dict[str, str], baseline_file_path: str, out_dir: str, force_update: bool
+    overlay_results: dict[str, str],
+    baseline_file_path: str,
+    out_dir: str,
+    force_update: bool,
 ) -> bool:
     """
     Packs the updated baseline zip with the given overlay results and netlists which are in the
@@ -553,9 +576,12 @@ def test_all(baseline_file_path: str, out_dir: str, num_cores: int):
     arch_name = os.path.basename(os.path.dirname(os.path.dirname(baseline_file_path)))
     netlists_dir = os.path.join(out_dir, NETLISTS_DIR_NAME)
     netlist_paths = [
-        os.path.join(netlists_dir, netlist_name) for netlist_name in os.listdir(netlists_dir)
+        os.path.join(netlists_dir, netlist_name)
+        for netlist_name in os.listdir(netlists_dir)
     ]
-    overlay_results = generate_overlay_results(netlist_paths, out_dir, arch_name, num_cores)
+    overlay_results = generate_overlay_results(
+        netlist_paths, out_dir, arch_name, num_cores
+    )
     print_success("Done.")
 
     failed_overlay = []
@@ -738,7 +764,9 @@ if __name__ == "__main__":
     if args.command == "update":
         update_baseline_data(args.baseline_file, args.out_dir, args.num_cores)
     elif args.command == "update-results":
-        update_baseline_results(args.baseline_file, args.out_dir, args.force_update, args.num_cores)
+        update_baseline_results(
+            args.baseline_file, args.out_dir, args.force_update, args.num_cores
+        )
     elif args.command == "unpack":
         unpack_baseline_data(args.baseline_file, args.out_dir)
     elif args.command == "test":
