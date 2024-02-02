@@ -68,8 +68,8 @@ uint32_t get_op_cycles_for_perf_sweep_result(
     std::uint32_t param_version,
     const std::string& sparse_formula) {
     log_assert(
-        op_type == "unary" || op_type == "binary" || op_name == "matmul_sparse",
-        "Estimate evaluation supported only for the following ops: unary ops, binary ops and matmul sparse.");
+        op_type == "unary" || op_type == "binary" || op_type == "matmul",
+        "Estimate evaluation supported only for the following ops: unary ops, binary ops and matmul.");
 
     std::string fidelity_string = perf_sweep_result.at("math_fidelity");
     MathFidelity fidelity = MathFidelity::Invalid;
@@ -92,6 +92,7 @@ uint32_t get_op_cycles_for_perf_sweep_result(
     tt_op_model_desc op_desc = {
         .type = op_name,
         .arch = arch,
+        .data_format = get_format_from_string(perf_sweep_result.at("output_df")),
         .math_fidelity = fidelity,
         .t = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("output_t"))),
         .mblock_m = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("output_mb_r"))),
@@ -101,27 +102,31 @@ uint32_t get_op_cycles_for_perf_sweep_result(
         .version = param_version,
     };
 
-    if (op_name == "matmul_sparse") {
-        log_assert(sparse_formula != "", "Formula version must be passed for sparse estimate evaluation - v1 or v2.");
-
+    if (op_type == "matmul") {
         op_desc.type = "matmul";
-        op_desc.data_format = get_format_from_string(perf_sweep_result.at("input1_df"));
         op_desc.mblock_k = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("mblock_k")));
         op_desc.ublock_kt = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("ublock_kt")));
-        op_desc.sparse_indices = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("nz_tiles")));
-        op_desc.sparse_nz_ublocks = sparse_formula == "v2" ? std::stoi(perf_sweep_result.at("nz_ublocks")) : -1;
-        op_desc.sparse_nz_strips = sparse_formula == "v2" ? std::stoi(perf_sweep_result.at("nz_strips")) : -1;
-    } else {
-        op_desc.data_format = get_format_from_string(perf_sweep_result.at("input0_df"));
-        if (op_name.find("approx") != std::string::npos) {
-            size_t suffix_position = op_name.find("_approx");
-            op_desc.type = op_name.substr(0, suffix_position);
-            op_desc.approx_mode = true;
-        }
 
-        if (perf_sweep_result.find("Vector-Mode") != perf_sweep_result.end()) {
-            op_desc.vector_mode = get_sfpu_vector_mode_from_string(perf_sweep_result.at("Vector-Mode"));
+        if (op_name == "matmul_sparse") {
+            log_assert(sparse_formula != "", "Formula version must be passed for sparse estimate evaluation - v1 or v2.");
+            op_desc.sparse_indices = static_cast<uint32_t>(std::stoi(perf_sweep_result.at("nz_tiles")));
+            op_desc.sparse_nz_ublocks = sparse_formula == "v2" ? std::stoi(perf_sweep_result.at("nz_ublocks")) : -1;
+            op_desc.sparse_nz_strips = sparse_formula == "v2" ? std::stoi(perf_sweep_result.at("nz_strips")) : -1;
         }
+    } else if (op_name == "dequantization" || op_name == "requantization") {
+        // deguantization/requantization output is always Float32/Int8,
+        // so we use input0 data format to differ between int8 and int32 variants
+        op_desc.data_format = get_format_from_string(perf_sweep_result.at("input0_df"));
+    }
+
+    if (op_name.find("approx") != std::string::npos) {
+        size_t suffix_position = op_name.find("_approx");
+        op_desc.type = op_name.substr(0, suffix_position);
+        op_desc.approx_mode = true;
+    }
+
+    if (perf_sweep_result.find("Vector-Mode") != perf_sweep_result.end()) {
+        op_desc.vector_mode = get_sfpu_vector_mode_from_string(perf_sweep_result.at("Vector-Mode"));
     }
 
     return OpModel::get_op_cycles(op_desc);

@@ -54,25 +54,32 @@ The estimate / reality column shows the interval of the obtained ratio between e
 
 *Matmul sparse has V1 and V2 formulas. Currently V1 formula is used for both GS and B0, although it has proven to be even 11x off in some cases. V2 formula is an updated version written for B0, and its range goes from 0.3 - 3.5x.
 
+#### INT8 OPS
+
+| Op                       | Unit tests added | Estimate / Reality | Note                             |
+| ------------------------ |:----------------:|:------------------:| -------------------------------- |
+| add                      | +                | 0.8 - 1.2          | separate int8 and int32 params
+| subtract                 | +                | 0.8 - 1.2          | 
+| multiply                 | +                | 0.8 - 1.2          | 
+| nop                      | +                | 0.8 - 1.2          | separate int8 and int32 params
+| matmul                   | +                | 0.5 - 1.2          | int32 model only
+
 
 ##
 Params for the following ops should be regenerated - they either don't exist (default params fallback), have been calculated from the model using very old data, or manually added (without running a model on the perf data).
 
 
-| Op                | Note                                                                      |
-| ----------------- | ------------------------------------------------------------------------- |
-| depthwise         | no perf sweep template; manually added params
-| reduce-r          | current params don't perform well
-| reduce-c          | current params don't perform well
-| reduce-z          | current params don't perform well
-| splice            | perf sweep template added recently; params should be recalculated
-| embedding         | no params
-| ethernet_datacopy | no params
-| tilizer           | no params
-| quantization      | no params
-| dequantization    | no params
-| requantization    | no params
-| topk              | no params
-| fused op          | no params; currently, FE doesn't call BBE API for fused op estimation, but has its own approximation
+| Op                 | Note                                                                      |
+| -----------------  | ------------------------------------------------------------------------- |
+| depthwise          | no perf sweep template; manually added params
+| reduce-r           | current params don't perform well
+| reduce-c           | current params don't perform well
+| reduce-z           | current params don't perform well
+| splice             | perf sweep template added recently; params should be recalculated
+| embedding          | no params
+| ethernet_datacopy  | no params
+| tilizer            | no params
+| topk               | no params
+| fused op           | no params; currently, FE doesn't call BBE API for fused op estimation, but has its own approximation
+| int8 matmul_sparse | no params; defaults to FP data formats 
 
-GENERAL NOTE: No estimation parameters were calculated for ops supporting INT8 and INT32 types. They should be added as well.

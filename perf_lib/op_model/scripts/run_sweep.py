@@ -15,6 +15,7 @@ from logger_utils import logger
 from performance_model import parse_perf_sweep_results, run_eltwise_perf_regression, run_matmul_perf_regression, run_matmulV2_perf_regression
 from perf_sweep import get_op_type_from_arg
 from perf_test_base import OpType 
+from op_model.scripts.sweep_configurations import DEFAULT_CONFIGURATIONS
 
 
 PERF_SWEEP_SCRIPT                      = "./perf_lib/perf_sweep.py"
@@ -41,6 +42,7 @@ OP_TYPE_TO_MODEL_WH_B0 = {
     OpType.ReduceMax: run_eltwise_perf_regression,
     OpType.Splice: run_eltwise_perf_regression,
     OpType.Matmul: run_matmulV2_perf_regression,
+    OpType.Quant: run_eltwise_perf_regression
 }
 
 class ProgramConfig:
@@ -94,6 +96,12 @@ class ProgramConfig:
         else:
             return f"{self.config_dir}/{op['op_config_file']}"
 
+    def get_config_overrides(self, op):
+        if 'config_overrides' not in op:
+            return ""
+        
+        return json.dumps(op['config_overrides'])
+
     def get_additional_arguments(self, op):
         if 'additional_arguments' not in op:
             return ""
@@ -130,12 +138,13 @@ class ProgramConfig:
 # If some of templates from config file has been already executed,
 # then perf_sweep.py is executed only for remaining templates
 class PerfSweepCommand:
-    def __init__(self, op_type, op_name, config_file, perf_sweep_op_output_dir, perf_sweep_op_output_file, additional_arguments):
+    def __init__(self, op_type, op_name, config_file, perf_sweep_op_output_dir, perf_sweep_op_output_file, config_overrides, additional_arguments):
         self.op_type = op_type
         self.op_name = op_name
         self.op_config_file = config_file
         self.perf_sweep_op_output_dir = perf_sweep_op_output_dir
         self.perf_sweep_op_output_file = perf_sweep_op_output_file
+        self.config_overrides = config_overrides
         self.additional_arguments = additional_arguments
 
         self.start_index = self.get_currently_generated_count()
@@ -170,6 +179,9 @@ class PerfSweepCommand:
 
         if self.op_config_file != "":
             cmd += f" --config-file {self.op_config_file}"
+
+        if self.config_overrides != "":
+            cmd += f" --config-overrides '{self.config_overrides}'"
 
         if self.additional_arguments != "":
             cmd += f" {self.additional_arguments}"
@@ -224,7 +236,7 @@ def get_program_config():
     parser.add_argument("--config-dir", required=False,  type=str, default=DEFAULT_CONFIG_DIR, help="path to perf sweep csv")
     parser.add_argument("--raw-data-output-dir", required=False,  type=str, default=DEFAULT_RAW_DATA_OUTPUT_DIR, help="path to perf sweep csv")
     parser.add_argument("--continue-run", action="store_true", default=False, help="continue with generating data")
-    parser.add_argument("--operations-cfg", required=False,  type=str, default=DEFAULT_OPERATIONS_FILE, help="path to operations config file")
+    parser.add_argument("--operations-cfg", required=False,  type=str, default=None, help="path to operations config file")
     parser.add_argument("--op-name", required=False,  type=str, default="", help="name of operation to generate")
     parser.add_argument("--op-type", required=False,  type=str, default="", help="type of operation to generate")
 
@@ -237,9 +249,13 @@ def get_program_config():
     program_config.skip_perf_sweep = state.skip_perf_sweep
     program_config.skip_performance_model = state.skip_performance_model
 
-    assert os.path.exists(state.operations_cfg), f"operations config file {state.operations_cfg} does not exist"
-    with open(state.operations_cfg, 'r') as file:
-        program_config.operations = json.load(file)
+    if state.operations_cfg is not None:
+        assert os.path.exists(state.operations_cfg), f"operations config file {state.operations_cfg} does not exist"
+        with open(state.operations_cfg, 'r') as file:
+            program_config.operations = json.load(file)
+    else:
+        program_config.operations = DEFAULT_CONFIGURATIONS
+
     if state.op_name != "":
         program_config.operations = [op for op in program_config.operations if op["op_name"] == state.op_name]
     if state.op_type != "":
@@ -255,9 +271,10 @@ def create_command(program_config: ProgramConfig, op: dict):
     perf_sweep_output_dir = program_config.get_perf_sweep_op_output_dir(op)
     output_file = program_config.get_perf_sweep_op_output_file(op)
     op_config_file = program_config.get_op_config_file(op)
+    config_overrides = program_config.get_config_overrides(op)
     additional_arguments = program_config.get_additional_arguments(op)
 
-    command = PerfSweepCommand(op_type, op_name, op_config_file, perf_sweep_output_dir, output_file, additional_arguments)
+    command = PerfSweepCommand(op_type, op_name, op_config_file, perf_sweep_output_dir, output_file, config_overrides, additional_arguments)
     return command
 
 def execute_perf_sweep(program_config: ProgramConfig):
@@ -305,7 +322,7 @@ def run_performance_model(program_config: ProgramConfig):
         op_type = get_op_type_from_arg(program_config.get_op_type(op), OpType)
         op_name = program_config.get_op_name(op)
         if op_type in op_type_to_model and op_name != "all":
-            if op_type == OpType.Unary:
+            if op_type == OpType.Unary and not op_name.startswith("nop"):
                 params_for_op = filter_results_and_run_performance_model(op, op_type_to_model[op_type], {"Vector-Mode": "rc"})
 
                 params_for_op_r = filter_results_and_run_performance_model(op, op_type_to_model[op_type], {"Vector-Mode": "r"})

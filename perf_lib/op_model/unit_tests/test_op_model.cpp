@@ -43,7 +43,7 @@ void check_estimates_with_perf_sweep_data(
         float runtime = tt::calculate_runtime(perf_sweep_result, op_name);
         uint32_t estimate = tt::get_op_cycles_for_perf_sweep_result(perf_sweep_result, op_type, op_name, arch_name, latest_param_version, "");
         float ratio = float(estimate) / runtime;
-        
+
         EXPECT_GT(ratio, lower_bound);
         EXPECT_LT(ratio, upper_bound);
     }
@@ -423,6 +423,39 @@ TEST(OpModel, VectorModeCycles) {
 
     EXPECT_LT(observed_c, observed_rc) << "C " << observed_c << " cycles must be lower than RC " << observed_rc << " cycles";
     EXPECT_LT(observed_r, observed_c) << "R " << observed_r << " cycles must be lower than C " << observed_c << " cycles";
+}
+
+TEST(OpModel, EltwiseIntPerfSweepCheck) {
+    std::vector<std::vector<std::string>> ops_info = {
+        {"unary", "nop", "nop-int8-op-performance.csv"},
+        {"unary", "nop", "nop-int32-op-performance.csv"},
+        {"binary", "add", "add-int8-op-performance.csv"},
+        {"binary", "add", "add-int32-op-performance.csv"},
+        {"binary", "subtract", "subtract-int8-op-performance.csv"},
+        {"binary", "multiply", "multiply-int8-op-performance.csv"},
+        {"binary", "multiply", "multiply-int8-op-performance.csv"},
+        {"binary", "maximum", "maximum-int8-op-performance.csv"},
+        {"binary", "maximum", "maximum-int32-op-performance.csv"},
+        {"binary", "quantization", "quantization-int8-op-performance.csv"},
+        {"binary", "requantization", "requantization-int8-op-performance.csv"},
+        {"binary", "requantization", "requantization-int32-op-performance.csv"},
+        {"binary", "dequantization", "dequantization-int8-op-performance.csv"},
+        {"binary", "dequantization", "dequantization-int32-op-performance.csv"},
+    };
+
+    for (const auto& op_info : ops_info) {
+        check_estimates_with_perf_sweep_data(tt::ARCH::WORMHOLE_B0, op_info[0], op_info[1], op_info[2], 0.8, 1.2);
+    }
+}
+
+TEST(OpModel, MatmulIntPerfSweepCheck) {
+    std::vector<std::vector<std::string>> ops_info = {
+        {"matmul", "matmul", "matmul-int32-op-performance.csv"},
+    };
+
+    for (const auto& op_info : ops_info) {
+        check_estimates_with_perf_sweep_data(tt::ARCH::WORMHOLE_B0, op_info[0], op_info[1], op_info[2], 0.5, 1.2);
+    }
 }
 
 // This test just makes sure that perf estimates don't crash

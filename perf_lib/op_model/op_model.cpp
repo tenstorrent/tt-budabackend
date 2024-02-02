@@ -14,7 +14,7 @@ namespace tt {
 
 const std::unordered_map<ARCH, std::uint32_t> OpModel::VERSIONS = {
         {ARCH::GRAYSKULL, 2},
-        {ARCH::WORMHOLE_B0, 2},
+        {ARCH::WORMHOLE_B0, 3},
 };
 
 // These won't be needed once we migrate the API to use enums instead of strings for architecture, type, etc.
@@ -51,7 +51,15 @@ void validate(const tt_op_model_desc& op_desc, tt::ARCH arch) {
     log_assert(op_desc.ublock_ct > 0, "Must have valid ublock_ct");
     log_assert(op_desc.vector_mode != SfpuVectorMode::Invalid, "Must have valid vector_mode");
     log_assert(op_desc.version > 0, "Versioning starts from 1");
-    log_assert(op_desc.version <= OpModel::VERSIONS.at(arch), "Version {} doesn't exist for arch {}", op_desc.version, op_desc.arch);
+    log_assert(
+        op_desc.version <= OpModel::VERSIONS.at(arch),
+        "Version {} doesn't exist for arch {}",
+        op_desc.version,
+        op_desc.arch);
+    log_assert(
+        arch == ARCH::WORMHOLE_B0 ||
+            (op_desc.data_format != DataFormat::Int8 && op_desc.data_format != DataFormat::Int32),
+        "Int data formats are supported on B0 only.");
 }
 
 uint32_t get_math_weight(MathFidelity math_fidelity) {
@@ -111,17 +119,48 @@ float get_sparse_matmul_math_fidelity_weight(MathFidelity math_fidelity) {
 }
 
 std::string OpModel::get_weight_attr(const tt_op_model_desc& op_desc) {
+    DataFormat format = op_desc.data_format;
     if (op_desc.type == "matmul") {
-        DataFormat format = op_desc.data_format;
         if (format == DataFormat::Bfp2 || format == DataFormat::Bfp2_b || format == DataFormat::Bfp4 ||
             format == DataFormat::Bfp4_b || format == DataFormat::Bfp8 || format == DataFormat::Bfp8_b) {
             return "bfp";
         }
-    } else if (op_type(op_desc) == OpType::Unary) {
+    }
+    if (op_type(op_desc) == OpType::Unary) {
         if (op_desc.vector_mode == SfpuVectorMode::R) {
             return "vector_r";
         } else if (op_desc.vector_mode == SfpuVectorMode::C) {
             return "vector_c";
+        }
+    }
+
+    // INT8 params are supported on B0 starting with version 3
+    if (op_desc.version >= 3) {
+        // eltwise int8
+        if (op_type(op_desc) == OpType::Binary || op_desc.type == "nop") {
+            if (op_desc.data_format == DataFormat::Int8) {
+                return "int8";
+            }
+        }
+        // eltwise int32
+        static std::unordered_set<std::string> ops_supporting_int32 = {
+            "nop",
+            "add",
+            "dequantization",
+            "requantization",
+            "maximum",
+        };
+        if (ops_supporting_int32.find(op_desc.type) != ops_supporting_int32.end()) {
+            if (op_desc.data_format == DataFormat::Int32) {
+                return "int32";
+            }
+        };
+
+        // matmul
+        if (op_desc.type == "matmul") {
+            if (op_desc.data_format == DataFormat::Int8 || op_desc.data_format == DataFormat::Int32) {
+                return "int32";
+            }
         }
     }
     return "";
