@@ -1425,6 +1425,10 @@ void tt_runtime::post_instrn_instruction_callback(netlist_program &program) {
             dynamic_alloc_info_map[target_device].qs_to_alloc.insert({q_name, workload.queues.at(q_name)});
             dynamic_alloc_info_map[target_device].qs_to_dealloc.insert(qs_to_sync.begin(), qs_to_sync.end());
 
+            // Issue #2513 - Not supported currently. Unclear if this use case make sense.
+            const auto &dual_view_rams = workload.get_dual_view_rams_map();
+            log_assert(dual_view_rams.find(q_name) == dual_view_rams.end(), "Dynamically allocated dual view RAM currently not supported");
+
             // Use coarse-grain per device sync from host and create queue (performed later)
             if (qs_to_sync.size() > 0) {
                 log_debug(tt::LogRuntime, "allocate queue = {} overlaps with dyamic queues: {}", q_name, fmt::join(qs_to_sync, ", "));

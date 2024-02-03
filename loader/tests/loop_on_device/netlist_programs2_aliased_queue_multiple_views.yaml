@@ -1,47 +1,135 @@
-# Untilize directly to queue allocated in host memory
+# Combined test for semi interesting dual/multi view ram io-queue update cases for loader.
 
 devices:
   arch: [grayskull, wormhole, wormhole_b0]
 
-  # writer : {type: ram,    input: unary0, entries: 224, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
-  # reader : {type: ram,    input: HOST, alias: writer, entries: 32, grid_size: [1, 1], t: 7, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
-
-
 queues:
-  in0:                {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  in1:                {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
-  cache_reader0:      {type: ram,   input: HOST                          , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
-  cache_reader1:      {type: ram,   input: HOST    , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
-  cache_writer0:      {type: ram,   input: unary0  , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
-  cache_writer1:      {type: ram,   input: unary2  , alias: cache_reader0, entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
-  out0:               {type: queue, input: unary1  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
-  out1:               {type: queue, input: unary3  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+
+  # For programs 0,1
+  in0:                {type: queue, input: HOST    , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in1:                {type: queue, input: HOST    , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30100000]]}
+  cache_reader0:      {type: ram,   input: HOST                          , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30200000]]}
+  cache_reader1:      {type: ram,   input: HOST    , alias: cache_reader0, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30200000]]}
+  cache_writer0:      {type: ram,   input: unary0  , alias: cache_reader0, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30200000]]}
+  cache_writer1:      {type: ram,   input: unary2  , alias: cache_reader0, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30200000]]}
+  out0:               {type: queue, input: unary1  , entries: 20, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  out1:               {type: queue, input: unary3  , entries: 20, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10100000]]}
+
+  # For programs 2,3
+  in2:                {type: queue, input: HOST    , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30400000]]}
+  in3:                {type: queue, input: HOST    , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30500000]]}
+  cache_reader2:      {type: ram,   input: HOST    , alias: cache_reader3, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30600000]]}
+  cache_reader3:      {type: ram,   input: HOST                          , entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30600000]]}
+  cache_writer2:      {type: ram,   input: unary4  , alias: cache_reader3, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30600000]]}
+  cache_writer3:      {type: ram,   input: unary6  , alias: cache_reader3, entries: 10, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30600000]]}
+  out2:               {type: queue, input: unary5  , entries: 20, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10200000]]}
+  out3:               {type: queue, input: unary7  , entries: 20, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10300000]]}
+
+  # For programs 4,5
+  in4:                {type: queue, input: HOST    , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000], [0, 0x31100000], [0, 0x31200000], [0, 0x31300000]]}
+  in5:                {type: queue, input: HOST    , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31400000], [0, 0x31500000], [0, 0x31600000], [0, 0x31700000]]}
+  cache_reader4:      {type: ram,   input: HOST                          , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31800000], [0, 0x31900000], [0, 0x31A00000], [0, 0x31B00000]]}
+  cache_reader5:      {type: ram,   input: HOST    , alias: cache_reader4, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31800000], [0, 0x31900000], [0, 0x31A00000], [0, 0x31B00000]]}
+  cache_writer4:      {type: ram,   input: unary8  , alias: cache_reader4, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31800000], [0, 0x31900000], [0, 0x31A00000], [0, 0x31B00000]]}
+  cache_writer5:      {type: ram,   input: unary10 , alias: cache_reader4, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31800000], [0, 0x31900000], [0, 0x31A00000], [0, 0x31B00000]]}
+  out4:               {type: queue, input: unary9  , entries: 20, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  out5:               {type: queue, input: unary11 , entries: 20, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11400000], [0, 0x11500000], [0, 0x11600000], [0, 0x11700000]]}
+
+  # For programs 6,7
+  in6:                {type: queue, input: HOST    , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000], [0, 0x32100000], [0, 0x32200000], [0, 0x32300000]]}
+  in7:                {type: queue, input: HOST    , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32400000], [0, 0x32500000], [0, 0x32600000], [0, 0x32700000]]}
+  cache_reader6:      {type: ram,   input: HOST    , alias: cache_reader7, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32800000], [0, 0x32900000], [0, 0x32A00000], [0, 0x32B00000]]}
+  cache_reader7:      {type: ram,   input: HOST                          , entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32800000], [0, 0x32900000], [0, 0x32A00000], [0, 0x32B00000]]}
+  cache_writer6:      {type: ram,   input: unary12 , alias: cache_reader7, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32800000], [0, 0x32900000], [0, 0x32A00000], [0, 0x32B00000]]}
+  cache_writer7:      {type: ram,   input: unary14 , alias: cache_reader7, entries: 10, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32800000], [0, 0x32900000], [0, 0x32A00000], [0, 0x32B00000]]}
+  out6:               {type: queue, input: unary13 , entries: 20, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12100000], [0, 0x12200000], [0, 0x12300000]]}
+  out7:               {type: queue, input: unary15 , entries: 20, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12400000], [0, 0x12500000], [0, 0x12600000], [0, 0x12700000]]}
+
 
 graphs:
-
+  # For prorams 0,1
   graph0_writer:
     target_device: 0
-    input_count: 4
+    input_count: 2
     unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
   graph0_reader:
     target_device: 0
-    input_count: 4
+    input_count: 2
     unary1: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [cache_reader0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
-
   graph1_writer:
     target_device: 0
-    input_count: 4
+    input_count: 2
     unary2: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
   graph1_reader:
     target_device: 0
-    input_count: 4
+    input_count: 2
     unary3: {type: nop, grid_loc: [3, 0], grid_size: [1, 1], inputs: [cache_reader1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # For programs 2,3
+  graph2_writer:
+    target_device: 0
+    input_count: 2
+    unary4: {type: nop, grid_loc: [0, 1], grid_size: [1, 1], inputs: [in2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph2_reader:
+    target_device: 0
+    input_count: 2
+    unary5: {type: nop, grid_loc: [1, 1], grid_size: [1, 1], inputs: [cache_reader2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph3_writer:
+    target_device: 0
+    input_count: 2
+    unary6: {type: nop, grid_loc: [2, 1], grid_size: [1, 1], inputs: [in3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph3_reader:
+    target_device: 0
+    input_count: 2
+    unary7: {type: nop, grid_loc: [3, 1], grid_size: [1, 1], inputs: [cache_reader3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # For prorams 4,5
+  graph4_writer:
+    target_device: 0
+    input_count: 2
+    unary8: {type: nop, grid_loc: [0, 2], grid_size: [2, 2], inputs: [in4], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph4_reader:
+    target_device: 0
+    input_count: 2
+    unary9: {type: nop, grid_loc: [2, 2], grid_size: [2, 2], inputs: [cache_reader4], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph5_writer:
+    target_device: 0
+    input_count: 2
+    unary10: {type: nop, grid_loc: [4, 2], grid_size: [2, 2], inputs: [in5], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph5_reader:
+    target_device: 0
+    input_count: 2
+    unary11: {type: nop, grid_loc: [6, 2], grid_size: [2, 2], inputs: [cache_reader5], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # For programs 6,7
+  graph6_writer:
+    target_device: 0
+    input_count: 2
+    unary12: {type: nop, grid_loc: [0, 4], grid_size: [2, 2], inputs: [in6], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph6_reader:
+    target_device: 0
+    input_count: 2
+    unary13: {type: nop, grid_loc: [2, 4], grid_size: [2, 2], inputs: [cache_reader6], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph7_writer:
+    target_device: 0
+    input_count: 2
+    unary14: {type: nop, grid_loc: [4, 4], grid_size: [2, 2], inputs: [in7], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph7_reader:
+    target_device: 0
+    input_count: 2
+    unary15: {type: nop, grid_loc: [6, 4], grid_size: [2, 2], inputs: [cache_reader7], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
 
 
 programs:
-  - program_0:
+
+  ##################################################################################################
+  # Single Core Versions ###########################################################################
+  ##################################################################################################
+
+  # Programs 0,1 : Original test, multiple views in single program.
+  - program_0_single_core:
       - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
-      - var: {$c_loop_count: 5, $c_input_count: 4, $c_input_wrap: 160, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
       - loop: $c_loop_count
       - execute: {graph_name: graph0_writer, queue_settings: {
           in0:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
@@ -52,10 +140,9 @@ programs:
       - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
       - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
       - endloop
-
-  - program_1:
+  - program_1_single_core:
       - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
-      - var: {$c_loop_count: 5, $c_input_count: 4, $c_input_wrap: 160, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
       - loop: $c_loop_count
       - execute: {graph_name: graph1_writer, queue_settings: {
           in1:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
@@ -67,6 +154,95 @@ programs:
       - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
       - endloop
 
+  # Programs 2,3 - like original test, but swap order/names or alias rams. Was showing a sync-cores cache lookup bug where queue named was used initially to compute
+  # sync cores, but base name was used as cache key. Then later io-queue update lookup used cache entry with fewer sync cores.  Fix was to lookup using base name.
+  - program_2_single_core_swap_order:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph2_writer, queue_settings: {
+          in2:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer2: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph2_reader, queue_settings: {
+          cache_reader2: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+  - program_3_single_core_swap_order:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph3_writer, queue_settings: {
+          in3:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer3: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph3_reader, queue_settings: {
+          cache_reader3: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+  ##################################################################################################
+  # Multi Core Versions (external sync list feature for updating queues) ###########################
+  ##################################################################################################
+
+  # Programs 4,5 : Original test, multiple views in single program. Multicore version.
+  - program_4_multi_core:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph4_writer, queue_settings: {
+          in4:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer4: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph4_reader, queue_settings: {
+          cache_reader4: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+  - program_5_multi_core:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph5_writer, queue_settings: {
+          in5:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer5: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph5_reader, queue_settings: {
+          cache_reader5: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+  # Programs 6,7 - like original test, but swap order/names or alias rams. Was showing a sync-cores cache lookup bug where queue named was used initially to compute
+  # sync cores, but base name was used as cache key. Then later io-queue update lookup used cache entry with fewer sync cores.  Fix was to lookup using base name.
+  - program_6_multi_core_swap_order:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph6_writer, queue_settings: {
+          in6:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer6: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph6_reader, queue_settings: {
+          cache_reader6: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+  - program_7_multi_core_swap_order:
+      - staticvar: {$lptr0: 0, $gptr0: 0, $gptr1: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 2, $c_input_wrap: 20, $v_cache_write: 0, $c_write_stride: 1, $c_one: 1, $c_zero: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph7_writer, queue_settings: {
+          in7:           {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          cache_writer7: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $v_cache_write, rd_ptr_global: $c_zero, global_wrptr_autoinc: $c_write_stride}}}
+      - execute: {graph_name: graph7_reader, queue_settings: {
+          cache_reader7: {prologue: false, epilogue: false, zero: false, read_only: true, wr_ptr_global: $c_zero, rd_ptr_global: $gptr1, global_rdptr_autoinc: $c_one}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
 
 test-config:
   comparison-config:
@@ -81,5 +257,5 @@ test-config:
     normal_mean: 0.0
     normal_stddev: 0.1
   io-config:
-    inputs: [in0, in1]
-    outputs: [out0, out1]
+    inputs: [in0, in1, in2, in3, in4, in5, in6, in7]
+    outputs: [out0, out1, out2, out3, out4, out5, out6, out7]

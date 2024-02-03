@@ -1630,7 +1630,7 @@ vector<uint32_t> tt_epoch_loader::get_q_header_binaries(
     return qcmd;
 }
 
-vector<uint32_t> tt_epoch_loader::get_buffer_update_read_binaries(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, const map<string, tt_queue_wrap> &queues, const buda_soc_description &sdesc) {
+vector<uint32_t> tt_epoch_loader::get_buffer_update_read_binaries(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, const map<string, tt_queue_wrap> &queues, const buda_soc_description &sdesc) {
     vector<uint32_t> qcmd(2 * buffers.size(), 0);
     std::uint32_t qcmd_vector_idx = 0;
     for(const auto& buf : buffers) {
@@ -1876,7 +1876,7 @@ void tt_epoch_loader::generate_allocate_queue_binaries(
         }
     }
     if(state.external_binary_cache.find(key) == state.external_binary_cache.end()) {
-        std::vector<std::tuple<std::string, tt_queue_allocation_info>> buffers_to_alloc = {};
+        std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>> buffers_to_alloc = {};
         std::tuple<std::vector<std::unordered_set<tt_xy_pair>>, std::vector<tt_hex>, std::vector<uint32_t>> cache_entry;
         bool cached_binaries_found = (state.external_binary_cache.find(alloc_key) != state.external_binary_cache.end());
         state.external_binary_cache.insert({key, cache_entry});
@@ -1891,13 +1891,13 @@ void tt_epoch_loader::generate_allocate_queue_binaries(
             log_assert(queue_info.loc == QUEUE_LOCATION::DRAM, "Only DRAM IO queue supports dynamic allocation from device!");
             log_assert(target_device == queue_info.target_device, "All batch allocated queues must be on the same device");
             for(const auto& buf : queue_info.alloc_info) {
-                buffers_to_alloc.push_back({queue_info.name, buf});
+                buffers_to_alloc.push_back({queue_info.name, buf, false}); // Dual view rams not supported, currently.
             }
         }
         auto buf_it = buffers_to_alloc.begin();
         uint32_t split_count = 0;
         while(buf_it != buffers_to_alloc.end()) {
-            std::vector<std::tuple<std::string, tt_queue_allocation_info>> bufs_to_alloc = {};
+            std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>> bufs_to_alloc = {};
             while(buf_it != buffers_to_alloc.end()) {
                 if(bufs_to_alloc.size() >= epoch_queue::get_queue_update_blob_num_entries()) {
                     break;
@@ -2167,7 +2167,7 @@ void tt_epoch_loader::preload_epoch_queues(const map<string, tt_digraph> &graphs
     }
 }
 
-void tt_epoch_loader::get_unique_consumer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set) {
+void tt_epoch_loader::get_unique_consumer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set) {
     for(const auto& buf : buffers) {
         queue_buffer_info buf_info = {.queue_name = std::get<0>(buf), .alloc_info = std::get<1>(buf)};
         bool found_buf = false;
@@ -2209,7 +2209,7 @@ void tt_epoch_loader::get_unique_consumer_cores_from_queue_buffer(
     }
 }
 
-void tt_epoch_loader::get_unique_producer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set) {
+void tt_epoch_loader::get_unique_producer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set) {
     for(const auto& buf : buffers) {
         bool found_buf = false;
         queue_buffer_info buf_info = {.queue_name = std::get<0>(buf), .alloc_info = std::get<1>(buf)};
@@ -2604,7 +2604,7 @@ void tt_epoch_loader::update_io_queue_settings(const map<string, tt_queue_wrap> 
         if (update_settings) {
             ctrl.set_cached_io_qs_wrap(queue_info, header_wrap, update_mask);
             if (update_from_device) {
-                update_io_queue_setting_from_device(queue_info, is_dual_view_ram, header_wrap, update_mask, queues);
+                update_io_queue_setting_from_device(queue_info, header_wrap, update_mask, queues, dual_view_rams);
             } else {
                 update_io_queue_setting_from_host(queue_info, header_wrap, update_mask);
             }
@@ -2614,11 +2614,14 @@ void tt_epoch_loader::update_io_queue_settings(const map<string, tt_queue_wrap> 
     }
 }
 
-void tt_epoch_loader::update_io_queue_setting_from_device(const tt_queue_info &queue_info, bool is_dual_view_ram, const tt_queue_header_wrap &header_wrap, const tt_queue_header_mask &header_mask, const map<string, tt_queue_wrap> &queues) {
+void tt_epoch_loader::update_io_queue_setting_from_device(const tt_queue_info &queue_info, const tt_queue_header_wrap &header_wrap, const tt_queue_header_mask &header_mask,
+ const map<string, tt_queue_wrap> &queues, const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams) {
+
     const std::string queue_name = queue_info.name;
     buda_soc_description &sdesc = cluster->get_soc_desc(queue_info.target_device);
     auto &dram_allocators = dram_mgr[queue_info.target_device]->get_dram_allocators();
     auto &device_epoch_ctrl = *epoch_ctrl[queue_info.target_device];
+    bool is_dual_view_ram = dual_view_rams.find(queue_name) != dual_view_rams.end();
     // Max threshold for inlining queue update cmds
     const static int max_num_buffers_for_inline = get_max_num_buffers_for_inline(2);
 
@@ -2674,7 +2677,7 @@ void tt_epoch_loader::update_io_queue_setting_from_device(const tt_queue_info &q
         std::vector<uint32_t> num_buffers_per_group = {};
         std::string cache_key = "";
 
-        generate_queue_update_external_binaries({queue_name}, cache_key, queues, sync_type, sdesc, sync_cores_per_group, external_binaries_per_group, num_buffers_per_group, false);
+        generate_queue_update_external_binaries({queue_name}, cache_key, queues, dual_view_rams, sync_type, sdesc, sync_cores_per_group, external_binaries_per_group, num_buffers_per_group, false);
         uint64_t binary_size = epoch_queue::get_queue_update_blob_size_bytes();
         for(int buf_group = 0; buf_group < sync_cores_per_group.size(); buf_group++) {
             std::string group_cache_key = cache_key + std::to_string(buf_group);
@@ -3450,17 +3453,22 @@ void tt_epoch_loader::generate_and_send_varinst_cmds_inline(const tt_varinst_que
 
 // Generate Binary, where binary is a list of buffer DRAM addr/channels, placed in a DRAM queue. If number of buffers would exceed binary size, split into smaller binaries.
 void tt_epoch_loader::generate_queue_update_external_binaries(
-    const std::set<std::string>& queue_names, std::string& cache_key, const map<string, tt_queue_wrap> &queues, 
+    const std::set<std::string>& queue_names, std::string& cache_key, const map<string, tt_queue_wrap> &queues,
+    const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams,
     const tt_queue_settings_sync_type &sync_type, const buda_soc_description& sdesc, std::vector<std::unordered_set<tt_xy_pair>>& sync_cores_per_group,
     std::vector<tt_hex>& external_binaries_per_group, std::vector<uint32_t>& num_buffers_per_group, bool loop_on_device) {
 
+    std::set<std::string> queue_base_names;
     cache_key = (loop_on_device ? "VARINST_EXTERNAL_" : "IO_UPDATE_EXTERNAL_")  + std::to_string((int)sync_type) + "_";
     for(const auto& queue : queue_names) {
-        cache_key += queue + ",";
+        const auto &queue_info = queues.at(queue).my_queue_info;
+        const auto queue_base_name = get_base_queue_name(queue_info);
+        queue_base_names.insert(queue_base_name);
+        cache_key += queue_base_name + ",";
     }
     
     if(state.external_binary_cache.find(cache_key) == state.external_binary_cache.end()) {
-        std::vector<std::tuple<std::string, tt_queue_allocation_info>> buffers_to_update = {};
+        std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>> buffers_to_update = {};
 
         std::tuple<std::vector<std::unordered_set<tt_xy_pair>>, std::vector<tt_hex>, std::vector<uint32_t>> cache_entry;
         state.external_binary_cache.insert({cache_key, cache_entry});
@@ -3470,17 +3478,18 @@ void tt_epoch_loader::generate_queue_update_external_binaries(
         auto& num_buffers_in_group =  std::get<2>(state.external_binary_cache.at(cache_key));
 
         std::set<int> queue_device_ids_set = {};
-        for(const auto& queue : queue_names) {
+        for(const auto& queue : queue_base_names) {
             const tt_queue_info &queue_info = queues.at(queue).my_queue_info;
             queue_device_ids_set.insert(queue_info.target_device);
+            bool is_dual_view_ram = dual_view_rams.find(queue) != dual_view_rams.end();
             for(const auto& buf : queue_info.alloc_info) {
-                buffers_to_update.push_back({queue, buf});
+                buffers_to_update.push_back({queue, buf, is_dual_view_ram});
             }
         }
         log_assert(queue_device_ids_set.size() == 1, "Queues covering more than one target_device is not supported/expected");
         auto buf_it = buffers_to_update.begin();
         while(buf_it != buffers_to_update.end()) {
-            std::vector<std::tuple<std::string, tt_queue_allocation_info>> bufs_to_update = {};
+            std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>> bufs_to_update = {};
             while(buf_it != buffers_to_update.end()) {
                 if(bufs_to_update.size() >= epoch_queue::get_queue_update_blob_num_entries()) {
                     break;
@@ -3491,11 +3500,19 @@ void tt_epoch_loader::generate_queue_update_external_binaries(
             std::vector<uint32_t> update_binaries = get_buffer_update_read_binaries(bufs_to_update, queues, sdesc);
             external_binaries.push_back(tt_hex(update_binaries, tt_hex_type::Misc, nullptr));
             sync_cores.push_back({});
-            if ((sync_type == tt_queue_settings_sync_type::SyncOnConsumers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth)){
-                get_unique_consumer_cores_from_buffers(bufs_to_update, sync_cores.back(), true);
-            }
-            if ((sync_type == tt_queue_settings_sync_type::SyncOnProducers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth)){
-                get_unique_producer_cores_from_buffers(bufs_to_update, sync_cores.back(), true);
+
+            for (const auto &buffer : bufs_to_update) {
+
+                const auto& queue_base_name     = std::get<0>(buffer);
+                const auto& alloc               = std::get<1>(buffer);
+                const auto& is_dual_view_ram    = std::get<2>(buffer);
+
+                if ((sync_type == tt_queue_settings_sync_type::SyncOnProducers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
+                    get_unique_producer_cores_from_queue_buffer(queue_base_name, alloc, sync_cores.back(), true);
+                }
+                if ((sync_type == tt_queue_settings_sync_type::SyncOnConsumers) || (sync_type == tt_queue_settings_sync_type::SyncOnBoth) || is_dual_view_ram) {
+                    get_unique_consumer_cores_from_queue_buffer(queue_base_name, alloc, sync_cores.back(), true);
+                }
             }
             num_buffers_in_group.push_back(bufs_to_update.size());
         }
@@ -3515,12 +3532,13 @@ void tt_epoch_loader::generate_and_send_varinst_cmds_external(const tt_varinst_q
     auto &dram_allocators       = dram_mgr[target_device]->get_dram_allocators();
     auto &device_epoch_ctrl     = *epoch_ctrl[target_device];
     uint16_t update_mask        = get_varinst_cmd_update_mask(info);
+    const auto &dual_view_rams  = workload.get_dual_view_rams_map();
 
     std::vector<tt_hex> external_binaries_per_group = {};
     std::vector<std::unordered_set<tt_xy_pair>> sync_cores_per_group = {};
     std::vector<uint32_t> num_buffers_per_group = {};
     std::string cache_key = "";
-    generate_queue_update_external_binaries(queue_names, cache_key, workload.queues, info.sync_type, sdesc, sync_cores_per_group, external_binaries_per_group, num_buffers_per_group, true);
+    generate_queue_update_external_binaries(queue_names, cache_key, workload.queues, dual_view_rams, info.sync_type, sdesc, sync_cores_per_group, external_binaries_per_group, num_buffers_per_group, true);
     uint64_t binary_size = epoch_queue::get_queue_update_blob_size_bytes();
     for(int buf_group = 0; buf_group < sync_cores_per_group.size(); buf_group++) {
         std::string group_cache_key = cache_key + std::to_string(buf_group);

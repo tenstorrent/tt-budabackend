@@ -502,7 +502,7 @@ class tt_epoch_loader
 
     static vector<uint32_t> get_q_header_binaries(const tt_queue_allocation_info &alloc_info, const tt_xy_pair &core, const buda_soc_description &soc_descriptor);
     static vector<uint32_t> get_q_update_read_binaries(const tt_queue_info &queue_info, const buda_soc_description &soc_descriptor);
-    static vector<uint32_t> get_buffer_update_read_binaries(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, const map<string, tt_queue_wrap> &queues, const buda_soc_description &sdesc);
+    static vector<uint32_t> get_buffer_update_read_binaries(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, const map<string, tt_queue_wrap> &queues, const buda_soc_description &sdesc);
     //! epoch io
     void create_and_allocate_io_queues(const map<string, tt_queue_wrap> &queues);
     void send_allocate_queue_commands(const map<string, tt_queue_wrap> &queues, const unordered_set<string> &queues_to_dealloc, const bool wait_for_eq = true);
@@ -512,14 +512,14 @@ class tt_epoch_loader
     void write_io_queue_header(vector<uint32_t> &vec, uint32_t offset, const tt_queue_info &queue_info);
 
     void update_io_queue_settings(const map<string, tt_queue_wrap> &queues, const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams, const vector<tt_queue_setting_info> &queue_settings, const std::unordered_map<string, int> &vars, const tt_queue_header_mask &header_mask);
-    void update_io_queue_setting_from_device(const tt_queue_info &queue_info, bool is_dual_view_ram, const tt_queue_header_wrap &header_wrap, const tt_queue_header_mask &header_mask, const map<string, tt_queue_wrap> &queues);
+    void update_io_queue_setting_from_device(const tt_queue_info &queue_info, const tt_queue_header_wrap &header_wrap, const tt_queue_header_mask &header_mask, const map<string, tt_queue_wrap> &queues, const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams);
     void update_io_queue_setting_from_host(const tt_queue_info &queue_info, const tt_queue_header_wrap &header_wrap, const tt_queue_header_mask &header_mask);
     void mark_io_queues_in_use(const map<string, tt_queue_wrap> &queues, const vector<tt_queue_setting_info> &queue_settings);
     void populate_queue_to_core_map_from_net2pipe(const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams, string build_dir_path, int num_temporal_epochs, bool queue_to_producer);
     void populate_dram_decouple_config_map(const netlist_workload_data &workload);
     void write_dram_decouplings_to_queue_headers(const netlist_workload_data &workload, string graph_name, bool reset);
-    void get_unique_producer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set= false);
-    void get_unique_consumer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info>>& buffers, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
+    void get_unique_producer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set = false);
+    void get_unique_consumer_cores_from_buffers(const std::vector<std::tuple<std::string, tt_queue_allocation_info, bool>>& buffers, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
     void get_unique_consumer_cores_from_queues(const unordered_set<string> &queues, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empyt_set = false);
     void get_unique_producer_cores_from_queues(const unordered_set<string> &queues, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set = false);
     void get_unique_consumer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
@@ -540,7 +540,9 @@ class tt_epoch_loader
     std::vector<tt_varinst_queue_update_cmd_info> varinst_cmd_info_list_generate_from_instrns(const tt_runtime_queue_ptrs_wrap &qptrs_wrap, const netlist_workload_data &workload, 
         const unordered_map<string, int> &vars, std::string program_name, int num_iterations);
     void generate_allocate_queue_binaries(const map<string, tt_queue_wrap> &queues, const unordered_set<string> &queues_to_dealloc, const buda_soc_description& sdesc, std::vector<std::unordered_set<tt_xy_pair>>& sync_cores_per_group, std::vector<tt_hex>& external_binaries_per_group, std::vector<uint32_t>& num_buffers_per_group, std::string& key);
-    void generate_queue_update_external_binaries(const std::set<std::string>& queue_names, std::string& cache_key, const map<string, tt_queue_wrap> &queues, const tt_queue_settings_sync_type &sync_type, const buda_soc_description& sdesc, std::vector<std::unordered_set<tt_xy_pair>>& sync_cores_per_group, std::vector<tt_hex>& external_binaries_per_group, std::vector<uint32_t>& num_buffers_per_group, bool loop_on_device);
+    void generate_queue_update_external_binaries(const std::set<std::string>& queue_names, std::string& cache_key, const map<string, tt_queue_wrap> &queues, const std::unordered_map<std::string, dual_view_ram_info_t> &dual_view_rams, 
+        const tt_queue_settings_sync_type &sync_type, const buda_soc_description& sdesc, std::vector<std::unordered_set<tt_xy_pair>>& sync_cores_per_group, std::vector<tt_hex>& external_binaries_per_group, std::vector<uint32_t>& num_buffers_per_group, 
+        bool loop_on_device);
     void varinst_cmd_info_list_merge_commutative(std::vector<tt_varinst_queue_update_cmd_info> &varinst_cmd_infos);
     void varinst_cmd_info_list_merge_local_global(std::vector<tt_varinst_queue_update_cmd_info> &varinst_cmd_infos);
     void generate_and_send_varinst_cmds_from_cmd_info_list(const std::vector<tt_varinst_queue_update_cmd_info> &varinst_cmd_infos, const tt_runtime_workload &workload);
