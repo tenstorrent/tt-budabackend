@@ -288,8 +288,8 @@ int main(int argc, char** argv) {
         auto push_duration = std::chrono::duration_cast<std::chrono::microseconds>(push_end - push_start).count();
         log_info(tt::LogTest, "Push Elapsed Time: {} us", push_duration);
 
-        log_assert(runtime.run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on golden backend");
-        log_assert(runtime.wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfuly on golden backend"); // explicitly wfi before popping from device
+        log_assert(runtime.run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on golden backend");
+        log_assert(runtime.wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on golden backend"); // explicitly wfi before popping from device
 
         // Collect outputs via lazy method that returns all output queues
         log_info(tt::LogTest, "Runtime complete, collecting outputs from device");

@@ -299,11 +299,11 @@ void run_programs_on_device(test_args& args, std::shared_ptr<tt_backend> target_
     }
     for (std::string program_name : programs) {
         if (target_config.type != tt::DEVICE::Invalid) {
-            log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
         if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests and ! args.concurrent) {
             //Only run golden if not checking for determinism
-            log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on golden backend");
+            log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on golden backend");
         }
     }
     // No barriers needed when running with opt level >= 3
@@ -311,10 +311,10 @@ void run_programs_on_device(test_args& args, std::shared_ptr<tt_backend> target_
         // When accessing RAM outputs, there are no pointers for HOST to poll for occupancy
         // since there is no way know when data has been committed to DRAM, let's insert explicit WFI
         if (target_config.type != tt::DEVICE::Invalid) {
-            log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfuly on target backend");
+            log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on target backend");
         }
         if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests and !args.concurrent) {
-            log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfuly on golden backend");
+            log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on golden backend");
         }
     }   
 }
@@ -764,12 +764,12 @@ int run(std::vector<std::string> &input_args)
                     }
 
                     for (std::string program_name : workload.program_order) {
-                        log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on golden backend");
+                        log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on golden backend");
                     }
 
                     if (args.opt_level <= 2) {
                         if (!args.determinism_tests and !args.concurrent) {
-                            log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfuly on golden backend");
+                            log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfully on golden backend");
                         }
                     }
 
@@ -798,10 +798,10 @@ int run(std::vector<std::string> &input_args)
     // Backend teardown
     // ----------------------------------------------------------------
     if (target_config.type != tt::DEVICE::Invalid) {
-        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfuly");
+        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfully");
     }
     if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests) {
-        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfuly");
+        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfully");
     }
 
     // Performance dump summary

@@ -601,21 +601,21 @@ void run_programs(const test_args& args,
     {
         log_info(tt::LogTest, "Running program {}", program_name);
 
-        log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+        log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
 
         if(should_run_golden_backend)
         {
-            log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on golden backend");
+            log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on golden backend");
         }
     }
 
     // When accessing RAM outputs, there are no pointers for HOST to poll for occupancy
     // since there is no way know when data has been committed to DRAM, let's insert explicit WFI
-    log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfuly on target backend");
+    log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on target backend");
 
     if(should_run_golden_backend)
     {
-        log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfuly on golden backend");
+        log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfully on golden backend");
     }
 }
 
@@ -753,8 +753,8 @@ void test_on_minibatches(const test_args& args,
 void teardown_backends(const std::shared_ptr<tt_backend>& target_backend,
                        const std::shared_ptr<tt_backend>& golden_backend)
 {
-    log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfuly");
-    log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfuly");
+    log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfully");
+    log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfully");
 
     log_info(tt::LogTest, "Backends teardown finished");
 }

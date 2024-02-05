@@ -250,7 +250,7 @@ int run(std::vector<std::string> &input_args)
 
         for (std::string program_name : workload.program_order) {
             if (target_config.type != tt::DEVICE::Invalid) {
-                log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfuly");
+                log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfully");
             }
         }
 
@@ -295,7 +295,7 @@ int run(std::vector<std::string> &input_args)
     }
         
     if (target_config.type != tt::DEVICE::Invalid) {
-        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target backend to be closed successfuly");
+        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target backend to be closed successfully");
     }
 
 

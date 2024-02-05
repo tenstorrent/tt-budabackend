@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
         // -----------------------------------------------
         // Backend Runtime API - compile netlist
         // -----------------------------------------------
-        log_assert(backend->compile_netlist(op_netlists.at(op_idx)) == tt::DEVICE_STATUS_CODE::Success, "Expected netlist to be compiled successfuly");
+        log_assert(backend->compile_netlist(op_netlists.at(op_idx)) == tt::DEVICE_STATUS_CODE::Success, "Expected netlist to be compiled successfully");
         tt_backend_config golden_config = {.type = tt::DEVICE::Golden,
                                            .arch = backend_arch};
 
@@ -243,8 +243,8 @@ int main(int argc, char** argv) {
             // -----------------------------------------------
             // Backend Runtime API - run user specified program
             // -----------------------------------------------
-            log_assert(backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfuly on target backend");
-            log_assert(golden_backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfuly on golden backend.");
+            log_assert(backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfully on target backend");
+            log_assert(golden_backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfully on golden backend.");
         }
         // Pop netlist to netlist queues or output queues for golden
         populate_intermed_tensors_for_golden(golden_tensors, workload, golden_backend, output_qs);

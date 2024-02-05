@@ -379,8 +379,8 @@ void test_main(test_args args) {
         log_info(tt::LogTest, "Push Elapsed Time: {} us", push_duration);
 
         for (std::string program_name: workload.program_order) {
-            log_assert(runtime.run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
-            log_assert(runtime.wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfuly on target backend"); // explicitly wfi before popping from device
+            log_assert(runtime.run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
+            log_assert(runtime.wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI to execute successfully on target backend"); // explicitly wfi before popping from device
         }
 
         // Collect outputs via lazy method that returns all output queues

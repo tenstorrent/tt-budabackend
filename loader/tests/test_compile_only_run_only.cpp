@@ -69,7 +69,7 @@ int main(int argc, char** argv)
         tt::io::push_host_inputs(input_io_desc, &tt::io::default_debug_tensor);
 
         for (std::string program : workload.program_order) {
-            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
 
         log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to get closed");
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
         tt::io::push_host_inputs(input_io_desc, &tt::io::default_debug_tensor);
 
         for (std::string program : workload.program_order) {
-            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
 
         log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to get closed");
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
         tt::io::push_host_inputs(input_io_desc, &tt::io::default_debug_tensor);
 
         for (std::string program : workload.program_order) {
-            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(backend->run_program(program, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
 
         log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to get closed");

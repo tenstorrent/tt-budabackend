@@ -460,22 +460,22 @@ int run(std::vector<std::string> &input_args)
             //
             for (std::string program_name : workload.program_order) {
                 if (target_config.type != tt::DEVICE::Invalid) {
-                    log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+                    log_assert(target_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
                 }
 
                 if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests) {
                     //Only run golden if not checking for determinism
-                    log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on golden backend");
+                    log_assert(golden_backend->run_program(program_name, program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on golden backend");
                 }
             }
 
             // When accessing RAM outputs, there are no pointers for HOST to poll for occupancy
             // since there is no way know when data has been committed to DRAM, let's insert explicit WFI
             if (target_config.type != tt::DEVICE::Invalid) {
-                log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfuly on target backend");
+                log_assert(target_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfully on target backend");
             }
             if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests) {
-                log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfuly on golden backend");
+                log_assert(golden_backend->wait_for_idle() == tt::DEVICE_STATUS_CODE::Success, "Expected WFI execute successfully on golden backend");
             }
             
             //
@@ -544,10 +544,10 @@ int run(std::vector<std::string> &input_args)
             int total_num_samples = calculate_total_sample_count(target_backend, workload.queues, args.input_names, args.num_loops);
             runtime->perf_set_total_number_of_samples(total_num_samples);
         }
-        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfuly");
+        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfully");
     }
     if (golden_config.type != tt::DEVICE::Invalid and !args.determinism_tests) {
-        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfuly");
+        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden device to close successfully");
     }
 
     // Performance dump summary

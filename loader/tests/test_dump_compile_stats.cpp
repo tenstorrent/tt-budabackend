@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
         // Interactively run programs
         for (auto const& program : runtime.get_workload()->programs) {
-            log_assert(runtime.run_program(program.first, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(runtime.run_program(program.first, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
         // Shutdown device
         log_assert(runtime.finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target backend to be closed");

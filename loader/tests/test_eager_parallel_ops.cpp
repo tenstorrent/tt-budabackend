@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
         // -----------------------------------------------
         // Backend Runtime API - run user specified program
         // -----------------------------------------------
-        log_assert(backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfuly on target backend");
+        log_assert(backend->run_program(program_name, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to be run successfully on target backend");
     }
 
     // Pop outputs for last op

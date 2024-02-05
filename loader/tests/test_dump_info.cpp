@@ -65,17 +65,17 @@ int main(int argc, char** argv)
         tt_runtime runtime(config.netlist_path, config);
 
         // Start device and statically assemble binaries
-        log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to be initialized successfuly");
+        log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to be initialized successfully");
 
         vector<tt_dram_io_desc> input_io_desc = runtime.get_host_input_io_desc();
         tt::io::push_host_inputs(input_io_desc, &get_tilized_tensor, -1, true/*force_sw_tilize*/);
 
         // Interactively run programs
         for (auto const& program : runtime.get_workload()->programs) {
-            log_assert(runtime.run_program(program.first, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfuly on target backend");
+            log_assert(runtime.run_program(program.first, {}) == tt::DEVICE_STATUS_CODE::Success, "Expected programs to execute successfully on target backend");
         }
         // Shutdown device
-        log_assert(runtime.finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfuly");
+        log_assert(runtime.finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfully");
 
         // Get performance data
         vector<tt::EpochPerfInfo> perf = runtime.get_perf_info();

@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 
     // Cleanup
     try {
-        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfuly");
+        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected target device to close successfully");
     } catch (...) {
         // FIX: perf reporter throws an error; Don't just swallow it.
     }
