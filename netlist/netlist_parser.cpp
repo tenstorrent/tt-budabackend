@@ -3115,6 +3115,33 @@ void netlist_parser::verify_complex_settings() {
                     op_info.dest_accumulate_data_format == DataFormat::Int32,
                     "quantization op must have dest accumulation data format Int32");
             }
+
+            // UInt16 constraints
+            {
+                for (int i = 0; i < op_info.input_data_formats.size(); i++) {
+                    if (op_info.input_data_formats[i] == DataFormat::UInt16) {
+                        if (is_top_k) {
+                            log_assert(i == 1, "Invalid tt_op_info::input_data_formats[{}]. UInt16 is only supported on topk op as input 1", i);
+                        } else {
+                            log_assert(false, "Invalid tt_op_info::input_data_formats[{}]. UInt16 is not supported", i);
+                        }
+                    }
+                }
+
+                log_assert(op_info.intermed_data_format != DataFormat::UInt16,
+                    "Invalid tt_op_info::intermed_data_format. UInt16 is not supported as intermediate format");
+
+                log_assert(op_info.dest_accumulate_data_format != DataFormat::UInt16,
+                    "Invalid tt_op_info::dest_accumulate_data_format. UInt16 is not supported as dest accumulation");
+
+                log_assert(op_info.output_data_format != DataFormat::UInt16 || is_top_k ,
+                    "Invalid tt_op_info::output_data_format. UInt16 is not supported as output format");
+            }
+
+            if (is_top_k) {
+                log_assert(op_info.attributes.sort != TopKSort::ArgMax || op_info.input_data_formats[1] == op_info.output_data_format,
+                    "Invalid topk op configuration. If sort is argmax, input_data_formats[1] must be equal to output_data_format");
+            }
         }
     }
 

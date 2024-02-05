@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "netlist_op_info_types.hpp"
 
+#include "netlist/tt_backend_api_types.hpp"
 #include "netlist_utils.hpp"
 #include "common/size_lib.hpp"
 #include "utils/logger.hpp"
@@ -180,12 +181,18 @@ void verify_gradient_op(const tt_op_info& t) {
 }
 
 void verify(const tt_op_info& t) {
-    if (t.intermed_data_format == DataFormat::Invalid)
-        log_fatal("Invalid tt_op_info::intermed_data_format parsed from netlist");
-    if (t.dest_accumulate_data_format == DataFormat::Invalid)
-        log_fatal("Invalid tt_op_info::dest_accumulate_data_format parsed from netlist");
-    if (t.output_data_format == DataFormat::Invalid)
-        log_fatal("Invalid tt_op_info::output_data_format parsed from netlist");
+    log_assert(
+        t.intermed_data_format != DataFormat::Invalid,
+        "Invalid tt_op_info::dest_accumulate_data_format parsed from netlist");
+
+    log_assert(
+        t.output_data_format != DataFormat::Invalid,
+        "Invalid tt_op_info::output_data_format parsed from netlist");
+
+    log_assert(
+        t.intermed_data_format != DataFormat::Invalid,
+        "Invalid tt_op_info::intermed_data_format parsed from netlist");
+
     if (t.math_fidelity == MathFidelity::Invalid)
         log_fatal("Invalid tt_op_info::math_fidelity parsed from netlist");
     if (t.buf_size_mb < 0)
@@ -223,16 +230,6 @@ void verify(const tt_op_info& t) {
     }
 
     verify(t.attributes);
-    // if (netlist_utils::is_valid_matmul_op(t.type)) {
-    //     if (t.attributes.accumulate) {
-    //         for (const auto& input_dim: t.input_dims){
-    //             log_assert(
-    //                 t.output_dim.t*t.attributes.z == input_dim.t,
-    //                 "Output dim for a matmul with accumulate must have output.t*config.z == input.t"
-    //             );
-    //         }
-    //     }
-    // }
 
     if(netlist_utils::is_valid_reduce_op(t.type) and t.dest_accumulate_data_format == DataFormat::Float32) {
         // tenstorrent/budabackend#1464
