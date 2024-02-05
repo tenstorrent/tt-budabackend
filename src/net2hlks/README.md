@@ -35,38 +35,32 @@
 5. All ops inside the fused op have the same math fidelity, it is not possible to set individual op math fidelity.
 6. Intermed buffers can't be used outside of the shedule where they are produced, unless the producing op is matmul or reduce, or 
    mblock dimension is [1, 1].
-7. Intermediate buffers cannot be reused for different size of the ublock.
-8. All fused operations must have the same ublock order.
-9. Reduce row expects input to come in column-major order, so if input comes from an intermediate buffer, the fused op needs to
+7. All fused operations must have the same ublock order.
+8. Reduce row expects input to come in column-major order, so if input comes from an intermediate buffer, the fused op needs to
    have a column-major ublock order. If the input comes from an external input, the order is handled properly.
-10. Reduce column expects input to come in row-major order, so if input comes from an intermediate buffer, the fused op needs to have
+9. Reduce column expects input to come in row-major order, so if input comes from an intermediate buffer, the fused op needs to have
     a row-major ublock order. If the input comes from an external input, the order is handled properly.
-11. Transpose TM is not supported.
-12. Binary Sfpu ops (add with Int32 inputs, maximum, quantisation, requantisation and dequantisation) limits:
+10. Transpose TM is not supported.
+11. Binary Sfpu ops (add with Int32 inputs, maximum, quantisation, requantisation and dequantisation) limits:
    * Internal fused op broadcasts are not supported
    * dest is not supported as op output.
 
 #### Matmul
 12. Matmul input1 can be forked only if it's a column of ublocks or if it's fork(s) go to another matmul input1.
-13. Matmul input 0 can come from the intermediate buffer only if input 1 of the matmul is a column of ublocks.
-14. Matmul input 1 can come from the intermediate buffer only if its mblock dimensions are [1, 1] because intermed buffer can fit only
-   2 ublocks with double buffering. Otherwise, it needs to come from the fused op input buffer.
-15. Matmul input1 can be forked only if it's a column of ublocks or if it's fork(s) go to another matmul input1.
-16. Matmul input 0 can come from the intermediate buffer only if input 1 of the matmul is a column of ublocks.
-17. Matmul input 1 can come from the intermediate buffer only if its mblock dimensions are [1, 1] because intermed buffer can fit only
-   2 ublocks with double buffering. Otherwise, it needs to come from the fused op input buffer.
-18. Matmul and reduce op cannot output directly to output if m_k != 1 - they need to output to intermediate buffer in this case.
+13. Matmul input1 can come from the intermediate buffer only if its mblock dimensions are [1, 1] because intermed buffer can fit only
+   2 ublocks with double buffering. Otherwise, it needs to come from the fused op input buffer
+14. Matmul and reduce op cannot output directly to output if m_k != 1 - they need to output to intermediate buffer in this case.
 
 #### Broadcasts
-19. Mblock dimension that is broadcasted needs to be 1 (row bcast -> mb_m == 1; col bcast -> mb_n == 1) because intermed buffer can fit only
+15. Mblock dimension that is broadcasted needs to be 1 (row bcast -> mb_m == 1; col bcast -> mb_n == 1) because intermed buffer can fit only
    2 ublocks with double buffering.
-20. If we do mblock row broadcast, mblock column also needs to be 1 because intermed buffer can fit only 2 ublocks with double buffering.
-21. Input ublock dimension that is broadcasted needs to be 1 because HLK implementation doesn't support the correct indexing
+16. If we do mblock row broadcast, mblock column also needs to be 1 because intermed buffer can fit only 2 ublocks with double buffering.
+17. Input ublock dimension that is broadcasted needs to be 1 because HLK implementation doesn't support the correct indexing
    (row bcast -> ub_r == 1; col bcast -> ub_c == 1). ([issue 1064](tenstorrent/budabackend#1064))
-22. R and C broadcast are supported only on the inputs coming from the intermediate buffers.
-23. RC broadcast is not supported. (issue [#1134](tenstorrent/budabackend#1134))
-24. Matmul column bcast is supported on input0 only for cases (m, 1)(r, c) -> (m, n)(r, k) and (m, n)(r, c) -> (m, n)(r, k)
-25. If input for matmul is coming from intermed buffer, then these constraints apply (and if it's coming from outside inputs, the constraints don't apply):
+18. R and C broadcast are supported only on the inputs coming from the intermediate buffers.
+19. RC broadcast is not supported. (issue [#1134](tenstorrent/budabackend#1134))
+20. Matmul column bcast is supported on input0 only for cases (m, 1)(r, c) -> (m, n)(r, k) and (m, n)(r, c) -> (m, n)(r, k)
+21. If input for matmul is coming from intermed buffer, then these constraints apply (and if it's coming from outside inputs, the constraints don't apply):
    - If input0 is coming from intermed, and it is not broadcasted, then the dimensions must follow this rule: mblock(m, n) ublock(r, c), n == m_k and c == u_kt. 
      If input is broadcasted, this doesn't apply.
    - If input1 is coming from intermed, then the dimensions must follow this rule: mblock(m, n) ublock(r, c), m == m_k and r == u_kt.

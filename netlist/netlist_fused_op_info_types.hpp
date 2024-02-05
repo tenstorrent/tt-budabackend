@@ -93,7 +93,8 @@ struct tt_fused_op_info {
 
     //! Derived and copied from the base op that references this... should not be assigned in fused_op
     //vector<bool> single_tile = {}; // tenstorrent/budabackend#863
-    vector<std::pair<int, bool>> kernel_broadcast = {}; // tenstorrent/budabackend#863, also 2182
+    vector<std::pair<int, bool>> kernel_broadcast = {};  // tenstorrent/budabackend#863, also 2182
+    std::array<int, 8> intermed_buff_size_in_tiles = { 0 };
 };
 
 void verify(const tt_scheduled_op_info& t, tt::ARCH arch, const tt_fused_op_info& fused_op_info, bool last_op_in_schedule);

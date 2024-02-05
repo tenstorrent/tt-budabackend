@@ -1016,7 +1016,6 @@ std::shared_ptr<tt_op> netlist_utils::create_op(
             input_tile_dims,
             out_tile_dims,
             op_info_ptr->attributes.stoch_rnd_mode));
-        get_map_of_max_dims_per_intermed(fused_ops_map.at(fused_op_id));
         get_map_of_consumer_ops_per_input(*op_info_ptr, fused_ops_map);
         get_map_of_tile_broadcasting_per_input(fused_ops_map.at(fused_op_id));
     } else if (is_valid_embedding_op(op_info_ptr->type)) {
@@ -1204,26 +1203,6 @@ bool netlist_utils::is_queueless_multichip_supported(const tt::ARCH& device) {
         case tt::ARCH::WORMHOLE_B0: return true;
         default: return false;
     }
-}
-
-std::unordered_map<std::string, tt_dim_info> netlist_utils::get_map_of_max_dims_per_intermed(
-    const tt_fused_op_info& fused_op_info) {
-    std::unordered_map<std::string, tt_dim_info> results = {};
-    for (const auto& schedule : fused_op_info.schedules) {
-        for (const auto& scheduled_op : schedule.scheduled_ops) {
-            if (scheduled_op.output.find("intermed") == 0) {
-                // Intermediate output -- Check if ublock size is bigger
-                if (results.find(scheduled_op.output) == results.end()) {
-                    results.insert({scheduled_op.output, scheduled_op.output_dim});
-                } else if (
-                    scheduled_op.output_dim.ublock_ct * scheduled_op.output_dim.ublock_rt >
-                    results.at(scheduled_op.output).ublock_ct * results.at(scheduled_op.output).ublock_rt) {
-                    results.at(scheduled_op.output) = scheduled_op.output_dim;
-                }
-            }
-        }
-    }
-    return results;
 }
 
 std::unordered_map<std::string, bool> netlist_utils::get_map_of_tile_broadcasting_per_input(

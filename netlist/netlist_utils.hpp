@@ -108,7 +108,6 @@ std::shared_ptr<tt_op> create_op(
 bool is_queueless_multichip_supported(const tt::ARCH& device);
 
 // Helper Functions for fused op
-std::unordered_map<std::string, tt_dim_info> get_map_of_max_dims_per_intermed(const tt_fused_op_info& fused_op_info);
 std::unordered_map<std::string, tt_scheduled_op_info> get_map_of_consumer_ops_per_input(
     const tt_op_info& base_op_info, const unordered_map<string, tt_fused_op_info>& fused_ops_map);
 std::unordered_map<std::string, bool> get_map_of_tile_broadcasting_per_input(const tt_fused_op_info& fused_op_info);

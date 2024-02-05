@@ -202,6 +202,10 @@ static bool is_first_op_in_schedule(const tt_schedule_info &schedule, const tt_s
     return &schedule.scheduled_ops.front() == &op;
 }
 
+static bool is_matmul_with_intermed_input0_and_non_column_input1(const tt_scheduled_op_info &matmul_op) {
+    return is_intermed(matmul_op.input_names[0]) && matmul_op.output_dim.mblock_n > 1 && matmul_op.m_k > 1;
+}
+
 static void begin_schedule(ofstream &hlks, const tt_schedule_info &schedule) {
     if (is_schedule_with_matmul(schedule) || is_schedule_with_reduce(schedule)) {
         begin_macro_block_index_check(hlks, schedule.scheduled_ops.back());
@@ -209,6 +213,10 @@ static void begin_schedule(ofstream &hlks, const tt_schedule_info &schedule) {
         if (schedule_has_loop(schedule)) {
             if (is_schedule_with_matmul(schedule)) {
                 hlks << "for(int oid = 0; oid < " << schedule.scheduled_ops.back().m_k << "; ++oid) {" << endl;
+                if (is_matmul_with_intermed_input0_and_non_column_input1(schedule.scheduled_ops.back())) {
+                    hlks << "if (n_block == 0) {" << endl;
+                } 
+
             } else {
                 hlks << "for(int block= 0; block< " << schedule.scheduled_ops.back().m_k << "; ++block) {" << endl;
             }
@@ -1401,6 +1409,10 @@ void Net2Hlks::insert_hlks_body(ofstream &hlks, const tt_fused_op_info &fused_op
         auto last_op_in_schedule = schedule.scheduled_ops.back();
         bool has_matmul_mblock_bcast =
             schedule_has_matmul_bcast(schedule) && is_matmul_bcast_mblock(last_op_in_schedule);
+        bool has_matmul_with_intermed_input0_and_non_column_input1 = false;
+        if (matmul_m_k > 0) {
+            has_matmul_with_intermed_input0_and_non_column_input1 = is_matmul_with_intermed_input0_and_non_column_input1(schedule.scheduled_ops.back());
+        }
 
         prev_op_in_schedule.type = "invalid";
         prev_op_in_schedule.output = "invalid";
@@ -1408,8 +1420,12 @@ void Net2Hlks::insert_hlks_body(ofstream &hlks, const tt_fused_op_info &fused_op
         begin_schedule(hlks, schedule);
 
         for (const auto &curr_op : schedule.scheduled_ops) {
-            bool op_needs_oid_guard = (has_loop && has_matmul_mblock_bcast && !is_matmul(curr_op));
+            bool is_matmul_op = is_matmul(curr_op);
+            bool op_needs_oid_guard = (has_loop && has_matmul_mblock_bcast && !is_matmul_op);
 
+            if (is_matmul_op && has_matmul_with_intermed_input0_and_non_column_input1) {
+                hlks << "}" << endl; // end f (n_block == 0) { for matmul schedule with intermed input0 and non column input1
+            }
             hlks << "// ----------------------------- " << endl;
             hlks << "// OP: " << curr_op.name << endl;
             hlks << "// ----------------------------- " << endl;

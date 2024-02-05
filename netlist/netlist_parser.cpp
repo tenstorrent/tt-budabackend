@@ -1879,18 +1879,49 @@ void netlist_parser::derive_complex_settings() {
                 // Copy the kernel_broadcast vector to fused_op_map
                 fused_op_info.kernel_broadcast = op_it.second.attributes.kernel_broadcast;
 
-                // Copy the fused_op_info to the base op_info
-                op_it.second.fused_op_info = fused_op_info;
-
                 // Fill in the information unique to each fused_op invocation at the graph
-                for (auto &schedule : op_it.second.fused_op_info.schedules) {
+                for (auto &schedule : fused_op_info.schedules) {
                     for (auto &scheduled_op : schedule.scheduled_ops) {
                         scheduled_op.output_dim.t = op_it.second.output_dim.t;
                         scheduled_op.output_dim.ublock_order = op_it.second.output_dim.ublock_order;
                     }
                 }
 
+                // Find intermed buff size requirements.
+                for (const auto &schedule : fused_op_info.schedules) {
+                    int ublock_mutliplier = 1;
+                    int matmul_0_intermed_index = -1;
+                    const auto &last_op = schedule.scheduled_ops.back();
+                    bool schedule_ends_with_matmul = netlist_utils::is_valid_matmul_op(last_op.type);
+                    bool non_column_input1 = last_op.output_dim.mblock_n > 1;
+                    bool intermed_buff_input0 = last_op.input_names[0].find("intermed") != std::string::npos;
+                    if (schedule_ends_with_matmul && non_column_input1 && intermed_buff_input0) {
+                        // This is a schedule which ends with matmul and input0 of this matmul is an intermed buffer
+                        // and input1 is non-column matrix.
+                        // In this case we need to extend the size of intermed buffer which is the input0 of this matmul
+                        // to hold m_k micro blocks of input0.
+                        matmul_0_intermed_index = atoi(&last_op.input_names[0].back());
+                        ublock_mutliplier = last_op.m_k;
+                    }
+
+                    for (auto &scheduled_op : schedule.scheduled_ops) {
+                        if (scheduled_op.output.find("intermed") != std::string::npos) {
+                            int intermed_index = atoi(&scheduled_op.output.back());
+                            int ublock_size = scheduled_op.output_dim.ublock_ct * scheduled_op.output_dim.ublock_rt;
+                            int tile_size_requirement = ublock_size;
+                            if (!netlist_utils::is_valid_matmul_op(scheduled_op.type) && matmul_0_intermed_index == intermed_index) {
+                                tile_size_requirement *= ublock_mutliplier;
+                            }
+                            fused_op_info.intermed_buff_size_in_tiles[intermed_index] = std::max(
+                                fused_op_info.intermed_buff_size_in_tiles[intermed_index], tile_size_requirement);
+                        }
+                    }
+                }
+
                 fused_ops_op_map.insert({op_it.first + "_" + fused_op_id, fused_op_info});
+
+                // Copy the fused_op_info to the base op_info
+                op_it.second.fused_op_info = fused_op_info;
             } else if (op_it.second.type == "splice") {
                 bool keep_specified_for_all_inputs = op_it.second.input_dims.size() == op_it.second.attributes.splice_infos.size();
                 log_assert(keep_specified_for_all_inputs,

@@ -1931,9 +1931,14 @@ int Net2Pipe::compute_intermediate_buffer_size_tiles(const tt_op_info &op_info, 
         else
             int_size_tiles = output_size_tiles;
     } else if (n2p::op_is_fused(op_info)) {
-        std::unordered_map<std::string, tt_dim_info> int_dims = netlist_utils::get_map_of_max_dims_per_intermed(op_info.fused_op_info);
-        tt_dim_info int_dim = int_dims["intermed" + to_string(int_id)];
-        int_size_tiles = int_dim.ublock_rt * int_dim.ublock_ct;
+        int_size_tiles = op_info.fused_op_info.intermed_buff_size_in_tiles[int_id];
+        // It can happen that fused op declares that it's using more intermed buffer than it actually does.
+        // In this case analysis of the fused op will fail to provide non zero values for tile count for intermed buffers
+        // which are declared as used but are not actually used.
+        // Previous version of the code acidentally was returning 1 (as it was doing "int_dim.ublock_rt *
+        // int_dim.ublock_ct; where both values defaulted to -1 and return 1 in the end")
+        // Later stages of the code relied on this behaviour, so here we return 1 for backward compatibility.
+        int_size_tiles = std::max(int_size_tiles, 1);
     } else if (n2p::op_is_topk(op_info)){
         int_size_tiles = op_info.input_dims[0].mblock_m * op_info.input_dims[0].mblock_n *
                          op_info.input_dims[0].ublock_ct * op_info.input_dims[0].ublock_rt;
