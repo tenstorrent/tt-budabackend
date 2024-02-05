@@ -50,6 +50,10 @@ class tt_core
 {
     static constexpr int MAX_BUFFER_COUNT = 64; // up to 1 per stream
     public:
+
+    // Whether to initialize simulation memory in constructor (not needed usually)
+    const static bool init_tt_core;
+
     tt::tt_logical_physical_core_coords core_coords;
     tt::tt_hlk_desc local_desc;
     tt::tt_buffer *b_arr[64] = {NULL};

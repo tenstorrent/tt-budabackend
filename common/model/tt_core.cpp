@@ -10,6 +10,8 @@
 #include "model/dram.hpp"
 #include "model/op.hpp"
 
+const bool tt_core::init_tt_core = std::getenv("TT_CORE_INIT") == nullptr ? false : true;
+
 void tt_core::init_b_arr_num_free_and_packed_tiles() {
         for (int buf_index = 0; buf_index < MAX_BUFFER_COUNT; buf_index++) {
             b_arr_num_free_tiles[buf_index] = 0;
@@ -19,6 +21,10 @@ void tt_core::init_b_arr_num_free_and_packed_tiles() {
 
     tt_core::tt_core(tt::tt_hlk_desc desc, tt::tt_op *op_ptr, int max_num_dst_tiles) : local_desc(desc), next_bufid(0), next_param_bufid(8), next_intermediate_bufid(24), next_in_bufid(0), dst_valid(false), my_op_ptr(op_ptr)
     {
+        if (init_tt_core == false) {
+            return;
+        }
+
         core_coords.logical_coords.relative.row = desc.core_rc[0];
         core_coords.logical_coords.relative.col = desc.core_rc[1];
         core_coords.logical_coords.absolute.row = desc.core_rc[0];
