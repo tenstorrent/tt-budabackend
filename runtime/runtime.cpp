@@ -997,7 +997,7 @@ void tt_runtime::create_graphs_and_init_queues() {
     loader->send_static_binaries();
     loader->create_and_allocate_epoch_queues(this->distribute_epoch_tables);
     loader->create_and_allocate_io_queues(workload.queues);
-    loader->get_unique_epoch_trisc_binaries(workload.graphs, workload.graph_order);
+    loader->populate_unique_epoch_trisc_binaries_map(workload.graphs);
     loader->preload_epoch_queues(workload.graphs, workload.graph_order);
     workload.identify_all_dual_view_rams();
 

@@ -44,13 +44,8 @@ void print_binary_cache_report(const std::string &output_report, tt_epoch_binary
 void register_early_exit_function(void (*f)(int));
 void restore_handler_and_raise(int sig);
 
-// Path manipulation for dealing with symlinks for binaries
-inline std::string get_abs_base_path(fs::path path) {
-    return fs::canonical(path).string();
-}
-
-// Convert op_base_path to unique_op_index.
-inline uint32_t get_unique_op_index(tt_epoch_control* ctrl, std::string op_base_path) {
-    log_assert(ctrl->op_path_to_unique_op_idx.find(op_base_path) != ctrl->op_path_to_unique_op_idx.end(), "{} - Couldn't find {} in map", __FUNCTION__, op_base_path);
-    return ctrl->op_path_to_unique_op_idx.at(op_base_path);
+// Convert op_path to unique_op_index.
+inline uint32_t get_unique_op_index(tt_epoch_control* ctrl, std::string op_path) {
+    log_assert(ctrl->op_path_to_unique_op_idx.find(op_path) != ctrl->op_path_to_unique_op_idx.end(), "{} - Couldn't find {} in map", __FUNCTION__, op_path);
+    return ctrl->op_path_to_unique_op_idx.at(op_path);
 }

@@ -517,24 +517,37 @@ UniqueCompileConfigMap get_unique_compilation_configs(
         num_total_ops += op_index;
     }
 
-    bool dump = true;
-    if (dump) {
-        log_trace(tt::LogCompileTrisc, "Unique Compilation Instances:");
-        uint32_t count = 0;
-        for (auto& it : compilation_map) {
-            log_trace(tt::LogCompileTrisc, "[{}]: {} -> ", count, it.first);
-            for (auto& e : it.second) {
-                log_trace(tt::LogCompileTrisc, "{}, ", e);
-            }
-            log_trace(tt::LogCompileTrisc, "\n");
-            count++;
-        }
-    }
 
     log_debug(tt::LogCompileTrisc, "Number of unique HLK/Hex compiles: {}", compilation_map.size());
     log_debug(tt::LogCompileTrisc, "Number of total HLK/Hex compiles: {}", num_total_ops);
 
     return compilation_map;
+}
+
+void write_trisc_unique_ops_yaml(const string& build_dir_path, UniqueCompileConfigMap& compilation_map) {
+
+    PROFILE_SCOPE_MS();
+
+    YAML::Node trisc_unique_ops_map;
+
+    log_trace(tt::LogCompileTrisc, "Unique Compilation Instances:");
+    uint32_t count = 0;
+    for (auto& it : compilation_map) {
+        log_trace(tt::LogCompileTrisc, "[{}]: {} -> ", count, it.first);
+        trisc_unique_ops_map[it.first.op_path][it.first.op_path]["graph_name"]  = it.first.graph_name;
+        for (auto& e : it.second) {
+            log_trace(tt::LogCompileTrisc, "{}, ", e);
+            trisc_unique_ops_map[it.first.op_path][e.op_path]["graph_name"] = e.graph_name;
+        }
+        log_trace(tt::LogCompileTrisc, "\n");
+        count++;
+    }
+
+
+    std::ofstream fout(build_dir_path + "/trisc_unique_ops.yaml");
+    fout << trisc_unique_ops_map;
+    fout.close();
+
 }
 
 void generate_compile_time_constants_file(
@@ -891,6 +904,10 @@ void generate_trisc_fw(
 
     UniqueCompileConfigMap unique_compile_configs = get_unique_compilation_configs(
         build_dir_path, workload.graphs, device_name, perf_desc, workload, compile_for_perf_only);
+
+
+    // To support Kernel Cache
+    write_trisc_unique_ops_yaml(build_dir_path, unique_compile_configs);
 
     tt::parallel_for(
         unique_compile_configs.begin(),

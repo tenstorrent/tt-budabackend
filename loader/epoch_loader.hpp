@@ -142,7 +142,7 @@ class tt_epoch_binary
     vector<std::shared_ptr<tt_hex>> eth_hex_vec;
 
     // For kernel cache, identify which globally unique op trisc binaries belong to.
-    vector<string> op_base_path_vec;
+    vector<string> op_path_vec;
     inline static std::string SKIP_KERNELS_FLAG(){ return "";}
 
     vector <uint32_t> get_risc_binary(string path, uint32_t id);
@@ -525,7 +525,7 @@ class tt_epoch_loader
     void get_unique_consumer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, std::unordered_set<tt_xy_pair>& all_readers, bool allow_empty_set = false);
     void get_unique_producer_cores_from_queue_buffer(const string& queue_name, const tt_queue_allocation_info& alloc_info, std::unordered_set<tt_xy_pair>& all_writers, bool allow_empty_set = false);
     void preload_epoch_queues(const map<string, tt_digraph> &graphs, const std::vector<string> &graph_order);
-    void get_unique_epoch_trisc_binaries(const map<string, tt_digraph> &graphs, const std::vector<string> &graph_order);
+    void populate_unique_epoch_trisc_binaries_map(const map<string, tt_digraph> &graphs);
     tt_queue_header_wrap get_queue_header_wrap(tt_queue_info queue_info, tt_queue_setting_info queue_setting, const unordered_map<string, int> &vars);
     void insert_sync_on_cores(tt_epoch_control& ctrl, const std::unordered_set<tt_xy_pair>& cores_to_sync = {});
     void insert_full_grid_sync(tt_epoch_control &ctrl);

@@ -454,9 +454,6 @@ void tt_epoch_binary::get_epoch_binaries(
         log_trace(tt::LogLoader, "Getting binaries for op {} w/ index {}", op->name, op_index);
         log_trace(tt::LogLoader, "Grid shape {}", op->get_grid_shape());
 
-        // Store op_base_path in epoch binary obj for kernel cache layout/sending.
-        auto op_base_path = get_abs_base_path(op_path);
-
         for(int rr=0; rr<op->get_grid_shape().r; ++rr)
         {
             for(int cc=0; cc<op->get_grid_shape().c; ++cc)
@@ -465,7 +462,7 @@ void tt_epoch_binary::get_epoch_binaries(
                     sdesc.worker_log_to_routing_x.at(op->cores[rr][cc]->get_logical_absolute_col_id()), 
                     sdesc.worker_log_to_routing_y.at(op->cores[rr][cc]->get_logical_absolute_row_id())
                 );
-                this->op_base_path_vec.push_back(op_base_path);
+                this->op_path_vec.push_back(op_path); // For easier kernel cache layout/sending.
                 this->trisc0_bin_vec.push_back(tt_hex(get_trisc_binary(op_path, 0), tt_hex_type::Trisc0, core_xy));
                 this->trisc1_bin_vec.push_back(tt_hex(get_trisc_binary(op_path, 1), tt_hex_type::Trisc1, core_xy));
                 this->trisc2_bin_vec.push_back(tt_hex(get_trisc_binary(op_path, 2), tt_hex_type::Trisc2, core_xy));
@@ -481,7 +478,7 @@ void tt_epoch_binary::get_epoch_binaries(
     for (const auto &physical_worker_core : sdesc.workers) {
         bool core_unused = used_worker_physical_cores.find(physical_worker_core) == used_worker_physical_cores.end();
         if (core_unused) {
-            this->op_base_path_vec.push_back(tt_epoch_binary::SKIP_KERNELS_FLAG());
+            this->op_path_vec.push_back(tt_epoch_binary::SKIP_KERNELS_FLAG());
             this->trisc0_bin_vec.push_back(tt_hex(get_empty_trisc_binary(), tt_hex_type::Trisc0, physical_worker_core));
             this->trisc1_bin_vec.push_back(tt_hex(get_empty_trisc_binary(), tt_hex_type::Trisc1, physical_worker_core));
             this->trisc2_bin_vec.push_back(tt_hex(get_empty_trisc_binary(), tt_hex_type::Trisc2, physical_worker_core));
@@ -2078,71 +2075,64 @@ tt_epoch_id_aliasing_sync_tracker& tt_epoch_loader::get_epoch_id_aliasing_sync_t
 }
 
 
-// For Kernel Cache: Collect all unique trisc binaries across all epochs for assigning indices and later preloading to devices DRAM.
-void tt_epoch_loader::get_unique_epoch_trisc_binaries(const map<string, tt_digraph> &graphs, const std::vector<string> &graph_order) {
+// For Kernel Cache: Using compile-time yaml on unique ops, determine number of and unique op indices per device, for later preloading to devices DRAM.
+void tt_epoch_loader::populate_unique_epoch_trisc_binaries_map(const map<string, tt_digraph> &graphs) {
 
     if (!kernel_cache_enabled) {
         return;
     }
 
-    PROFILE_SCOPE_MS();
-    auto kernel_cache_num_slots = dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS();
-
-    // Initialize starting unique op indices per device.
-    std::unordered_map<uint32_t, uint32_t> unique_op_idx_per_device_id;
-    for (auto &device_id : target_devices){
-        unique_op_idx_per_device_id[device_id] = 0;
-    }
-
-    std::unordered_set<std::string> unique_ops_all_chips = {};
+    std::unordered_map<uint32_t, std::unordered_map<std::string, uint32_t>> op_path_to_idx_map; // op_path to unique_idx per device_id.
     uint32_t total_ops = 0;
 
-    for (auto &graph_name : graph_order) {
-        map<string, tt_op_info>::const_iterator it_op;
-        string epoch_path       = this->output_dir + "/graph_" + graph_name;
-        const auto &graph       = graphs.at(graph_name);
-        const auto &op_map      = graph.my_graph_info.op_map;
-        const auto device_id    = graph.my_graph_info.target_device;
-        auto *ctrl              = epoch_ctrl[device_id];
-        auto &unique_op_idx     = unique_op_idx_per_device_id[device_id];
-        auto dram_chan_map      = cluster->get_soc_desc(device_id).get_dram_chan_map();
-        uint32_t op_index       = 0;
+    // Load unique op info generated during compile time.
+    std::string trisc_unique_ops_yaml = this->output_dir + "/trisc_unique_ops.yaml";
+    log_assert(fs::exists(trisc_unique_ops_yaml),  "{} does not exist, but is required for Kernel Cache.", trisc_unique_ops_yaml);
+    YAML::Node trisc_unique_ops_map = YAML::LoadFile(trisc_unique_ops_yaml);
 
-        for (it_op = op_map.begin(); it_op != op_map.end(); it_op++, op_index++) {
-            string op_path = epoch_path + "/op_" + to_string(op_index);
+    for (const auto &op_it1 : trisc_unique_ops_map) {
+        auto unique_op_path     = op_it1.first.as<string>();
+        total_ops               += op_it1.second.size();
 
-            if (netlist_utils::is_non_tensix_op(it_op->second.type)) {
-                continue;
-            }
+        for (const auto &op_it2 : op_it1.second) {
+            auto op_path            = op_it2.first.as<string>();
+            auto graph_name         = op_it2.second["graph_name"].as<string>();
+            auto device_id          = graphs.at(graph_name).my_graph_info.target_device;
+            auto &ctrl              = *epoch_ctrl.at(device_id);
+            auto dram_chan_map      = cluster->get_soc_desc(device_id).get_dram_chan_map();
+            uint32_t unique_op_idx  = 0;
 
-            auto base_op_path = get_abs_base_path(op_path);
-            unique_ops_all_chips.insert(base_op_path);
-            total_ops++;
-
-            // Determine if this op is unique or redundant for this chip.
-            if (ctrl->op_path_to_unique_op_idx.find(base_op_path) == ctrl->op_path_to_unique_op_idx.end()) {
-                ctrl->op_path_to_unique_op_idx[base_op_path] = unique_op_idx;
+            // If this unique op path has not been seen before for this device, claim next unique_op_idx
+            // and mark all dram channels as preloaded. Update map to associate op_path with unique_op_idx.
+            if (op_path_to_idx_map[device_id].count(unique_op_path) == 0) {
+                unique_op_idx = op_path_to_idx_map[device_id].size();
+                ctrl.op_path_to_unique_op_idx[op_path] = unique_op_idx;
                 for (int dram_channel = 0; dram_channel < dram_chan_map.size(); dram_channel++) {
-                    ctrl->unique_op_idx_per_ch_binary_preloaded[unique_op_idx][dram_channel] = false;
+                    ctrl.unique_op_idx_per_ch_binary_preloaded[unique_op_idx][dram_channel] = false;
                 }
-                log_trace(tt::LogLoader, "{} device_id: {} op_path: {} unique: 1 base_op_path: {} unique_op_indx: {}", __FUNCTION__, device_id, op_path, base_op_path, unique_op_idx);
-                unique_op_idx++;
+                op_path_to_idx_map[device_id][unique_op_path] = unique_op_idx;
+            } else {
+                unique_op_idx = op_path_to_idx_map[device_id][unique_op_path];
+                ctrl.op_path_to_unique_op_idx[op_path] = unique_op_idx;
             }
+
+            log_debug(tt::LogLoader, "{} - device_id: {} unique_op_idx: {} from graph_name: {} op_path: {} ", __FUNCTION__, device_id, unique_op_idx, graph_name, op_path);
         }
     }
 
-    // Done collecting unique ops across graphs, device. Ensure sufficient slots.
+    // Done assigning unique ops per device. Ensure sufficient number of kernel cache slots.
+    auto kernel_cache_num_slots = dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS();
     uint32_t max_unique_ops_per_chip = 0;
     for (auto &device_id : target_devices){
-        auto num_unique_ops_on_device = epoch_ctrl[device_id]->op_path_to_unique_op_idx.size();
+        auto num_unique_ops_on_device = op_path_to_idx_map.at(device_id).size();
         max_unique_ops_per_chip = num_unique_ops_on_device > max_unique_ops_per_chip ? num_unique_ops_on_device : max_unique_ops_per_chip;
-        log_trace(tt::LogLoader, "{} - Found {} unique ops for device_id: {}", __FUNCTION__, num_unique_ops_on_device, device_id);
+        log_debug(tt::LogLoader, "{} - Found {} unique ops for device_id: {}", __FUNCTION__, num_unique_ops_on_device, device_id);
         log_assert(num_unique_ops_on_device <= kernel_cache_num_slots, "Insufficient kernel cache slots for device_id: {} (binaries: {} num_slots: {})",
             device_id, num_unique_ops_on_device, kernel_cache_num_slots);
     }
 
-    log_debug(tt::LogLoader, "Finished {} total_ops: {} unique_ops: {} across {} graphs on {} device(s) w/ max_unique_ops_per_chip: {} (num kernel cache slots required)",
-        __FUNCTION__, total_ops, unique_ops_all_chips.size(), graph_order.size(), target_devices.size(), max_unique_ops_per_chip);
+    log_debug(tt::LogLoader, "Finished {} w/ total_ops: {} unique_ops: {} across {} graphs on {} device(s) w/ max_unique_ops_per_chip: {} (num kernel cache slots required)",
+        __FUNCTION__, total_ops, trisc_unique_ops_map.size(), graphs.size(), target_devices.size(), max_unique_ops_per_chip);
 
 }
 
@@ -2889,13 +2879,13 @@ bool tt_epoch_loader::lay_out_binaries(const tt_epoch_program_info &info, bool e
             dram_profiler.add_report_for_binary_alloc_entry(ctrl, info.target_device, dram_channel, dram_subchannel, dram_start_addr, binary_size, routing_core, info.name);
 
             // If binary has no trisc kernels for this core - can skip allocating, and sending. FW will skip loading them, addr is ignored.
-            bool skip_kernels = bin->op_base_path_vec[i] == tt_epoch_binary::SKIP_KERNELS_FLAG();
+            bool skip_kernels = bin->op_path_vec[i] == tt_epoch_binary::SKIP_KERNELS_FLAG();
 
             if (kernel_cache_enabled && !skip_kernels) {
-                uint32_t unique_op_index = get_unique_op_index(ctrl, bin->op_base_path_vec[i]);
+                uint32_t unique_op_index = get_unique_op_index(ctrl, bin->op_path_vec[i]);
                 dram_start_addr_kernels = dram_allocators[dram_channel].alloc_kernel_cache_bin_at_slot_idx(dram_mem::address_map::TRISC_BINARY_SIZE, unique_op_index);
                 // log_trace(tt::LogLoader, "{} kernel_cache_enabled: 1 core: {} unique_op_index: {} dram_start_addr: 0x{:x} dram_start_addr_kernels: 0x{:x} op_base_path: {}",
-                //     __FUNCTION__, routing_core.str(), unique_op_index, dram_start_addr, dram_start_addr_kernels, bin->op_base_path_vec[i]);
+                //     __FUNCTION__, routing_core.str(), unique_op_index, dram_start_addr, dram_start_addr_kernels, bin->op_path_vec[i]);
             }
 
             // Assign dram channel and address to all binaries on current core
@@ -3031,11 +3021,11 @@ void tt_epoch_loader::send_epoch_binaries(const tt_epoch_program_info &info) {
 
         // Skip sending empty kernels always. Kernel cache enabled only preloads unique trisc binaries.
         auto trisc_bin_dram_channel = bin->trisc0_bin_vec[hex_id].d_chan;
-        bool skip_kernels = bin->op_base_path_vec[hex_id] == tt_epoch_binary::SKIP_KERNELS_FLAG();
+        bool skip_kernels = bin->op_path_vec[hex_id] == tt_epoch_binary::SKIP_KERNELS_FLAG();
         bool send_trisc_binary = !skip_kernels;
         
         if (send_trisc_binary && kernel_cache_enabled) {
-            uint32_t unique_op_index = get_unique_op_index(ctrl, bin->op_base_path_vec[hex_id]);
+            uint32_t unique_op_index = get_unique_op_index(ctrl, bin->op_path_vec[hex_id]);
             send_trisc_binary = !ctrl->unique_op_idx_per_ch_binary_preloaded.at(unique_op_index).at(trisc_bin_dram_channel);
             ctrl->unique_op_idx_per_ch_binary_preloaded[unique_op_index][trisc_bin_dram_channel] = true;
         }
