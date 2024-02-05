@@ -97,7 +97,7 @@ struct temporal_epoch_context {
   std::map<std::string, std::map<int, std::map<int, std::map<int, std::uint64_t>>>> op_input_buf_map;
   std::map<std::string, std::map<int, std::map<int, std::map<int, std::uint64_t>>>> op_intermediate_buf_map;
   std::map<std::string, std::map<int, std::map<int, std::uint64_t>>> op_output_buf_map;
-  std::map<std::string, std::map<std::string, consumer_to_producer_tile_map>> op_input_tm_pipes_map;
+  std::map<std::string, std::map<std::string, std::map<int, consumer_to_producer_tile_map>>> op_input_tm_pipes_map;
 
   std::map<std::string, consumer_to_producer_tile_map> queue_input_tm_pipes_map;
 

@@ -497,12 +497,12 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
     for (int i = 0; i < num_op_inputs; i++) {
       const std::string &input_name = op_info.input_names[i];
       if (name_is_op(input_name, epoch_context)) {
-        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[op_info.name][input_name];
+        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[op_info.name][input_name].at(i);
         int consumer_phases = tm.max_consumer_core_phases();
         op_consumer_phases += consumer_phases;
         input_consumer_phases[input_name] = consumer_phases;
       } else { // queue input
-        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[op_info.name][input_name];
+        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[op_info.name][input_name].at(i);
         int input_tile_clear_granularity = this->get_op_kernel_input_tile_clear_granularity(op_info, i);
         input_dram_reads[input_name] = tm.max_dram_queue_input_indexes(input_tile_clear_granularity);
         op_dram_reads += input_dram_reads[input_name];
@@ -523,7 +523,7 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
           ERROR("Can't find index of input " + op_info.name << " for op " + output_name);
         }
         int consumer_tile_clear_granularity = this->get_op_kernel_input_tile_clear_granularity(consumer_op_info, consumer_input_index);
-        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[output_name][op_info.name];
+        consumer_to_producer_tile_map tm = epoch_context.op_input_tm_pipes_map[output_name][op_info.name].at(consumer_input_index);
         int producer_phases = tm.max_producer_core_phases(consumer_tile_clear_granularity, (op_info.buf_size_mb == 1));
         int producer_streams = tm.max_producer_core_fan_out();
         output_producer_phases[output_name] = producer_phases;
@@ -1354,11 +1354,16 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
     }
 
     if (epoch_context.op_queue_output_map.find(producer_name) != epoch_context.op_queue_output_map.end()) {
+        std::unordered_map<std::string, std::size_t> consumer_visit_count;
         for (std::string consumer_name : epoch_context.op_queue_output_map.at(producer_name)) {
             consumer_to_producer_tile_map tm;
             if (name_is_op(consumer_name, epoch_context) ) { // and not is_name_prolog_queue(producer_name, this->queue_setting_map)) {
                 tt_op_info output_op_info = epoch_context.op_info_map.at(consumer_name);
-                tm = epoch_context.op_input_tm_pipes_map.at(consumer_name).at(producer_name);
+                consumer_visit_count[consumer_name] += 1;
+                auto nth_instance_iter = n2p::find_nth(output_op_info.input_names.begin(), output_op_info.input_names.end(), producer_name, consumer_visit_count.at(consumer_name) - 1);
+                log_assert(nth_instance_iter != output_op_info.input_names.end(), "Could not find nth instance of input name: {} in op {}", producer_name, consumer_name);
+                auto input_index = std::distance(output_op_info.input_names.begin(), nth_instance_iter);
+                tm = epoch_context.op_input_tm_pipes_map.at(consumer_name).at(producer_name).at(input_index);
             } else {
                 TT_ASSERT(!name_is_queue(producer_name), "queue " + producer_name + " has queue output " + consumer_name);
                 tt_op_info producer_op_info = epoch_context.op_info_map.at(producer_name);
@@ -3868,7 +3873,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_c(),
                         op_output_row_major_scan_order);
 
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
@@ -3889,7 +3894,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_r(),
                         op_info.grid_size_logical_c());
 
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
                 } else if (input_num == 2) {
                     bool op_output_row_major_scan_order = producer_output_row_major_ublock_scan_order(op_name, epoch_context);
                     consumer_to_producer_tile_map input_tm = input_src_tm.get_op_eltwise_input(
@@ -3903,7 +3908,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_r(),
                         op_info.grid_size_logical_c(),
                         op_output_row_major_scan_order);
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
@@ -3929,7 +3934,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_r(),
                         op_info.grid_size_logical_c(),
                         op_output_row_major_scan_order);
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
 
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
@@ -3970,11 +3975,11 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                     if(unroll_and_post_tm_prolog) {
                         n2p::unroll_pipes(input_tm);
-                        epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                        epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                         epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                     }
                     else {
-                        epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                        epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     }
 
                 } else if (input_num == 1) {
@@ -4018,7 +4023,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                     if(unroll_and_post_tm_prolog) {
                         n2p::unroll_pipes(input_tm);
-                        epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                        epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                         epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                     }
                     else if (do_two_step_matmul_prolog) { 
@@ -4049,13 +4054,13 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                         // Save tile map data for pipe creation later
                         epoch_context.prolog_tm_pipes_map[op_name][input_name] = prolog_tm;
-                        epoch_context.op_input_tm_pipes_map[op_name][input_name] = prolog_tm;
+                        epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = prolog_tm;
                         epoch_context.prolog_input_pipes_map[op_name][input_name] = gather_scatter_tm;
 
                         epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                     }
                     else { // Default tile / pipe map
-                        epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                        epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     }
                 } else {
                     TT_ASSERT(op_info.attributes.bias || op_info.attributes.requant || op_info.attributes.dequant, "Matmul op has more than 2 inputs but no bias or requant or dequant attribute set");
@@ -4073,7 +4078,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_r(),
                         op_info.grid_size_logical_c(),
                         op_output_row_major_scan_order);
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
 
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
@@ -4112,11 +4117,11 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                 if(unroll_and_post_tm_prolog) {
                     n2p::unroll_pipes(input_tm);
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                 }
                 else {
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                 }
             } else if (input_num == 1) {
                 auto prolog_layout = n2p::get_prolog_layout(
@@ -4152,7 +4157,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                 if(unroll_and_post_tm_prolog) {
                     n2p::unroll_pipes(input_tm);
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                 }
                 else if (do_two_step_matmul_prolog) { 
@@ -4183,13 +4188,13 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
                     // Save tile map data for pipe creation later
                     epoch_context.prolog_tm_pipes_map[op_name][input_name] = prolog_tm;
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = prolog_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = prolog_tm;
                     epoch_context.prolog_input_pipes_map[op_name][input_name] = gather_scatter_tm;
 
                     epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                 }
                 else { // Default tile / pipe map
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                 }
             } else {
                 TT_ASSERT(op_info.attributes.bias, "Matmul op has 3rd input but no bias attribute set");
@@ -4207,7 +4212,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
 
                 if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                     int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
@@ -4269,7 +4274,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 op_info.grid_size_logical_r(),
                 op_info.grid_size_logical_c(),
                 op_output_row_major_scan_order);
-            epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+            epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
 
         } else if (n2p::get_op_class(op_info) == OpClass::FusedOp) {
             string rel_input_name = "input" + to_string(input_num); //op_info.fused_op_info.input_names_to_rel_names_map[op_info.input_names.at(input_num)];
@@ -4300,7 +4305,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_c(), 
                         true);
 
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
 
                } else {
                     consumer_to_producer_tile_map input_tm = input_src_tm.get_op_matmul_col_input(
@@ -4315,7 +4320,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size_logical_c(),
                         false);
 
-                    epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                    epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                } 
             } else if (input2op_map[rel_input_name].type == "reduce")  {
                 if (input2op_map[rel_input_name].reduce_dim == Dim::R) {
@@ -4340,7 +4345,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             } else {
                 consumer_to_producer_tile_map input_tm = input_src_tm.get_op_eltwise_input(
                     kernel_bcast_tiles,
@@ -4353,7 +4358,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                 
                 if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                     int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
@@ -4385,7 +4390,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             } else if (op_info.attributes.splice_mode == SpliceMode::T){
                 tt_grid_shape input_grid_shape = op_info.input_core_grids.at(input_num);
                 bool op_output_row_major_scan_order = producer_output_row_major_ublock_scan_order(op_name, epoch_context);
@@ -4405,7 +4410,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             }
         } else if (n2p::get_op_class(op_info) == OpClass::Buffer) {
             if (input_num == 0) {
@@ -4420,7 +4425,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c());
 
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             } else if (input_num == 1) {
                 consumer_to_producer_tile_map input_tm = input_src_tm.get_op_matmul_row_input(
                     kernel_bcast_tiles,
@@ -4432,7 +4437,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.attributes.num_index_tiles,
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c());
-                epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+                epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             }    
         } else if (n2p::get_op_class(op_info) == OpClass::Embedding) {
 
@@ -4443,7 +4448,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
               consumer_to_producer_tile_map input_tm = input_src_tm.get_embedding_table_input(op_info.grid_size_logical_r(),
                                                                                               op_info.grid_size_logical_c(),
                                                                                               op_info.attributes.num_indices);
-              epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+              epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
             } else {
               consumer_to_producer_tile_map input_tm = input_src_tm.get_op_matmul_row_input(
                   kernel_bcast_tiles,
@@ -4456,7 +4461,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                   op_info.grid_size_logical_r(),
                   op_info.grid_size_logical_c(),
                   true);
-              epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+              epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
           }
         } else if (n2p::get_op_class(op_info) == OpClass::Tilizer) {
               std::string table_input_name = op_info.input_names[input_num];
@@ -4465,7 +4470,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
               consumer_to_producer_tile_map input_tm = input_src_tm.get_untilized_input(op_info.grid_size_logical_r(),
                                                                                         op_info.grid_size_logical_c(),
                                                                                         num_rows);
-              epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+              epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
         } else if (n2p::get_op_class(op_info) == OpClass::Topk) {
             int mblock_m = op_info.input_dims[0].mblock_m;
             int mblock_n = op_info.input_dims[0].mblock_n;
@@ -4486,7 +4491,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 op_info.grid_size_logical_r(),
                 op_info.grid_size_logical_c(),
                 op_output_row_major_scan_order);
-            epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+            epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
         } else {
             int mblock_m = op_info.output_dim.mblock_m;
             int mblock_n = op_info.output_dim.mblock_n;
@@ -4507,7 +4512,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 op_info.grid_size_logical_r(),
                 op_info.grid_size_logical_c(),
                 op_output_row_major_scan_order);
-            epoch_context.op_input_tm_pipes_map[op_name][input_name] = input_tm;
+            epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
             
             if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                 int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
@@ -4727,7 +4732,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
 
     for (int input_index = 0; input_index < num_input_bufs; input_index++) {
         std::string input_name = epoch_context.op_input_name_map[op_name][input_index];
-        consumer_to_producer_tile_map tile_map = epoch_context.op_input_tm_pipes_map[op_name][input_name];
+        consumer_to_producer_tile_map tile_map = epoch_context.op_input_tm_pipes_map[op_name][input_name].at(input_index);
         const int tile_clear_granularity = this->get_op_kernel_input_tile_clear_granularity(op_info, input_index);
         bool embedding_op = (n2p::get_op_class(op_info) == OpClass::Embedding);
         bool tilizer_op = (n2p::get_op_class(op_info) == OpClass::Tilizer);
@@ -4970,7 +4975,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             process_pipes(epoch_context.prolog_input_pipes_map.at(op_name).at(input_name), true, false, true);
         }
         else {
-            consumer_to_producer_tile_map tile_map = epoch_context.op_input_tm_pipes_map[op_name][input_name];
+            consumer_to_producer_tile_map tile_map = epoch_context.op_input_tm_pipes_map[op_name][input_name].at(input_index);
             // For producer queues we may need to force smaller granularity, since it can't be larger
             // than the destination op input buffer due to nrisc fw requirements.
             // For producer ops we need to force the smallest granularity in case of fork.

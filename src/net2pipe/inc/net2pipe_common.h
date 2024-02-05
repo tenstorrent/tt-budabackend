@@ -51,4 +51,35 @@ namespace n2p {
     }
     return (result << 5);
   }
+
+
+  /* Find's the nth element that matches the value of match, with 0-based index:
+   * n == 0 => first match
+   * n == 1 => second match
+   * ...
+   */
+  template<class ITERATOR_T, typename T>
+  auto find_nth(ITERATOR_T begin, ITERATOR_T end, T const& match, std::size_t n) -> ITERATOR_T {
+      // 0-based
+      auto it = std::find(begin, end, match);
+      while (it != end && 0 < n--) {
+          it = std::find(std::next(it), end, match);
+      }
+      return it;
+  };
+
+
+  /* Find's the nth element that satisfies the predicate, with 0-based index:
+   * n == 0 => first match
+   * n == 1 => second match
+   * ...
+   */
+  template<class ITERATOR_T, typename PREDICATE>
+  auto find_nth_if(ITERATOR_T begin, ITERATOR_T end, PREDICATE predicate, std::size_t n) -> ITERATOR_T {
+      auto it = std::find_if(begin, end, predicate);
+      while (it != end && 0 < n--) {
+          it = std::find_if(std::next(it), end, predicate);
+      }
+      return it;
+  };
 };
