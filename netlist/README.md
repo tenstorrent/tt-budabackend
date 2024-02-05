@@ -16,9 +16,9 @@ It is expected that BUDA backend will not make any graph level optimizations, an
 
 Feature and bug tracking is done via BUDA backend repository issues. 
 
-If you find a bug please file under the label `Netlist`([Netlist Issues Page](https://yyz-gitlab.local.tenstorrent.com/tenstorrent/budabackend/-/issues?label_name%5B%5D=Netlist)), and tag @macimovic, @kkwong
+If you find a bug please file under the label `Netlist`, and tag @macimovic, @tzhou
 
-If you have a feature request please file under the label `Netlist Changes::Proposal` ([Netlist Feature Requests](https://yyz-gitlab.local.tenstorrent.com/tenstorrent/budabackend/-/issues?label_name[]=Netlist%20Changes%3A%3AProposal)), and tag @tzhou, @acejkov, @kkwong, @ssokorac
+If you have a feature request please file under the label `Netlist Changes::Proposal`, and tag @tzhou, @ssokorac
 
 
 # Specification

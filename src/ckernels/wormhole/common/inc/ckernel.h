@@ -236,7 +236,7 @@ inline void mem_barrier(uint32_t data)
 }
 
 // Register read (workaround for bug
-// https://yyz-gitlab.local.tenstorrent.com/tenstorrent/tensix/issues/976
+// tenstorrent/tensix#976
 // now handled by the compiler)
 inline uint reg_read_barrier(uint32_t addr)
 {

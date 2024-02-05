@@ -111,7 +111,7 @@ vector<int> decode_target_inputs_str(const vector<string>& target_inputs_encoded
 // Configures every aspect of the performance trace and testing infrastructure
 struct PerfDesc {
     // Four different modes
-    // https://yyz-gitlab.local.tenstorrent.com/tenstorrent/budabackend/-/wikis/Performance-Infrastructure-and-Debug#performance-trace-architecture
+    // tenstorrent/budabackend/-/wikis/Performance-Infrastructure-and-Debug#performance-trace-architecture
     PerfDumpMode device_perf_mode = PerfDumpMode::Disable;
     uint32_t perf_dump_level = 0;
     // Initial decouplings populated by --perf-op-mode flag.

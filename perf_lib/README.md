@@ -96,10 +96,10 @@ For each graph, post-processor generates the following files:
 
 The performance visualizer can be used to plot the information collected during runtime.
 
-The routeagui can be installed using a dmg file on machines with mac os. We regularly post a new routeagui dmg with latest changes to the perf-gui on the `ll-sw-perf` channel.
+The routeagui can be installed using a dmg file on machines with mac os. We regularly post a new routeagui dmg with latest changes to the perf-gui on the `perf-debug-tools` channel.
 
 Alternatively, routeagui with the perf changes can be opened on a branch:
-- Clone the following repo: `https://yyz-gitlab.local.tenstorrent.com/Sokorac/routeagui`
+- Clone the repo
 - `yarn` 
 - `yarn start`
 

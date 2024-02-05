@@ -20,7 +20,7 @@ Architecture level documentation is done on Sharepoint.
 
 ## Bug tracking
 
-We will use [Device Runtime board](https://yyz-gitlab.local.tenstorrent.com/tenstorrent/budabackend/-/boards/49?label_name[]=Runtime) for tracking our bugs:
+We will use `runtime` label for tracking our bugs:
 
 
 All issues should be tagged with `Runtime` label for them to show up on the board. Other labels can be applied on top - `Versim`, `Silicon`, etc.

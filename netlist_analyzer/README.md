@@ -22,8 +22,6 @@ A console report of the worst op within the netlist, most utilized links, and cy
 `ARCH_NAME=wormhole_b0 build/test/netlist_analyzer/tests/test_netlist_analyzer --run-net2pipe --arch wormhole_b0 --netlist <path to netlist>`
 
 # Route-UI Visualizer
-The latest visualizer build can be found here:
-https://yyz-gitlab.local.tenstorrent.com/tenstorrent/route-ui/-/releases/0.0.7
+The latest visualizer build can be found here: tenstorrent/route-ui/-/releases
 
-Feedback issue thread:
-https://yyz-gitlab.local.tenstorrent.com/tenstorrent/route-ui/-/issues/7
+Feedback issue thread: tenstorrent/route-ui#7

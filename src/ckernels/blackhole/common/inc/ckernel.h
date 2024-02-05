@@ -278,7 +278,7 @@ inline void mop_run(const uint8_t type, const uint8_t count)
 }
 
 // Register read (workaround for bug
-// https://yyz-gitlab.local.tenstorrent.com/tenstorrent/tensix/issues/976
+// tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
 inline uint reg_read(uint32_t addr)

@@ -45,7 +45,7 @@ Steps:
     - `budabackend/verif/template_netlist/generate_ci_tests.py`,
     - or can write its own test generator based on API exposed by `xyz.py`.
 
-## [1] [PyByda](https://yyz-gitlab.local.tenstorrent.com/tenstorrent/pybuda)
+## [1] PyByda
 
 An easy way to create a netlist is to use PyByda's test suite. Run a test in PyBuda simply as following:
 ```

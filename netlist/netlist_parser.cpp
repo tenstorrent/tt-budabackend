@@ -2791,9 +2791,7 @@ void netlist_parser::verify_complex_settings() {
 
             if (op_info.gradient_op ||
                 (is_valid_matmul_op(op_info.type) && (op_info.attributes.m_k > 1 || op_info.attributes.bias))) {
-                // Intermediates cannot be bfp4/2 due to issue:
-                // https://yyz-tensix-gitlab.local.tenstorrent.com/tenstorrent/tensix/-/issues/9163 which causes values
-                // to saturate -inf
+                // Intermediates cannot be bfp4/2 due to hw behaviour where all 1s get saturated to -inf
                 log_assert(
                     !is_bfp2_format(op_info.intermed_data_format) && !is_bfp4_format(op_info.intermed_data_format),
                     "Intermediates cannot be bfp4/2 for accumlations due to -inf saturation");
@@ -2847,7 +2845,7 @@ void netlist_parser::verify_complex_settings() {
                     op_info.intermed_data_format == op_info.output_data_format,
                     "intermediate and output data format must be the same for gradient op");
                 // Issue to not support transpose+gradients
-                // https://yyz-gitlab.local.tenstorrent.com/tenstorrent/pybuda/-/issues/374
+                // tenstorrent/pybuda#374
                 log_assert(
                     (not op_info.transpose) or (netlist_utils::is_valid_matmul_op(op_info.type) or
                                                 (netlist_utils::get_unary_op(op_info.type) == UnaryOp::Datacopy)),
