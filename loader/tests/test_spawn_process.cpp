@@ -198,7 +198,7 @@ int main(int argc, char** argv)
         log_info(tt::LogTest, "Going to show tail of each failing test's child-process log file now...");
         for (auto &test_idx : failing_tests){
             auto &log_file = test_logs.at(test_idx);
-            std::string cmd = "tail -n25 " + log_file;
+            std::string cmd = "tail -n35 " + log_file;
             std::string cmd_msg = "Running: " + cmd + "\n";
             log_info(tt::LogTest, cmd_msg.c_str());
             auto rt = system(cmd.c_str());
