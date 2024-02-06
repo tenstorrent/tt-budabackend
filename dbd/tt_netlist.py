@@ -194,6 +194,8 @@ class Netlist:
         # 1. Set the file. It will be lazy loaded on first access
         assert runtime_data_yaml is not None
         self.runtime_data_yaml = runtime_data_yaml
+        
+        self.rundir = rundir
 
         if netlist_filepath is None:
             netlist_filepath = self.get_netlist_path()

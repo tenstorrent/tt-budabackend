@@ -9,6 +9,9 @@ from tt_debuda_server import debuda_server
 from tt_object import TTObject
 import tt_util as util
 from tt_coordinate import OnChipCoordinate, CoordinateTranslationError
+from collections import namedtuple
+from abc import ABC
+from typing import Dict
 
 #
 # Communication with Buda (or debuda-server) over sockets (ZMQ).
@@ -402,6 +405,19 @@ def dump_tile(chip, loc, addr, size, data_format):
     print(tabulate(rows, tablefmt="plain", showindex=False))
 
 
+
+BinarySlot = namedtuple("BinarySlot", ["offset_bytes", "size_bytes"])
+        
+
+class AddressMap(ABC):
+    def __init__(self):
+        self.binaries: Dict[str, BinarySlot]
+        
+class L1AddressMap(AddressMap):
+    def __init__(self):
+        super().__init__()
+        
+
 #
 # Device class: generic API for talking to specific devices. This class is the parent of specific
 # device classes (e.g. GrayskullDevice, WormholeDevice). The create class method is used to create
@@ -428,6 +444,32 @@ class Device(TTObject):
     # Maps to store translation table from noc0 to nocTr and vice versa
     nocTr_y_to_noc0_y = dict()
     noc0_y_to_nocTr_y = dict()
+    
+    def get_address_map(self, core_type: str) -> AddressMap:
+        if core_type not in self._address_maps:
+            raise RuntimeError(f"Core type {core_type} not found in address maps")
+        return self._address_maps[core_type]
+    
+    def get_binary_size(self, core_loc, binary_type) -> int:
+        core_type = self.get_block_type(core_loc)
+        address_map = self.get_address_map(core_type)
+        binary_size = address_map.binaries[binary_type].size_bytes
+        assert binary_size >= 0
+        return binary_size
+    
+    def get_binary_l1_offset(self, core_loc: OnChipCoordinate, binary_type: str) -> int:
+        core_type = self.get_block_type(core_loc)
+        address_map = self.get_address_map(core_type)
+        offset = address_map.binaries[binary_type].offset_bytes
+        assert offset >= 0
+        return offset
+        
+    def get_dram_binary_offset_in_epoch_command_queue(self, core_loc: OnChipCoordinate, binary_type: str) -> int:
+        address_map = self.get_address_map("dram")
+        offset = address_map.binaries[binary_type].offset_bytes
+        assert offset >= 0
+        return offset
+    
 
     # Class method to create a Device object given device architecture
     def create(arch, device_id, cluster_desc, device_desc_path):
@@ -524,10 +566,16 @@ class Device(TTObject):
     def netlist_to_tensix(self, netlist_loc):
         return (self.netlist_row_to_tensix_row[netlist_loc[0]], netlist_loc[1])
 
-    def __init__(self, id, arch, cluster_desc):
+    def __init__(self, id, arch, cluster_desc, address_maps: Dict[str, AddressMap]):
+        """
+
+        Args:
+            address_maps (Dict[str, AddressMap]): map of core_type(str) -> AddressMap
+        """
         self._id = id
         self._arch = arch
         self._has_mmio = False
+        self._address_maps = address_maps
         for chip in cluster_desc["chips_with_mmio"]:
             if id in chip:
                 self._has_mmio = True

@@ -44,6 +44,38 @@ src_ready_state_map = {
 src_state_map = {0: "SRC_IDLE", 1: "SRC_REMOTE", 2: "SRC_LOCAL", 3: "SRC_ENDPOINT"}
 
 
+class WormholeL1AddressMap(tt_device.L1AddressMap):
+    def __init__(self):
+        super().__init__()
+
+        ## Taken from l1_address_map.h. Ideally make this auto-generated
+        self._l1_address_map = dict()
+        self._l1_address_map["trisc0"] = tt_device.BinarySlot(offset_bytes = 0 + 20 * 1024 + 32 * 1024, size_bytes = 20 * 1024)
+        self._l1_address_map["trisc1"] : tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc0"].offset_bytes + self._l1_address_map["trisc0"].size_bytes, size_bytes = 16 * 1024)
+        self._l1_address_map["trisc2"] : tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc1"].offset_bytes + self._l1_address_map["trisc1"].size_bytes, size_bytes = 20 * 1024)
+        # Brisc, ncrisc, to be added
+        
+class WormholeDRAMEpochCommandAddressMap(tt_device.L1AddressMap):
+    def __init__(self):
+        super().__init__()
+        
+        ## Taken from dram_address_map.h. Ideally make this auto-generated
+        self._l1_address_map = dict()
+        self._l1_address_map["trisc0"] = tt_device.BinarySlot(offset_bytes = -1, size_bytes = 20 * 1024)
+        self._l1_address_map["trisc1"] : tt_device.BinarySlot(offset_bytes = -1, size_bytes = 16 * 1024)
+        self._l1_address_map["trisc2"] : tt_device.BinarySlot(offset_bytes = -1, size_bytes = 20 * 1024)
+        # Brisc, ncrisc, to be added
+        
+        
+        
+class WormholeEthL1AddressMap(tt_device.L1AddressMap):
+    def __init__(self):
+        super().__init__()
+        
+        ## Taken from l1_address_map.h. Ideally make this auto-generated
+        self._l1_address_map = dict()
+        # erisc, erisc-app to be added
+
 #
 # Device
 #
@@ -79,6 +111,7 @@ class WormholeDevice(tt_device.Device):
     # The following is used to convert harvesting mask to NOC0 Y location. If harvesting mask bit 0 is set, then
     # the NOC0 Y location is 11. If harvesting mask bit 1 is set, then the NOC0 Y location is 1, etc...
     HARVESTING_NOC_LOCATIONS = [11, 1, 10, 2, 9, 3, 8, 4, 7, 5]
+
 
     # Coordinate conversion functions (see tt_coordinate.py for description of coordinate systems)
     def noc0_to_tensix(self, loc):
@@ -135,8 +168,8 @@ class WormholeDevice(tt_device.Device):
             ] = harvested_noc0_y_rows[netlist_row]
 
     def __init__(self, id, arch, cluster_desc, device_desc_path):
+        super().__init__(id, arch, cluster_desc, {"functional_workers": WormholeL1AddressMap(), "eth": WormholeEthL1AddressMap(), "dram": WormholeDRAMEpochCommandAddressMap()})
         self.yaml_file = util.YamlFile(device_desc_path)
-        super().__init__(id, arch, cluster_desc)
 
     def row_count(self):
         return len(WormholeDevice.DIE_Y_TO_NOC_0_Y)
