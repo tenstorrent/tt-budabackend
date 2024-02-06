@@ -774,11 +774,15 @@ inline void llk_math_matmul(uint dst_index, const bool transpose=false, const st
 *************************************************************************/ 
 
 template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC = 0, bool is_fp32_dest_acc_en = false, bool is_int_fpu_en = false>
-inline void llk_math_reduce(const uint dst_index) {
-    TT_LLK_DUMP("llk_math_reduce<{}, {}, {}, {}, {}>({})", type, dim, MATH_FIDELITY_DESC, is_fp32_dest_acc_en, is_int_fpu_en, dst_index);
+inline void llk_math_reduce(const uint dst_index, const std::uint32_t operand = 0) {
+    TT_LLK_DUMP("llk_math_reduce<{}, {}, {}, {}, {}>({},{})", type, dim, MATH_FIDELITY_DESC, is_fp32_dest_acc_en, is_int_fpu_en, dst_index, operand);
+
+    const std::uint32_t operand_id = get_operand_id(operand+get_intermediate_base_id()); // get intermed/output id
+    const bool narrow_tile = get_operand_narrow_tile(operand_id);
 
     _llk_math_reduce_<type, dim, MATH_FIDELITY_DESC, is_fp32_dest_acc_en, is_int_fpu_en>(
-        dst_index
+        dst_index,
+        narrow_tile
     );
 }
 

@@ -366,19 +366,20 @@ inline void llk_unpack_reduce_hw_configure_disaggregated(const std::uint32_t unp
 }
 
 template <PoolType type, ReduceDim dim>
-inline void llk_unpack_reduce_mop_config() {
-    _llk_unpack_reduce_mop_config_<type, dim>();
+inline void llk_unpack_reduce_mop_config(const std::uint32_t num_faces = 4) {
+    _llk_unpack_reduce_mop_config_<type, dim>(num_faces);
 }
 
 template <PoolType type, ReduceDim dim>
-inline void llk_unpack_reduce_init(const std::uint32_t within_face_16x16_transpose=0) {
-    TT_LLK_DUMP("llk_unpack_reduce_init<{}, {}>({})", type, dim, within_face_16x16_transpose);
+inline void llk_unpack_reduce_init(const std::uint32_t within_face_16x16_transpose=0, const std::uint32_t operand=0) {
+    TT_LLK_DUMP("llk_unpack_reduce_init<{}, {}>({},{})", type, dim, within_face_16x16_transpose, operand);
 
-    constexpr std::uint32_t unpA_operand_id = 0;
+    const std::uint32_t operand_id = get_operand_id(operand);
 
+    const std::uint32_t num_faces = get_operand_num_faces(operand_id); 
     constexpr std::uint32_t unpB_src_format = (std::uint32_t) DataFormat::Float32;
-    constexpr std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[unpA_operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a 
-                               ((((std::uint32_t)unpack_dst_format[unpA_operand_id]>>2)&0x1) ? (std::uint32_t) DataFormat::Float16_b : (std::uint32_t) DataFormat::Float16);
+    const std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a 
+                               ((((std::uint32_t)unpack_dst_format[operand_id]>>2)&0x1) ? (std::uint32_t) DataFormat::Float16_b : (std::uint32_t) DataFormat::Float16);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG1_SrcB_RMW>(unpB_dst_format);
 
@@ -390,7 +391,8 @@ inline void llk_unpack_reduce_init(const std::uint32_t within_face_16x16_transpo
     TTI_NOP; TTI_NOP;
 
     _llk_unpack_reduce_init_<type, dim>(
-        within_face_16x16_transpose
+        within_face_16x16_transpose,
+        num_faces
     );
 }
 
