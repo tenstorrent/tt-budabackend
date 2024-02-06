@@ -9,7 +9,7 @@ Description:
   Writes data word to address 'addr' at noc0 location x-y of the current chip.
 
 Arguments:
-  core-loc    Either X-Y or R,C location of the core
+  core-loc    Either X-Y or R,C location of a core, or dram channel (e.g. ch3)
   addr        Address to read from
   data        Data to write
 

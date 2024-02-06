@@ -16,7 +16,12 @@ Examples:
   s 18-18 24
 """
 
-command_metadata = {"short": "s", "type": "low-level", "description": __doc__}
+command_metadata = {
+    "short": "s",
+    "long": "stream",
+    "type": "low-level",
+    "description": __doc__,
+}
 
 import tt_stream, tt_util as util
 from tt_coordinate import OnChipCoordinate

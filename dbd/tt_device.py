@@ -603,7 +603,12 @@ class Device(TTObject):
 
     def noc0_to_nocVirt(self, noc0_loc):
         nocTr_loc = self.noc0_to_nocTr(noc0_loc)
-        return self.nocTr_to_nocVirt(nocTr_loc)
+        try:
+            nocVirt = self.nocTr_to_nocVirt(nocTr_loc)
+        except KeyError:
+            # DRAM locations are not in nocTr_to_nocVirt map. Use noc0 coordinates directly.
+            nocVirt = noc0_loc
+        return nocVirt
 
     def noc0_to_netlist(self, noc0_loc):
         try:

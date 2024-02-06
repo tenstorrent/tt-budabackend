@@ -6,7 +6,7 @@ Usage:
   brxy <core-loc> <addr> [ <word-count> ] [ --format=hex32 ] [--sample <N>] [-o <O>...] [-d <D>...]
 
 Arguments:
-  core-loc      Either X-Y or R,C location of the core
+  core-loc      Either X-Y or R,C location of a core, or dram channel (e.g. ch3)
   addr          Address to read from
   word-count    Number of words to read. Default: 1
 
@@ -17,14 +17,15 @@ Options:
   -d <D>        Device ID. Optional and repeatable. Default: current device
 
 Description:
-  Reads data from address 'addr' at noc0 location x-y of the chip associated with the currently selected graph.
+  Reads and prints a block of data from address 'addr' at core <core-loc>.
 
 Examples:
-  brxy 18-18 0x0 1
-  brxy 18-18 0x0 16
-  brxy 18-18 0x0 32 --format i8
-  brxy 18-18 0x0 32 --format i8 --sample 5
-  brxy 0,0 @brisc.EPOCH_INFO_PTR.epoch_id
+  brxy 18-18 0x0 1                          # Read 1 word from address 0
+  brxy 18-18 0x0 16                         # Read 16 words from address 0
+  brxy 18-18 0x0 32 --format i8             # Prints 32 bytes in i8 format
+  brxy 18-18 0x0 32 --format i8 --sample 5  # Sample for 5 seconds
+  brxy 0,0 @brisc.EPOCH_INFO_PTR.epoch_id   # Read the epoch_id from the EPOCH_INFO_PTR
+  brxy ch0 0x0 16                           # Read 16 words from dram channel 0
 """
 
 command_metadata = {"short": "brxy", "type": "low-level", "description": __doc__}
