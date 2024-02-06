@@ -22,22 +22,23 @@ from perf_test_base import *
 from sweep_params import get_op_test_sweep_vars
 from logger_utils import print_progress_bar
 from elasticsearch import Elasticsearch
-from ci.repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
 
-PERF_SCRIPT_LOG_PREFIX = f"{os.path.basename(__file__)} :"
-TEMPLATE_NETLIST_DIR=f"{os.getcwd()}/verif/template_netlist/"
-ROOT_DIR=f"{os.getcwd()}/"
-
-sys.path.insert(1, TEMPLATE_NETLIST_DIR)
+# Imports util from verif/template_netlist/
+sys_add_path(TEMPLATE_NETLIST_DIR, True)
 from util import (
     create_netlist_from_single_config,
     PerfTestType,
     PerfOpSweepConfig,
     ReblockTM,
-) # Imports util from verif/template_netlist/
+)
 from generate_tests import generate_all_configs
 
+sys_add_path(f"{os.getcwd()}/ci", True)
+from repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
+
 BBE_PERF_INDEX_NAME = "spatial-ci-perf"
+PERF_SCRIPT_LOG_PREFIX = f"{os.path.basename(__file__)} :"
+ROOT_DIR=f"{os.getcwd()}/"
 
 def get_target_perf_label_from_type(op_type_str: str):
     if op_type_str == 'dram_read':

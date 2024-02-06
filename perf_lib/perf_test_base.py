@@ -21,8 +21,17 @@ BFP2_TILE_SIZE = 32 * 8      + 32 + 4*16
 Exit_Failure = 1
 TEMPLATE_NETLIST_DIR=f"{os.getcwd()}/verif/template_netlist/"
 
-sys.path.insert(1, TEMPLATE_NETLIST_DIR)
-sys.path.insert(2, TEMPLATE_NETLIST_DIR+"/test_modules/")
+def sys_add_path(path, prioritize=False):
+    if path in sys.path:
+        return
+    
+    if prioritize:
+        sys.path.insert(1, path)
+    else:
+        sys.path.append(path)
+            
+sys_add_path(TEMPLATE_NETLIST_DIR, True)
+sys_add_path(TEMPLATE_NETLIST_DIR + "/test_modules/", True)
 
 def get_tile_size(data_format):
     if data_format == "Float32" or data_format == "RawUInt32":

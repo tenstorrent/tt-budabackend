@@ -18,7 +18,8 @@ from subprocess import Popen, PIPE, STDOUT, TimeoutExpired, CalledProcessError
 from signal import SIGTERM, SIGKILL, signal
 import traceback
 
-from ci.repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
+sys_add_path(f"{os.getcwd()}/ci")
+from repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
 
 INDEX_NAME = "spatial-ci"
 BBE_PERF_INDEX_NAME = "spatial-ci-perf"

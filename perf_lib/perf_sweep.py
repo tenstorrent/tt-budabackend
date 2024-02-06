@@ -33,13 +33,8 @@ XLSX_FILE_NAME_SECOND_RUN = "perf_sweep_summary_compared_with_previous_run.xlsx"
 PERF_OUT_DIR_IDENTIFIER = "Perf output directory: "
 TEST_OUTPUT_DIR = "tt_build/last_test_output_dir"
 
-sys.path.insert(1, TEMPLATE_NETLIST_DIR)
-sys.path.insert(2, TEMPLATE_NETLIST_DIR + "/test_modules/")
-
-class ReportType(Enum):
-    Regular  = 1
-    Combined = 2
-    Diff     = 3
+sys_add_path(TEMPLATE_NETLIST_DIR, True)
+sys_add_path(TEMPLATE_NETLIST_DIR + "/test_modules/", True)
 
 from util import (
     create_netlist_from_single_config,
@@ -55,6 +50,12 @@ from generate_tests import generate_all_configs
 
 num_passed_tests = 0
 failed_test_ids = []
+
+class ReportType(Enum):
+    Regular  = 1
+    Combined = 2
+    Diff     = 3
+    
 @dataclass
 class PerfSweepDescriptor:
     '''
