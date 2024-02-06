@@ -1,0 +1,89 @@
+
+# input_grid_r = $TEMPLATE_input_grid_r
+
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 6
+    grid_size: [1, 2]
+    t: 5
+    mblock: [16, 1]
+    ublock: [1, 7]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x105bb7c0], [6, 0x3e7a3c40]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 6
+    grid_size: [4, 1]
+    t: 10
+    mblock: [2, 14]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x1cb08e60], [4, 0x2761ca80], [4, 0x2ed6ace0], [4, 0x3fc190c0]]
+    ublock_order: c
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 6
+    passthrough: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [1, 2]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 5
+      mblock: [16, 1]
+      ublock: [1, 7]
+      input_0_tms: []
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [0, 6] 
+      grid_size: [4, 1]
+      inputs: [passthrough] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 10
+      mblock: [2, 14]
+      ublock: [1, 1]
+      input_0_tms: [vslice: 2]
+      
+programs:
+  - program0:
+      #- var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var : [$c_loop_count]
+      - staticvar : {$lptr : 0, $gptr : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, 6, 12] # add two variables
+      - varinst: [$gptr, incwrap, 6, 12] # add two variables
+      - endloop 
+
+
+

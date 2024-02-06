@@ -1,0 +1,127 @@
+devices:
+  arch: [wormhole, wormhole_b0]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000],[0, 0x12000000],[0, 0x14000000],[0, 0x16000000]]}
+  input1:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x10000000],[1, 0x12000000],[1, 0x14000000],[1, 0x16000000]]}
+  input2:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x10000000],[2, 0x12000000],[2, 0x14000000],[2, 0x16000000]]}
+  input3:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x10000000],[3, 0x12000000],[3, 0x14000000],[3, 0x16000000]]}
+  #output0:  {type: queue, input: op0 , entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x34000000],[1, 0x34000000],[2, 0x34000000],[3, 0x34000000]]}
+  output1:  {type: queue, input: op1 , entries: 8, grid_size: [2, 2], t: 4, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x10000000],[4, 0x12000000],[4, 0x14000000],[4, 0x16000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  4
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [2, 2] # [r,c]
+      inputs: [input0, input1, input2]
+      in_df: [Float16_b, Float16_b, Float16_b]
+      acc_df: Float16
+      out_df: Float16_b  
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 4
+      mblock: [4,  4]
+      ublock: [2, 2]
+      input_0_tms:
+      input_1_tms: None
+    op1: 
+      type: fused_op
+      grid_loc: [2, 2]   # [r,c]
+      grid_size: [2, 2] # [r,c]
+      inputs: [input2, input3, op0, input2]
+      in_df: [Float16_b, Float16_b, Float16_b, Float16_b]
+      acc_df: Float16
+      out_df: Float16_b  
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 1}
+      t: 4
+      mblock: [4,  4]
+      ublock: [2, 2]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 4]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 16]
+      -   varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 3
+    schedules:
+      -
+        - exp0: {type: exp, inputs: [input1], mblock: [4, 4], ublock: [2, 2], output: intermed0}
+        - sqrt0: {type: sqrt, inputs: [input0], mblock: [4, 4], ublock: [2, 2], output: intermed1}
+        - multiply0: {type: multiply, inputs: [intermed1, intermed0], pop: [intermed0, intermed1], mblock: [4, 4], ublock: [2, 2], output: intermed2}
+        - add0: {type: add, inputs: [intermed2, input2], pop: [intermed2], mblock: [4, 4], ublock: [2, 2], output: output}
+  1:
+    inputs: 4
+    intermediates: 0
+    schedules:
+      -
+        - add1: {type: add, inputs: [input0, input1], mblock: [4, 4], ublock: [2, 2], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - add2: {type: add, inputs: [input1, dest], pop: [input1], mblock: [4, 4], ublock: [2, 2], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - add3: {type: add, inputs: [dest, input0], pop: [input0], mblock: [4, 4], ublock: [2, 2], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - multiply1: {type: multiply, inputs: [input2, dest], mblock: [4, 4], ublock: [2, 2], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: max}, output: dest}
+        - sqrt1: {type: sqrt, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - power: {type: power, inputs: [dest], attributes: {exp: 2}, mblock: [4, 4], ublock: [2, 2], output: dest}
+        - log: {type: log, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - sigmoid: {type: sigmoid, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - add4: {type: add, inputs: [input3, dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - lrelu: {type: lrelu, inputs: [dest], attributes: {slope: 0.33}, mblock: [4, 4], ublock: [2, 2], output: dest}
+        - exp1: {type: exp, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - reciprocal: {type: reciprocal, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        #- dropout: {type: dropout, inputs: [dest], attributes: {p: 0, seed: 123}, mblock: [4, 4], ublock: [2, 2], output: dest}
+        - tanh: {type: tanh, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - sine: {type: sine, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - cosine: {type: cosine, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - gelu: {type: gelu, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - gelu_derivative: {type: gelu_derivative, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - square: {type: square, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - nop: {type: nop, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: dest}
+        - datacopy: {type: datacopy, inputs: [dest], mblock: [4, 4], ublock: [2, 2], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #constant_value: 2.0
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: 0.1
+    uniform_upper_bound: 2.0
+

@@ -1,0 +1,1151 @@
+# test_mha
+# test_config_id=$TEMPLATE_test_config_id
+# encoder_input_size_r=$TEMPLATE_encoder_input_size_r
+# encoder_input_size_c=$TEMPLATE_encoder_input_size_c
+# attention_mask_size_r=$TEMPLATE_attention_mask_size_r
+# attention_mask_size_c=$TEMPLATE_attention_mask_size_c
+
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  # input
+  encoder_input:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_1,
+      grid_size: [$TEMPLATE_grid_size_0_var_2, $TEMPLATE_grid_size_1_var_3],
+      t: $TEMPLATE_t_var_4,
+      mblock: [$TEMPLATE_mblock_0_var_5, $TEMPLATE_mblock_1_var_6],
+      ublock: [$TEMPLATE_ublock_0_var_7, $TEMPLATE_ublock_1_var_8],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_9,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_10,
+      $TEMPLATE_loc_var_10: $TEMPLATE_loc_var_727,
+    }
+  attention_mask:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_12,
+      grid_size: [$TEMPLATE_grid_size_0_var_13, $TEMPLATE_grid_size_1_var_14],
+      t: $TEMPLATE_t_var_15,
+      mblock: [$TEMPLATE_mblock_0_var_16, $TEMPLATE_mblock_1_var_17],
+      ublock: [$TEMPLATE_ublock_0_var_18, $TEMPLATE_ublock_1_var_19],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_20,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_21,
+      $TEMPLATE_loc_var_21: $TEMPLATE_loc_var_728,
+    }
+  # output
+  mha.output_mha_0_output.bias:
+    {
+      input: mha_0_output.bias,
+      type: queue,
+      entries: $TEMPLATE_entries_var_23,
+      grid_size: [$TEMPLATE_grid_size_0_var_24, $TEMPLATE_grid_size_1_var_25],
+      t: $TEMPLATE_t_var_26,
+      mblock: [$TEMPLATE_mblock_0_var_27, $TEMPLATE_mblock_1_var_28],
+      ublock: [$TEMPLATE_ublock_0_var_29, $TEMPLATE_ublock_1_var_30],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_31,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_32,
+      $TEMPLATE_loc_var_32: $TEMPLATE_loc_var_729,
+    }
+  # parameter
+  mha.bert.encoder.layer.0.attention.output.dense.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_34,
+      grid_size: [$TEMPLATE_grid_size_0_var_35, $TEMPLATE_grid_size_1_var_36],
+      t: $TEMPLATE_t_var_37,
+      mblock: [$TEMPLATE_mblock_0_var_38, $TEMPLATE_mblock_1_var_39],
+      ublock: [$TEMPLATE_ublock_0_var_40, $TEMPLATE_ublock_1_var_41],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_42,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_43,
+      $TEMPLATE_loc_var_43: $TEMPLATE_loc_var_730,
+    }
+  mha.reciprocal_of_sqrt_of_head_size_0:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_45,
+      grid_size: [$TEMPLATE_grid_size_0_var_46, $TEMPLATE_grid_size_1_var_47],
+      t: $TEMPLATE_t_var_48,
+      mblock: [$TEMPLATE_mblock_0_var_49, $TEMPLATE_mblock_1_var_50],
+      ublock: [$TEMPLATE_ublock_0_var_51, $TEMPLATE_ublock_1_var_52],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_53,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_54,
+      $TEMPLATE_loc_var_54: $TEMPLATE_loc_var_731,
+    }
+  mha.bert.encoder.layer.0.attention.self.key.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_56,
+      grid_size: [$TEMPLATE_grid_size_0_var_57, $TEMPLATE_grid_size_1_var_58],
+      t: $TEMPLATE_t_var_59,
+      mblock: [$TEMPLATE_mblock_0_var_60, $TEMPLATE_mblock_1_var_61],
+      ublock: [$TEMPLATE_ublock_0_var_62, $TEMPLATE_ublock_1_var_63],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_64,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_65,
+      $TEMPLATE_loc_var_65: $TEMPLATE_loc_var_732,
+    }
+  mha.bert.encoder.layer.0.attention.self.key.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_67,
+      grid_size: [$TEMPLATE_grid_size_0_var_68, $TEMPLATE_grid_size_1_var_69],
+      t: $TEMPLATE_t_var_70,
+      mblock: [$TEMPLATE_mblock_0_var_71, $TEMPLATE_mblock_1_var_72],
+      ublock: [$TEMPLATE_ublock_0_var_73, $TEMPLATE_ublock_1_var_74],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_75,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_76,
+      $TEMPLATE_loc_var_76: $TEMPLATE_loc_var_733,
+    }
+  mha.bert.encoder.layer.0.attention.self.query.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_78,
+      grid_size: [$TEMPLATE_grid_size_0_var_79, $TEMPLATE_grid_size_1_var_80],
+      t: $TEMPLATE_t_var_81,
+      mblock: [$TEMPLATE_mblock_0_var_82, $TEMPLATE_mblock_1_var_83],
+      ublock: [$TEMPLATE_ublock_0_var_84, $TEMPLATE_ublock_1_var_85],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_86,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_87,
+      $TEMPLATE_loc_var_87: $TEMPLATE_loc_var_734,
+    }
+  mha.bert.encoder.layer.0.attention.self.query.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_89,
+      grid_size: [$TEMPLATE_grid_size_0_var_90, $TEMPLATE_grid_size_1_var_91],
+      t: $TEMPLATE_t_var_92,
+      mblock: [$TEMPLATE_mblock_0_var_93, $TEMPLATE_mblock_1_var_94],
+      ublock: [$TEMPLATE_ublock_0_var_95, $TEMPLATE_ublock_1_var_96],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_97,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_98,
+      $TEMPLATE_loc_var_98: $TEMPLATE_loc_var_735,
+    }
+  mha.bert.encoder.layer.0.attention.self.value.bias:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_100,
+      grid_size: [$TEMPLATE_grid_size_0_var_101, $TEMPLATE_grid_size_1_var_102],
+      t: $TEMPLATE_t_var_103,
+      mblock: [$TEMPLATE_mblock_0_var_104, $TEMPLATE_mblock_1_var_105],
+      ublock: [$TEMPLATE_ublock_0_var_106, $TEMPLATE_ublock_1_var_107],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_108,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_109,
+      $TEMPLATE_loc_var_109: $TEMPLATE_loc_var_736,
+    }
+  mha.bert.encoder.layer.0.attention.self.value.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_111,
+      grid_size: [$TEMPLATE_grid_size_0_var_112, $TEMPLATE_grid_size_1_var_113],
+      t: $TEMPLATE_t_var_114,
+      mblock: [$TEMPLATE_mblock_0_var_115, $TEMPLATE_mblock_1_var_116],
+      ublock: [$TEMPLATE_ublock_0_var_117, $TEMPLATE_ublock_1_var_118],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_119,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_120,
+      $TEMPLATE_loc_var_120: $TEMPLATE_loc_var_737,
+    }
+  mha.bert.encoder.layer.0.attention.output.dense.weight:
+    {
+      input: HOST,
+      type: ram,
+      entries: $TEMPLATE_entries_var_122,
+      grid_size: [$TEMPLATE_grid_size_0_var_123, $TEMPLATE_grid_size_1_var_124],
+      t: $TEMPLATE_t_var_125,
+      mblock: [$TEMPLATE_mblock_0_var_126, $TEMPLATE_mblock_1_var_127],
+      ublock: [$TEMPLATE_ublock_0_var_128, $TEMPLATE_ublock_1_var_129],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_130,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_131,
+      $TEMPLATE_loc_var_131: $TEMPLATE_loc_var_738,
+    }
+  # constant
+  lc.input_tensor.mha.bert.encoder.layer.0.attention.output.dense.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_133,
+      grid_size: [$TEMPLATE_grid_size_0_var_134, $TEMPLATE_grid_size_1_var_135],
+      t: $TEMPLATE_t_var_136,
+      mblock: [$TEMPLATE_mblock_0_var_137, $TEMPLATE_mblock_1_var_138],
+      ublock: [$TEMPLATE_ublock_0_var_139, $TEMPLATE_ublock_1_var_140],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_141,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_142,
+      $TEMPLATE_loc_var_142: $TEMPLATE_loc_var_739,
+    }
+  lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m2_0_1.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_144,
+      grid_size: [$TEMPLATE_grid_size_0_var_145, $TEMPLATE_grid_size_1_var_146],
+      t: $TEMPLATE_t_var_147,
+      mblock: [$TEMPLATE_mblock_0_var_148, $TEMPLATE_mblock_1_var_149],
+      ublock: [$TEMPLATE_ublock_0_var_150, $TEMPLATE_ublock_1_var_151],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_152,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_153,
+      $TEMPLATE_loc_var_153: $TEMPLATE_loc_var_740,
+    }
+  lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m1_0_2.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_155,
+      grid_size: [$TEMPLATE_grid_size_0_var_156, $TEMPLATE_grid_size_1_var_157],
+      t: $TEMPLATE_t_var_158,
+      mblock: [$TEMPLATE_mblock_0_var_159, $TEMPLATE_mblock_1_var_160],
+      ublock: [$TEMPLATE_ublock_0_var_161, $TEMPLATE_ublock_1_var_162],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_163,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_164,
+      $TEMPLATE_loc_var_164: $TEMPLATE_loc_var_741,
+    }
+  lc.input_tensor.mha.bert.encoder.layer.0.attention.self.key.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_166,
+      grid_size: [$TEMPLATE_grid_size_0_var_167, $TEMPLATE_grid_size_1_var_168],
+      t: $TEMPLATE_t_var_169,
+      mblock: [$TEMPLATE_mblock_0_var_170, $TEMPLATE_mblock_1_var_171],
+      ublock: [$TEMPLATE_ublock_0_var_172, $TEMPLATE_ublock_1_var_173],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_174,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_175,
+      $TEMPLATE_loc_var_175: $TEMPLATE_loc_var_742,
+    }
+  lc.input_tensor.mha.bert.encoder.layer.0.attention.self.query.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_177,
+      grid_size: [$TEMPLATE_grid_size_0_var_178, $TEMPLATE_grid_size_1_var_179],
+      t: $TEMPLATE_t_var_180,
+      mblock: [$TEMPLATE_mblock_0_var_181, $TEMPLATE_mblock_1_var_182],
+      ublock: [$TEMPLATE_ublock_0_var_183, $TEMPLATE_ublock_1_var_184],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_185,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_186,
+      $TEMPLATE_loc_var_186: $TEMPLATE_loc_var_743,
+    }
+  lc.input_tensor.mha_0_as_softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_188,
+      grid_size: [$TEMPLATE_grid_size_0_var_189, $TEMPLATE_grid_size_1_var_190],
+      t: $TEMPLATE_t_var_191,
+      mblock: [$TEMPLATE_mblock_0_var_192, $TEMPLATE_mblock_1_var_193],
+      ublock: [$TEMPLATE_ublock_0_var_194, $TEMPLATE_ublock_1_var_195],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_196,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_197,
+      $TEMPLATE_loc_var_197: $TEMPLATE_loc_var_744,
+    }
+  lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_199,
+      grid_size: [$TEMPLATE_grid_size_0_var_200, $TEMPLATE_grid_size_1_var_201],
+      t: $TEMPLATE_t_var_202,
+      mblock: [$TEMPLATE_mblock_0_var_203, $TEMPLATE_mblock_1_var_204],
+      ublock: [$TEMPLATE_ublock_0_var_205, $TEMPLATE_ublock_1_var_206],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_207,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_208,
+      $TEMPLATE_loc_var_208: $TEMPLATE_loc_var_745,
+    }
+  lc.input_tensor.mha.bert.encoder.layer.0.attention.self.value.bias_s_brcst_m2_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_210,
+      grid_size: [$TEMPLATE_grid_size_0_var_211, $TEMPLATE_grid_size_1_var_212],
+      t: $TEMPLATE_t_var_213,
+      mblock: [$TEMPLATE_mblock_0_var_214, $TEMPLATE_mblock_1_var_215],
+      ublock: [$TEMPLATE_ublock_0_var_216, $TEMPLATE_ublock_1_var_217],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_218,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_219,
+      $TEMPLATE_loc_var_219: $TEMPLATE_loc_var_746,
+    }
+
+graphs:
+  # forward
+  fwd_0:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_221
+    mha.bert.encoder.layer.0.attention.output.dense.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_222, $TEMPLATE_grid_loc_1_var_223],
+        grid_size: [$TEMPLATE_grid_size_0_var_224, $TEMPLATE_grid_size_1_var_225],
+        inputs:
+          [
+            lc.input_tensor.mha.bert.encoder.layer.0.attention.output.dense.bias_s_brcst_m2_0_0.0,
+            mha.bert.encoder.layer.0.attention.output.dense.bias,
+          ],
+        t: $TEMPLATE_t_var_226,
+        mblock: [$TEMPLATE_mblock_0_var_227, $TEMPLATE_mblock_1_var_228],
+        ublock: [$TEMPLATE_ublock_0_var_229, $TEMPLATE_ublock_1_var_230],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_747, $TEMPLATE_input_buf_min_size_tiles_1_var_748],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_231,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_232, $TEMPLATE_in_df_1_var_233],
+        out_df: $TEMPLATE_out_df_var_234,
+        intermed_df: $TEMPLATE_intermed_df_var_235,
+        acc_df: $TEMPLATE_acc_df_var_236,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_237, u_kt: $TEMPLATE_u_kt_var_238 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_239 }],
+      }
+    mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m2_0_1.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_240, $TEMPLATE_grid_loc_1_var_241],
+        grid_size: [$TEMPLATE_grid_size_0_var_242, $TEMPLATE_grid_size_1_var_243],
+        inputs:
+          [
+            lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m2_0_1.0,
+            mha.reciprocal_of_sqrt_of_head_size_0,
+          ],
+        t: $TEMPLATE_t_var_244,
+        mblock: [$TEMPLATE_mblock_0_var_245, $TEMPLATE_mblock_1_var_246],
+        ublock: [$TEMPLATE_ublock_0_var_247, $TEMPLATE_ublock_1_var_248],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_749, $TEMPLATE_input_buf_min_size_tiles_1_var_750],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_249,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_250, $TEMPLATE_in_df_1_var_251],
+        out_df: $TEMPLATE_out_df_var_252,
+        intermed_df: $TEMPLATE_intermed_df_var_253,
+        acc_df: $TEMPLATE_acc_df_var_254,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_255 }],
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_256 }],
+        attributes: { m_k: $TEMPLATE_m_k_var_257, u_kt: $TEMPLATE_u_kt_var_258 },
+      }
+    mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m1_0_2.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_259, $TEMPLATE_grid_loc_1_var_260],
+        grid_size: [$TEMPLATE_grid_size_0_var_261, $TEMPLATE_grid_size_1_var_262],
+        inputs:
+          [
+            mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m2_0_1.lc1,
+            lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m1_0_2.0,
+          ],
+        t: $TEMPLATE_t_var_263,
+        mblock: [$TEMPLATE_mblock_0_var_264, $TEMPLATE_mblock_1_var_265],
+        ublock: [$TEMPLATE_ublock_0_var_266, $TEMPLATE_ublock_1_var_267],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_751, $TEMPLATE_input_buf_min_size_tiles_1_var_752],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_268,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_269, $TEMPLATE_in_df_1_var_270],
+        out_df: $TEMPLATE_out_df_var_271,
+        intermed_df: $TEMPLATE_intermed_df_var_272,
+        acc_df: $TEMPLATE_acc_df_var_273,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_274 }],
+        attributes: { m_k: $TEMPLATE_m_k_var_275, u_kt: $TEMPLATE_u_kt_var_276 },
+      }
+    mha.bert.encoder.layer.0.attention.self.key.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_277, $TEMPLATE_grid_loc_1_var_278],
+        grid_size: [$TEMPLATE_grid_size_0_var_279, $TEMPLATE_grid_size_1_var_280],
+        inputs:
+          [
+            lc.input_tensor.mha.bert.encoder.layer.0.attention.self.key.bias_s_brcst_m2_0_0.0,
+            mha.bert.encoder.layer.0.attention.self.key.bias,
+          ],
+        t: $TEMPLATE_t_var_281,
+        mblock: [$TEMPLATE_mblock_0_var_282, $TEMPLATE_mblock_1_var_283],
+        ublock: [$TEMPLATE_ublock_0_var_284, $TEMPLATE_ublock_1_var_285],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_753, $TEMPLATE_input_buf_min_size_tiles_1_var_754],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_286,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_287, $TEMPLATE_in_df_1_var_288],
+        out_df: $TEMPLATE_out_df_var_289,
+        intermed_df: $TEMPLATE_intermed_df_var_290,
+        acc_df: $TEMPLATE_acc_df_var_291,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_292, u_kt: $TEMPLATE_u_kt_var_293 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_294 }],
+      }
+    mha_0_key:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_295, $TEMPLATE_grid_loc_1_var_296],
+        grid_size: [$TEMPLATE_grid_size_0_var_297, $TEMPLATE_grid_size_1_var_298],
+        inputs: [encoder_input, mha.bert.encoder.layer.0.attention.self.key.weight],
+        t: $TEMPLATE_t_var_299,
+        mblock: [$TEMPLATE_mblock_0_var_300, $TEMPLATE_mblock_1_var_301],
+        ublock: [$TEMPLATE_ublock_0_var_302, $TEMPLATE_ublock_1_var_303],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_755, $TEMPLATE_input_buf_min_size_tiles_1_var_756],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_304,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_305, $TEMPLATE_in_df_1_var_306],
+        out_df: $TEMPLATE_out_df_var_307,
+        intermed_df: $TEMPLATE_intermed_df_var_308,
+        acc_df: $TEMPLATE_acc_df_var_309,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_310, u_kt: $TEMPLATE_u_kt_var_311 },
+      }
+    mha_0_key.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_312, $TEMPLATE_grid_loc_1_var_313],
+        grid_size: [$TEMPLATE_grid_size_0_var_314, $TEMPLATE_grid_size_1_var_315],
+        inputs:
+          [
+            mha_0_key,
+            mha.bert.encoder.layer.0.attention.self.key.bias_s_brcst_m2_0_0.lc1,
+          ],
+        t: $TEMPLATE_t_var_316,
+        mblock: [$TEMPLATE_mblock_0_var_317, $TEMPLATE_mblock_1_var_318],
+        ublock: [$TEMPLATE_ublock_0_var_319, $TEMPLATE_ublock_1_var_320],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_757, $TEMPLATE_input_buf_min_size_tiles_1_var_758],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_321,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_322, $TEMPLATE_in_df_1_var_323],
+        out_df: $TEMPLATE_out_df_var_324,
+        intermed_df: $TEMPLATE_intermed_df_var_325,
+        acc_df: $TEMPLATE_acc_df_var_326,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_327 }],
+      }
+    mha.bert.encoder.layer.0.attention.self.query.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_328, $TEMPLATE_grid_loc_1_var_329],
+        grid_size: [$TEMPLATE_grid_size_0_var_330, $TEMPLATE_grid_size_1_var_331],
+        inputs:
+          [
+            lc.input_tensor.mha.bert.encoder.layer.0.attention.self.query.bias_s_brcst_m2_0_0.0,
+            mha.bert.encoder.layer.0.attention.self.query.bias,
+          ],
+        t: $TEMPLATE_t_var_332,
+        mblock: [$TEMPLATE_mblock_0_var_333, $TEMPLATE_mblock_1_var_334],
+        ublock: [$TEMPLATE_ublock_0_var_335, $TEMPLATE_ublock_1_var_336],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_759, $TEMPLATE_input_buf_min_size_tiles_1_var_760],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_337,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_338, $TEMPLATE_in_df_1_var_339],
+        out_df: $TEMPLATE_out_df_var_340,
+        intermed_df: $TEMPLATE_intermed_df_var_341,
+        acc_df: $TEMPLATE_acc_df_var_342,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_343, u_kt: $TEMPLATE_u_kt_var_344 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_345 }],
+      }
+    mha_0_query:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_346, $TEMPLATE_grid_loc_1_var_347],
+        grid_size: [$TEMPLATE_grid_size_0_var_348, $TEMPLATE_grid_size_1_var_349],
+        inputs: [encoder_input, mha.bert.encoder.layer.0.attention.self.query.weight],
+        t: $TEMPLATE_t_var_350,
+        mblock: [$TEMPLATE_mblock_0_var_351, $TEMPLATE_mblock_1_var_352],
+        ublock: [$TEMPLATE_ublock_0_var_353, $TEMPLATE_ublock_1_var_354],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_761, $TEMPLATE_input_buf_min_size_tiles_1_var_762],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_355,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_356, $TEMPLATE_in_df_1_var_357],
+        out_df: $TEMPLATE_out_df_var_358,
+        intermed_df: $TEMPLATE_intermed_df_var_359,
+        acc_df: $TEMPLATE_acc_df_var_360,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_361, u_kt: $TEMPLATE_u_kt_var_362 },
+      }
+    mha_0_query.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_363, $TEMPLATE_grid_loc_1_var_364],
+        grid_size: [$TEMPLATE_grid_size_0_var_365, $TEMPLATE_grid_size_1_var_366],
+        inputs:
+          [
+            mha_0_query,
+            mha.bert.encoder.layer.0.attention.self.query.bias_s_brcst_m2_0_0.lc1,
+          ],
+        t: $TEMPLATE_t_var_367,
+        mblock: [$TEMPLATE_mblock_0_var_368, $TEMPLATE_mblock_1_var_369],
+        ublock: [$TEMPLATE_ublock_0_var_370, $TEMPLATE_ublock_1_var_371],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_763, $TEMPLATE_input_buf_min_size_tiles_1_var_764],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_372,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_373, $TEMPLATE_in_df_1_var_374],
+        out_df: $TEMPLATE_out_df_var_375,
+        intermed_df: $TEMPLATE_intermed_df_var_376,
+        acc_df: $TEMPLATE_acc_df_var_377,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_378 }],
+      }
+    mha_0_as:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_379, $TEMPLATE_grid_loc_1_var_380],
+        grid_size: [$TEMPLATE_grid_size_0_var_381, $TEMPLATE_grid_size_1_var_382],
+        inputs: [mha_0_query.bias, mha_0_key.bias],
+        t: $TEMPLATE_t_var_383,
+        mblock: [$TEMPLATE_mblock_0_var_384, $TEMPLATE_mblock_1_var_385],
+        ublock: [$TEMPLATE_ublock_0_var_386, $TEMPLATE_ublock_1_var_387],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_765, $TEMPLATE_input_buf_min_size_tiles_1_var_766],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_388,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_389, $TEMPLATE_in_df_1_var_390],
+        out_df: $TEMPLATE_out_df_var_391,
+        intermed_df: $TEMPLATE_intermed_df_var_392,
+        acc_df: $TEMPLATE_acc_df_var_393,
+        math_fidelity: HiFi3,
+        input_1_tms: [hslice: $TEMPLATE_hslice_var_394, transpose],
+        input_0_tms: [hslice: $TEMPLATE_hslice_var_395],
+        attributes: { m_k: $TEMPLATE_m_k_var_396, u_kt: $TEMPLATE_u_kt_var_397 },
+      }
+    mha_0_as_div:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_398, $TEMPLATE_grid_loc_1_var_399],
+        grid_size: [$TEMPLATE_grid_size_0_var_400, $TEMPLATE_grid_size_1_var_401],
+        inputs: [mha_0_as, mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m1_0_2.lc1],
+        t: $TEMPLATE_t_var_402,
+        mblock: [$TEMPLATE_mblock_0_var_403, $TEMPLATE_mblock_1_var_404],
+        ublock: [$TEMPLATE_ublock_0_var_405, $TEMPLATE_ublock_1_var_406],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_767, $TEMPLATE_input_buf_min_size_tiles_1_var_768],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_407,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_408, $TEMPLATE_in_df_1_var_409],
+        out_df: $TEMPLATE_out_df_var_410,
+        intermed_df: $TEMPLATE_intermed_df_var_411,
+        acc_df: $TEMPLATE_acc_df_var_412,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_413 }, broadcast: { r: $TEMPLATE_r_var_414 }],
+      }
+    mha_0_as_mask:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_415, $TEMPLATE_grid_loc_1_var_416],
+        grid_size: [$TEMPLATE_grid_size_0_var_417, $TEMPLATE_grid_size_1_var_418],
+        inputs: [mha_0_as_div, attention_mask],
+        t: $TEMPLATE_t_var_419,
+        mblock: [$TEMPLATE_mblock_0_var_420, $TEMPLATE_mblock_1_var_421],
+        ublock: [$TEMPLATE_ublock_0_var_422, $TEMPLATE_ublock_1_var_423],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_769, $TEMPLATE_input_buf_min_size_tiles_1_var_770],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_424,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_425, $TEMPLATE_in_df_1_var_426],
+        out_df: $TEMPLATE_out_df_var_427,
+        intermed_df: $TEMPLATE_intermed_df_var_428,
+        acc_df: $TEMPLATE_acc_df_var_429,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_430 }, broadcast: { c: $TEMPLATE_c_var_431 }],
+      }
+    mha_0_as_softmax.dc.reduce_max.0:
+      {
+        type: reduce,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_432, $TEMPLATE_grid_loc_1_var_433],
+        grid_size: [$TEMPLATE_grid_size_0_var_434, $TEMPLATE_grid_size_1_var_435],
+        inputs: [mha_0_as_mask],
+        t: $TEMPLATE_t_var_436,
+        mblock: [$TEMPLATE_mblock_0_var_437, $TEMPLATE_mblock_1_var_438],
+        ublock: [$TEMPLATE_ublock_0_var_439, $TEMPLATE_ublock_1_var_440],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_771],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_441,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_442],
+        out_df: $TEMPLATE_out_df_var_443,
+        intermed_df: $TEMPLATE_intermed_df_var_444,
+        acc_df: $TEMPLATE_acc_df_var_445,
+        math_fidelity: HiFi3,
+        attributes: { dim: c, m_k: $TEMPLATE_m_k_var_446, type: max, u_kt: $TEMPLATE_u_kt_var_447 },
+      }
+    mha_0_as_softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_448, $TEMPLATE_grid_loc_1_var_449],
+        grid_size: [$TEMPLATE_grid_size_0_var_450, $TEMPLATE_grid_size_1_var_451],
+        inputs:
+          [
+            mha_0_as_softmax.dc.reduce_max.0,
+            lc.input_tensor.mha_0_as_softmax.dc.reduce_max.0_s_brcst_m1_0_0.0,
+          ],
+        t: $TEMPLATE_t_var_452,
+        mblock: [$TEMPLATE_mblock_0_var_453, $TEMPLATE_mblock_1_var_454],
+        ublock: [$TEMPLATE_ublock_0_var_455, $TEMPLATE_ublock_1_var_456],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_772, $TEMPLATE_input_buf_min_size_tiles_1_var_773],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_457,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_458, $TEMPLATE_in_df_1_var_459],
+        out_df: $TEMPLATE_out_df_var_460,
+        intermed_df: $TEMPLATE_intermed_df_var_461,
+        acc_df: $TEMPLATE_acc_df_var_462,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_463 }],
+        attributes: { m_k: $TEMPLATE_m_k_var_464, u_kt: $TEMPLATE_u_kt_var_465 },
+      }
+    buffer_0_mha_0_as_mask_mha_0_as_softmax.dc.subtract.1:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_466, $TEMPLATE_grid_loc_1_var_467],
+        grid_size: [$TEMPLATE_grid_size_0_var_468, $TEMPLATE_grid_size_1_var_469],
+        inputs: [mha_0_as_mask],
+        t: $TEMPLATE_t_var_470,
+        mblock: [$TEMPLATE_mblock_0_var_471, $TEMPLATE_mblock_1_var_472],
+        ublock: [$TEMPLATE_ublock_0_var_473, $TEMPLATE_ublock_1_var_474],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_774],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_475,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_476],
+        out_df: $TEMPLATE_out_df_var_477,
+        intermed_df: $TEMPLATE_intermed_df_var_478,
+        acc_df: $TEMPLATE_acc_df_var_479,
+        math_fidelity: HiFi3,
+      }
+    mha_0_as_softmax.dc.subtract.1:
+      {
+        type: subtract,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_480, $TEMPLATE_grid_loc_1_var_481],
+        grid_size: [$TEMPLATE_grid_size_0_var_482, $TEMPLATE_grid_size_1_var_483],
+        inputs:
+          [
+            buffer_0_mha_0_as_mask_mha_0_as_softmax.dc.subtract.1,
+            mha_0_as_softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1,
+          ],
+        t: $TEMPLATE_t_var_484,
+        mblock: [$TEMPLATE_mblock_0_var_485, $TEMPLATE_mblock_1_var_486],
+        ublock: [$TEMPLATE_ublock_0_var_487, $TEMPLATE_ublock_1_var_488],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_775, $TEMPLATE_input_buf_min_size_tiles_1_var_776],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_489,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_490, $TEMPLATE_in_df_1_var_491],
+        out_df: $TEMPLATE_out_df_var_492,
+        intermed_df: $TEMPLATE_intermed_df_var_493,
+        acc_df: $TEMPLATE_acc_df_var_494,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_495 }],
+      }
+    mha_0_as_softmax.dc.exp.2:
+      {
+        type: exp,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_496, $TEMPLATE_grid_loc_1_var_497],
+        grid_size: [$TEMPLATE_grid_size_0_var_498, $TEMPLATE_grid_size_1_var_499],
+        inputs: [mha_0_as_softmax.dc.subtract.1],
+        t: $TEMPLATE_t_var_500,
+        mblock: [$TEMPLATE_mblock_0_var_501, $TEMPLATE_mblock_1_var_502],
+        ublock: [$TEMPLATE_ublock_0_var_503, $TEMPLATE_ublock_1_var_504],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_777],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_505,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_506],
+        out_df: $TEMPLATE_out_df_var_507,
+        intermed_df: $TEMPLATE_intermed_df_var_508,
+        acc_df: $TEMPLATE_acc_df_var_509,
+        math_fidelity: HiFi3,
+      }
+    mha_0_as_softmax.dc.reduce_sum.3.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_510, $TEMPLATE_grid_loc_1_var_511],
+        grid_size: [$TEMPLATE_grid_size_0_var_512, $TEMPLATE_grid_size_1_var_513],
+        inputs:
+          [
+            mha_0_as_softmax.dc.exp.2,
+            lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0,
+          ],
+        t: $TEMPLATE_t_var_514,
+        mblock: [$TEMPLATE_mblock_0_var_515, $TEMPLATE_mblock_1_var_516],
+        ublock: [$TEMPLATE_ublock_0_var_517, $TEMPLATE_ublock_1_var_518],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_778, $TEMPLATE_input_buf_min_size_tiles_1_var_779],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_519,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_520, $TEMPLATE_in_df_1_var_521],
+        out_df: $TEMPLATE_out_df_var_522,
+        intermed_df: $TEMPLATE_intermed_df_var_523,
+        acc_df: $TEMPLATE_acc_df_var_524,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_525 }, broadcast: { z: $TEMPLATE_z_var_526 }],
+        attributes: { m_k: $TEMPLATE_m_k_var_527, u_kt: $TEMPLATE_u_kt_var_528 },
+      }
+    mha_0_as_softmax.dc.reciprocal.4:
+      {
+        type: reciprocal,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_529, $TEMPLATE_grid_loc_1_var_530],
+        grid_size: [$TEMPLATE_grid_size_0_var_531, $TEMPLATE_grid_size_1_var_532],
+        inputs: [mha_0_as_softmax.dc.reduce_sum.3.lc1],
+        t: $TEMPLATE_t_var_533,
+        mblock: [$TEMPLATE_mblock_0_var_534, $TEMPLATE_mblock_1_var_535],
+        ublock: [$TEMPLATE_ublock_0_var_536, $TEMPLATE_ublock_1_var_537],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_780],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_538,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_539],
+        out_df: $TEMPLATE_out_df_var_540,
+        intermed_df: $TEMPLATE_intermed_df_var_541,
+        acc_df: $TEMPLATE_acc_df_var_542,
+        math_fidelity: HiFi3,
+      }
+    buffer_0_mha_0_as_softmax.dc.exp.2_mha_0_as_softmax.dc.multiply.5:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_543, $TEMPLATE_grid_loc_1_var_544],
+        grid_size: [$TEMPLATE_grid_size_0_var_545, $TEMPLATE_grid_size_1_var_546],
+        inputs: [mha_0_as_softmax.dc.exp.2],
+        t: $TEMPLATE_t_var_547,
+        mblock: [$TEMPLATE_mblock_0_var_548, $TEMPLATE_mblock_1_var_549],
+        ublock: [$TEMPLATE_ublock_0_var_550, $TEMPLATE_ublock_1_var_551],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_781],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_552,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_553],
+        out_df: $TEMPLATE_out_df_var_554,
+        intermed_df: $TEMPLATE_intermed_df_var_555,
+        acc_df: $TEMPLATE_acc_df_var_556,
+        math_fidelity: HiFi3,
+      }
+    mha_0_as_softmax.dc.multiply.5:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_557, $TEMPLATE_grid_loc_1_var_558],
+        grid_size: [$TEMPLATE_grid_size_0_var_559, $TEMPLATE_grid_size_1_var_560],
+        inputs:
+          [
+            buffer_0_mha_0_as_softmax.dc.exp.2_mha_0_as_softmax.dc.multiply.5,
+            mha_0_as_softmax.dc.reciprocal.4,
+          ],
+        t: $TEMPLATE_t_var_561,
+        mblock: [$TEMPLATE_mblock_0_var_562, $TEMPLATE_mblock_1_var_563],
+        ublock: [$TEMPLATE_ublock_0_var_564, $TEMPLATE_ublock_1_var_565],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_782, $TEMPLATE_input_buf_min_size_tiles_1_var_783],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_566,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_567, $TEMPLATE_in_df_1_var_568],
+        out_df: $TEMPLATE_out_df_var_569,
+        intermed_df: $TEMPLATE_intermed_df_var_570,
+        acc_df: $TEMPLATE_acc_df_var_571,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_572 }],
+      }
+    mha.bert.encoder.layer.0.attention.self.value.bias_s_brcst_m2_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_573, $TEMPLATE_grid_loc_1_var_574],
+        grid_size: [$TEMPLATE_grid_size_0_var_575, $TEMPLATE_grid_size_1_var_576],
+        inputs:
+          [
+            lc.input_tensor.mha.bert.encoder.layer.0.attention.self.value.bias_s_brcst_m2_0_0.0,
+            mha.bert.encoder.layer.0.attention.self.value.bias,
+          ],
+        t: $TEMPLATE_t_var_577,
+        mblock: [$TEMPLATE_mblock_0_var_578, $TEMPLATE_mblock_1_var_579],
+        ublock: [$TEMPLATE_ublock_0_var_580, $TEMPLATE_ublock_1_var_581],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_784, $TEMPLATE_input_buf_min_size_tiles_1_var_785],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_582,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_583, $TEMPLATE_in_df_1_var_584],
+        out_df: $TEMPLATE_out_df_var_585,
+        intermed_df: $TEMPLATE_intermed_df_var_586,
+        acc_df: $TEMPLATE_acc_df_var_587,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_588, u_kt: $TEMPLATE_u_kt_var_589 },
+        input_0_tms: [broadcast: { z: $TEMPLATE_z_var_590 }],
+      }
+    buffer_1_encoder_input_mha_0_value:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_591, $TEMPLATE_grid_loc_1_var_592],
+        grid_size: [$TEMPLATE_grid_size_0_var_593, $TEMPLATE_grid_size_1_var_594],
+        inputs: [encoder_input],
+        t: $TEMPLATE_t_var_595,
+        mblock: [$TEMPLATE_mblock_0_var_596, $TEMPLATE_mblock_1_var_597],
+        ublock: [$TEMPLATE_ublock_0_var_598, $TEMPLATE_ublock_1_var_599],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_786],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_600,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_601],
+        out_df: $TEMPLATE_out_df_var_602,
+        intermed_df: $TEMPLATE_intermed_df_var_603,
+        acc_df: $TEMPLATE_acc_df_var_604,
+        math_fidelity: HiFi3,
+      }
+    buffer_0_encoder_input_mha_0_value:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_605, $TEMPLATE_grid_loc_1_var_606],
+        grid_size: [$TEMPLATE_grid_size_0_var_607, $TEMPLATE_grid_size_1_var_608],
+        inputs: [buffer_1_encoder_input_mha_0_value],
+        t: $TEMPLATE_t_var_609,
+        mblock: [$TEMPLATE_mblock_0_var_610, $TEMPLATE_mblock_1_var_611],
+        ublock: [$TEMPLATE_ublock_0_var_612, $TEMPLATE_ublock_1_var_613],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_787],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_614,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_615],
+        out_df: $TEMPLATE_out_df_var_616,
+        intermed_df: $TEMPLATE_intermed_df_var_617,
+        acc_df: $TEMPLATE_acc_df_var_618,
+        math_fidelity: HiFi3,
+      }
+    mha_0_value:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_619, $TEMPLATE_grid_loc_1_var_620],
+        grid_size: [$TEMPLATE_grid_size_0_var_621, $TEMPLATE_grid_size_1_var_622],
+        inputs:
+          [
+            buffer_0_encoder_input_mha_0_value,
+            mha.bert.encoder.layer.0.attention.self.value.weight,
+          ],
+        t: $TEMPLATE_t_var_623,
+        mblock: [$TEMPLATE_mblock_0_var_624, $TEMPLATE_mblock_1_var_625],
+        ublock: [$TEMPLATE_ublock_0_var_626, $TEMPLATE_ublock_1_var_627],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_788, $TEMPLATE_input_buf_min_size_tiles_1_var_789],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_628,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_629, $TEMPLATE_in_df_1_var_630],
+        out_df: $TEMPLATE_out_df_var_631,
+        intermed_df: $TEMPLATE_intermed_df_var_632,
+        acc_df: $TEMPLATE_acc_df_var_633,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_634, u_kt: $TEMPLATE_u_kt_var_635 },
+      }
+    mha_0_value.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_636, $TEMPLATE_grid_loc_1_var_637],
+        grid_size: [$TEMPLATE_grid_size_0_var_638, $TEMPLATE_grid_size_1_var_639],
+        inputs:
+          [
+            mha_0_value,
+            mha.bert.encoder.layer.0.attention.self.value.bias_s_brcst_m2_0_0.lc1,
+          ],
+        t: $TEMPLATE_t_var_640,
+        mblock: [$TEMPLATE_mblock_0_var_641, $TEMPLATE_mblock_1_var_642],
+        ublock: [$TEMPLATE_ublock_0_var_643, $TEMPLATE_ublock_1_var_644],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_790, $TEMPLATE_input_buf_min_size_tiles_1_var_791],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_645,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_646, $TEMPLATE_in_df_1_var_647],
+        out_df: $TEMPLATE_out_df_var_648,
+        intermed_df: $TEMPLATE_intermed_df_var_649,
+        acc_df: $TEMPLATE_acc_df_var_650,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_651 }],
+      }
+    mha_0_ac:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_652, $TEMPLATE_grid_loc_1_var_653],
+        grid_size: [$TEMPLATE_grid_size_0_var_654, $TEMPLATE_grid_size_1_var_655],
+        inputs: [mha_0_as_softmax.dc.multiply.5, mha_0_value.bias],
+        t: $TEMPLATE_t_var_656,
+        mblock: [$TEMPLATE_mblock_0_var_657, $TEMPLATE_mblock_1_var_658],
+        ublock: [$TEMPLATE_ublock_0_var_659, $TEMPLATE_ublock_1_var_660],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_792, $TEMPLATE_input_buf_min_size_tiles_1_var_793],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_661,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_662, $TEMPLATE_in_df_1_var_663],
+        out_df: $TEMPLATE_out_df_var_664,
+        intermed_df: $TEMPLATE_intermed_df_var_665,
+        acc_df: $TEMPLATE_acc_df_var_666,
+        math_fidelity: HiFi3,
+        input_1_tms: [hslice: $TEMPLATE_hslice_var_667],
+        attributes: { m_k: $TEMPLATE_m_k_var_668, u_kt: $TEMPLATE_u_kt_var_669 },
+      }
+    mha_0_output:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_670, $TEMPLATE_grid_loc_1_var_671],
+        grid_size: [$TEMPLATE_grid_size_0_var_672, $TEMPLATE_grid_size_1_var_673],
+        inputs: [mha_0_ac, mha.bert.encoder.layer.0.attention.output.dense.weight],
+        t: $TEMPLATE_t_var_674,
+        mblock: [$TEMPLATE_mblock_0_var_675, $TEMPLATE_mblock_1_var_676],
+        ublock: [$TEMPLATE_ublock_0_var_677, $TEMPLATE_ublock_1_var_678],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_794, $TEMPLATE_input_buf_min_size_tiles_1_var_795],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_679,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_680, $TEMPLATE_in_df_1_var_681],
+        out_df: $TEMPLATE_out_df_var_682,
+        intermed_df: $TEMPLATE_intermed_df_var_683,
+        acc_df: $TEMPLATE_acc_df_var_684,
+        math_fidelity: HiFi3,
+        input_0_tms: [hstack: $TEMPLATE_hstack_var_685],
+        attributes: { m_k: $TEMPLATE_m_k_var_686, u_kt: $TEMPLATE_u_kt_var_687 },
+      }
+    mha_0_output.bias:
+      {
+        type: add,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_688, $TEMPLATE_grid_loc_1_var_689],
+        grid_size: [$TEMPLATE_grid_size_0_var_690, $TEMPLATE_grid_size_1_var_691],
+        inputs:
+          [
+            mha_0_output,
+            mha.bert.encoder.layer.0.attention.output.dense.bias_s_brcst_m2_0_0.lc1,
+          ],
+        untilize_output: $TEMPLATE_untilize_output_var_692,
+        t: $TEMPLATE_t_var_693,
+        mblock: [$TEMPLATE_mblock_0_var_694, $TEMPLATE_mblock_1_var_695],
+        ublock: [$TEMPLATE_ublock_0_var_696, $TEMPLATE_ublock_1_var_697],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_796, $TEMPLATE_input_buf_min_size_tiles_1_var_797],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_698,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_699, $TEMPLATE_in_df_1_var_700],
+        out_df: $TEMPLATE_out_df_var_701,
+        intermed_df: $TEMPLATE_intermed_df_var_702,
+        acc_df: $TEMPLATE_acc_df_var_703,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { r: $TEMPLATE_r_var_704 }],
+      }
+
+programs:
+  # forward
+  - run_fwd:
+      - param: [$p_microbatch_count, $p_microbatch_size]
+      - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+      - var: { $c_zero: 0, $c_wrap: 2 } # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size] # c_wrap = 2*microbatch_size
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+      - loop: $p_microbatch_count
+      - execute:
+          {
+            graph_name: fwd_0,
+            queue_settings:
+              {
+                encoder_input:
+                  {
+                    prologue: $TEMPLATE_prologue_var_705,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                attention_mask:
+                  {
+                    prologue: $TEMPLATE_prologue_var_706,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                lc.input_tensor.mha.bert.encoder.layer.0.attention.output.dense.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_707,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.output.dense.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_708,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m2_0_1.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_709,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                mha.reciprocal_of_sqrt_of_head_size_0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_710,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha.reciprocal_of_sqrt_of_head_size_0_s_brcst_m1_0_2.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_711,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha.bert.encoder.layer.0.attention.self.key.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_712,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.key.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_713,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.key.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_714,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha.bert.encoder.layer.0.attention.self.query.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_715,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.query.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_716,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.query.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_717,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha_0_as_softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_718,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_719,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.mha.bert.encoder.layer.0.attention.self.value.bias_s_brcst_m2_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_720,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.value.bias:
+                  {
+                    prologue: $TEMPLATE_prologue_var_721,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.self.value.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_722,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+                mha.bert.encoder.layer.0.attention.output.dense.weight:
+                  {
+                    prologue: $TEMPLATE_prologue_var_723,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_global: $c_zero,
+                    wr_ptr_global: $c_zero,
+                  },
+              },
+          }
+      - varinst: [$gptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - endloop
+
+test-config:
+  test-args:
+    minibatch_count: $TEMPLATE_minibatch_count_var_724 # host loop iterations
+    microbatch_count: $TEMPLATE_microbatch_count_var_725 # input_activation.entries / input_count
+    microbatch_size: $TEMPLATE_microbatch_size_var_726 # input_count
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.80
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      lc.input_tensor..*_s_brcst_m2.*:
+        type: Constant
+        constant_value: 1.0
+        set_tile_cols: [1, 1]
+      lc.input_tensor..*_s_brcst_m1.*:
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+      lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0:
+        type: Constant
+        constant_value: 1.0
+      mha.reciprocal_of_sqrt_of_head_size_0:
+        type: Constant
+        constant_value: $TEMPLATE_reciprocal_of_sqrt_head_size
+      .*\.weight:
+        type: Normal
+        normal_mean: 0.0
+        normal_stddev: 0.01
+      .*\.bias:
+        type: Constant
+        constant_value: 1

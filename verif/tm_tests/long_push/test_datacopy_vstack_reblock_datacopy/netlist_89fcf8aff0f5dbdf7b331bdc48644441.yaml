@@ -1,0 +1,89 @@
+
+# input_grid_r = $TEMPLATE_input_grid_r
+
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 50
+    grid_size: [1, 2]
+    t: 2
+    mblock: [3, 4]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x11d6c920], [4, 0x2cb8f0c0]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 10
+    grid_size: [1, 2]
+    t: 1
+    mblock: [6, 2]
+    ublock: [2, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10809d20], [3, 0x3347eaa0]]
+    ublock_order: c
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 10
+    passthrough: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [1, 2]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: c
+      buf_size_mb: 4
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 2
+      mblock: [3, 4]
+      ublock: [2, 1]
+      input_0_tms: []
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [2, 4] 
+      grid_size: [1, 2]
+      inputs: [passthrough] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [6, 2]
+      ublock: [2, 2]
+      input_0_tms: [vstack: 2]
+      
+programs:
+  - program0:
+      #- var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var : [$c_loop_count]
+      - staticvar : {$lptr : 0, $gptr : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, 10, 100] # add two variables
+      - varinst: [$gptr, incwrap, 10, 100] # add two variables
+      - endloop 
+
+
+

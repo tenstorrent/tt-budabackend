@@ -1,0 +1,77 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  in:    {type: queue, input: HOST    , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  e2e_1: {type: queue, input: unary2  , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 2, loc: dram, dram: [[0, 0x30000000]]}
+  e2e_2: {type: queue, input: unary5  , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x38000000]]}
+  out:   {type: queue, input: unary8  , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x100]}
+
+graphs:
+  graph_first_device_1:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary1: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [unary0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary2: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [unary1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  graph_second_device:
+    target_device: 2
+    input_count: 1
+    unary3: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary4: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [unary3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary5: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [unary4], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  graph_first_device_2:
+    target_device: 0
+    input_count: 1
+    unary6: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary7: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [unary6], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary8: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [unary7], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+
+
+programs:
+  - program1:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 1, $c_input_count: 1, $c_input_wrap: 2}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph_first_device_1, queue_settings: {
+          in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+  - program2:
+      - staticvar: {$lptr1: 0, $gptr1: 0}
+      - var: {$c_loop_count: 1, $c_input_count: 1, $c_input_wrap: 2}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph_second_device, queue_settings: {
+          e2e_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+  - program3:
+      - staticvar: {$lptr1: 0, $gptr1: 0}
+      - var: {$c_loop_count: 1, $c_input_count: 1, $c_input_wrap: 2}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph_first_device_2, queue_settings: {
+          e2e_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr1, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in]
+    outputs: [out]

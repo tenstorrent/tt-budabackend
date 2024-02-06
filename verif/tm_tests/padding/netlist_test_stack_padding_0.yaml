@@ -1,0 +1,69 @@
+devices:
+    arch: grayskull
+  
+queues:
+  in0  : {type: queue, input: HOST, entries: 8, grid_size: [2, 1], t: 6, mblock: [2, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [1, 0x10000000]]}
+  out0 : {type: queue, input: wr0 , entries: 8, grid_size: [1, 2], t: 2, mblock: [4, 2], ublock: [2, 2], ublock_order: c, df: Float16, target_device: 0, loc: dram, dram: [[7, 0x20000000], [6, 0x20000000]]}
+  
+graphs:
+  test0:
+    target_device: 0
+    input_count: 8 
+    rd0:
+      type: datacopy
+      grid_loc: [0, 0]
+      grid_size: [2, 1]
+      inputs: [in0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 6
+      mblock: [2, 1]
+      ublock: [2, 2]
+      input_0_pad: {rt: 0, ct: 0, pad_value: 0.0}
+
+    wr0:
+      type: datacopy
+      grid_loc: [0, 10]
+      grid_size: [1, 2]
+      inputs: [rd0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 2
+      mblock: [4, 2]
+      ublock: [2, 2]
+      input_0_tms: [hstack: 3]
+      input_0_pad: {rt: 0, ct: 2, pad_value: 0.0}
+   
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test0, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.99
+    check_pcc: 0.99
+    verbosity: Concise
+  io-config:
+    inputs: [in0]
+    outputs: [out0]

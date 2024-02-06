@@ -1,0 +1,23 @@
+devices:
+  arch: [grayskull, wormhole]
+  
+queues:
+  ram0        : {type: ram, input: HOST , entries: 16, grid_size: [1, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x30000000], [4, 0x30000000]]}
+  ram1        : {type: ram, input: unary0 , entries: 16, grid_size: [1, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x38000000], [5, 0x30000000]]}
+
+graphs:
+  test_unary:
+    target_device: 0
+    input_count: 1
+    unary0: {type: exp, grid_loc: [0, 0], grid_size: [1, 2], inputs: [ram0], in_df: [Float16], acc_df: Float16, out_df: Float16_b,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - program0:
+      - var: {$ram_rd: 1, $ram_wr: 1}
+      - var: {$c_loop_count: 4, $c_input_count: 1}
+      - loop: $c_loop_count
+      - execute: {graph_name: test_unary, queue_settings: { 
+          ram0: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $ram_rd, wr_ptr_global: $ram_wr}}}
+      - varinst: [$ram_rd, add, $ram_rd, $c_input_count] # add two variables
+      - varinst: [$ram_wr, add, $ram_wr, $c_input_count] # add two variables
+      - endloop 

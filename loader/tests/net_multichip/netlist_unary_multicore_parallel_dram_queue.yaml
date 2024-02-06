@@ -1,0 +1,42 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  0_q_in:  {type: queue, input: HOST          , entries: 6, grid_size: [2, 1], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000],[0, 0x31000000]]}
+  0_q_out: {type: queue, input: 0_op_unary1   , entries: 6, grid_size: [2, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000],[0, 0x33000000]]}
+  1_q_in:  {type: queue, input: HOST          , entries: 6, grid_size: [2, 1], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30000000],[0, 0x31000000]]}
+  1_q_out: {type: queue, input: 1_op_unary1   , entries: 6, grid_size: [2, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x32000000],[0, 0x33000000]]}
+
+graphs:
+  0_graph:
+    target_device: 0
+    input_count: 2
+    0_op_unary0: {type: nop, grid_loc: [0, 0], grid_size: [2, 1], inputs: [0_q_in],      in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    0_op_unary1: {type: nop, grid_loc: [2, 0], grid_size: [2, 1], inputs: [0_op_unary0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  1_graph:
+    target_device: 1
+    input_count: 2
+    1_op_unary0: {type: nop, grid_loc: [0, 0], grid_size: [2, 1], inputs: [1_q_in],      in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    1_op_unary1: {type: nop, grid_loc: [2, 0], grid_size: [2, 1], inputs: [1_op_unary0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - 0_program:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 3]  # load loop count
+      - varinst: [$c_input_count, set, 2]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: 0_graph, queue_settings: {
+          0_q_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop
+  - 1_program:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 3]  # load loop count
+      - varinst: [$c_input_count, set, 2]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: 1_graph, queue_settings: {
+          1_q_in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop

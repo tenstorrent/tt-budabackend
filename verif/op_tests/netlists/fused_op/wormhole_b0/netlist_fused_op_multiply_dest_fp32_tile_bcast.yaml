@@ -1,0 +1,63 @@
+# Regression tests related to #1581
+# Dest address offset wasn't not correct for ZEROACC instruction in the case:
+# 1. In 0 Re-used from dest->srcA
+# 2. In 1 col broadcasted into srcB
+# 3. dest in fp32 mode
+
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  # input
+  in0:        {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x465a100]]}
+  in1:        {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: host, host: [0x0]}
+
+  # output
+  output:        {input: _fused_op_0, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0x10220]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    _fused_op_0: {type: fused_op, grid_loc: [0, 1], grid_size: [1, 1], inputs: [in0, in1],
+         t: 1, mblock: [1,1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r,
+         in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32,
+         math_fidelity: HiFi3, untilize_output: true,
+         attributes: {approximate_mode: false, fused_op_id: 0}}
+
+programs:
+  - run_fwd_0:
+    - varinst: [$p_loop_count, set, 1]  # load loop count
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               in0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               in1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               } }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+fused_ops:
+  0: 
+    inputs: 2
+    intermediates: 0
+    schedules: 
+      -
+        - op1: { type: nop, inputs: [input1], mblock: [1, 1], ublock: [1, 1], output: dest}
+        - op2: { type: multiply, inputs: [dest, input0], input_1_tms: [tile_broadcast: c], mblock: [1, 1], ublock: [1, 1], output: output}
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 1.0

@@ -1,0 +1,39 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  unary0_input: {type: queue, input: HOST     , entries: 6, grid_size: [2, 2], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000],[0, 0x31000000],[0, 0x32000000],[0, 0x33000000]]}
+  unary1_input: {type: queue, input: unary0   , entries: 6, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30000000],[0, 0x31000000],[0, 0x32000000],[0, 0x33000000]]}
+  unary2_input: {type: queue, input: unary1   , entries: 6, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x34000000],[0, 0x35000000],[0, 0x36000000],[0, 0x37000000]]}
+  out:          {type: queue, input: unary2   , entries: 6, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x34000000],[0, 0x35000000],[0, 0x36000000],[0, 0x37000000]]}
+
+graphs:
+  unary0_graph:
+    target_device: 0
+    input_count: 3
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [unary0_input], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary1_graph:
+    target_device: 1
+    input_count: 3
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [unary1_input], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary2_graph:
+    target_device: 0
+    input_count: 3
+    unary2: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [unary2_input], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16,  ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+
+programs:
+  - tilize_untilize:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_input_count, set, 3]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: unary0_graph, queue_settings: {
+          unary0_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: unary1_graph, queue_settings: {
+          unary1_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: unary2_graph, queue_settings: {
+          unary2_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop

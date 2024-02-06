@@ -1,0 +1,64 @@
+devices:
+ arch: wormhole
+
+#### TEMPLATE VARS ####
+# $TEMPLATE_src_chip
+# $TEMPLATE_dest_chip
+
+queues:
+  q0:
+    type: queue
+    input: HOST
+     entries: 1
+     grid_size: [1, 1]
+     t: 1
+     mblock: [2, 2]
+     ublock: [2, 2]
+     df: Float16
+     target_device: $TEMPLATE_src_chip
+     loc: dram
+     dram: [[0, 0x10000000]]
+  output_0:
+    type: queue
+    input: unary0
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 2]
+    ublock: [2, 2]
+    df: Float16
+    target_device: $TEMPLATE_dest_chip
+    loc: dram
+    dram: [[0, 0x11000000]]
+  output_1:
+    type: queue
+    input: unary1
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 2]
+    ublock: [2, 2]
+    df: Float16
+    target_device: $TEMPLATE_dest_chip
+    loc: dram
+    dram: [[0, 0x12000000]]
+
+graphs:
+  test_unary_chip0_temporal_epoch_0:
+    target_device: $TEMPLATE_dest_chip
+    input_count: 1
+    unary0: {type: exp, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], input_0_tms: []}
+    unary1: {type: exp, grid_loc: [2, 2], grid_size: [1, 1], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], input_0_tms: []}
+
+
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0_temporal_epoch_0, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}}}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop: 
+

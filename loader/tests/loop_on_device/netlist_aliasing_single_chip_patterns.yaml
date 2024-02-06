@@ -1,0 +1,498 @@
+devices:
+  arch: [grayskull, wormhole_b0]
+
+queues:
+  # Single input shared by all ops, rdptrs not touched.
+  in0:   {type: queue, input: HOST,    entries: 1,  grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  # Single output queue per op, must be sufficiently large enough for all patterns/ops across all programs.
+  out0:  {type: queue, input: unary0,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  out1:  {type: queue, input: unary1,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20100000]]}
+  out2:  {type: queue, input: unary2,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20200000]]}
+  out3:  {type: queue, input: unary3,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20300000]]}
+  out4:  {type: queue, input: unary4,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20400000]]}
+  out5:  {type: queue, input: unary5,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20500000]]}
+  out6:  {type: queue, input: unary6,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20600000]]}
+  out7:  {type: queue, input: unary7,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20700000]]}
+  out8:  {type: queue, input: unary8,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20800000]]}
+  out9:  {type: queue, input: unary9,  entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20900000]]}
+  out10: {type: queue, input: unary10, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20a00000]]}
+  out11: {type: queue, input: unary11, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20b00000]]}
+  out12: {type: queue, input: unary12, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20c00000]]}
+  out13: {type: queue, input: unary13, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20d00000]]}
+  out14: {type: queue, input: unary14, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20e00000]]}
+  out15: {type: queue, input: unary15, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x20f00000]]}
+  out16: {type: queue, input: unary16, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21000000]]}
+  out17: {type: queue, input: unary17, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21100000]]}
+  out18: {type: queue, input: unary18, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21200000]]}
+  out19: {type: queue, input: unary19, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21300000]]}
+  out20: {type: queue, input: unary20, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21400000]]}
+  out21: {type: queue, input: unary21, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21500000]]}
+  out22: {type: queue, input: unary22, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21600000]]}
+  out23: {type: queue, input: unary23, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21700000]]}
+  out24: {type: queue, input: unary24, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21800000]]}
+  out25: {type: queue, input: unary25, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21900000]]}
+  out26: {type: queue, input: unary26, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21a00000]]}
+  out27: {type: queue, input: unary27, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21b00000]]}
+  out28: {type: queue, input: unary28, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21c00000]]}
+  out29: {type: queue, input: unary29, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21d00000]]}
+  out30: {type: queue, input: unary30, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21e00000]]}
+  out31: {type: queue, input: unary31, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x21f00000]]}
+  out32: {type: queue, input: unary32, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22000000]]}
+  out33: {type: queue, input: unary33, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22100000]]}
+  out34: {type: queue, input: unary34, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22200000]]}
+  out35: {type: queue, input: unary35, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22300000]]}
+  out36: {type: queue, input: unary36, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22400000]]}
+  out37: {type: queue, input: unary37, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22500000]]}
+  out38: {type: queue, input: unary38, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22600000]]}
+  out39: {type: queue, input: unary39, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22700000]]}
+  out40: {type: queue, input: unary40, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22800000]]}
+  out41: {type: queue, input: unary41, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22900000]]}
+  out42: {type: queue, input: unary42, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22a00000]]}
+  out43: {type: queue, input: unary43, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22b00000]]}
+  out44: {type: queue, input: unary44, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22c00000]]}
+  out45: {type: queue, input: unary45, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22d00000]]}
+  out46: {type: queue, input: unary46, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22e00000]]}
+  out47: {type: queue, input: unary47, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x22f00000]]}
+  out48: {type: queue, input: unary48, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23000000]]}
+  out49: {type: queue, input: unary49, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23100000]]}
+  out50: {type: queue, input: unary50, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23200000]]}
+  out51: {type: queue, input: unary51, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23300000]]}
+  out52: {type: queue, input: unary52, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23400000]]}
+  out53: {type: queue, input: unary53, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23500000]]}
+  out54: {type: queue, input: unary54, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23600000]]}
+  out55: {type: queue, input: unary55, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23700000]]}
+  out56: {type: queue, input: unary56, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23800000]]}
+  out57: {type: queue, input: unary57, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23900000]]}
+  out58: {type: queue, input: unary58, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23a00000]]}
+  out59: {type: queue, input: unary59, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23b00000]]}
+  out60: {type: queue, input: unary60, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23c00000]]}
+  out61: {type: queue, input: unary61, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23d00000]]}
+  out62: {type: queue, input: unary62, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x23e00000]]}
+  out63: {type: queue, input: unary63, entries: 32, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x23f00000]]}
+
+graphs:
+  unary_graph00:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph01:
+    target_device: 0
+    input_count: 1
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph02:
+    target_device: 0
+    input_count: 1
+    unary2: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph03:
+    target_device: 0
+    input_count: 1
+    unary3: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph04:
+    target_device: 0
+    input_count: 1
+    unary4: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph05:
+    target_device: 0
+    input_count: 1
+    unary5: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph06:
+    target_device: 0
+    input_count: 1
+    unary6: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph07:
+    target_device: 0
+    input_count: 1
+    unary7: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph08:
+    target_device: 0
+    input_count: 1
+    unary8: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph09:
+    target_device: 0
+    input_count: 1
+    unary9: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph10:
+    target_device: 0
+    input_count: 1
+    unary10: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph11:
+    target_device: 0
+    input_count: 1
+    unary11: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph12:
+    target_device: 0
+    input_count: 1
+    unary12: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph13:
+    target_device: 0
+    input_count: 1
+    unary13: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph14:
+    target_device: 0
+    input_count: 1
+    unary14: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph15:
+    target_device: 0
+    input_count: 1
+    unary15: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph16:
+    target_device: 0
+    input_count: 1
+    unary16: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph17:
+    target_device: 0
+    input_count: 1
+    unary17: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph18:
+    target_device: 0
+    input_count: 1
+    unary18: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph19:
+    target_device: 0
+    input_count: 1
+    unary19: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph20:
+    target_device: 0
+    input_count: 1
+    unary20: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph21:
+    target_device: 0
+    input_count: 1
+    unary21: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph22:
+    target_device: 0
+    input_count: 1
+    unary22: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph23:
+    target_device: 0
+    input_count: 1
+    unary23: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph24:
+    target_device: 0
+    input_count: 1
+    unary24: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph25:
+    target_device: 0
+    input_count: 1
+    unary25: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph26:
+    target_device: 0
+    input_count: 1
+    unary26: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph27:
+    target_device: 0
+    input_count: 1
+    unary27: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph28:
+    target_device: 0
+    input_count: 1
+    unary28: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph29:
+    target_device: 0
+    input_count: 1
+    unary29: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph30:
+    target_device: 0
+    input_count: 1
+    unary30: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph31:
+    target_device: 0
+    input_count: 1
+    unary31: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph32:
+    target_device: 0
+    input_count: 1
+    unary32: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph33:
+    target_device: 0
+    input_count: 1
+    unary33: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph34:
+    target_device: 0
+    input_count: 1
+    unary34: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph35:
+    target_device: 0
+    input_count: 1
+    unary35: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph36:
+    target_device: 0
+    input_count: 1
+    unary36: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph37:
+    target_device: 0
+    input_count: 1
+    unary37: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph38:
+    target_device: 0
+    input_count: 1
+    unary38: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph39:
+    target_device: 0
+    input_count: 1
+    unary39: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph40:
+    target_device: 0
+    input_count: 1
+    unary40: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph41:
+    target_device: 0
+    input_count: 1
+    unary41: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph42:
+    target_device: 0
+    input_count: 1
+    unary42: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph43:
+    target_device: 0
+    input_count: 1
+    unary43: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph44:
+    target_device: 0
+    input_count: 1
+    unary44: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph45:
+    target_device: 0
+    input_count: 1
+    unary45: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph46:
+    target_device: 0
+    input_count: 1
+    unary46: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph47:
+    target_device: 0
+    input_count: 1
+    unary47: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph48:
+    target_device: 0
+    input_count: 1
+    unary48: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph49:
+    target_device: 0
+    input_count: 1
+    unary49: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph50:
+    target_device: 0
+    input_count: 1
+    unary50: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph51:
+    target_device: 0
+    input_count: 1
+    unary51: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph52:
+    target_device: 0
+    input_count: 1
+    unary52: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph53:
+    target_device: 0
+    input_count: 1
+    unary53: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph54:
+    target_device: 0
+    input_count: 1
+    unary54: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph55:
+    target_device: 0
+    input_count: 1
+    unary55: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph56:
+    target_device: 0
+    input_count: 1
+    unary56: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph57:
+    target_device: 0
+    input_count: 1
+    unary57: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph58:
+    target_device: 0
+    input_count: 1
+    unary58: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph59:
+    target_device: 0
+    input_count: 1
+    unary59: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph60:
+    target_device: 0
+    input_count: 1
+    unary60: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph61:
+    target_device: 0
+    input_count: 1
+    unary61: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph62:
+    target_device: 0
+    input_count: 1
+    unary62: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  unary_graph63:
+    target_device: 0
+    input_count: 1
+    unary63: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+
+  # Verify typical case, 64 in order epochs in 2 loops, that syncs are inserted at wrapped_id:0
+  # 5 syncs => o3 w/ WC 
+  # 2+1 syncs => o4 w/ program-looping
+  - prog1_in_order_64_epochs_2_loops:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 2, $c_input_count: 1}
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # 3. Loop 2: 0 alias with 62, Sync.
+      - execute: {graph_name: unary_graph01, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph02, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph03, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph04, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph05, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph06, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph07, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph08, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph09, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph10, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph11, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph12, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph13, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph14, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph15, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph16, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph17, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph18, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph19, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph20, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph21, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph22, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph23, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph24, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph25, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph26, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph27, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph28, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph29, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph30, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # 1. Loop 1: 31 alias with 0, Sync. Loop 2, too.
+      - execute: {graph_name: unary_graph32, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph33, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph34, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph35, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph36, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph37, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph38, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph39, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph40, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph41, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph42, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph43, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph44, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph45, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph46, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph47, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph48, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph49, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph50, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph51, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph52, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph53, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph54, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph55, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph56, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph57, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph58, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph59, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph60, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph61, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph62, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # 2. Loop1 : 62 alias with 0, Sync. Loop 2, too.
+      - execute: {graph_name: unary_graph63, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - endloop
+
+  # Verify that no hazards for repeating the same epoch_ids. WFI between previous program and this one prevents hazrd.
+  # 0 syncs => o3 w/ WC 
+  # 0 syncs => o4 w/ program-looping
+  - prog2_in_order_3_epochs_2_loops:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 2, $c_input_count: 1}
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph01, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph02, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - endloop
+
+
+  # Verify for out-of-order epochs that storing previous sync index works to negate need for new syncs.
+  # 6 syncs => o3 w/ WC 
+  # 1+1 syncs => o4 w/ program-looping
+  - prog3_out_of_order_epochs_2_loops:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 2, $c_input_count: 1}
+      - loop: $c_loop_count
+
+      - execute: {graph_name: unary_graph02, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: nothing. Loop2: alias w/ 33: Sync.
+      - execute: {graph_name: unary_graph03, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: nothing. Loop2: alias w/ 34, no new sync needed.
+      - execute: {graph_name: unary_graph04, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: nothing. Loop2: alias w/ 35, no new sync needed. Need sync in o2.
+
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: nothing. Loop2: Same. Need sync in o2.
+      - execute: {graph_name: unary_graph32, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: nothing. Loop2: Same. Need sync in o2.
+      - execute: {graph_name: unary_graph35, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 4. Sync. Loop2: Same.
+      - execute: {graph_name: unary_graph34, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 3, no new sync needed. Loop2: Same.
+      - execute: {graph_name: unary_graph33, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 2, no new sync needed. Loop2: Same.
+      - execute: {graph_name: unary_graph35, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: Doesn't alias with itself, no sync needed. Loop2: Same.
+
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 31, no new sync needed. Loop2: Same.
+      - execute: {graph_name: unary_graph01, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 32, no new sync needed. Loop2: Same.
+
+      - endloop
+
+  # Verify for out-of-order epochs that storing previous sync index still allows syncs when needed for continual aliasing of epochs.
+  # 22 syncs => o3 w/ WC 
+  # 11+1 syncs => o4 w/ program-looping
+  - prog4_out_of_order_2_loops:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 2, $c_input_count: 1}
+      - loop: $c_loop_count
+
+      - execute: {graph_name: unary_graph04, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph35, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph04, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph35, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+
+      - execute: {graph_name: unary_graph03, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph34, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph03, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph34, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph62, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph62, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Sync
+      - endloop
+
+  # Verify for out-of-order epochs more syncing cases and for o4 that full-grid-sync at EndLoop updates state (last_sync_idx) properly.
+  # 5 syncs => o3 w/ WC 
+  # 2+2 syncs => o4 w/ program-looping
+  - prog5_out_of_order_2_loops:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 2, $c_input_count: 1}
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop 2: Alias with 31.
+      - execute: {graph_name: unary_graph02, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph32, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph34, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph60, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph33, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 2. Sync. Loop2: Same.
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Loop1: alias w/ 0, no new sync needed.
+
+      - execute: {graph_name: unary_graph07, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: unary_graph08, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - endloop
+
+      # In o4 w/ program-looping, full-grid-sync is inserted before EpochCmdLoopEnd if aliasing was seen, and last_sync_idx state is updated.
+      # such that these do not trigger hazard/syncs.
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph38, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Alias w/ 7, no new sync needed in o4. Sync in o3.
+      - execute: {graph_name: unary_graph00, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Alias w/ 31, no new sync needed in o4.
+      - endloop
+
+      # This will trigger a sync in o4 though, because prior loop did not. (1 hazard, 2 full-grid-sync in o4.)
+      - loop: $c_loop_count
+      - execute: {graph_name: unary_graph31, queue_settings: {in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}} # Alias w/ 0, sync needed since none inserted prev loop body in o4. Sync in o3.
+      - endloop

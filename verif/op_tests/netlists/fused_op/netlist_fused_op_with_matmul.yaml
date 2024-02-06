@@ -1,0 +1,84 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in_0:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [1, 2], ublock: [1, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in_1:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [2, 1], ublock: [2, 2], df: Bfp4_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  in_2:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  #input3:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+  #input4:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x34000000]]}
+  #input5:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x35000000]]}
+  #input6:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x36000000]]}
+  output0:  {type: queue, input: op0 , entries: 8, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  8
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [in_0, in_1, in_2]
+      in_df: [Bfp8_b, Bfp4_b, Float16_b]
+      acc_df: Float16
+      out_df: Float16_b  
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      input_0_tms: [broadcast: {c: 2}]
+      t: 2
+      mblock: [1, 1]
+      ublock: [2, 2]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 8]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 16]
+      -   varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+fused_ops:
+  0: 
+    inputs: 3
+    intermediates: 2
+    schedules: 
+      -
+        - reduce_sum: { type: matmul, inputs: [input0, input1], mblock: [1, 1], ublock: [1, 2], attributes: {m_k: 2, u_kt: 2}, output: intermed0}
+      -
+        - reciprocal: { type: reciprocal, inputs: [intermed0], mblock: [1, 1], ublock: [1, 2], pop: [intermed0], output: intermed1}
+        #- multiply: { type: multiply, inputs: [input2, intermed1], pop: [intermed1], mblock: [1, 1], ublock: [1, 2], output: output}
+        - multiply: { type: multiply, inputs: [input2, intermed1], input_1_tms: [broadcast: {r: 2}], pop: [intermed1], mblock: [1, 1], ublock: [2, 2], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #constant_value: 1.0
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 1.0
+

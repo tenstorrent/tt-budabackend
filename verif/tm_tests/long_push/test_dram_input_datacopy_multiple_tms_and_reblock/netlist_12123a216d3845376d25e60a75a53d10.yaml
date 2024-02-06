@@ -1,0 +1,76 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [4, 1]
+    t: 18
+    mblock: [6, 1]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x10000040], [4, 0x100db660], [4, 0x101b6c80], [4, 0x102922a0]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 2
+    grid_size: [2, 12]
+    t: 18
+    mblock: [1, 1]
+    ublock: [2, 4]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000020], [1, 0x10092440], [1, 0x10124860], [1, 0x101b6c80], [1, 0x102490a0], [1, 0x102db4c0], [1, 0x1036d8e0], [1, 0x103ffd00], [1, 0x10492120], [1, 0x10524540], [1, 0x105b6960], [1, 0x10648d80], [1, 0x106db1a0], [1, 0x1076d5c0], [1, 0x107ff9e0], [1, 0x10891e00], [1, 0x10924220], [1, 0x109b6640], [1, 0x10a48a60], [1, 0x10adae80], [1, 0x10b6d2a0], [1, 0x10bff6c0], [1, 0x10c91ae0], [1, 0x10d23f00]]
+
+graphs:
+  test_multi_tm_dram_op:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [5, 0] 
+      grid_size: [2, 12]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 18
+      mblock: [1, 1]
+      ublock: [2, 4]
+      input_0_tms: [broadcast: {c: 4}, transpose]
+      
+programs:
+  - multi_tm_test_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_op,
+          queue_settings: {
+               dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 2 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 9 # host loop iterations

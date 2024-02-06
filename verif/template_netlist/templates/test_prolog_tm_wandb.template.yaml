@@ -1,0 +1,136 @@
+devices:
+    arch: grayskull
+  
+queues:
+  #dram_input_act:
+  #  type: queue
+  #  input: HOST
+  #  entries: $TEMPLATE_entries
+  #  grid_size: [$TEMPLATE_act_queue_grid_size_y, $TEMPLATE_act_queue_grid_size_x]
+  #  t: $TEMPLATE_tensor_t
+  #  mblock: [$TEMPLATE_act_queue_mblock_r, $TEMPLATE_act_queue_mblock_c]
+  #  ublock: [$TEMPLATE_act_queue_ublock_r, $TEMPLATE_act_queue_ublock_c]
+  #  df: Float16
+  #  target_device: 0
+  #  loc: dram
+  #  dram: $TEMPLATE_act_dram_buffers
+
+  #dram_input_weight:
+  #  type: queue
+  #  input: HOST
+  #  entries: 1
+  #  grid_size: [$TEMPLATE_weight_queue_grid_size_y, $TEMPLATE_weight_queue_grid_size_x]
+  #  t: $TEMPLATE_tensor_t
+  #  mblock: [$TEMPLATE_weight_queue_mblock_r, $TEMPLATE_weight_queue_mblock_c]
+  #  ublock: [$TEMPLATE_weight_queue_ublock_r, $TEMPLATE_weight_queue_ublock_c]
+  #  df: Float16
+  #  target_device: 0
+  #  loc: dram
+  #  dram: $TEMPLATE_weight_dram_buffers
+  dram_input_act:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_input0_grid_size_r, $TEMPLATE_input0_grid_size_c]
+    t: $TEMPLATE_input0_t
+    mblock: [$TEMPLATE_input0_mb_r, $TEMPLATE_input0_mb_c]
+    ublock: [$TEMPLATE_input0_ub_r, $TEMPLATE_input0_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input0_dram_buffers
+
+  dram_input_weight:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [$TEMPLATE_input1_grid_size_r, $TEMPLATE_input1_grid_size_c]
+    t: $TEMPLATE_input1_t
+    mblock: [$TEMPLATE_input1_mb_r, $TEMPLATE_input1_mb_c]
+    ublock: [$TEMPLATE_input1_ub_r, $TEMPLATE_input1_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input1_dram_buffers
+
+  dram_input_bias:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [$TEMPLATE_bias_queue_grid_size_r, $TEMPLATE_bias_queue_grid_size_c]
+    t: $TEMPLATE_tensor_t
+    mblock: [$TEMPLATE_bias_queue_mb_r, $TEMPLATE_bias_queue_mb_c]
+    ublock: [$TEMPLATE_bias_queue_ub_r, $TEMPLATE_bias_queue_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_bias_dram_buffers
+
+  dram_output:
+    type: queue
+    input: op_bias
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_bias_grid_size_r, $TEMPLATE_bias_grid_size_c]
+    t: $TEMPLATE_tensor_t
+    mblock: [$TEMPLATE_bias_mb_r, $TEMPLATE_bias_mb_c]
+    ublock: [$TEMPLATE_bias_ub_r, $TEMPLATE_bias_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output_dram_buffers
+  
+graphs:
+  test_prolog:
+    target_device: 0
+    input_count: $TEMPLATE_input_count
+    op_mm:
+      type: matmul
+      grid_loc: [$TEMPLATE_grid_loc_r, $TEMPLATE_grid_loc_c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [dram_input_act, dram_input_weight]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: HiFi4
+      attributes: {m_k: $TEMPLATE_mb_inner, u_kt: $TEMPLATE_ub_inner}
+      untilize_output: false
+      t: $TEMPLATE_tensor_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms: []
+      input_1_tms: []
+    op_bias:
+      type: add
+      grid_loc: [$TEMPLATE_bias_grid_loc_r, $TEMPLATE_bias_grid_loc_c]
+      grid_size: [$TEMPLATE_bias_grid_size_r, $TEMPLATE_bias_grid_size_c]
+      inputs: [op_mm, dram_input_bias]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: $TEMPLATE_tensor_t
+      mblock: [$TEMPLATE_bias_mb_r, $TEMPLATE_bias_mb_c]
+      ublock: [$TEMPLATE_bias_ub_r, $TEMPLATE_bias_ub_c]
+      input_0_tms:
+      input_1_tms: [broadcast: {c: $TEMPLATE_bias_col_bcast_factor }]
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_prolog, queue_settings: {
+          dram_input_act:    {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          dram_input_weight: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          dram_input_bias:   {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop:
+  

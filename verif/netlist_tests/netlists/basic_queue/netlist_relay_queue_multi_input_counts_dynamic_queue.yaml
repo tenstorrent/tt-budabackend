@@ -1,0 +1,39 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  q0:                            {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  output:                        {input: buffer_post, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # buffering
+  lowered_buffering_queue:       {input: buffer_pre, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 2
+    buffer_pre: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    buffer_post: {type: exp, grid_loc: [0, 1], grid_size: [1, 1], inputs: [lowered_buffering_queue], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+
+programs:
+  - program0:
+    - var: {$c_microbatch_size: 2, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    - allocate_queue: [lowered_buffering_queue]
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               q0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lowered_buffering_queue: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, rd_ptr_autoinc: 1, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}} }
+    - deallocate_queue: [lowered_buffering_queue]
+    - varinst: [$lptr_q0, incwrap, $c_microbatch_size, 16]
+    - varinst: [$gptr_q0, incwrap, $c_microbatch_size, 16]
+    - endloop
+
+

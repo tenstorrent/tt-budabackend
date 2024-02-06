@@ -1,0 +1,165 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 4], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  output: {type: queue, input: d_op3 , entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    f_op0: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [1, 1]
+      inputs: [input0] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [4, 2]
+      ublock: [2, 2]
+      input_0_tms:
+
+    f_op1:
+      type: datacopy
+      grid_loc: [0, 1]
+      grid_size: [1, 1]
+      inputs: [input1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 1
+      mblock: [2, 4]
+      ublock: [2, 2]
+      input_0_tms:
+
+    recip:
+      type: reciprocal 
+      grid_loc: [2, 2] 
+      grid_size: [1, 1]
+      inputs: [f_op1] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 1
+      mblock: [2, 4]
+      ublock: [2, 2]
+      input_0_tms:
+    matmul1:
+      type: matmul
+      grid_loc: [0, 2]
+      grid_size: [1, 1]
+      inputs: [f_op0, f_op1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [4, 4]
+      ublock: [2, 2]
+      attributes: {m_k: 2, u_kt: 2}
+      input_0_tms:
+    matmul2:
+      type: matmul
+      grid_loc: [2, 4]
+      grid_size: [1, 1]
+      inputs: [f_op0, recip]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [4, 4]
+      ublock: [2, 2]
+      attributes: {m_k: 2, u_kt: 2}
+      input_0_tms:
+
+    add1:
+      type: add
+      grid_loc: [2, 6]
+      grid_size: [1, 1]
+      inputs: [matmul1, matmul2]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 1
+      mblock: [4, 4]
+      ublock: [2, 2]
+      input_0_tms:
+
+
+
+    d_op3:
+      type: datacopy
+      grid_loc: [0, 3]
+      grid_size: [1, 1]
+      inputs: [add1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3 
+      untilize_output: true 
+      t: 1
+      mblock: [4, 4]
+      ublock: [2, 2]
+      input_0_tms: 
+
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      -   execute: {graph_name: test_op, queue_settings: {
+           input0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+           input1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 2]
+      -   varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.90
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.5
+    uniform_upper_bound: 0.8

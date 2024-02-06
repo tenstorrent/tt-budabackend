@@ -1,0 +1,63 @@
+devices:
+  arch: [wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  q00:                                                              {input: HOST, type: queue, entries: 2, grid_size: [2, 4], t: 1, mblock: [8, 2], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 1, loc: dram, dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000], [0, 0x34000000], [0, 0x35000000], [0, 0x36000000], [0, 0x37000000]]}
+  q01:                                                              {input: HOST, type: queue, entries: 2, grid_size: [2, 4], t: 1, mblock: [8, 2], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 1, loc: dram, dram: [[2, 0x30000000], [2, 0x31000000], [2, 0x32000000], [2, 0x33000000], [2, 0x34000000], [2, 0x35000000], [2, 0x36000000], [2, 0x37000000]]}
+
+  q1:                                                               {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 16, mblock: [1, 8], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 1, loc: dram, dram: [[1, 0x30000000]]}
+
+  # output
+  output:                                                           {input: consumer, type: queue, entries: 2, grid_size: [2, 4], t: 16, mblock: [8, 2], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x30000000], [2, 0x31000000], [2, 0x32000000], [2, 0x33000000], [2, 0x34000000], [2, 0x35000000], [2, 0x36000000], [2, 0x37000000]]}
+
+  # buffering
+  producer_serialized_to_consumer_serialized_dram_queue:            {input: producer_serialized_to_consumer, type: queue, entries: 2, grid_size: [1, 1], t: 2048, mblock: [1, 1], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x3b5e1c0]]}
+  second_producer_serialized_to_consumer_serialized_dram_queue:     {input: second_producer_serialized_to_consumer, type: queue, entries: 2, grid_size: [1, 1], t: 128, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x3b602c0]]}
+
+graphs:
+  fwd_0_temporal_epoch_0:
+    target_device: 1
+    input_count: 1
+    producer: {type: matmul, grid_loc: [0, 0], grid_size: [2, 4], inputs: [q00, q01],
+         t: 16, mblock: [8, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 16, transpose], input_0_tms: [hslice: 16],
+         attributes: {m_k: 1, u_kt: 2}}
+    producer_serialized_to_consumer: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [producer],
+         t: 2048, mblock: [1, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [vslice: 16, hslice: 8]}
+
+    second_producer: {type: nop, grid_loc: [2, 1], grid_size: [1, 1], inputs: [q1], #input_1_multiply_129_tile_bcast_tile_bcast_splt_brcst_1_0],
+         t: 16, mblock: [1, 8], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    second_producer_serialized_to_consumer: {type: nop, grid_loc: [2, 2], grid_size: [1, 1], inputs: [second_producer],
+         t: 128, mblock: [1, 1], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [hslice: 8]}
+
+  fwd_1_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    consumer: {type: multiply, grid_loc: [0, 0], grid_size: [2, 4], inputs: [producer_serialized_to_consumer_serialized_dram_queue, second_producer_serialized_to_consumer_serialized_dram_queue],
+         t: 16, mblock: [8, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [hstack: 8, broadcast: {r: 32}], input_0_tms: [hstack: 8, vstack: 16]}
+
+
+programs:
+  - run_fwd:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q3: 0, $lptr_q3: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0, $gptr_q0_shadow: 0, $gptr_q1: 0, $lptr_q1: 0}
+    - varinst: [$gptr_q0, set, $gptr_q0_shadow]
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0_temporal_epoch_0, queue_settings: {
+               q00: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               q01: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               q1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+    -   execute: {graph_name: fwd_1_temporal_epoch_0, queue_settings: {}}
+    -   varinst: [$gptr_q0_shadow, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$gptr_q3, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q3, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+
