@@ -87,12 +87,12 @@ class RiscDebug:
         return data
 
     def __trigger_write(self, reg_addr):
-        self.__write(RISC_DBG_CNTL0, 0)
         self.__write(RISC_DBG_CNTL0, self.control0_write + reg_addr)
+        self.__write(RISC_DBG_CNTL0, 0)
 
     def __trigger_read(self, reg_addr):
-        self.__write(RISC_DBG_CNTL0, 0)
         self.__write(RISC_DBG_CNTL0, self.control0_read + reg_addr)
+        self.__write(RISC_DBG_CNTL0, 0)
 
     def __riscv_write(self, reg_addr, value):
         # set wrdata
@@ -144,30 +144,30 @@ class RiscDebug:
 
     def read_gpr(self, reg_index):
         self.__riscv_write(REG_COMMAND_ARG_0, reg_index)
-        self.__riscv_write(REG_COMMAND, COMMAND_READ_REGISTER)
+        self.__riscv_write(REG_COMMAND, 0x80000000 + COMMAND_READ_REGISTER)
         return self.__riscv_read(REG_COMMAND_RETURN_VALUE)
 
     def write_gpr(self, reg_index, value):
         self.__riscv_write(REG_COMMAND_ARG_1, value)
         self.__riscv_write(REG_COMMAND_ARG_0, reg_index)
-        self.__riscv_write(REG_COMMAND, COMMAND_WRITE_REGISTER)
+        self.__riscv_write(REG_COMMAND, 0x80000000 + COMMAND_WRITE_REGISTER)
 
     def read_memory(self, addr):
         self.__riscv_write(REG_COMMAND_ARG_0, addr)
-        self.__riscv_write(REG_COMMAND, COMMAND_READ_MEMORY)
+        self.__riscv_write(REG_COMMAND, 0x80000000 + COMMAND_READ_MEMORY)
         return self.__riscv_read(REG_COMMAND_RETURN_VALUE)
 
     def write_memory(self, addr, value):
         self.__riscv_write(REG_COMMAND_ARG_1, value)
         self.__riscv_write(REG_COMMAND_ARG_0, addr)
-        self.__riscv_write(REG_COMMAND, COMMAND_WRITE_MEMORY)
+        self.__riscv_write(REG_COMMAND, 0x80000000 + COMMAND_WRITE_MEMORY)
 
     def __update_watchpoint_setting(self, watchpoint_id, value):
         assert 0 <= value <= 15
         old_wp_settings = self.__riscv_read(REG_HW_WATCHPOINT_SETTINGS)
         mask = HW_WATCHPOINT_MASK << (id * 4)
         new_wp_settings = old_wp_settings & ~mask + (value << (id * 4))
-        self.__risc_write(REG_HW_WATCHPOINT_SETTINGS, new_wp_settings)
+        self.__riscv_write(REG_HW_WATCHPOINT_SETTINGS, new_wp_settings)
 
     def __set_watchpoint(self, id, address, setting):
         self.__riscv_write(REG_HW_WATCHPOINT_0 + id, address)
@@ -189,3 +189,4 @@ class RiscDebug:
 
     def disable_watchpoint(self, id):
         self.__update_watchpoint_setting(id, 0)
+
