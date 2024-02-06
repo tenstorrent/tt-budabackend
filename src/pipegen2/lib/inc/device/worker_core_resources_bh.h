@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "device/worker_core_resources.h"
 #include "device/worker_core_resources_wh.h"
 
 namespace pipegen2

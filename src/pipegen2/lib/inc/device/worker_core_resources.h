@@ -3,8 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <set>
-
 #include "device/tt_xy_pair.h"
 
 #include "core_resources.h"
