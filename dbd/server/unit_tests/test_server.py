@@ -13,7 +13,7 @@ server_port = 0
 server = None
 
 
-def test_not_implemented_response(server_command: Callable[[], Any]):
+def check_not_implemented_response(server_command: Callable[[], Any]):
     try:
         server_command()
         print("fail")
@@ -23,61 +23,61 @@ def test_not_implemented_response(server_command: Callable[[], Any]):
 
 def empty_get_runtime_data():
     global server
-    test_not_implemented_response(lambda: server.get_runtime_data())
+    check_not_implemented_response(lambda: server.get_runtime_data())
 
 
 def empty_get_cluster_description():
     global server
-    test_not_implemented_response(lambda: server.get_cluster_description())
+    check_not_implemented_response(lambda: server.get_cluster_description())
 
 
 def empty_pci_read4():
     global server
-    test_not_implemented_response(lambda: server.pci_read4(1, 2, 3, 123456))
+    check_not_implemented_response(lambda: server.pci_read4(1, 2, 3, 123456))
 
 
 def empty_pci_write4():
     global server
-    test_not_implemented_response(lambda: server.pci_write4(1, 2, 3, 123456, 987654))
+    check_not_implemented_response(lambda: server.pci_write4(1, 2, 3, 123456, 987654))
 
 
 def empty_pci_read():
     global server
-    test_not_implemented_response(lambda: server.pci_read(1, 2, 3, 123456, 1024))
+    check_not_implemented_response(lambda: server.pci_read(1, 2, 3, 123456, 1024))
 
 
 def empty_pci_read4_raw():
     global server
-    test_not_implemented_response(lambda: server.pci_read4_raw(1, 123456))
+    check_not_implemented_response(lambda: server.pci_read4_raw(1, 123456))
 
 
 def empty_pci_write4_raw():
     global server
-    test_not_implemented_response(lambda: server.pci_write4_raw(1, 123456, 987654))
+    check_not_implemented_response(lambda: server.pci_write4_raw(1, 123456, 987654))
 
 
 def empty_dma_buffer_read4():
     global server
-    test_not_implemented_response(lambda: server.dma_buffer_read4(1, 123456, 456))
+    check_not_implemented_response(lambda: server.dma_buffer_read4(1, 123456, 456))
 
 
 def empty_pci_read_tile():
     global server
-    test_not_implemented_response(
+    check_not_implemented_response(
         lambda: server.pci_read_tile(1, 2, 3, 123456, 1024, 14)
     )
 
 
 def empty_get_harvester_coordinate_translation():
     global server
-    test_not_implemented_response(
+    check_not_implemented_response(
         lambda: server.get_harvester_coordinate_translation(1)
     )
 
 
 def empty_pci_write():
     global server
-    test_not_implemented_response(
+    check_not_implemented_response(
         lambda: server.pci_write(
             1, 2, 3, 123456, bytes([10, 11, 12, 13, 14, 15, 16, 17])
         )

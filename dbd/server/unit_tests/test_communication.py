@@ -11,8 +11,7 @@ from tt_debuda_server import debuda_server_communication
 server_port = 0
 server_communication = None
 
-
-def test_response(response, expected_response):
+def check_response(response, expected_response):
     response = response.decode("utf-8")
     if response != expected_response:
         print(f"Unexpected response. Expected '{expected_response}', got '{response}'")
@@ -22,22 +21,22 @@ def test_response(response, expected_response):
 
 def ping():
     global server_communication
-    test_response(server_communication.ping(), "- type: 1")
+    check_response(server_communication.ping(), "- type: 1")
 
 
 def get_runtime_data():
     global server_communication
-    test_response(server_communication.get_runtime_data(), "- type: 101")
+    check_response(server_communication.get_runtime_data(), "- type: 101")
 
 
 def get_cluster_description():
     global server_communication
-    test_response(server_communication.get_cluster_description(), "- type: 102")
+    check_response(server_communication.get_cluster_description(), "- type: 102")
 
 
 def pci_read4():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_read4(1, 2, 3, 123456),
         "- type: 10\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456",
     )
@@ -45,7 +44,7 @@ def pci_read4():
 
 def pci_write4():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_write4(1, 2, 3, 123456, 987654),
         "- type: 11\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  data: 987654",
     )
@@ -53,7 +52,7 @@ def pci_write4():
 
 def pci_read():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_read(1, 2, 3, 123456, 1024),
         "- type: 12\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  size: 1024",
     )
@@ -61,7 +60,7 @@ def pci_read():
 
 def pci_read4_raw():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_read4_raw(1, 123456),
         "- type: 14\n  chip_id: 1\n  address: 123456",
     )
@@ -69,7 +68,7 @@ def pci_read4_raw():
 
 def pci_write4_raw():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_write4_raw(1, 123456, 987654),
         "- type: 15\n  chip_id: 1\n  address: 123456\n  data: 987654",
     )
@@ -77,7 +76,7 @@ def pci_write4_raw():
 
 def dma_buffer_read4():
     global server_communication
-    test_response(
+    check_response(
         server_communication.dma_buffer_read4(1, 123456, 456),
         "- type: 16\n  chip_id: 1\n  address: 123456\n  channel: 456",
     )
@@ -85,7 +84,7 @@ def dma_buffer_read4():
 
 def pci_read_tile():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_read_tile(1, 2, 3, 123456, 1024, 14),
         "- type: 100\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  size: 1024\n  data_format: 14",
     )
@@ -93,7 +92,7 @@ def pci_read_tile():
 
 def get_harvester_coordinate_translation():
     global server_communication
-    test_response(
+    check_response(
         server_communication.get_harvester_coordinate_translation(1),
         "- type: 103\n  chip_id: 1",
     )
@@ -101,7 +100,7 @@ def get_harvester_coordinate_translation():
 
 def pci_write():
     global server_communication
-    test_response(
+    check_response(
         server_communication.pci_write(
             1, 2, 3, 123456, bytes([10, 11, 12, 13, 14, 15, 16, 17])
         ),

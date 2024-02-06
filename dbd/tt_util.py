@@ -230,7 +230,7 @@ def ryml_to_dict(tree, i):
         return v
 
 
-from collections import Sequence
+from collections.abc import Sequence
 from functools import cached_property
 from typing import Mapping, TypeVar
 from fastnumbers import try_int
