@@ -26,7 +26,7 @@ dbd/documentation:
 	echo Applying patch to cause a hang in the test
 	-git apply dbd/test/inject-errors/sfpu_reciprocal-infinite-spin-wormhole_b0.patch
 	echo "Building and running test"
-	make -j32 build_hw verif/op_tests dbd
+	$(MAKE) -j32 build_hw verif/op_tests dbd
 	-./build/test/verif/op_tests/test_op --netlist dbd/test/netlists/netlist_multi_matmul_perf.yaml --seed 0 --silicon --timeout 60
 	mkdir -p $(DBD_OUT)
 	echo "Removing old export files"
@@ -79,6 +79,13 @@ dbd/test:
 	python3 -m venv $(DBD_VENV)
 	echo "Activate, install requirements and run tests"
 	. $(DBD_VENV)/bin/activate && pip install -r dbd/requirements.txt && dbd/test/test-debuda-py.sh
+
+.PHONY: dbd/coverage
+dbd/coverage:
+	COV=1 $(MAKE) dbd/test
+	COV=1 $(MAKE) dbd/documentation
+	coverage report --sort=cover
+	coverage lcov # generates coverage data in the format expected by VS code "Code Coverage" extension
 
 .PHONY: dbd/test-elf-parser
 dbd/test-elf-parser:
