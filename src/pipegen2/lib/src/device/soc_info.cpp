@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/soc_info.h"
 
+#include <exception>
 #include <fstream>
 #include <iterator>
 #include <sstream>
@@ -183,7 +184,16 @@ tt_cxy_pair SoCInfo::convert_logical_to_physical_worker_core_coords(const tt_cxy
     const buda_SocDescriptor* chip_soc_desc = get_soc_descriptor(logical_coords.chip);
 
     // Routing cores are superset of worker cores.
-    return tt_cxy_pair(logical_coords.chip, chip_soc_desc->get_routing_core(logical_coords));
+    try
+    {
+        return tt_cxy_pair(logical_coords.chip, chip_soc_desc->get_routing_core(logical_coords));
+    }
+    catch (std::exception& e)
+    {
+        throw NoPhysicalCoreException("There is no physical worker core on logical location " + 
+                                      logical_coords.str(), 
+                                      logical_coords);
+    }
 }
 
 std::uint64_t SoCInfo::get_dram_buffer_noc_address(const std::uint64_t dram_buf_addr,

@@ -46,3 +46,8 @@ void test_function_repeated_calls_until_exception_thrown(
 
     pipegen2::unit_test_utils::verify_throws_proper_exception<Exception>(function, callback);
 }
+
+// Verifies that the thrown NoPhysicalCoreException exception has all the expected fields configured.
+void verify_no_physical_core_exception(
+    const pipegen2::NoPhysicalCoreException& ex, 
+    const tt_cxy_pair& logical_core_location);

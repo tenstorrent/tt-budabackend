@@ -188,4 +188,15 @@ public:
     }
 };
 
+
+// Exception type used when there are no physical cores to be mapped to the logical core.
+class NoPhysicalCoreException : public BasePipegen2CompileException
+{
+public:
+    NoPhysicalCoreException(const std::string& error_message, const tt_cxy_pair& logical_location) :
+        BasePipegen2CompileException(error_message, std::make_optional(logical_location), std::nullopt)
+    {
+    }
+};
+
 } // namespace pipegen2

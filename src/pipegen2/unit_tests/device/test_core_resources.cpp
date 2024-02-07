@@ -11,8 +11,9 @@
 #include "stream_io_map.h"
 
 #include "core_resources_unit_test_utils.h"
-#include "device/worker_core_resources_gs.h"
 #include "device/core_resources_constants.h"
+#include "device/core_resources_unit_test_utils.h"
+#include "device/worker_core_resources_gs.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
 #include "test_utils/unit_test_utils.h"

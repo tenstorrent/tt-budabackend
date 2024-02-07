@@ -10,12 +10,15 @@
 #include "device/tt_xy_pair.h"
 #include "noc_parameters.h"
 
+#include "device/core_resources_unit_test_utils.h"
 #include "device/soc_info_constants.h"
 #include "mocks/device/soc_info_mocks.h"
 #include "soc_info_unit_test_utils.h"
+#include "pipegen2_exceptions.h"
 #include "test_utils/unit_test_utils.h"
 
 using namespace pipegen2;
+using namespace unit_test_utils;
 
 /**********************************************************************************************************************
     Test fixtures used for tests in this file.
@@ -224,8 +227,8 @@ TEST_F(Pipegen2_SoCInfo_GS, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingEx
     std::vector<tt_cxy_pair> expected_physical_coordinates =
         {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 5, 1)};
 
-    verify_convert_logical_to_physical_worker_core_coords(
-        m_soc_info.get(), logical_locations, expected_physical_coordinates);
+    EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
+                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
 }
 
 TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingExactReturnValue)
@@ -236,8 +239,8 @@ TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingEx
     std::vector<tt_cxy_pair> expected_physical_coordinates =
         {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
-    verify_convert_logical_to_physical_worker_core_coords(
-        m_soc_info.get(), logical_locations, expected_physical_coordinates);
+    EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
+                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
 }
 
 TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingExactReturnValue)
@@ -248,8 +251,68 @@ TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingEx
     std::vector<tt_cxy_pair> expected_physical_coordinates =
         {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
-    verify_convert_logical_to_physical_worker_core_coords(
-        m_soc_info.get(), logical_locations, expected_physical_coordinates);
+    EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
+                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
+}
+
+TEST_F(Pipegen2_SoCInfo_GS, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
+{
+    std::vector<tt_cxy_pair> logical_locations =
+        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+
+    std::vector<tt_cxy_pair> expected_physical_coordinates =
+        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+
+    verify_throws_proper_exception<NoPhysicalCoreException>(
+        [&]()
+        {
+            verify_convert_logical_to_physical_worker_core_coords(
+                m_soc_info.get(), logical_locations, expected_physical_coordinates);
+        },
+        [&](const NoPhysicalCoreException& ex)
+        {
+            verify_no_physical_core_exception(ex, logical_locations[0]);
+        });
+}
+
+TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
+{
+    std::vector<tt_cxy_pair> logical_locations =
+        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+
+    std::vector<tt_cxy_pair> expected_physical_coordinates =
+        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+
+    verify_throws_proper_exception<NoPhysicalCoreException>(
+        [&]()
+        {
+            verify_convert_logical_to_physical_worker_core_coords(
+                m_soc_info.get(), logical_locations, expected_physical_coordinates);
+        },
+        [&](const NoPhysicalCoreException& ex)
+        {
+            verify_no_physical_core_exception(ex, logical_locations[0]);
+        });
+}
+
+TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
+{
+    std::vector<tt_cxy_pair> logical_locations =
+        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+
+    std::vector<tt_cxy_pair> expected_physical_coordinates =
+        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+
+    verify_throws_proper_exception<NoPhysicalCoreException>(
+        [&]()
+        {
+            verify_convert_logical_to_physical_worker_core_coords(
+                m_soc_info.get(), logical_locations, expected_physical_coordinates);
+        },
+        [&](const NoPhysicalCoreException& ex)
+        {
+            verify_no_physical_core_exception(ex, logical_locations[0]);
+        });
 }
 
 /**********************************************************************************************************************

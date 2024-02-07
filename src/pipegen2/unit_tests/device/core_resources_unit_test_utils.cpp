@@ -28,3 +28,8 @@ void verify_out_of_core_resource_exception(
     EXPECT_EQ(ex.get_total_core_resources_available(), expected_available_core_resouce_count);
     EXPECT_EQ(ex.get_core_resources_used(), expected_used_core_resource_count);
 }
+
+void verify_no_physical_core_exception(const NoPhysicalCoreException& ex, const tt_cxy_pair& logical_core_location)
+{
+    EXPECT_EQ(ex.get_logical_core_location(), logical_core_location);
+}
