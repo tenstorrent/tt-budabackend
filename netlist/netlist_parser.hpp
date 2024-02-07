@@ -57,6 +57,10 @@ class netlist_parser {
     void verify_fused_ops();
     void verify_complex_settings();
 
+    void verify_inputs_exist() const;
+    void verify_queue_input_exists(const tt_queue_info &queue) const;
+    void verify_op_inputs_exist(const tt_op_info &op) const;
+    
     ~netlist_parser() { clear(); }
 
     struct validation {

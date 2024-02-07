@@ -1346,6 +1346,9 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
             }
         }
     }
+
+    verify_inputs_exist();
+
     try {
         expand_multi_instance_structures();
     } catch (const std::exception &e) {
@@ -1366,6 +1369,38 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
     initialized = true;
 }
 
+void netlist_parser::verify_queue_input_exists(const tt_queue_info &queue) const {
+    if (is_queue_fed_by_op(queue)) {
+        log_assert(
+            op_graph_map.find(queue.input) != op_graph_map.end(),
+            "Queue={} has an input={} that does not exist in the netlist",
+            queue.name,
+            queue.input);
+    }
+}
+
+void netlist_parser::verify_op_inputs_exist(const tt_op_info &op) const {
+    for (const auto &input_name : op.input_names) {
+        log_assert(
+            queue_map.find(input_name) != queue_map.end() || op_graph_map.find(input_name) != op_graph_map.end(),
+            "Op={} has an input={} that does not exist in the netlist",
+            op.name,
+            input_name);
+    }
+}
+
+void netlist_parser::verify_inputs_exist() const {
+    for (auto it : queue_map) {
+        verify_queue_input_exists(it.second);
+    }
+
+    for (auto it : graph_map) {
+        for (auto op_it : it.second.op_map) {
+            verify_op_inputs_exist(op_it.second);
+        }
+    }
+}
+    
 void netlist_parser::verify_queues() {
     log_assert(queue_map.size(), "Queues empty for netlist parsed");
     log_trace(tt::LogNetlist, "Queues Parsed In Netlist");
@@ -1545,13 +1580,6 @@ void netlist_parser::derive_temporal_graphs() {
         log_fatal("temporal_graph_graphs and graph_temporal_graph double initialized");
     }
 
-    auto op_graph_map = std::unordered_map<std::string, std::string>();
-    for (const auto &[graph_name, graph] : this->graph_map) {
-        for (const auto &[op_name, op_info] : graph.op_map) {
-            op_graph_map.insert({op_name, graph_name});
-        }
-    }
-
     int temporal_graph = 0;
     for (const auto &graph_name : this->graph_order) {
         const auto &graph = this->graph_map.at(graph_name);
@@ -1577,6 +1605,12 @@ void netlist_parser::derive_temporal_graphs() {
                 bool input_is_op_in_graph = (graph.op_map.find(input) != graph.op_map.end());
                 if ((not input_is_op_in_graph) and (not input_is_queue)) {
                     if (is_queueless_multichip_supported(device_info.arch)) {
+                        if (op_graph_map.find(input) == op_graph_map.end()) {
+                            log_fatal(
+                                "input={} to op={} does not exist in graph",
+                                input,
+                                op_info.name);
+                        }
                         const auto &input_graph_name = op_graph_map.at(input);
                         producer_graph_names.insert(input_graph_name);
 
@@ -2624,15 +2658,6 @@ void netlist_parser::verify_complex_settings() {
                 graph_it.first,
                 temporal_graph,
                 temporal_graph);
-        }
-    }
-
-    std::unordered_map<std::string, std::string> op_graph_map = {};
-    if (is_queueless_multichip_supported(device_info.arch)) {
-        for (const auto &[graph_name, graph] : graph_map) {
-            for (const auto &[op_name, op] : graph.op_map) {
-                op_graph_map.insert({op_name, graph_name});
-            }
         }
     }
 
