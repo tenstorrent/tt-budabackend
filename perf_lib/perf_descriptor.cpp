@@ -439,7 +439,7 @@ void check_perf_buffer_addresses_aligned() {
 }
 
 PerfDesc::PerfDesc() {
-    void check_perf_buffer_addresses_aligned();
+    check_perf_buffer_addresses_aligned();
 }
 
 PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
@@ -450,7 +450,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     if (args.size() == 0 && !decouple_overlay_for_all_ops) {
         return;
     }
-    void check_perf_buffer_addresses_aligned();
+    check_perf_buffer_addresses_aligned();
     bool perf_dump_en = false;
     uint perf_level = 0;
     bool intermediate_dump = false;
