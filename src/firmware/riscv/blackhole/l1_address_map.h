@@ -7,6 +7,11 @@
 
 namespace l1_mem {
 
+namespace noc_mem_config {
+  // Aux variable used to align addresses to platform specific width. BH requires 64B alignment.
+  constexpr uint32_t NOC_ADDRESS_ALIGNMENT = 64;
+}
+
 struct mailbox_type {
   constexpr static int TRISC0 = 0;
   constexpr static int TRISC1 = 1;
@@ -16,7 +21,6 @@ struct mailbox_type {
 };
 
 struct address_map {
-  
   // Sizes
   static constexpr std::int32_t FIRMWARE_SIZE = 20 * 1024;          // 20KB = 7KB + 1KB zeros + 12KB perf buffers
   static constexpr std::int32_t L1_BARRIER_SIZE = 0x20; // 32 bytes reserved for L1 Barrier
@@ -26,15 +30,15 @@ struct address_map {
   static constexpr std::int32_t TRISC0_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
   static constexpr std::int32_t TRISC1_SIZE = 16 * 1024;        // 16KB = 12KB + 4KB local memory
   static constexpr std::int32_t TRISC2_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
-  static constexpr std::int32_t TRISC_LOCAL_MEM_SIZE = 4 * 1024;      // 
-  static constexpr std::int32_t NCRISC_LOCAL_MEM_SIZE = 4 * 1024;     // 
+  static constexpr std::int32_t TRISC_LOCAL_MEM_SIZE = 4 * 1024;      //
+  static constexpr std::int32_t NCRISC_LOCAL_MEM_SIZE = 4 * 1024;     //
   static constexpr std::int32_t NCRISC_L1_SCRATCH_SIZE = 4 * 1024;     //
   static constexpr std::int32_t NCRISC_L1_CODE_SIZE = 16*1024;      // Size of code block that is L1 resident
   static constexpr std::int32_t NCRISC_IRAM_CODE_SIZE = 16*1024;    // Size of code block that is IRAM resident
   static constexpr std::int32_t NCRISC_DATA_SIZE = 4 * 1024;        // 4KB
   static constexpr std::int32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;      //
   static constexpr std::int32_t OVERLAY_BLOB_SIZE = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
-  static constexpr std::int32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     // 
+  static constexpr std::int32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     //
   static constexpr std::int32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
   static constexpr std::int32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
 
@@ -71,6 +75,16 @@ struct address_map {
 
   static constexpr std::int32_t DATA_BUFFER_SPACE_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + NCRISC_L1_RUNTIME_SECTION_SIZE;
 
+  static_assert(FIRMWARE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(NCRISC_FIRMWARE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC0_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC1_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC2_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(EPOCH_RUNTIME_CONFIG_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(OVERLAY_BLOB_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(DATA_BUFFER_SPACE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(L1_BARRIER_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  
   // Trisc Mailboxes
   static constexpr std::int32_t TRISC_L1_MAILBOX_OFFSET = 4;
   static constexpr std::int32_t BRISC_L1_MAILBOX_OFFSET = 4;
@@ -79,7 +93,7 @@ struct address_map {
   static constexpr std::int32_t TRISC0_MAILBOX_BASE = TRISC0_BASE + TRISC_L1_MAILBOX_OFFSET;
   static constexpr std::int32_t TRISC1_MAILBOX_BASE = TRISC1_BASE + TRISC_L1_MAILBOX_OFFSET;
   static constexpr std::int32_t TRISC2_MAILBOX_BASE = TRISC2_BASE + TRISC_L1_MAILBOX_OFFSET;
-  
+
   static constexpr std::int32_t FW_MAILBOX_BASE         = 32;
   static constexpr std::int32_t DEBUG_MAILBOX_BUF_BASE  = 112;
 
@@ -92,7 +106,7 @@ struct address_map {
   static constexpr std::int32_t TRISC0_TT_LOG_MAILBOX_BASE = TRISC0_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
   static constexpr std::int32_t TRISC1_TT_LOG_MAILBOX_BASE = TRISC1_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
   static constexpr std::int32_t TRISC2_TT_LOG_MAILBOX_BASE = TRISC2_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
- 
+
   // Upper 2KB of local space is used as debug buffer
   static constexpr std::int32_t DEBUG_BUFFER_SIZE  = 2 * 1024;
   static constexpr std::int32_t TRISC0_DEBUG_BUFFER_BASE  = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
@@ -100,11 +114,11 @@ struct address_map {
   static constexpr std::int32_t TRISC2_DEBUG_BUFFER_BASE  = TRISC2_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
 
   static constexpr std::int32_t MAX_SIZE = 1499136;
-  static constexpr std::int32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;  
-  
+  static constexpr std::int32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
+
   static constexpr std::int32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
                                                                    // As part of the init risc firmware will copy local memory data from
-                                                                   // l1 locations listed above into internal local memory that starts 
+                                                                   // l1 locations listed above into internal local memory that starts
                                                                    // at RISC_LOCAL_MEM_BASE address
 
   static constexpr std::int32_t NCRISC_IRAM_MEM_BASE = 0xffc00000; // NCRISC instruction RAM base address
@@ -113,7 +127,7 @@ struct address_map {
   // Perf buffer (FIXME - update once location of the perf data buffer is finalized)
   // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
   static constexpr std::int32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
-  
+
   // This value must be equal to the sum of all all the subsequent sizes in this section
   static constexpr std::int32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
   // Queue header below is used for the concurrent performance trace
@@ -126,12 +140,12 @@ struct address_map {
   static constexpr std::int32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
   static constexpr std::int32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
   static constexpr std::int32_t PERF_UNUSED_SIZE = 24;
-  
+
   static constexpr std::int32_t MATH_PERF_BUF_SIZE = 64;
   static constexpr std::int32_t BRISC_PERF_BUF_SIZE = 640; // Half of this value must be 32B aligned
   static constexpr std::int32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
   static constexpr std::int32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = (12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2;
-  
+
   static constexpr std::int32_t PERF_QUEUE_HEADER_ADDR = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
   static constexpr std::int32_t PERF_RISC_MAILBOX_ADDR = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;
   static constexpr std::int32_t PERF_RESET_PTR_MAILBOX_ADDR = PERF_RISC_MAILBOX_ADDR + PERF_RISC_MAILBOX_SIZE;
@@ -150,5 +164,5 @@ struct address_map {
   static constexpr std::int32_t WALL_CLOCK_H = 0xFFB121F8;
 
 };
-}  // namespace llk
+}  // namespace l1_mem
 
