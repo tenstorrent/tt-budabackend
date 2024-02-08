@@ -5,6 +5,9 @@ import argparse
 import os
 import shutil
 
+ARCH_AMD64 = "amd64"
+ARCH_ARM64 = "arm64"
+SUPPORTED_ARCHES = [ARCH_AMD64, ARCH_ARM64]
 
 bbe_files = {
     "lib": {
@@ -92,6 +95,7 @@ bbe_files = {
         "files": "*"
     },
     "firmware_brisc_hex": {
+        "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/brisc/out",
         "files": [
             "brisc.hex"
@@ -102,6 +106,7 @@ bbe_files = {
         "files": "*" 
     },
     "kernel_gen": {
+        "supported_arches": [ARCH_AMD64],
         "path": "build/src/ckernels/gen/out",
         "files": "*",
     },
@@ -128,6 +133,7 @@ bbe_files = {
 # Only copy eric if we are building Wormhole
 if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wormhole":
     bbe_files["firmware_erisc_hex"] = {
+        "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/erisc_app/out",
         "files": [
             "erisc_app.hex"
@@ -136,6 +142,7 @@ if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wor
 
 if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wormhole_b0":
     bbe_files["firmware_erisc_hex"] = {
+        "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/erisc_app/out",
         "files": [
             "erisc_app.hex",
@@ -147,11 +154,18 @@ if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wor
 
 
 
-def _copy_budabackend(target_folder, src_root):
+def _copy_budabackend(target_folder, src_root, arch):
     if not src_root:
         src_root = ".."
+
     # Copy files
     for t, d in bbe_files.items():
+
+        # Skip if files are not supported by current arch
+        supported_arches = d.get('supported_arches')
+        if supported_arches and arch not in supported_arches:
+            continue
+
         target_path = d["target_path"] if "target_path" in d else d["path"]
         path = target_folder + "/budabackend_lib/" + target_path
         os.makedirs(path, exist_ok=True)
@@ -175,7 +189,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--release_folder", required=True, type=str, help="Folder where to collect release artifacts.")
     parser.add_argument("--src_root", required=False, type=str, default = "", help="Folder containing Budabackend build binaries relative to where the script is being called from.")
+    parser.add_argument("--arch", required=False, type=str, default=ARCH_AMD64, help=f"Platform architecture {SUPPORTED_ARCHES}")
     args = parser.parse_args()
 
-    _copy_budabackend(args.release_folder, args.src_root)
+    assert args.arch in SUPPORTED_ARCHES
+    _copy_budabackend(args.release_folder, args.src_root, args.arch)
 

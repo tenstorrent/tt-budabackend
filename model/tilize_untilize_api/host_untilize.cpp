@@ -827,7 +827,7 @@ namespace untilize_utils {
 }
 }
 
-void copy_half_to_flat_vector_uint16(vector<uint16_t>&to, const tt::tt_tile& tile, int i_tile_row, int dest_row_index int tile_width) {
+void copy_half_to_flat_vector_uint16(vector<uint16_t>&to, const tt::tt_tile& tile, int i_tile_row, int dest_row_index, int tile_width) {
     for (size_t i_tile_col = 0; i_tile_col < tile_width; i_tile_col++) {
         to[dest_row_index + i_tile_col] = (uint16_t)(std::min(std::max(tile.t[i_tile_row][i_tile_col], float(0)), float(65535)));
     }
