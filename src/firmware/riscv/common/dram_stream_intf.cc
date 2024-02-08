@@ -312,7 +312,7 @@ inline __attribute__((always_inline)) bool simpler_decompress_scatter_offsets(vo
   return false;
 }
 
-
+// dram_input_stream_issue_scatter_read implements Scatter Read for DRAM input streams 
 #ifdef RISC_B0_HW
 void __attribute__((section("code_l1"))) __attribute__ ((noinline)) dram_input_stream_issue_scatter_read(uint32_t input_noc, uint32_t dram_data_buf_fetch_rdptr_byte, uint32_t data_rec_chunk_size_tiles, uint32_t dram_io_scatter_chunk_size_tiles,
 #else
@@ -339,7 +339,7 @@ void __attribute__ ((noinline)) dram_input_stream_issue_scatter_read(uint32_t in
   }
 }
 
-
+// dram_input_stream_issue_scatter_read_indicies implements Tilize 
 void __attribute__ ((noinline)) dram_input_stream_issue_scatter_read_indicies(bool hw_tilize, uint32_t input_noc, uint32_t dram_data_buf_fetch_rdptr_byte, uint32_t data_rec_chunk_size_tiles, uint32_t dram_io_scatter_chunk_size_tiles,
                                                                               uint32_t dram_io_scatter_chunk_size_bytes, uint32_t stream_dest_addr, volatile tt_uint64_t tt_l1_ptr * scatter_offsets, uint32_t& scatter_idx, uint32_t& scatter_loop_index,
                                                                               uint64_t dram_addr, uint32_t dram_embeddings_row_shift, uint32_t tilize_row_col_offset, uint32_t& c_dim_count, uint32_t c_dim_size, uint32_t c_dim_loop_num_rows, uint32_t& col_offset_bytes, uint32_t transaction_id) {
@@ -542,6 +542,7 @@ void dram_input_stream_scatter_read(uint32_t stream_id, uint32_t curr_phase_tile
           uint32_t c_dim_size = curr_dram_input_stream_state->c_dim_size;
           uint32_t col_offset_bytes = curr_dram_input_stream_state->col_offset_bytes;
           uint32_t scatter_loop_index = curr_dram_input_stream_state->scatter_loop_index;
+          // Embeddings and Tilize
           dram_input_stream_issue_scatter_read_indicies(dram_io_info->hw_tilize, curr_dram_input_stream_state->input_noc, next_dram_q_issue->dram_ptr_issued_byte, data_rec_chunk_size_tiles, dram_io_scatter_chunk_size_tiles,
                                                         dram_io_scatter_chunk_size_bytes,  stream_dest_addr, scatter_offsets, scatter_idx, scatter_loop_index, dram_addr, dram_embeddings_row_shift, dram_io_info->hw_tilize ? dram_io_info->tilize_row_col_offset : 0,
                                                         c_dim_count, c_dim_size, dram_io_info->c_dim_loop_num_rows, col_offset_bytes, transaction_id);
@@ -551,6 +552,7 @@ void dram_input_stream_scatter_read(uint32_t stream_id, uint32_t curr_phase_tile
         } else {
           uint32_t scatter_loop_index = curr_dram_input_stream_state->scatter_loop_index;
           uint32_t scatter_loop_inc = curr_dram_input_stream_state->scatter_loop_inc;
+          // Scatter read [and regular]
           dram_input_stream_issue_scatter_read(curr_dram_input_stream_state->input_noc, next_dram_q_issue->dram_ptr_issued_byte, data_rec_chunk_size_tiles, dram_io_scatter_chunk_size_tiles,
                                                dram_io_scatter_chunk_size_bytes,  stream_dest_addr, scatter_offsets, scatter_idx, scatter_loop_index, scatter_loop_inc, transaction_id);
           curr_dram_input_stream_state->scatter_loop_index = scatter_loop_index;
@@ -1047,6 +1049,7 @@ void risc_decoupled_dram_buffer_init_l1(volatile dram_io_state_t tt_l1_ptr * dra
 }
 #endif
 
+// initilizing stream related structures
 void risc_dram_stream_handler_init_l1(
   void * pFunction,
 #ifdef RISC_GSYNC_ENABLED
@@ -1155,6 +1158,7 @@ void risc_dram_stream_handler_init_l1(
     RISC_POST_STATUS(0xA3000000 | stream_id);
     RISC_POST_DEBUG(0xA3100000 | flags);
 
+    // Load epoch data into local memory
     if ((flags & STREAM_DRAM_INPUT) != 0) {
       
       if ((flags & STREAM_DRAM_IO) != 0 || (flags & STREAM_DRAM_STREAMING) != 0) {
@@ -1394,6 +1398,7 @@ void risc_dram_stream_handler_init_l1(
   }
 
   // Dram prefetch - init
+  // Checks prolog and dram io buffers, ensure they are valid to use
   num_dram_prefetch_streams = 0;
   curr_active_stream_info = active_stream_info;
   { // Control stack allocation
@@ -1649,6 +1654,7 @@ void risc_dram_stream_handler_init_l1(
   }
 
   // Dram prefetch - read data
+  // Goes though all of the Prologue buffers and loads them from DRAM to L1
   for (uint32_t i = 0; i < num_dram_prefetch_streams; i++) {
     curr_active_stream_info = dram_prefetch_active_stream_info[i];
     uint32_t stream_id = curr_active_stream_info->stream_id;
@@ -1772,7 +1778,8 @@ void risc_dram_stream_handler_init_l1(
 #endif
 }
 
-
+// This is the main loop during the epoch. 
+// It's processing DRAM reads and write in a non-blocking manner for each of the streams. 
 void risc_dram_stream_handler_loop(
 #ifdef RISC_GSYNC_ENABLED
   volatile uint32_t &gsync_epoch, volatile uint32_t &epochs_in_progress,
@@ -1914,6 +1921,7 @@ void risc_dram_stream_handler_loop(
                 curr_dram_input_stream_state->stream_flushed_ptr_byte = 0;
               }
 
+              // Implements Scatter read, Embeddings and Tilize. MMIO pipes are elsewhere
               dram_input_stream_scatter_read(stream_id, curr_phase_tiles_remaining_to_issue, stream_buf_bytes_free, curr_dram_input_stream_state, next_dram_q_issue, dram_ptr_update_cnt);
             }
   #if defined(PERF_DUMP) && PERF_DUMP_LEVEL > 2
@@ -1949,6 +1957,9 @@ void risc_dram_stream_handler_loop(
           uint32_t transaction_id = curr_dram_input_stream_state->transaction_id_flushed;
           bool next_data_rec_chunk_flushed = dram_decoupled ? true : dram_input_stream_check_next_chunk_flushed(input_noc, data_rec_chunk_pending_start_addr, data_rec_chunk_size_bytes, scatter_chunk_size_bytes, transaction_id);
 
+          // event management code that happens when data comes back
+          // checks the stream, and whether it is in the state to have data pushed into it
+          // if so, ncrisc pushes data into stream and have stream sends it out 
           if (is_dram_read_opt_enabled) {
             read_phase_active(stream_id, curr_dram_input_stream_state, phase_active, curr_phase_tiles_remaining_to_issue);
             if (moves_raw_data) {
@@ -1983,6 +1994,7 @@ void risc_dram_stream_handler_loop(
             uint32_t flushed_partial_q_slot_tiles = next_dram_q_in_flight->flushed_partial_q_slot_tiles;
             uint32_t stream_buf_size_bytes = stream_get_data_buf_size(stream_id) * MEM_WORD_WIDTH;
 
+            // once data has been sent out, update dram pointer variables so you clear tiles from the dram so you dont read it again
             while (next_data_rec_chunk_flushed) {
 
               flushed_partial_q_slot_tiles += data_rec_chunk_size_tiles;
@@ -2051,6 +2063,9 @@ void risc_dram_stream_handler_loop(
         }
       } else { //is_dram_streaming_read
 #if defined(ERISC) || defined(RISC_B0_HW)
+        // in this mode, we prented data is not in DRAM, but in L1. 
+        // what really happens is over PCIE some core will write into L1, and then we will read from L1
+        // and pushing out directly.
         process_dram_streaming_read_l1(0, stream_id, phase_active, curr_phase_tiles_remaining_to_issue, curr_dram_input_stream_state, next_dram_q_issue, epoch_q_slots_remaining);
 #else
         call_with_cpu_flush_args3((void *)process_dram_streaming_read_l1,
@@ -2061,9 +2076,12 @@ void risc_dram_stream_handler_loop(
     }
 
     uint32_t total_tiles_to_clear = 0;
+    // send the data out to dram
     process_dram_write(num_dram_output_streams, dram_output_stream_state, dram_ptr_update_cnt, total_tiles_to_clear);
+    // once the date is sent out, one needs to clear the stream
     process_dram_write_clear(num_dram_output_streams, dram_output_stream_state, total_tiles_to_clear);
   }
+  // finished dram reads/writes and brisc is done
 
   RISC_POST_STATUS(0x22223333);
 
@@ -2096,7 +2114,7 @@ void risc_dram_stream_handler_loop(
 
 }
 
-
+// copy epilogue buffers into L1
 void risc_dram_stream_handler_epilogue_l1(
   void * pFunction,
 #ifdef RISC_GSYNC_ENABLED

@@ -146,6 +146,9 @@ inline __attribute__((always_inline)) bool operand_is_intermediate(int operand) 
   #endif
 #endif
 
+// Registers used with streams
+
+// Tiles received-acked
 inline __attribute__((always_inline)) volatile uint32_t * tt_reg_ptr get_operand_tiles_received_ptr(int operand) {
   return (volatile uint32_t tt_reg_ptr *)(uintptr_t)(STREAM_REG_ADDR(get_operand_stream_id(operand), STREAM_REMOTE_DEST_BUF_SIZE_REG_INDEX));
 }
@@ -163,10 +166,12 @@ inline __attribute__((always_inline)) volatile uint32_t * tt_reg_ptr get_operand
 #endif
 }
 
+// when switching phases, telling the unpacker/kernel that phase has ended, so it reset its pointer to zero
 inline __attribute__((always_inline)) volatile uint32_t * tt_reg_ptr get_operand_phase_changed_ptr(int operand) {
   return (volatile uint32_t tt_reg_ptr *)(uintptr_t)(STREAM_REG_ADDR(get_operand_stream_id(operand), STREAM_REMOTE_DEST_TRAFFIC_PRIORITY_REG_INDEX));
 }
 
+// Scatter received-ack
 inline __attribute__((always_inline)) volatile uint32_t * tt_reg_ptr get_packer_tiles_received_ptr(int operand) {
   return (volatile uint32_t tt_reg_ptr *)(uintptr_t)(STREAM_REG_ADDR(get_operand_stream_id(operand), STREAM_REMOTE_SRC_PHASE_REG_INDEX));
 }

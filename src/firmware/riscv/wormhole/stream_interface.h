@@ -377,6 +377,7 @@ inline bool stream_done_hint() {
   }
 }
 
+// check if we are near the end of tile header buffer
 inline bool should_stall_for_tile_header_buffer_reset(uint32_t stream_id, uint32_t msg_info_buf_addr, uint32_t buf_size_tiles, uint32_t &prev_ack_thresh) {
   uint32_t is_remote_src = NOC_STREAM_READ_REG_FIELD(stream_id, STREAM_MISC_CFG_REG_INDEX, REMOTE_SOURCE);
   uint32_t msg_info_wr_ptr = NOC_STREAM_READ_REG(stream_id, STREAM_MSG_INFO_WR_PTR_REG_INDEX);
@@ -390,18 +391,21 @@ inline bool should_stall_for_tile_header_buffer_reset(uint32_t stream_id, uint32
   return false;
 }
 
+// check is the buffer full, and if yes clear the buffer
 inline bool reset_tile_header_buffer(uint32_t stream_id, uint32_t msg_info_buf_addr, uint32_t buf_size_tiles, uint32_t &prev_phases_tiles_received_inc, uint32_t &prev_ack_thresh, uint32_t num_iter_tiles) {
   uint32_t msg_info_full = NOC_STREAM_READ_REG(stream_id, STREAM_MSG_INFO_FULL_REG_INDEX);
   uint32_t num_msgs_recv = NOC_STREAM_READ_REG(stream_id, STREAM_NUM_MSGS_RECEIVED_REG_INDEX);
 
   if (msg_info_full || (num_msgs_recv == buf_size_tiles)) {
     uint32_t buf_space_available = NOC_STREAM_READ_REG(stream_id, STREAM_BUF_SPACE_AVAILABLE_REG_INDEX);
-    
+    // is data buffer full
     if (buf_space_available == 0) {
+      // reset tile info buffer
       uint32_t msg_info_rd_ptr = NOC_STREAM_READ_REG(stream_id, STREAM_MSG_INFO_PTR_REG_INDEX);
       uint32_t msg_info_wr_ptr = NOC_STREAM_READ_REG(stream_id, STREAM_MSG_INFO_WR_PTR_REG_INDEX);
       num_msgs_recv = NOC_STREAM_READ_REG(stream_id, STREAM_NUM_MSGS_RECEIVED_REG_INDEX);
       uint32_t msg_info_num_tiles = msg_info_wr_ptr - msg_info_rd_ptr + num_msgs_recv;
+      // ensure brisc state is acurate
       prev_phases_tiles_received_inc = msg_info_rd_ptr - num_msgs_recv - msg_info_buf_addr;
       NOC_STREAM_WRITE_REG(stream_id, STREAM_MSG_INFO_WR_PTR_REG_INDEX, msg_info_buf_addr);
       NOC_STREAM_WRITE_REG(stream_id, STREAM_MSG_INFO_PTR_REG_INDEX, msg_info_buf_addr + num_msgs_recv);
@@ -411,6 +415,8 @@ inline bool reset_tile_header_buffer(uint32_t stream_id, uint32_t msg_info_buf_a
     }
   }
 
+  // corner case, ensure handshake after reseting the iterration by continue receiving-clearing tiles
+  // sending back credits as it was before the clearing
   if (num_iter_tiles <= buf_size_tiles) {
     prev_phases_tiles_received_inc = 0;
     NOC_STREAM_WRITE_REG(stream_id, STREAM_MEM_BUF_SPACE_AVAILABLE_ACK_THRESHOLD_REG_INDEX, prev_ack_thresh);

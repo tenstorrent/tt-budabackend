@@ -16,6 +16,9 @@ extern bool last_timestamp_recorded_input[PERF_MAX_NUM_INPUTS];
 #endif
 #endif
 
+// This is all of the brisc code that auguments data management between unpacker/packer and memory 
+// Note: same file is used in erisc as well
+
 volatile uint32_t tt_l1_ptr *trisc0_mailbox_ptr = (volatile uint32_t tt_l1_ptr *)(l1_mem::address_map::TRISC0_BASE + 0x4);
 volatile uint32_t tt_l1_ptr *trisc1_mailbox_ptr = (volatile uint32_t tt_l1_ptr *)(l1_mem::address_map::TRISC1_BASE + 0x4);
 volatile uint32_t tt_l1_ptr *trisc2_mailbox_ptr = (volatile uint32_t tt_l1_ptr *)(l1_mem::address_map::TRISC2_BASE + 0x4);
@@ -30,6 +33,8 @@ extern uint32_t sender_tiles_acked[32];
 extern uint32_t receiver_tiles_received[32];
 extern uint32_t receiver_tiles_acked[32];
 #endif
+
+// Helper functions 
 
 inline uint32_t get_stream_id(kernel_output_stream_state_t* output_state) {
   return output_state->stream_id;
@@ -107,6 +112,7 @@ void run_pack_stream(kernel_output_stream_state_t* output_state, uint32_t stream
   uint32_t scatter_idx = 0;
   uint32_t blob_start_addr = blob_base_addr;
 
+  // check if this is pipe scatter, to understand which blob is to execute
   if (is_scatter) {
     scatter_idx = l1_stream_info->scatter_idx;
     curr_unroll = l1_stream_info->scatter_pipe_state[scatter_idx].curr_unroll;
@@ -117,12 +123,14 @@ void run_pack_stream(kernel_output_stream_state_t* output_state, uint32_t stream
   uint32_t mblock_buffering_count = output_state->mblock_buffering_count;
   blob_start_addr += mulsi3(mblock_buffering_count,blob_size);
 
+  // execute blob, runs the phase. at this point stream is running, but probably waiting for the tiles
   if (auto_cfg_header == 0 || is_scatter) {
     stream_phase_blob_run(stream_id, blob_start_addr, start_phase_num_cfg_regs);
   } else {
     stream_phase_blob_run_offset(stream_id, blob_base_addr, blob_start_addr, blob_size);
   }
 
+  // setup for the next time, so it runs appropriate blob.
   if (is_scatter) {
     curr_unroll = curr_unroll + 1;
     uint32_t max_unroll = l1_stream_info->scatter_pipe_state[scatter_idx].max_unroll;
@@ -206,6 +214,7 @@ void process_scatter_send(uint32_t stream_id, active_stream_info_t *active_strea
 
       active_stream_info[active_streams_idx].epoch_iters_remaining = epoch_iters_remaining;
       uint32_t start_phase_num_cfg_regs = active_stream_info[active_streams_idx].start_phase_num_cfg_regs;
+      // if the stream is idle, and hasnt been started, it will execute run_pack_stream
       run_pack_stream(prev_output_state, stream_id, active_streams_idx, start_phase_num_cfg_regs);
       if (epoch_iters_remaining == 0) {
         volatile epoch_stream_info_t tt_l1_ptr * l1_stream_info = RISC_EPOCH_INFO_PTR->active_streams[active_streams_idx];
@@ -220,6 +229,7 @@ void process_scatter_send(uint32_t stream_id, active_stream_info_t *active_strea
     uint16_t epoch_tiles_acked = *epoch_tiles_acked_ptr;
     uint16_t num_tiles_recv = op_pack_tiles_ptr_sub(epoch_tiles_received, epoch_tiles_acked);
 
+    // if there is data, send it
     if (num_tiles_recv > 0 && num_tiles_recv >= num_msgs_in_block) {
       if (phase_active) {
         uint32_t num_tiles = stream_get_curr_phase_num_msgs(stream_id);
@@ -229,6 +239,7 @@ void process_scatter_send(uint32_t stream_id, active_stream_info_t *active_strea
           num_tiles = num_msgs_in_block == 0 ? num_tiles_recv : num_msgs_in_block;
           num_words = mulsi3(num_tiles, l1_stream_info->tile_size_words);
         }
+
         send_scatter_tiles(stream_id, num_tiles, num_words, active_stream_info, active_streams_idx);
 
         if (fork_idx == ((uint32_t)-1)) {
@@ -237,6 +248,7 @@ void process_scatter_send(uint32_t stream_id, active_stream_info_t *active_strea
           set_fork_num_msgs_in_block(stream_id, num_msgs_in_block | BRISC_PACKER_SENDING_IN_PROGRESS);
         }
       }
+      // when done sending, go idle. 
 
       all_kernels_done = false; // prevent breaking from outer loop
     } else {
@@ -250,7 +262,10 @@ void process_scatter_send(uint32_t stream_id, active_stream_info_t *active_strea
 
 }
 
-////
+// Initialization functions
+// Different version between BRISK and ERISK
+// ERISK has additional features, like having kernel acts are stream.
+
 #ifdef ERISC
 //Compiled On Erisc Core.
 void curr_input_state_init(uint32_t num_input_streams, kernel_input_stream_state_t *input_stream_state) {
@@ -361,7 +376,8 @@ void curr_output_state_init(uint32_t num_output_streams, kernel_output_stream_st
 }
 
 #else
-//Compiled on Brisc Core.
+// Compiled on Brisc Core.
+// Initializing Input/Unpacker streams and data structures 
 void curr_input_state_init(uint32_t num_input_streams, kernel_input_stream_state_t *input_stream_state) {
   kernel_input_stream_state_t* curr_input_state_ptr = (kernel_input_stream_state_t*)input_stream_state;
   kernel_input_stream_state_t* prev_input_state_ptr = curr_input_state_ptr;
@@ -409,7 +425,9 @@ void curr_input_state_init(uint32_t num_input_streams, kernel_input_stream_state
   prev_input_state_ptr->next = input_stream_state;
 }
 
-//Compiled on Brisc Core.
+// Compiled on Brisc Core.
+// Initializing Output/Packer/Scatter related streams and data structures 
+
 void curr_output_state_init(uint32_t num_output_streams, kernel_output_stream_state_t *output_stream_state) {
   kernel_output_stream_state_t* curr_output_state_ptr = (kernel_output_stream_state_t*)output_stream_state;
   kernel_output_stream_state_t* prev_output_state_ptr = curr_output_state_ptr;
@@ -484,6 +502,9 @@ void curr_output_state_init(uint32_t num_output_streams, kernel_output_stream_st
 }
 #endif
 
+// Initialization functions
+
+// Epoch initialization
 void risc_unpack_pack_stream_handler_init(
   uint32_t &num_input_streams, kernel_input_stream_state_t *input_stream_state,
   uint32_t &num_output_streams, kernel_output_stream_state_t *output_stream_state
@@ -491,13 +512,19 @@ void risc_unpack_pack_stream_handler_init(
   num_input_streams = RISC_EPOCH_INFO_PTR->num_inputs;
   num_output_streams = RISC_EPOCH_INFO_PTR->num_outputs;
 
+  // Load in data from L1 to processors' local data memory
   curr_input_state_init(num_input_streams, input_stream_state);
   curr_output_state_init(num_output_streams, output_stream_state);
 
   init_tile_clear();
 }
 
-
+// If not a scatter stream, 
+// this code check whether the stream is idle
+// handles dummy phases
+// if stream is idle, restart the stream
+// if there are epoch
+// if dram prefetch stream - kick it off 
 void risc_stream_resart_check(
   uint32_t &stream_restart_check_cnt,
   uint32_t &num_active_streams, active_stream_info_t *active_stream_info
@@ -505,9 +532,11 @@ void risc_stream_resart_check(
   if (stream_done_hint())
     stream_restart_check_cnt = 0;
 
+  // this emulates a timer
   bool check_stream_restart = (stream_restart_check_cnt == 0);
   stream_restart_check_cnt = (stream_restart_check_cnt + 1) & STREAM_RESTART_CHECK_MASK;
 
+  // every stream execpt scatter stream are restarted here
   if (check_stream_restart) {
     active_stream_info_t * curr_active_stream_info = active_stream_info;
     for (uint32_t i = 0;
@@ -557,8 +586,8 @@ void risc_stream_resart_check(
             stream_phase_blob_run(stream_id, blob_start_addr, start_phase_num_cfg_regs);
 
             bool need_restart =
-                ((flags & STREAM_DRAM_INPUT) != 0) && ((flags & STREAM_DRAM_IO) == 0) && ((flags & STREAM_DRAM_STREAMING) == 0) &&
-                ((flags & STREAM_INTERMEDIATE) != 0 || (flags & STREAM_MOVES_RAW_DATA) != 0);
+                ((flags & STREAM_DRAM_INPUT) != 0) && ((flags & STREAM_DRAM_IO) == 0) && ((flags & STREAM_DRAM_STREAMING) == 0) && // this encodes prolog buffers
+                ((flags & STREAM_INTERMEDIATE) != 0 || (flags & STREAM_MOVES_RAW_DATA) != 0); // this encodes gradient buffers 
             curr_active_stream_info->dram_prefetch_stream_need_restart = need_restart;
             stream_restart_check_cnt = !need_restart;
           }
@@ -590,6 +619,10 @@ void risc_stream_resart_check(
   }
 }
 
+// Once the brisc is completly done with all packing/unpacking
+// Entering this function, checking if every stream has completed its epoch
+// Handle anything that relays have to do
+// Notify ncrisc that epoch is done
 void risc_all_streams_done_check(
   uint32_t &num_active_streams, active_stream_info_t *active_stream_info
 )
@@ -605,6 +638,7 @@ void risc_all_streams_done_check(
     all_streams_done = true;
 
     stream_restart_check_cnt = 0;
+    // check if all streams are finished/ notify brisc to ends the epoch
     risc_stream_resart_check(stream_restart_check_cnt, num_active_streams, active_stream_info);
 
     for (uint32_t s = 0; s < num_active_streams; s++) {
@@ -640,6 +674,7 @@ void risc_all_streams_done_check(
   }
 }
 
+// Main part of the loop
 void risc_unpack_pack_stream_handler_loop(
   uint32_t &num_input_streams, kernel_input_stream_state_t *input_stream_state,
   uint32_t &num_output_streams, kernel_output_stream_state_t *output_stream_state,
@@ -650,7 +685,11 @@ void risc_unpack_pack_stream_handler_loop(
   uint32_t stream_restart_check_cnt = 1; // I.e. dont check immediately since streams most likely just started
   bool skip_kernels = RISC_EPOCH_INFO_PTR->skip_kernels;
 
-  while (true) {
+  while (true) { // this loop ends when all unpacking and packing is done. 
+    // if all kernels are done, and all streams are done.
+    // that must mean unpack is done and pack must be done
+    // but in reality that's not the case especially for scatter and erisk
+    // need to detect such cases
 
     bool all_kernels_done;
     if (!erisc) {
@@ -671,6 +710,7 @@ void risc_unpack_pack_stream_handler_loop(
 
     RISC_POST_STATUS(0xC0000000);
 
+    // Check if all-streams are really done though kernels might be done
     uint32_t streams_to_clear = 0;
 
     kernel_input_stream_state_t* curr_input_state = input_stream_state;
@@ -703,6 +743,7 @@ void risc_unpack_pack_stream_handler_loop(
 
       curr_input_state++;
 
+      // is this stream actually active?
       uint32_t stream_skip = (epoch_tiles_remaining_to_clear == 0) || (no_hw_clearing);
       if (stream_skip) {
         continue;
@@ -715,6 +756,7 @@ void risc_unpack_pack_stream_handler_loop(
         continue;
       }
 
+      // check how many tiles we have received, and update tiles received pointer curr_phase_tiles_received
       kernel_input_stream_state_t* prev_input_state = curr_input_state - 1;
       volatile uint32_t tt_reg_ptr* epoch_tiles_acked_ptr = prev_input_state->epoch_tiles_acked_ptr;
       volatile uint32_t tt_reg_ptr* epoch_tiles_received_ptr = prev_input_state->epoch_tiles_received_ptr;
@@ -796,6 +838,7 @@ void risc_unpack_pack_stream_handler_loop(
         epoch_tiles_received_ptr[0] = (uint32_t)new_epoch_tiles_received;
       }
 #endif
+      // if unpacker has cleared tiles, setup to risc to clear tiles
       uint16_t tiles_to_clear = op_pack_tiles_ptr_sub(epoch_tiles_acked, epoch_tiles_cleared);
       if (tiles_to_clear > phase_tiles_remaining_to_clear)
         tiles_to_clear = phase_tiles_remaining_to_clear;
@@ -804,15 +847,18 @@ void risc_unpack_pack_stream_handler_loop(
       }
       
 #ifdef USE_2K_TILE_HEADER_BUFFER_RESET
+      // this is the hack where we dont clear tiles, instead we let buffer to fill
       uint32_t num_iter_tiles = prev_input_state->num_iter_tiles;
       uint32_t buf_size_tiles = RISC_EPOCH_INFO_PTR->inputs[input_idx]->buf_size_tiles;
       uint32_t prev_ack_thresh = 0;
+      // check if we are near the end of tile header buffer, otherwise optimization doesn't really works
       if (should_stall_for_tile_header_buffer_reset(stream_id, msg_info_buf_addr, buf_size_tiles, prev_ack_thresh)) {
         wait_till_tile_clear_done(stream_id);
         if (prev_ack_thresh != 0)
           prev_input_state->prev_ack_thresh = prev_ack_thresh;
         prev_ack_thresh = prev_input_state->prev_ack_thresh;
         uint32_t prev_phases_tiles_received_inc;
+        // check is the buffer full, and if yes clear the buffer
         bool tile_header_buffer_reset = reset_tile_header_buffer(stream_id, msg_info_buf_addr, buf_size_tiles, prev_phases_tiles_received_inc, prev_ack_thresh, num_iter_tiles); 
         if (tile_header_buffer_reset) {
           prev_input_state->prev_phases_tiles_received = prev_phases_tiles_received + prev_phases_tiles_received_inc;
@@ -828,6 +874,7 @@ void risc_unpack_pack_stream_handler_loop(
       }
       prev_input_state->num_iter_tiles = num_iter_tiles;
 #endif
+      // setup data structures for tiles clearing
       streams_to_clear++;
       epoch_tiles_remaining_to_clear -= tiles_to_clear;
       phase_tiles_remaining_to_clear -= tiles_to_clear;
@@ -837,6 +884,7 @@ void risc_unpack_pack_stream_handler_loop(
       prev_input_state->epoch_tiles_remaining_to_clear = epoch_tiles_remaining_to_clear;
       stream_rec_endpoint_set_phase_tiles_count(stream_id, phase_tiles_remaining_to_clear);
       bool next_phase_src_change = stream_next_phase_src_change(stream_id);
+      // phase related check, if phase is about to end we need to keep track of amount of tiles we cleared in the all other phases
       if (next_phase_src_change && !phase_tiles_remaining_to_clear) {
         prev_input_state->prev_phases_tiles_received = epoch_tiles_cleared;
         prev_input_state->fork_prev_pushed_num_tiles = 0;
@@ -850,10 +898,13 @@ void risc_unpack_pack_stream_handler_loop(
 #endif
     RISC_POST_STATUS(0xD0000000);
 
+    // this is actually clearing the tiles, it's going to be different between GS/BH
     process_tile_clearing(input_stream_state, streams_to_clear);
 
     RISC_POST_STATUS(0xE0000000);
 
+    // this is the packer code that handles scatter packing
+    // legacy packing is handled directly from the packer kernel itself, it would feed the stream without brisc involvement
     kernel_output_stream_state_t* curr_output_state = output_stream_state;
     for (uint32_t output = 0; output < num_output_streams; output++) {
       
@@ -917,11 +968,13 @@ void risc_unpack_pack_stream_handler_loop(
       for (uint32_t k = 0; k < num_fork_streams+1; k++) {
         uint32_t fork_active_streams_idx = k == 0 ? active_streams_idx : get_fork_idx(prev_output_state, k-1);
         uint32_t fork_stream_id = k == 0 ? stream_id : RISC_EPOCH_INFO_PTR->active_streams[fork_active_streams_idx]->stream_id;
+        // check if the stream is done, and if it is, clear the tiles
         process_scatter_flush(fork_stream_id, active_stream_info, fork_active_streams_idx, prev_output_state,
                               epoch_tiles_acked_ptr, epoch_tiles_received_ptr, all_kernels_done, k == 0 ? -1 : k-1,
                               scatter_inner_loop_done);
       }
 
+      // check if same data needs to be sent again elsewhere
       bool all_scatter_inner_loop_done = is_all_fork_scatter_loop_done(scatter_inner_loop_done, num_fork_streams);
       if (all_scatter_inner_loop_done) {
         for (uint32_t k = 0; k < num_fork_streams+1; k++) {
@@ -948,6 +1001,7 @@ void risc_unpack_pack_stream_handler_loop(
           eth_send_packet(0, (uint32_t) epoch_tiles_acked_ptr >> 4, dest_addr >> 4, 1);
       }
 #endif
+        // handle jumping between different halfs of the buffer
         uint32_t mblock_buffering_count = prev_output_state->mblock_buffering_count;
         uint32_t num_mblock_buffering = prev_output_state->num_mblock_buffering;
         mblock_buffering_count++;
@@ -955,6 +1009,7 @@ void risc_unpack_pack_stream_handler_loop(
           mblock_buffering_count -= num_mblock_buffering;
         prev_output_state->mblock_buffering_count = mblock_buffering_count;
 
+        // restart data structures so they can be used again by the other half of the buffer
         prev_output_state->scatter_inner_loop_count = 0;
         if (num_fork_streams > 0) {
           for (uint32_t k = 0; k < num_fork_streams; k++) {
@@ -971,6 +1026,7 @@ void risc_unpack_pack_stream_handler_loop(
       for (uint32_t k = 0; k < num_fork_streams+1; k++) {
         uint32_t fork_active_streams_idx = k == 0 ? active_streams_idx : get_fork_idx(prev_output_state, k-1);
         uint32_t fork_stream_id = k == 0 ? stream_id : RISC_EPOCH_INFO_PTR->active_streams[fork_active_streams_idx]->stream_id;
+        // look at the stream, and if it has not been restarted, start it up again
         process_scatter_send(fork_stream_id, active_stream_info, fork_active_streams_idx, prev_output_state,
                              epoch_tiles_acked_ptr, epoch_tiles_received_ptr, all_kernels_done, k == 0 ? -1 : k-1,
                              scatter_inner_loop_done);
@@ -1008,6 +1064,7 @@ void risc_unpack_pack_stream_handler_loop(
     }
   }
 
+  // check if all streams are done, and let ncrisc that this core is at the epoch
   risc_all_streams_done_check(num_active_streams, active_stream_info);
 #endif
   

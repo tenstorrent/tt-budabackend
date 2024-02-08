@@ -284,6 +284,7 @@ static_assert(((sizeof(dram_input_stream_state_t) * MAX_DRAM_INPUT_STREAMS) +
 
 #pragma pack(pop)
 
+// untilize_copy is assembly-level optimzied, it might look odd, but produces the best code
 template <int NOC_ID>
 void untilize_copy(dram_q_state_t tt_l1_ptr * next_dram_q_issue, uint64_t dram_buf_addr, uint32_t stream_buf_addr, uint32_t stream_rd_ptr_byte,
                     uint32_t data_send_chunk_size_bytes, dram_output_stream_state_t* curr_dram_output_stream_state, uint32_t* dram_wrptr_byte_ptr, uint32_t untilize_copy_iters, bool single_row_copy) {

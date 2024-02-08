@@ -8,6 +8,12 @@
 #endif
 #include "tt_log.h"
 
+// manages the epoch loading:
+// loads the epoch_t structure from dram
+// loads the kernels from dram
+// initializes ncrisc, once epoch_t structure is loaded, copies whatever data is in L1 that needs to be reused into local data memory
+// process dram_reads/writes until brisc tells you are done
+// handles epilogue
 void run_epoch(
     void (*risc_epoch_load)(uint64_t), void (*risc_kernels_load)(uint64_t), void (*risc_extra_overlay_blob_load)(uint64_t, uint32_t), void (*init_ncrisc_streams)(void*, uint32_t),
     bool skip_initial_epoch_dram_load, uint64_t dram_next_epoch_ptr, uint64_t dram_next_epoch_triscs_ptr, bool& skip_kernels,
@@ -30,11 +36,13 @@ void run_epoch(
 #ifndef PERF_DUMP
         RISC_POST_STATUS(0x10000002);
 #endif
+        // loads epoch from dram
         risc_epoch_load(dram_next_epoch_ptr);
         uint32_t overlay_blob_extra_size = RISC_EPOCH_INFO_PTR->overlay_blob_extra_size;
         if (overlay_blob_extra_size > 0)
           risc_extra_overlay_blob_load(dram_next_epoch_ptr, overlay_blob_extra_size);
 #ifndef ERISC
+        // loads kernels (if needed) from dram
         skip_kernels = RISC_EPOCH_INFO_PTR->skip_kernels;
 
         if (!skip_kernels)
@@ -54,6 +62,7 @@ void run_epoch(
         call_with_cpu_flush((void *)init_ncrisc_streams, (void *)dram_decouple_mask);
 #endif
 
+    // handling stream initialization 
 #if defined(ERISC) || defined(RISC_B0_HW)
         risc_dram_stream_handler_init_l1(
             0,
@@ -90,6 +99,7 @@ void run_epoch(
           deassert_trisc_reset();
 #endif
 
+        // dram reads/writes until brisc tells you are done
         risc_dram_stream_handler_loop(
 #ifdef RISC_GSYNC_ENABLED
           gsync_epoch, epochs_in_progress,
@@ -105,6 +115,7 @@ void run_epoch(
 #endif
         );
 
+        // execute epilogue
 #if defined(ERISC) || defined(RISC_B0_HW)
         risc_dram_stream_handler_epilogue_l1(
             0,
@@ -137,7 +148,8 @@ void run_epoch(
     }
 }
 
-
+// Function for processing epoch management
+// Uses NOC to load data from DRAM
 void run_dram_queue_update(
     void * pFunction, volatile uint32_t *noc_read_scratch_buf, uint64_t& my_q_table_offset, uint32_t& my_q_rd_ptr, uint64_t& dram_next_epoch_ptr, uint8_t& loading_noc, bool &varinst_cmd, uint32_t &loop_iteration
 ) {

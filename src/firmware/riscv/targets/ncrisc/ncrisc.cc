@@ -12,6 +12,34 @@
 #include "risc_perf.h"
 #endif
 
+// NCRISC set of functions
+// 1. Epoch loading (check epoch queue in the loop,
+//    if there is data loaded by runtime, execute that epoch - load data structures
+//    and figure out how many streams needed for dram read/write, load kernels, setup brisc)
+// 2. Epoch execution 
+//   A. Epoch (regular, as defined in the netlist)
+//   B. Epoch management (some of the things runtime would do, delegated to tensix to enable systems like galaxy - allocating queues, updating queue parameters and similar)
+
+// When executing an Epoch
+// 1. Prolog loading - any kind of prolog buffer during the epoch initialization, place in the L1
+//    so it's constantly available during the epoch (relaxing DRAM bandwidth, useful for weights)
+// 2. Dram reads
+//   1. Scatter read
+//   2. Embedding read / Tilize
+//   3. MMIO pipes
+// 3. Dram write
+//   1. Regular FIFO based writes - No reblocking
+//   2. Limited scatter - means you can scatter to multiple different destination dram queues, 
+//      with the only caviat being that a particular dram destination can be only fed from a single core.
+//   3. Untilize -  Tensor is given to the math engine in packets of tiles  (32x32 data in specific scan order; where tiles are grouped into ublocks and mblocks, in their own scan order)
+//      This would make data into row major format in memory - matching what PyTorch/HostCPU would expect as final output.
+//      The only place where multiple cores are writing in the same DRAM queue
+// 4. Epilogue - once all of the streams are done, and brisc has notified ncrisc that it's done. 
+//    Executing Epilogue to reset all streams [that might be hacked].
+//    Also copy epilogue buffers into DRAM [opposite of Prolog, L1 to DRAM]
+//    wait for all NOC trafic to end, and get another epoch from the epoch queue [step 1].
+
+
 volatile uint32_t local_mem_barrier;
 volatile epoch_t tt_l1_ptr * curr_epoch_info;
 volatile uint32_t tt_l1_ptr* test_mailbox_ptr = (volatile uint32_t tt_l1_ptr*)(l1_mem::address_map::NCRISC_FIRMWARE_BASE + 0x4);
@@ -232,12 +260,15 @@ int main(int argc, char *argv[]) {
   global_sync_init(gsync_epoch, epochs_in_progress);
 #endif
   if (!llk_tb) {
+    // process epoch loading
+    // get epoch queue pointer
     uint32_t my_x_trans = noc_trans_table_en ? my_logical_x[0] : my_x[0];
     uint32_t my_y_trans = noc_trans_table_en ? my_logical_y[0] : my_y[0];
     my_q_table_offset = risc_get_epoch_q_dram_ptr(my_x_trans, my_y_trans);
     epoch_q_dram_addr = my_q_table_offset;
     risc_epoch_q_get_ptr(noc_read_scratch_buf, my_q_table_offset, my_q_rd_ptr, my_q_wr_ptr);
     do {
+      // if the epoch is not empty, process it
       if (!risc_is_epoch_q_empty(noc_read_scratch_buf, my_q_table_offset, my_q_rd_ptr, my_q_wr_ptr, epoch_empty_check_cnt) || exec_iteration < NUM_EXEC_LOOP_ITERATIONS) {
         uint32_t num_loops_cmd = 0;
         if (exec_iteration >= NUM_EXEC_LOOP_ITERATIONS) {
@@ -260,11 +291,13 @@ int main(int argc, char *argv[]) {
 
         uint32_t loop_iteration = loopstack.is_empty() ? 0 : loopstack.top()->curr_iter;
 
+        // different runtime executing commands
         if (epoch_queue::EpochCmdValid == epoch_command) {
           RISC_POST_STATUS(0x10000100 | exec_iteration);
 #if OVERLAY_DECOUPLE == 1
           risc::wait_for_all_epoch_commands_sent_signal();
 #endif
+          // this executes epoch itself
           run_epoch(
               risc_epoch_load, risc_kernels_load, risc_extra_overlay_blob_load, init_ncrisc_streams,
               skip_initial_epoch_dram_load, dram_next_epoch_ptr, dram_next_epoch_kernels_ptr, skip_kernels,
@@ -315,6 +348,7 @@ int main(int argc, char *argv[]) {
 
         epoch_empty_check_cnt = 0;
 
+        // check if there are more epochs to execute, if yes go back to the loop
         if (exec_iteration == NUM_EXEC_LOOP_ITERATIONS) {
           RISC_POST_DEBUG(0x10000005);
           my_q_rd_ptr = dram_io_incr_ptr(my_q_rd_ptr, 1, EPOCH_QUEUE_NUM_SLOTS);
@@ -329,6 +363,8 @@ int main(int argc, char *argv[]) {
 #ifndef PERF_DUMP
         RISC_POST_STATUS(0x10000006);
 #endif
+        // Special epoch end command, where runtime can directly notify ncrisc to stop execution,
+        // where it goes into while loop and waits for reset. 
         if (epoch_queue::EpochCmdEndProgram == epoch_command) {
           // Make sure all pending NOC writes, particularly my_q_rd_ptr update
           // above have been flushed before signaling end of program.

@@ -22,6 +22,15 @@
 #include "brisc_perf.h"
 #endif
 
+// BRISC primary focus is augmentation of Overlay HW capabilities
+// Essentially managing execution for Scatter packing and Legacy packing
+// 
+// Program structure:
+// 1. Init epoch/streams
+// 2. Loop
+//    1. Checking streams, see if they are done and restarting them
+//    2. Receiving tiles, notifying tiles received, and clearing tiles for the unpacker
+
 c_tensix_core core;
 
 volatile uint32_t* instrn_buf[MAX_THREADS];

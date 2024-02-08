@@ -58,6 +58,7 @@ void process_tile_clearing(kernel_input_stream_state_t* input_stream_state, uint
         continue;
     }
 
+    // new way of tile clearing
     stream_receiver_endpoint_tiles_clear_b0(stream_id, tiles_to_clear_group);
     tiles_to_clear -= tiles_to_clear_group;
     curr_input_state->tiles_to_clear = tiles_to_clear;
@@ -91,6 +92,7 @@ void process_tile_clearing(kernel_input_stream_state_t* input_stream_state, uint
       continue;
     }
 
+    // Fracture - feature from Spatial 1, not being used anymore. 
     uint32_t num_fork_streams = curr_input_state->num_fork_streams;
     if (num_fork_streams > 0) {
       bool fork_is_done = true;
@@ -105,6 +107,7 @@ void process_tile_clearing(kernel_input_stream_state_t* input_stream_state, uint
         continue;
     }
 
+    // old way of clearing - two tiles at time
     while (tiles_to_clear_group > 0) {
       tiles_available = stream_tiles_outstanding(stream_id);
       if (!tiles_available) {
@@ -423,6 +426,7 @@ void process_dram_write(
     RISC_POST_DEBUG(epoch_q_slots_remaining);
     RISC_POST_DEBUG(0xF0200000);
 
+    // checks whether you can write data to DRAM, is there space available, is data available
     dram_q_state_t tt_l1_ptr * next_dram_q_issue = curr_dram_output_stream_state->next_dram_q_issue;
     volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
     uint16_t data_send_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
@@ -456,6 +460,8 @@ void process_dram_write(
     if (is_strided_write && (curr_dram_output_stream_state->write_stride & DRAM_STRIDE_UPDATE_WAIT)) {
 
       RISC_POST_STATUS(0xF0300000);
+      // here are some optimization where firmware is forced to check few things in the particular cycle
+      // in order to maximize the bandwidth
 
       bool can_do_stride_update = true;
       if (!dram_writes_with_cmd_buf && !curr_dram_output_stream_state->moves_raw_data) {
@@ -686,6 +692,7 @@ void process_dram_write(
           bool full_q_slot_sent = false;
 
           if (curr_dram_output_stream_state->moves_raw_data) {
+            // moves raw data that processes untilized
             process_dram_write_moves_raw_data_l1(curr_dram_output_stream_state, next_dram_q_issue, stream_id,
                                               data_send_chunk_size_tiles, output_vc, data_send_chunk_size_bytes, dram_buf_addr,
                                               stream_rd_ptr_byte, dram_buf_size_bytes, full_q_slot_sent);
@@ -703,6 +710,7 @@ void process_dram_write(
               uint32_t c_dim_count = curr_dram_output_stream_state->c_dim_count;
               uint32_t c_dim_size = curr_dram_output_stream_state->c_dim_size;
               uint32_t col_offset_bytes = curr_dram_output_stream_state->col_offset_bytes;
+              // this is calls risc_dram_write under the hood, and does limited scatter write
               dram_output_stream_issue_scatter_write_indicies(output_noc, output_vc, next_dram_q_issue->dram_ptr_issued_byte, data_send_chunk_size_tiles, dram_io_scatter_chunk_size_tiles,
                                                               dram_io_scatter_chunk_size_bytes, stream_rd_addr, scatter_offsets, scatter_idx,
                                                               dram_buf_addr, dram_embeddings_row_shift, c_dim_count, c_dim_size, dram_io_info->c_dim_loop_num_rows, col_offset_bytes, NCRISC_WR_DEF_TRID,
@@ -720,6 +728,7 @@ void process_dram_write(
 
               if (dram_decoupled == 0) {
                 RISC_POST_STATUS(0xF4110000);
+                // no reblocking / direct write
                 risc_dram_write (dram_writes_with_cmd_buf, dram_stream, output_noc, stream_rd_addr, dram_dest_addr, data_send_chunk_size_bytes, data_send_chunk_size_tiles, output_vc, stream_msg_info_buf_addr, NCRISC_WR_DEF_TRID);
                 dram_output_stream_state[0].dram_stream_write_start_time = reg_read_barrier(RISCV_DEBUG_REG_WALL_CLOCK_L);
               }
@@ -996,6 +1005,7 @@ void process_dram_write_moves_raw_data_l1(dram_output_stream_state_t* curr_dram_
     uint32_t log_2x_untilize_copy_iters = curr_dram_output_stream_state->stream_info->log_2x_untilize_copy_iters;  
     stream_rd_ptr_byte = buf_ptr_inc_wrap(stream_rd_ptr_byte, data_send_chunk_size_bytes << log_2x_untilize_copy_iters, curr_dram_output_stream_state->stream_buf_size_bytes);
 
+    // for untilized copy we have to track reblocking order to write untilized data in the dram. 
     enum move_ptr_along_t {COLUMN, ROW, ZCOLUMN, ZROW, BATCH} move_ptr_along; 
 
     move_ptr_along = COLUMN;
