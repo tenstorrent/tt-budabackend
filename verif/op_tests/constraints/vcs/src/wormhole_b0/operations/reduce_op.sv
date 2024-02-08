@@ -33,7 +33,7 @@ class reduce_op extends operation_constraints;
 
         input_0 = in[0].post_tm_tensor;
 
-        tensor.tiny_tiles_enabled = 0;
+        tensor.tiny_tiles_enabled = 1;
     endfunction
 
 
@@ -103,6 +103,21 @@ class reduce_op extends operation_constraints;
             out_buffer == 2 * tensor.mblock_m * tensor.mblock_n * tensor.ublock_rt * tensor.ublock_ct * `get_tile_size(tensor.data_format) * tensor.t;
         }
         in0_buffer +  out_buffer <= `MAX_L1_MEM_BUFFER_SIZE;
+    }
+
+    constraint rand_tile_dims {
+        if (reduce_dim == r) {
+            tensor.out_tile_dim_r inside {1, 2, 4, 8, 16, 32};
+            tensor.out_tile_dim_c == 32;
+        } else if (reduce_dim == c) {
+            tensor.out_tile_dim_r == 32;
+            tensor.out_tile_dim_c inside {32, 16};
+        } else {
+            tensor.out_tile_dim_r == 32;
+            tensor.out_tile_dim_c == 32;
+        }
+        input_0.out_tile_dim_r == 32;
+        input_0.out_tile_dim_c == 32;
     }
 
     virtual function bit has_attributes();

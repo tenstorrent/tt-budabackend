@@ -36,6 +36,19 @@ class reduce_op_constraints extends global_constraints;
     reduce_dim != c -> (reduced_ublock_ct == ublock_ct);
   }
 
+   // Override global constraints
+   constraint tile_dims {
+      enable_tiny_tile dist {[0:0]:=70, [1:1]:=30};
+      if (enable_tiny_tile == 1) {
+         reduce_dim == z -> out_tile_dim_r == 32 && out_tile_dim_c == 32;
+         reduce_dim == r -> out_tile_dim_r inside {1, 2, 4, 8, 16} && out_tile_dim_c == 32;
+         reduce_dim == c -> out_tile_dim_r == 32 && out_tile_dim_c == 16;
+      } else {
+         out_tile_dim_r == 32;
+         out_tile_dim_c == 32;
+      }
+   }
+
   constraint rand_z_dim {
     z_dim < t;
     t % z_dim == 0;
@@ -57,6 +70,8 @@ class reduce_op_constraints extends global_constraints;
     in_data_format == out_data_format;
     (dest_fp32_acc_enable == 1) -> in_data_format == fp32;
     gradient_acc == 1 -> (in_data_format inside {[bfp8:fp32]}) && (out_data_format inside {[bfp8:fp32]});
+    (out_tile_dim_r == 1) -> (`constraint_data_format_tile_dim_1x32(out_data_format));
+    (out_tile_dim_r == 2) -> (`constraint_data_format_tile_dim_2x32(out_data_format));
   }
 
    constraint format_tile_sizes {
@@ -131,6 +146,11 @@ class reduce_op_constraints_int8 extends reduce_op_constraints;
      // generate less number of tensors for int8 to execute tests faster
      // tenstorrent/budabackend#1817
       num_inputs inside {[1:2]};
+   }
+
+   constraint tile_dims {
+      out_tile_dim_r == 32;
+      out_tile_dim_c == 32;
    }
 
    constraint max_dest_dim {
@@ -285,6 +305,8 @@ program generator();
        $fwrite(out_filehandle, "  reduced_ublock_rt: %0d\n", constraints.reduced_ublock_rt);
        $fwrite(out_filehandle, "  reduced_mblock_n: %0d\n", constraints.reduced_mblock_n);
        $fwrite(out_filehandle, "  reduced_ublock_ct: %0d\n", constraints.reduced_ublock_ct);
+       $fwrite(out_filehandle, "  out_tile_dim_r: %0d\n", constraints.out_tile_dim_r);
+       $fwrite(out_filehandle, "  out_tile_dim_c: %0d\n", constraints.out_tile_dim_c);
        $fwrite(out_filehandle, "  in_mblock_m: %0d\n",  in_mblock_m);
        $fwrite(out_filehandle, "  in_mblock_n: %0d\n",  in_mblock_n);
        $fwrite(out_filehandle, "  in_ublock_rt: %0d\n", in_ublock_rt);
