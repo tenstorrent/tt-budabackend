@@ -50,6 +50,12 @@ namespace pipegen2
                 allocate_stream_buffer(stream_node);
             }
         }
+
+        // Check if the buffers took more memory then there is available in L1.
+        for (const tt_cxy_pair& physical_locations : stream_graph_collection->get_physical_locations())
+        {
+            m_resource_manager->check_if_out_of_l1_data_buffers_memory(physical_locations);
+        }
     }
 
     void StreamBuffersAllocator::allocate_extra_tile_header_buffers(const std::vector<StreamNode*>& all_streams)
@@ -109,7 +115,7 @@ namespace pipegen2
 
         const unsigned int buffer_address = base_config.get_is_reading_from_padding_table().value_or(false) ?
             get_prologue_buffer_address_for_padding_table(stream_node, buffer_size) :
-            m_resource_manager->allocate_core_l1_data_buffer(stream_node->get_physical_location(), buffer_size);
+            m_resource_manager->allocate_core_l1_stream_buffer(stream_node, buffer_size);
 
         return buffer_address;
     }
@@ -171,8 +177,7 @@ namespace pipegen2
 
         if (!worker_core_padding_table->has_allocated_buffer(buffer_size, local_dram_buf_noc_address))
         {
-            unsigned int buffer_address = m_resource_manager->allocate_core_l1_data_buffer(
-                core_physical_location, buffer_size);
+            unsigned int buffer_address = m_resource_manager->allocate_core_l1_stream_buffer(stream_node, buffer_size);
 
             worker_core_padding_table->set_allocated_buffer_address(
                 buffer_size, local_dram_buf_noc_address, buffer_address);

@@ -31,12 +31,12 @@ namespace pipegen2
     };
 
 #ifdef TT_DEBUG
-    // Returns appropriate name string for each stream type, used for debug visualizer to visualize stream graph.
-    std::string stream_type_to_string(StreamType stream_type);
-
     // Returns appropriate color string for each stream type, used for debug visualizer to visualize stream graph.
     std::string stream_type_to_color(StreamType stream_type);
 #endif
+
+    // Returns appropriate name string for each stream type.
+    std::string stream_type_to_string(StreamType stream_type);
 
     // Structure that binds a stream node to the common config which will be used to create its phases. Used during pipe
     // streams creation, where each pipe can add some properties to that common config, and then eventually some pipe

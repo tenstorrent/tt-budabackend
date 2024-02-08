@@ -4,6 +4,7 @@
 #include "model/stream_graph/stream_node.h"
 
 #include <algorithm>
+#include <sstream>
 #include <unordered_set>
 
 #include "pipegen2_utils.h"
@@ -11,6 +12,29 @@
 namespace pipegen2
 {
 #ifdef TT_DEBUG
+    std::string stream_type_to_color(StreamType stream_type)
+    {
+        switch (stream_type)
+        {
+            case StreamType::Multicast:
+            case StreamType::PackerMulticast:
+                return "#FF4500";
+            case StreamType::Unpacker:
+            case StreamType::Packer:
+                return "#FFFF00";
+            case StreamType::Relay:
+            case StreamType::GatherRelay:
+                return "#C0C0C0";
+            case StreamType::Gather:
+                return "#1E90FF";
+            case StreamType::Intermed:
+                return "#808080";
+            default:
+                return "#FFFFFF";
+        }
+    }
+#endif
+
     std::string stream_type_to_string(StreamType stream_type)
     {
         switch (stream_type)
@@ -35,29 +59,6 @@ namespace pipegen2
                 return "Unknown";
         }
     }
-
-    std::string stream_type_to_color(StreamType stream_type)
-    {
-        switch (stream_type)
-        {
-            case StreamType::Multicast:
-            case StreamType::PackerMulticast:
-                return "#FF4500";
-            case StreamType::Unpacker:
-            case StreamType::Packer:
-                return "#FFFF00";
-            case StreamType::Relay:
-            case StreamType::GatherRelay:
-                return "#C0C0C0";
-            case StreamType::Gather:
-                return "#1E90FF";
-            case StreamType::Intermed:
-                return "#808080";
-            default:
-                return "#FFFFFF";
-        }
-    }
-#endif
 
     StreamNode::StreamNode(StreamType stream_type,
                            const tt_cxy_pair& physical_location,
@@ -337,4 +338,4 @@ namespace pipegen2
     {
         return m_stream_type == StreamType::Multicast || m_stream_type == StreamType::PackerMulticast;
     }
-}
+} // namespace pipegen2

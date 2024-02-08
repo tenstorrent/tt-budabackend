@@ -6,14 +6,15 @@
 
 #include <gtest/gtest.h>
 
-#include "device/worker_core_resources.h"
 #include "l1_address_map.h"
 #include "stream_io_map.h"
 
 #include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
 #include "device/core_resources_unit_test_utils.h"
+#include "device/l1_memory_allocation.h"
 #include "device/worker_core_resources_gs.h"
+#include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
 #include "test_utils/unit_test_utils.h"
@@ -95,13 +96,16 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraTileHeadersSpace_AllocateUntilOutOfM
     WorkerCoreResourcesGS worker_core_resources(core_physical_location);
 
     // Fill entire data buffers memory with tile headers, but don't overflow.
-    EXPECT_NO_THROW(worker_core_resources.allocate_l1_extra_tile_headers_space(max_num_tile_header_buffers));
+    worker_core_resources.allocate_l1_extra_tile_headers_space(max_num_tile_header_buffers);
 
-    // Allocate one too many tile headers. Expecting error since we don't have that much space left.
+    // Allocate one too many tile headers. This will overflow L1 space.
+    worker_core_resources.allocate_l1_extra_tile_headers_space(1);
+
+    // Expect an error to be thrown when specifically checking if L1 is out of memory.
     verify_throws_proper_exception<OutOfCoreResourcesException>(
         [&]()
         {
-            worker_core_resources.allocate_l1_extra_tile_headers_space(1);
+            worker_core_resources.check_if_out_of_l1_data_buffers_memory();
         },
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -145,11 +149,14 @@ TEST(Pipegen2_CoreResources, AllocateL1DataBuffer_AllocateUntilOutOfMemory)
     // Allocate one more byte for extra overlay blob space.
     EXPECT_NO_THROW(worker_core_resources.allocate_l1_extra_overlay_blob_space(1));
 
-    // Try to allocate just one more byte. Expecting error since we don't have any space left.
+    // Allocate one too many tile headers. This will overflow L1 space.
+    worker_core_resources.allocate_l1_data_buffer(1);
+
+    // Expect an error to be thrown when specifically checking if L1 is out of memory.
     verify_throws_proper_exception<OutOfCoreResourcesException>(
         [&]()
         {
-            worker_core_resources.allocate_l1_data_buffer(1);
+            worker_core_resources.check_if_out_of_l1_data_buffers_memory();
         },
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -247,4 +254,19 @@ TEST(Pipegen2_CoreResources, GetMulticastStreamsCount_ExpectingExactReturnValue)
          worker_core_resources_gs_constants::gather_multicast_streams_id_range_start + 1);
 
     EXPECT_EQ(worker_core_resources.get_multicast_streams_count(), expected_multicast_streams_count);
+}
+
+/**********************************************************************************************************************
+    Tests for function: track_stream_buffer_allocation
+**********************************************************************************************************************/
+TEST(Pipegen2_CoreResources, AddStreamBufferAllocation_AddingOneStream)
+{
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    StreamNode stream_node(StreamType::Gather, tt_cxy_pair(0, 0, 0), 0);
+    stream_node.assign_stream_id(1);
+    
+    worker_core_resources.track_stream_buffer_allocation(&stream_node, 1000, 0);
+    EXPECT_EQ(worker_core_resources.get_all_memory_allocations().size(), 1);
+    EXPECT_EQ(worker_core_resources.get_all_memory_allocations()[0]->get_size(), 1000);
+    EXPECT_EQ(worker_core_resources.get_all_memory_allocations()[0]->get_address(), 0);
 }

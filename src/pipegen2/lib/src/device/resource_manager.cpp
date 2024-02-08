@@ -11,6 +11,7 @@
 #include "device/ethernet_core_resources.h"
 #include "device/resource_manager_internal.h"
 #include "device/worker_core_resources.h"
+#include "model/stream_graph/stream_node.h"
 
 namespace pipegen2
 {
@@ -180,7 +181,7 @@ unsigned int ResourceManager::allocate_l1_extra_overlay_blob_space(
 }
 
 unsigned int ResourceManager::allocate_core_l1_data_buffer(
-    const tt_cxy_pair& core_physical_location, unsigned int size_in_bytes)
+    const tt_cxy_pair& core_physical_location, unsigned int size_in_bytes) const
 {
     return get_core_resources(core_physical_location)->allocate_l1_data_buffer(size_in_bytes);
 }
@@ -188,6 +189,15 @@ unsigned int ResourceManager::allocate_core_l1_data_buffer(
 unsigned int ResourceManager::allocate_kernel_input(const tt_cxy_pair& core_physical_location)
 {
     return get_core_resources(core_physical_location)->allocate_kernel_input();
+}
+
+unsigned int ResourceManager::allocate_core_l1_stream_buffer(const StreamNode* stream_node, 
+                                                             const unsigned int size_in_bytes) const
+{
+    unsigned int allocated_buffer_address = allocate_core_l1_data_buffer(stream_node->get_physical_location(), size_in_bytes);
+    track_l1_stream_buffer_allocation_on_core(stream_node, size_in_bytes, allocated_buffer_address);
+
+    return allocated_buffer_address;
 }
 
 unsigned int ResourceManager::allocate_kernel_output(const tt_cxy_pair& core_physical_location)
@@ -198,6 +208,26 @@ unsigned int ResourceManager::allocate_kernel_output(const tt_cxy_pair& core_phy
 unsigned int ResourceManager::get_multicast_streams_count(const tt_cxy_pair& core_physical_location) const
 {
     return get_core_resources(core_physical_location)->get_multicast_streams_count();
+}
+
+void ResourceManager::track_l1_stream_buffer_allocation_on_core(const StreamNode* stream_node, 
+                                                                const unsigned int buffer_size,  
+                                                                const unsigned int buffer_address) const
+{
+    get_core_resources(stream_node->get_physical_location())->track_stream_buffer_allocation(
+        stream_node, buffer_size, buffer_address);
+}
+
+void ResourceManager::check_if_out_of_l1_data_buffers_memory(const tt_cxy_pair& core_physical_location) const
+{
+    return get_core_resources(core_physical_location)->check_if_out_of_l1_data_buffers_memory();
+}
+
+
+const std::vector<std::unique_ptr<L1MemoryAllocation>>& ResourceManager::get_l1_memory_allocations(
+    const tt_cxy_pair& core_physical_location) const
+{
+    return get_core_resources(core_physical_location)->get_all_memory_allocations();
 }
 
 } // namespace pipegen2

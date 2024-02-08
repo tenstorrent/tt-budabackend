@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <memory>
+#include <vector>
 #include <set>
 
 #include "device/tt_xy_pair.h"
@@ -12,11 +14,14 @@
 namespace pipegen2
 {
 
+class L1MemoryAllocation;
+class StreamNode;
+
 class CoreResources
 {
 public:
-    // Virtual destructor, necessary for base class.
-    virtual ~CoreResources() = default;
+    // Virtual destructor, necessary for forward declarations of classes in smart pointer members.
+    virtual ~CoreResources();
 
     // Allocates stream with capability of gathering and returns its ID.
     StreamId allocate_gather_stream();
@@ -55,6 +60,20 @@ public:
     // Returns streams that have been allocated on the core.
     const std::set<StreamId>& get_allocated_stream_ids() const { return m_allocated_stream_ids; }
 
+    // Returns all memory allocations on the L1 memory of the core.
+    const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_all_memory_allocations() const
+    { 
+        return m_memory_allocations; 
+    }
+
+    // Adds stream allocation to the core resource tracker.
+    void track_stream_buffer_allocation(const StreamNode* stream_node, 
+                                        unsigned int buffer_size, 
+                                        unsigned int buffer_address);
+
+    // Checks if core is out of L1 memory for data buffers space, and throws the error if it is.
+    void check_if_out_of_l1_data_buffers_memory();
+
 protected:
     // Constructor, protected from public.
     CoreResources(const tt_cxy_pair& core_physical_location,
@@ -91,9 +110,6 @@ protected:
     std::set<StreamId> m_allocated_stream_ids;
 
 private:
-    // Checks if core is out of L1 memory for data buffers space, and throws the error if it is.
-    void check_if_out_of_l1_data_buffers_memory();
-
     // Starting ID in the extra streams ID range.
     // Extra streams are used for general purpose, for example as gather input streams.
     const StreamId c_extra_streams_id_range_start;
@@ -124,6 +140,12 @@ private:
 
     // Physical location of the core.
     const tt_cxy_pair m_core_physical_location;
+
+    // Vector of all the memory allocations on the core.
+    std::vector<std::unique_ptr<L1MemoryAllocation>> m_memory_allocations;
+
+    // Returns a string represenations of the L1 memory allocations on the core.
+    std::string allocations_to_string() const;
 };
 
 } // namespace pipegen2

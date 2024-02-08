@@ -4,10 +4,10 @@
 #include "device/core_resources.h"
 
 #include "device/core_resources_constants.h"
-#include "device/operand_stream_map.h"
+#include "device/l1_memory_allocation.h"
+#include "device/stream_buffer_allocation.h"
 #include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
-#include "pipegen2_utils.h"
 
 namespace pipegen2
 {
@@ -32,6 +32,8 @@ CoreResources::CoreResources(const tt_cxy_pair& core_physical_location,
 {
 }
 
+CoreResources::~CoreResources() = default;
+
 void CoreResources::allocate_l1_extra_tile_headers_space(unsigned int num_extra_tile_headers)
 {
     m_l1_extra_tile_headers_space =
@@ -49,9 +51,6 @@ void CoreResources::allocate_l1_extra_overlay_blob_space(unsigned int size_in_by
 unsigned int CoreResources::allocate_l1_data_buffer(unsigned int size_in_bytes)
 {
     m_l1_current_data_buffers_space_address -= size_in_bytes;
-
-    check_if_out_of_l1_data_buffers_memory();
-
     return m_l1_current_data_buffers_space_address;
 }
 
@@ -69,7 +68,9 @@ void CoreResources::check_if_out_of_l1_data_buffers_memory()
         throw OutOfCoreResourcesException(
             "Core " + m_core_physical_location.str() + " is out of data buffers memory (allocated " +
             std::to_string(allocated_space_in_bytes) + " bytes out of available " +
-            std::to_string(total_available_space) + " bytes).",
+            std::to_string(total_available_space) + " bytes).\n" +
+            "Allocated stream buffers:\n" +
+            allocations_to_string(),
             m_core_physical_location,
             OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
             total_available_space - constants::unused_data_buffers_space_bytes,
@@ -139,6 +140,26 @@ unsigned int CoreResources::allocate_kernel_output()
 unsigned int CoreResources::get_multicast_streams_count() const
 {
     return calculate_multicast_streams_count();
+}
+
+void CoreResources::track_stream_buffer_allocation(const StreamNode* stream_node, 
+                                                   unsigned int allocated_buffer_size, 
+                                                   unsigned int allocated_buffer_address) 
+{
+    std::unique_ptr<L1MemoryAllocation> stream_buffer_allocation = 
+        std::make_unique<StreamBufferAllocation>(stream_node, allocated_buffer_size, allocated_buffer_address);
+    m_memory_allocations.push_back(std::move(stream_buffer_allocation));
+}
+
+std::string CoreResources::allocations_to_string() const
+{
+    std::stringstream string_stream;
+    for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation : get_all_memory_allocations())
+    {
+        string_stream << memory_allocation->allocation_info() << "\n";
+    }
+
+    return string_stream.str();
 }
 
 } // namespace pipegen2

@@ -10,7 +10,7 @@
 #include "stream_io_map.h"
 
 #include "device/core_resources_constants.h"
-#include "device/ethernet_core_resources.h"
+#include "device/l1_memory_allocation.h"
 #include "device/operand_stream_map.h"
 #include "device/resource_manager.h"
 #include "device/resource_manager_internal.h"
@@ -20,6 +20,7 @@
 #include "device/worker_core_resources_gs.h"
 #include "device/worker_core_resources_wh.h"
 #include "mocks/device/soc_info_mocks.h"
+#include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
 #include "resource_manager_unit_test_utils.h"
@@ -489,12 +490,13 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocateL1ExtraOverlayBlobSpace_ExpectingExa
 }
 
 /**********************************************************************************************************************
-    Tests for function: allocate_core_l1_data_buffer
-    // NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_data_buffer is thorougly tested
-             in UTs for core resources.
+    Tests for function: allocate_core_l1_stream_buffer
+    // NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_data_buffer and 
+    CoreResources::track_stream_buffer_allocation is thorougly tested in UTs for core resources.
+    // Also tests CoreResources::get_l1_memory_allocations
 **********************************************************************************************************************/
 
-TEST_F(Pipegen2_ResourceManager, AllocateCoreL1DataBuffer_ExpectingExactReturnValue)
+TEST_F(Pipegen2_ResourceManager, AllocateCoreL1StreamBuffer_ExpectingExactReturnValue)
 {
     tt_cxy_pair worker_core_location =
         tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
@@ -508,11 +510,17 @@ TEST_F(Pipegen2_ResourceManager, AllocateCoreL1DataBuffer_ExpectingExactReturnVa
     // Allocate almost entire space, just leave one byte unallocated.
     unsigned int l1_current_data_buffers_space_address;
 
+    std::unique_ptr<StreamNode> stream_node = std::make_unique<StreamNode>(
+        StreamNode(StreamType::Unpacker, worker_core_location, 1));
+
+    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location).size(), 0);
     EXPECT_NO_THROW(
-        l1_current_data_buffers_space_address = m_resource_manager->allocate_core_l1_data_buffer(
-            worker_core_location, half_of_available_space));
+        l1_current_data_buffers_space_address = m_resource_manager->allocate_core_l1_stream_buffer(
+            stream_node.get(), half_of_available_space));
 
     EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_start_address + (half_of_available_space));
+    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location).size(), 1);
+    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location)[0]->get_size(), half_of_available_space);
 }
 
 /**********************************************************************************************************************

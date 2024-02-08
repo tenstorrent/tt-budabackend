@@ -18,6 +18,8 @@ namespace pipegen2
 class CoreResources;
 class WorkerCoreResources;
 class EthernetCoreResources;
+class StreamNode;
+class L1MemoryAllocation;
 
 class ResourceManager
 {
@@ -65,11 +67,6 @@ public:
     unsigned int allocate_l1_extra_overlay_blob_space(const tt_cxy_pair& core_physical_location,
                                                       unsigned int blob_size_in_bytes);
 
-    // Allocates memory for data buffer in L1 on a given core and returns the allocation address.
-    // Memory is allocated from the end of L1 data buffers space towards beginning.
-    unsigned int allocate_core_l1_data_buffer(const tt_cxy_pair& core_physical_location,
-                                              unsigned int size_in_bytes);
-
     // Allocates kernel input on a given core and returns its index.
     unsigned int allocate_kernel_input(const tt_cxy_pair& core_physical_location);
 
@@ -88,9 +85,28 @@ public:
     // Returns total number of multicast streams available on a core with given location.
     unsigned int get_multicast_streams_count(const tt_cxy_pair& core_physical_location) const;
 
+    // Allocates a stream buffer on core location in L1 memory.
+    unsigned int allocate_core_l1_stream_buffer(const StreamNode* stream_node, const unsigned int buffer_size) const;
+
+    // Check if L1 memory is overflowing on a particular core.
+    void check_if_out_of_l1_data_buffers_memory(const tt_cxy_pair& core_physical_location) const;
+
+    const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_l1_memory_allocations(
+        const tt_cxy_pair& core_physical_location) const;
+
 private:
     // Gets worker core resources for a given worker core location.
     WorkerCoreResources* get_worker_core_resources(const tt_cxy_pair& core_physical_location) const;
+
+    // Tracks allocation info on the corresponding core resource.
+    void track_l1_stream_buffer_allocation_on_core(const StreamNode* stream_node, 
+                                                   const unsigned int buffer_size, 
+                                                   const unsigned int buffer_address) const;
+
+    // Allocates memory for data buffer in L1 on a given core and returns the allocation address.
+    // Memory is allocated from the end of L1 data buffers space towards beginning.
+    unsigned int allocate_core_l1_data_buffer(const tt_cxy_pair& core_physical_location,
+                                              unsigned int size_in_bytes) const;
 
     // Gets ethernet core resources for a given ethernet core location.
     EthernetCoreResources* get_ethernet_core_resources(const tt_cxy_pair& core_physical_location) const;
@@ -106,6 +122,7 @@ private:
 
     // Map of resources for each eth core on each chip, mapped by their physical coordinates.
     std::unordered_map<tt_cxy_pair, std::unique_ptr<EthernetCoreResources>> m_ethernet_cores_resources;
+
 };
 
 } // namespace pipegen2

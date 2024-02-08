@@ -27,4 +27,15 @@ namespace pipegen2
 
         return streams_on_core;
     }
+
+    std::unordered_set<tt_cxy_pair> StreamGraphCollection::get_physical_locations() const
+    {
+        std::unordered_set<tt_cxy_pair> physical_locations;
+        for (const StreamNode* stream_node : m_streams)
+        {
+            physical_locations.insert(stream_node->get_physical_location());
+        }
+        
+        return physical_locations;
+    }
 }

@@ -28,6 +28,9 @@ namespace pipegen2
         // Returns all streams that are on the same core as the provided core location.
         std::vector<const StreamNode*> get_streams_on_core(const tt_cxy_pair& core_location) const;
 
+        // Get physical locations for all streams in the StreamGraphCollection.
+        std::unordered_set<tt_cxy_pair> get_physical_locations() const;
+
     private:
         // All stream graphs in the collection.
         std::vector<std::unique_ptr<StreamGraph>> m_stream_graphs;
