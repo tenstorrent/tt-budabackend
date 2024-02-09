@@ -2896,12 +2896,12 @@ void netlist_parser::verify_complex_settings() {
             }
 
             // Constraint: kernel broadcast performance (Issue #2509)
-            if (is_valid_matmul_op(op_info.type)) {
+            if ((is_valid_matmul_op(op_info.type) || is_valid_depthwise_op(op_info.type)) && this->device_info.arch != tt::ARCH::GRAYSKULL) {
                 if (op_info.attributes.kernel_broadcast.size() > 0 &&
                     op_info.attributes.kernel_broadcast[0].first > 1 && 
                     op_info.output_dim.ublock_ct < op_info.output_dim.ublock_rt) {
                     log_assert(op_info.attributes.kernel_broadcast[0].first % (op_info.output_dim.ublock_rt * op_info.attributes.u_kt) == 0,
-                          "graph={} op={} is a matmul op and if ublock_ct < ublock_rt, kernel broadcast factor on input0 must be divisible by ublock_rt * u_kt", 
+                          "graph={} op={} is a matmul/depthwise op and if ublock_ct < ublock_rt, kernel broadcast factor on input0 must be divisible by ublock_rt * u_kt", 
                                graph_it.second.name, 
                                op_info.name);
                 }
@@ -2910,7 +2910,7 @@ void netlist_parser::verify_complex_settings() {
                     op_info.attributes.kernel_broadcast[1].first > 1 && 
                     op_info.output_dim.ublock_ct >= op_info.output_dim.ublock_rt) {
                     log_assert(op_info.attributes.kernel_broadcast[1].first % op_info.output_dim.ublock_ct == 0,
-                          "graph={} op={} is a matmul op and if ublock_ct >= ublock_rt, kernel broadcast factor on input1 must be divisible by ublock_ct", 
+                          "graph={} op={} is a matmul/depthwise op and if ublock_ct >= ublock_rt, kernel broadcast factor on input1 must be divisible by ublock_ct", 
                                graph_it.second.name, 
                                op_info.name);
                 }
@@ -3628,24 +3628,6 @@ void netlist_parser::verify_complex_settings() {
                         "graph={}, op={} is a depthwise op and must have m_k > 0", 
                         graph_info.name, 
                         op_info.name);
-
-                    if (op_info.attributes.kernel_broadcast.size() > 0 &&
-                        op_info.attributes.kernel_broadcast[0].first > 1 && 
-                        op_info.output_dim.ublock_ct < op_info.output_dim.ublock_rt) {
-                        log_assert(op_info.attributes.kernel_broadcast[0].first % (op_info.output_dim.ublock_rt * op_info.attributes.u_kt) == 0,
-                              "graph={}, op={} is a depthwise op and if ublock_ct < ublock_rt, kernel broadcast factor on input0 must be divisible by ublock_rt * u_kt",
-                                   graph_info.name, 
-                                   op_info.name);
-                    }
-
-                    if (op_info.attributes.kernel_broadcast.size() > 1 &&
-                        op_info.attributes.kernel_broadcast[1].first > 1 && 
-                        op_info.output_dim.ublock_ct >= op_info.output_dim.ublock_rt) {
-                        log_assert(op_info.attributes.kernel_broadcast[1].first % op_info.output_dim.ublock_ct == 0,
-                              "graph={}, op={} is a depthwise op and if ublock_ct >= ublock_rt, kernel broadcast factor on input1 must be divisible by ublock_ct",
-                                   graph_info.name, 
-                                   op_info.name);
-                    }
                 }
             }
         }
