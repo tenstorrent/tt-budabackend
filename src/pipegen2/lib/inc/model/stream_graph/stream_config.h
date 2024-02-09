@@ -140,6 +140,11 @@ namespace pipegen2
             ADD_FIELD_TO_MAP(overlay_blob_extra_size)
             ADD_FIELD_TO_MAP(shared_space_buffer_node_id)
             ADD_FIELD_TO_MAP(space_shared_with_stream)
+            ADD_FIELD_TO_MAP(num_mcast_dests)
+            ADD_FIELD_TO_MAP(src_dest_index)
+            ADD_FIELD_TO_MAP(remote_src_is_mcast)
+            ADD_FIELD_TO_MAP(data_buf_no_flow_ctrl)
+            ADD_FIELD_TO_MAP(dest_data_buf_no_flow_ctrl)
         }
 
 #undef ADD_FIELD_TO_MAP
@@ -358,6 +363,11 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, overlay_blob_extra_size)
         DEFINE_MEMBER_AND_ACCESSOR(NodeId, shared_space_buffer_node_id)
         DEFINE_MEMBER_AND_ACCESSOR(StreamNode*, space_shared_with_stream)
+        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, num_mcast_dests)
+        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, src_dest_index)
+        DEFINE_MEMBER_AND_ACCESSOR(bool, remote_src_is_mcast)
+        DEFINE_MEMBER_AND_ACCESSOR(bool, data_buf_no_flow_ctrl)
+        DEFINE_MEMBER_AND_ACCESSOR(bool, dest_data_buf_no_flow_ctrl)
 #undef DEFINE_MEMBER_AND_ACCESSOR
     };
 } // namespace pipegen2

@@ -77,7 +77,7 @@ DEFAULT_KEYS_AND_VALUES = {
     "scatter_idx": 0,
     "scatter_order_size": 1,
     # Don't compare source fields as it's possible to have different stream ids assigned as part of the stream graph.
-    "source": None,
+    "src": None,
 }
 
 
@@ -1351,7 +1351,6 @@ class BlobComparator:
     def create_data_flow_graphs(
         self, phase_map: dict, sg_comparison_strategy: StreamGraphComparisonStrategy
     ):
-        self.fill_source_streams(phase_map)
         sink_streams = self.find_sink_streams(phase_map)
 
         max_phase = max(phase_map.keys())
@@ -1374,18 +1373,6 @@ class BlobComparator:
                     sink_streams[sd].append(phase_num)
         return sink_streams
 
-    def fill_source_streams(self, phase_map: dict):
-        """Fills source keys in phase map."""
-        for _, phase_content in phase_map.items():
-            for stream_key, stream_cfg in phase_content.items():
-                if "source" not in stream_cfg:
-                    stream_cfg["source"] = None
-                dests = self.get_stream_dests(stream_cfg)
-                for dest in dests:
-                    if dest not in phase_content:
-                        continue
-                    phase_content[dest]["source"] = stream_key
-
     def create_graph(
         self,
         phase_map: dict,
@@ -1399,7 +1386,7 @@ class BlobComparator:
         # In case this data flow goes through scattered pipe, save the pipe scatter idx
         # so we can filter streams that are involved only in this flow.
         scatter_idx = -1
-        source = sink_cfg["source"]
+        source = sink_cfg["src"]
         dest = str(sink)
 
         # Data path represents set of all streams that are involved in data transfers toward the sink.
@@ -1421,7 +1408,7 @@ class BlobComparator:
             data_path.add(source)
             if "scatter_idx" in source_cfg:
                 scatter_idx = source_cfg["scatter_idx"]
-            source = source_cfg["source"]
+            source = source_cfg["src"]
 
         # Go over all other phases and add more edges to the graph. We add any edge that goes from a stream to a stream
         # that is already in the path.

@@ -272,39 +272,6 @@ def GetPipeScatterStateSize(blob_scatter)
   return (length % 32) == 0 ? length : (length / 32) * 32 + 32
 end
 
-def process_dest_no_flow_ctrl(phase_info, phase_nums, num_phases, chip_id, x, y, stream_id, other_chip, other_x, other_y, other_stream_id, phases, phase)
-  if phases[phase][:no_flow_ctrl_processed] == nil
-    phases[phase][:no_flow_ctrl_processed] = true
-    phases_num_msgs = phases[phase][:num_msgs]
-    if (!phases[phase][:next_phase_dest_change])
-      next_phase = phase
-      next_stream_cfg = phases[phase]
-      while (!next_stream_cfg[:next_phase_dest_change])
-        next_phase, next_stream_cfg = GetNextPhase(phase_info, phase_nums, num_phases, next_phase, chip_id, x, y, stream_id)
-        abort("next_stream_cfg should not be nil (i.e. next_phase_src/dest must be 1 for last phase)") if next_phase == nil
-        next_stream_cfg[:no_flow_ctrl_processed] = true
-        phases_num_msgs += next_stream_cfg[:num_msgs]
-      end
-    end
-    if (phases_num_msgs*phases[phase][:msg_size] <= phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:buf_size])
-      phases[phase][:dest_data_buf_no_flow_ctrl] = true
-      phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:data_buf_no_flow_ctrl] = true
-      if (!phases[phase][:next_phase_dest_change])
-        next_phase = phase
-        next_stream_cfg = phases[phase]
-        while (!next_stream_cfg[:next_phase_dest_change])
-          next_phase, next_stream_cfg = GetNextPhase(phase_info, phase_nums, num_phases, next_phase, chip_id, x, y, stream_id)
-          abort("next_stream_cfg should not be nil (i.e. next_phase_src/dest must be 1 for last phase)") if next_phase == nil
-          next_stream_cfg[:dest_data_buf_no_flow_ctrl] = true
-        end
-      end
-    end
-  else
-    # Making sure we set it for all mcast destinations.
-    phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:data_buf_no_flow_ctrl] = phases[phase][:dest_data_buf_no_flow_ctrl]
-  end
-end
-
 def GetNextPreloadDW(prev_dw)
 #  return prev_dw + 1
   return 0 #preload zeros
@@ -809,7 +776,12 @@ phase_info.each do |yx_label, streams|
 		    # Add :src and :dest blank arrays if missing
 		    if (!phases[phase][:src])
 			    phases[phase][:src] = []
-		    end
+        else
+          if (!phases[phase][:src].is_a?(Array))
+            phases[phase][:src] = [phases[phase][:src]]
+          end
+        end
+
 		    if (!phases[phase][:dest])
 			    phases[phase][:dest] = []
 		    end
@@ -986,89 +958,6 @@ phase_info.each do |yx_label, streams|
             $msg_size_msg_info_buf_map[chip_id][msg_size] = false
           end
         end
-
-        # Setup src stream that has multiple pipes
-        if (phases[phase][:no_dest_handshake])
-          prev_phase, prev_stream_cfg = GetPrevPhase(phase_info, phase_nums, num_phases, phase, chip_id, x, y, stream_id)
-          prev_stream_cfg[:next_phase_dest_change] = false
-          while (prev_stream_cfg[:dest] != phases[phase][:dest])
-            prev_phase, prev_stream_cfg = GetPrevPhase(phase_info, phase_nums, num_phases, prev_phase, chip_id, x, y, stream_id)
-          end
-
-          phases[phase][:saved_dest_wr_ptr] = prev_stream_cfg[:num_msgs]*prev_stream_cfg[:msg_size]
-          phases[phase][:saved_num_msgs_already_sent] = prev_stream_cfg[:num_msgs]
-          if (prev_stream_cfg[:saved_dest_wr_ptr] != nil)
-            phases[phase][:saved_dest_wr_ptr] += prev_stream_cfg[:saved_dest_wr_ptr]
-            phases[phase][:saved_num_msgs_already_sent] += prev_stream_cfg[:saved_num_msgs_already_sent]
-          end
-        end
-
-		    # Determine sources from destinations
-		    if (phases[phase][:remote_receiver] && (phases[phase][:dest].size == 2)) # Multicast
-			    other_chip, other_y1, other_x1, other_stream_id1 = ParseStreamString(phases[phase][:dest][0].to_s)
-			    other_chip2, other_y2, other_x2, other_stream_id2 = ParseStreamString(phases[phase][:dest][1].to_s)
-
-			    if (other_stream_id1 != other_stream_id2)
-			      abort("Error! Multicast destinations must go to the same stream ids, please review :y_#{y}__x_#{x}__stream_id_#{stream_id} phase #{phase}")
-			    end
-			    src_dest_index = 0
-			    other_y = other_y1
-			    other_stream_id = other_stream_id1
-          if $PARAMS[:verbose] == 1
-            puts "x=#{x}, y=#{y}, stream_id=#{stream_id} multicast phase #{phase}, dest stream_id=#{other_stream_id}, x1=#{other_x1}, y1=#{other_y1}, x2=#{other_x2}, y2=#{other_y2}"
-          end
-			    while (true) do
-			      other_x = other_x1            
-			      while (true) do
-              if (phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"] &&
-                  phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase])                
-                if $PARAMS[:verbose] == 1
-                  puts "   => setting destination x=#{other_x}, y=#{other_y}"
-                end
-			          if !phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src]
-			            phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src] = []
-			          end
-			          phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src].push(:"chip_#{chip_id}__y_#{y}__x_#{x}__stream_id_#{stream_id}")
-			          phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src_dest_index] = src_dest_index
-                phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:remote_src_is_mcast] = true
-
-                process_dest_no_flow_ctrl(phase_info, phase_nums, num_phases, chip_id, x, y, stream_id, other_chip, other_x, other_y, other_stream_id, phases, phase)
-
-			          src_dest_index += 1
-			        end
-			        break if other_x == other_x2
-              other_x = NextHigherWorkerXWraparound(chip_id, other_y, other_x, chip_ids_to_grid_size_x)
-			      end
-			      
-			      break if other_y == other_y2
-            other_y = NextHigherWorkerYWraparound(chip_id, other_y, other_x, chip_ids_to_grid_size_y)
-			    end
-
-          if phases[phase][:num_mcast_dests] == nil
-			      phases[phase][:num_mcast_dests] = src_dest_index
-            if (!phases[phase][:next_phase_dest_change])
-              next_phase = phase
-              next_stream_cfg = phases[phase]
-              while (!next_stream_cfg[:next_phase_dest_change])
-                next_phase, next_stream_cfg = GetNextPhase(phase_info, phase_nums, num_phases, next_phase, chip_id, x, y, stream_id)
-                abort("next_stream_cfg should not be nil (i.e. next_phase_src/dest must be 1 for last phase)") if next_phase == nil
-                next_stream_cfg[:num_mcast_dests] = src_dest_index
-              end
-            end
-          end
-
-		    elsif (phases[phase][:remote_receiver] || (phases[phase][:local_receiver] && !phases[phase][:local_receiver_tile_clearing]) || (phases[phase][:eth_sender] && phases[phase][:receiver_endpoint]))          
-			    other_chip, other_y, other_x, other_stream_id = ParseStreamString(phases[phase][:dest][0].to_s)
-          if (phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"] &&
-              phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase])
-            if !phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src]
-              phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src] = []
-            end  
-            phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:src].push(:"chip_#{chip_id}__y_#{y}__x_#{x}__stream_id_#{stream_id}")
-
-            process_dest_no_flow_ctrl(phase_info, phase_nums, num_phases, chip_id, x, y, stream_id, other_chip, other_x, other_y, other_stream_id, phases, phase)
-          end
-		    end
 		  end
 	  end
   end
@@ -1111,7 +1000,7 @@ phase_info.each do |yx_label, streams|
 			    phases[phase][:remote_src_update_noc] = 1-phases[phase][:incoming_data_noc]
 		    elsif (phases[phase][:remote_source] || phases[phase][:local_sources_connected] || (phases[phase][:source_endpoint] && phases[phase][:eth_receiver]))
 			    chosen_noc = nil
-			    phases[phase][:src].each do |src|
+          phases[phase][:src].each do |src|
 			      other_chip, other_y, other_x, other_stream_id = ParseStreamString(src.to_s)
 			      if (chosen_noc == nil)
 				      chosen_noc = phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:outgoing_data_noc]

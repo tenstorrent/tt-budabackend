@@ -239,6 +239,8 @@ namespace pipegen2
         write_optionally("c_dim_loop_num_rows", stream_config.get_c_dim_loop_num_rows());
         write_optionally("c_dim_size", stream_config.get_c_dim_size());
         write_optionally("data_auto_send", stream_config.get_data_auto_send());
+        write_optionally("data_buf_no_flow_ctrl", stream_config.get_data_buf_no_flow_ctrl());
+        write_optionally("dest_data_buf_no_flow_ctrl", stream_config.get_dest_data_buf_no_flow_ctrl());
         write_optionally("dest", stream_config.get_dest(), &BlobYamlWriter::get_stream_dest_string);
         write_optionally("dram_buf_noc_addr", stream_config.get_dram_buf_noc_addr(), &BlobYamlWriter::get_hex_string);
         write_optionally("dram_embeddings_row_shift", stream_config.get_dram_embeddings_row_shift());
@@ -274,6 +276,7 @@ namespace pipegen2
         write_optionally("ncrisc_clear", stream_config.get_ncrisc_clear());
         write_optionally("next_phase_dest_change", stream_config.get_next_phase_dest_change());
         write_optionally("next_phase_src_change", stream_config.get_next_phase_src_change());
+        write_optionally("num_mcast_dests", stream_config.get_num_mcast_dests());
         write_optionally("num_fork_streams", stream_config.get_num_fork_streams());
         write_optionally("num_iters_in_epoch", stream_config.get_num_iters_in_epoch());
         write_optionally("num_mblock_buffering", stream_config.get_num_mblock_buffering());
@@ -296,6 +299,7 @@ namespace pipegen2
         write_optionally("reg_update_vc", stream_config.get_reg_update_vc());
         write_optionally("remote_receiver", stream_config.get_remote_receiver());
         write_optionally("remote_source", stream_config.get_remote_source());
+        write_optionally("remote_src_is_mcast", stream_config.get_remote_src_is_mcast());
         write_optionally("resend", stream_config.get_resend());
         write_optionally("scatter_idx", stream_config.get_scatter_idx());
         write_optionally("scatter_list_indicies_per_input", stream_config.get_scatter_list_indicies_per_input());
@@ -312,6 +316,8 @@ namespace pipegen2
         write_optionally("space_shared_with_operand", stream_config.get_space_shared_with_operand());
         write_optionally("space_shared_with_stream", stream_config.get_space_shared_with_stream(),
                          &BlobYamlWriter::get_stream_id_string);
+        write_optionally("src", stream_config.get_source());
+        write_optionally("src_dest_index", stream_config.get_src_dest_index());
         write_optionally("stride", stream_config.get_stride());
         write_optionally("stride_offset_size_bytes", stream_config.get_stride_offset_size_bytes());
         write_optionally("tile_dim_c", stream_config.get_tile_dim_c());

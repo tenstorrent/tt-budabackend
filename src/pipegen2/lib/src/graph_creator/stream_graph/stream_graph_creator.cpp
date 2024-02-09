@@ -11,6 +11,7 @@
 
 #include "data_flow_calculator/data_flow_calculator.h"
 #include "graph_creator/stream_graph/pipe_streams_creator_factory.h"
+#include "graph_creator/stream_graph/stream_flow_control_optimizer.h"
 #include "graph_creator/stream_graph/stream_resources_allocator.h"
 #include "model/rational_graph/nodes/pcie_streaming_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
@@ -75,6 +76,8 @@ namespace pipegen2
             optimize_stream_graph(stream_graph.get());
 
             unroll_stream_graph(stream_graph.get(), max_unroll_factors[i]);
+
+            optimize_stream_graph_flow_control(stream_graph.get());
         }
 
         StreamResourcesAllocator stream_resources_allocator(resource_manager);
@@ -376,6 +379,12 @@ namespace pipegen2
         }
     }
 
+    void StreamGraphCreator::optimize_stream_graph_flow_control(StreamGraph* stream_graph)
+    {
+        StreamFlowControlOptimizer stream_flow_control_optimizer;
+        stream_flow_control_optimizer.optimize_stream_graph_flow_control(stream_graph);
+    }
+    
     void StreamGraphCreator::unroll_stream_graph(StreamGraph* stream_graph, const unsigned int max_unroll_factor)
     {
         // TODO: split code below in smaller functions.

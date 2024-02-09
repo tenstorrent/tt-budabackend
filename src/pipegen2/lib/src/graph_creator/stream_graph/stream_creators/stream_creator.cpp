@@ -686,10 +686,30 @@ namespace pipegen2
     {
         // Source of multicast stream is already configured by connecting input stream to the multicast stream.
         configure_stream_src_and_dest(multicast_stream, nullptr /* source_stream */, unpacker_streams);
+        multicast_stream->get_base_config().set_num_mcast_dests(unpacker_streams.size());
 
-        for (const std::unique_ptr<StreamNode>& unpacker_stream: unpacker_streams)
+        for (const std::unique_ptr<StreamNode>& unpacker_stream : unpacker_streams)
         {
             configure_stream_src_and_dest(unpacker_stream.get(), multicast_stream, nullptr /* destination_stream */);
+        }
+        
+        // We need sorted order of unpacker streams by their location. This is needed to set 'src_dest_index' in right
+        // order. We don't want to copy all unpacker streams to a new vector. We can just sort the vector of pointers
+        // to unpacker streams.
+        std::vector<StreamNode*> unpacker_streams_sorted_by_location;
+        for (const std::unique_ptr<StreamNode>& unpacker_stream: unpacker_streams)
+        {
+            unpacker_streams_sorted_by_location.push_back(unpacker_stream.get());
+        }
+        std::sort(unpacker_streams_sorted_by_location.begin(), unpacker_streams_sorted_by_location.end(),
+                  [](const StreamNode* lhs, const StreamNode* rhs)
+                  {
+                      return lhs->get_physical_location() < rhs->get_physical_location();
+                  });
+        for (std::size_t i = 0; i < unpacker_streams_sorted_by_location.size(); ++i)
+        {
+            unpacker_streams_sorted_by_location[i]->get_base_config().set_src_dest_index(i);
+            unpacker_streams_sorted_by_location[i]->get_base_config().set_remote_src_is_mcast(true);
         }
     }
 

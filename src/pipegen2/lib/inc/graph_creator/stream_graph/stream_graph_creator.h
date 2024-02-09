@@ -87,6 +87,9 @@ namespace pipegen2
         // Optimizes unpacker streams fed by union stream such that the unpacker stream phases are merged until
         // unpacker's tile clear granularity.
         void optimize_unpacker_streams_fed_by_union(StreamGraph* stream_graph);
+        
+        // Calls flow control optimizer for this stream graph.
+        void optimize_stream_graph_flow_control(StreamGraph* stream_graph);
 
         // Unrolls data transfer iterations for each stream in the stream graph as much as possible.
         void unroll_stream_graph(StreamGraph* stream_graph, unsigned int max_unroll_factor);
