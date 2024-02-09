@@ -1,0 +1,67 @@
+devices:
+  arch: [GRAYSKULL, WORMHOLE, WORMHOLE_B0]
+
+queues:
+  input_1:                                           {input: HOST, type: queue, entries: 128, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], ublock_order: c, df: Bfp8_b, target_device: 0, loc: host, host: [0x0]}
+  layer.0.attention.self.query.weight:               {input: HOST, type: ram, entries: 1, grid_size: [2, 2], t: 1, mblock: [16, 4], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x10000000], [1, 0x20000000], [2, 0x10000000], [2, 0x20000000]]}
+
+  output_0:                                          {type: queue, input: untilize , entries: 128, grid_size: [2, 2], t: 1, mblock: [3, 4], ublock: [2, 4], df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x10000000], [3, 0x20000000], [4, 0x10000000], [4, 0x20000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  128
+    matmul_2: {type: matmul, grid_loc: [0, 0], grid_size: [2, 2], inputs: [input_1, layer.0.attention.self.query.weight],
+         t: 1, mblock: [3, 4], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 32}}
+    untilize: {type: nop, grid_loc: [2, 0], grid_size: [2, 2], inputs: [matmul_2],
+         t: 1, mblock: [3, 4], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi}
+
+
+# queues:
+#   input_1:                                           {input: HOST, type: queue, entries: 128, grid_size: [1, 1], t: 1, mblock: [16, 16], ublock: [2, 1], ublock_order: c, df: Bfp8_b, target_device: 0, loc: host, host: [0x0]}
+#   layer.0.attention.self.query.weight:               {input: HOST, type: ram, entries: 1, grid_size: [2, 2], t: 1, mblock: [8, 4], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x10000000], [1, 0x20000000], [2, 0x10000000], [2, 0x20000000]]}
+
+#   output_0:                                          {type: queue, input: untilize , entries: 128, grid_size: [2, 2], t: 1, mblock: [8, 4], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x10000000], [3, 0x20000000], [4, 0x10000000], [4, 0x20000000]]}
+
+# graphs:
+#   test_op:
+#     target_device: 0
+#     input_count:  128
+#     matmul_2: {type: matmul, grid_loc: [0, 0], grid_size: [2, 2], inputs: [input_1, layer.0.attention.self.query.weight],
+#          t: 1, mblock: [8, 4], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+#          attributes: {m_k: 1, min_buffer_input: 0, u_kt: 16}}
+#     untilize: {type: nop, grid_loc: [2, 0], grid_size: [2, 2], inputs: [matmul_2],
+#          t: 1, mblock: [8, 4], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi}
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         layer.0.attention.self.query.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 16] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 16] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+  io-config:
+    inputs: [input_1]
+    outputs: [output_0]

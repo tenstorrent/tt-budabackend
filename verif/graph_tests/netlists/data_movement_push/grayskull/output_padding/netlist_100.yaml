@@ -1,0 +1,97 @@
+# test_config_id=30
+devices:
+  arch: grayskull
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 15
+    grid_size: [1, 1]
+    t: 4
+    mblock: [36, 7]
+    ublock: [1, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x10000000]]
+
+  output_dram:
+    type: queue
+    input: op0
+    entries: 15
+    grid_size: [1, 2]
+    t: 1
+    mblock: [12, 3]
+    ublock: [3, 2]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000000], [0, 0x1066d520]]
+
+graphs:
+  test_multi_tm_datacopy_datacopy:
+    target_device: 0
+    input_count: 15
+    feeder0:
+      type: datacopy
+      grid_loc: [2, 1]
+      grid_size: [1, 1]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      t: 4
+      mblock: [36, 7]
+      ublock: [1, 1]
+      input_0_pad: {rt: 0, ct: 0, pad_value: 0.0}
+    op0:
+      type: datacopy
+      grid_loc: [3, 8]
+      grid_size: [1, 2]
+      inputs: [feeder0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [12, 3]
+      ublock: [3, 2]
+
+      input_0_unpad: {rt: 20, ct: 5}
+      input_0_tms: [broadcast: {r: 2}, hstack: 4]
+      input_0_pad: {rt: 4, ct: 4, pad_value: 0.0}
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_datacopy,
+          queue_settings: {
+            input0_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 15 # input_count
+    minibatch_count: 1 # host loop iterations

@@ -1,0 +1,121 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [1, 9]
+    t: 4
+    mblock: [1, 1]
+    ublock: [3, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[7, 0x13a42120], [7, 0x1aacae40], [7, 0x1f8e2800], [7, 0x209d33e0], [7, 0x24fa4420], [7, 0x2874ada0], [7, 0x2bfa40a0], [7, 0x2c5fcbc0], [7, 0x3ea8c560]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [9, 8]
+    t: 4
+    mblock: [1, 1]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x11639740], [4, 0x12e3f7c0], [4, 0x132cf100], [4, 0x13d4b560], [4, 0x14361b60], [4, 0x15c9d560], [4, 0x163cdf80], [4, 0x168f8b20], [4, 0x16c1b1e0], [4, 0x1754be80], [4, 0x177cf540], [4, 0x17909260], [4, 0x18298fa0], [4, 0x191cd0c0], [4, 0x1974b6c0], [4, 0x19982c20], [4, 0x19d25820], [4, 0x1bba0e00], [4, 0x1cd4ef60], [4, 0x1d4d0ea0], [4, 0x1d8ce960], [4, 0x1dc46be0], [4, 0x1e1e8040], [4, 0x1e36daa0], [4, 0x1f5a6d60], [4, 0x20c86160], [4, 0x216431c0], [4, 0x219f34c0], [4, 0x21aee820], [4, 0x22bf4f60], [4, 0x23498e80], [4, 0x238b4020], [4, 0x25c0e480], [4, 0x2616cd80], [4, 0x27b54f80], [4, 0x282205e0], [4, 0x29059a20], [4, 0x2976afc0], [4, 0x2b50e4a0], [4, 0x2bd33260], [4, 0x2c2e2420], [4, 0x2cdb7180], [4, 0x2cf45d20], [4, 0x2d4ed740], [4, 0x2d8ead60], [4, 0x2de68d40], [4, 0x2edccd60], [4, 0x2f256fc0], [4, 0x2f94e2e0], [4, 0x2fa6bf20], [4, 0x33843b60], [4, 0x3398c5e0], [4, 0x33a8da40], [4, 0x33c414c0], [4, 0x3469b500], [4, 0x3503c5a0], [4, 0x3527d720], [4, 0x35379f60], [4, 0x354da240], [4, 0x35569de0], [4, 0x35bcada0], [4, 0x35f36840], [4, 0x361239c0], [4, 0x37146180], [4, 0x385bdb20], [4, 0x394ee880], [4, 0x3a04c520], [4, 0x3afdbfc0], [4, 0x3b80f160], [4, 0x3d5e2f80], [4, 0x3e6dfce0], [4, 0x3fe59440]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 18
+    grid_size: [1, 4]
+    t: 4
+    mblock: [3, 1]
+    ublock: [1, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x19e2b2a0], [5, 0x20016c80], [5, 0x30f52400], [5, 0x3d26ba40]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 2
+    feeder0: 
+      type: datacopy
+      grid_loc: [0, 1]
+      grid_size: [1, 9]
+      inputs: [dram_input0] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 4
+      mblock: [1, 1]
+      ublock: [3, 1]
+      input_0_tms:
+    feeder1: 
+      type: datacopy
+      grid_loc: [1, 0]
+      grid_size: [9, 8]
+      inputs: [dram_input1] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 4
+      mblock: [1, 1]
+      ublock: [1, 2]
+      input_0_tms:
+    op0: 
+      type: matmul
+      grid_loc: [1, 8]
+      grid_size: [1, 4]
+      inputs: [feeder0, feeder1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 9, u_kt: 1}
+      untilize_output: false
+      t: 4
+      mblock: [3, 1]
+      ublock: [1, 4]
+      input_0_tms: [vslice: 1]
+      input_1_tms: [vslice: 1]
+      
+programs:
+  - program0:
+      #- var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      #- varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      #- varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - varinst: [$lptr0, incwrap, 2, 8]
+      - varinst: [$gptr0, incwrap, 2, 8]
+      - varinst: [$lptr1, incwrap, 2, 4]
+      - varinst: [$gptr1, incwrap, 2, 4]
+      - endloop: 
+
+
+

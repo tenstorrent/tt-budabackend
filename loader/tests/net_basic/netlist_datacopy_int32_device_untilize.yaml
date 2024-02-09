@@ -1,0 +1,41 @@
+devices:
+  arch: wormhole_b0
+
+queues:
+  # input
+  x:                                                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], ublock_order: c, df: Int8, target_device: 0, loc: dram, dram: [[0, 0x30000440]]}
+  # output
+  y:  {input: unary0, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], ublock_order: r, df: Int32, target_device: 0, loc: dram, dram: [[0, 0x32000440]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [x], untilize_output: true, attributes: {sfpu_execution_thread: math},
+          t: 1, mblock: [2, 2], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Int8], out_df: Int32, intermed_df: Int32, acc_df: Int32, math_fidelity: HiFi4}
+
+programs:
+  - run_fwd_0:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+                x: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -127
+    uniform_upper_bound: 127

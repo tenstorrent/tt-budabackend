@@ -1,0 +1,44 @@
+devices:
+ arch: [wormhole,wormhole_b0]
+
+## PASSES 4 loops with input_count: 8 but hangs with input_count: 16...
+queues:
+  q0    : {type: queue, input: HOST   , entries: 16, grid_size: [40, 2], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [
+    [0, 0x30100000], [1, 0x30100000], [2, 0x30200000], [3, 0x30300000], [4, 0x30400000], [5, 0x30500000], [0, 0x30600000], [1, 0x30600000],
+    [0, 0x31900000], [1, 0x31900000], [2, 0x30A00000], [3, 0x30B00000], [4, 0x30C00000], [5, 0x31D00000], [0, 0x30E00000], [1, 0x30E00000],
+    [0, 0x32500000], [1, 0x32500000], [2, 0x31200000], [3, 0x31300000], [4, 0x31400000], [5, 0x32500000], [0, 0x33000000], [1, 0x33000000],
+    [0, 0x34500000], [1, 0x34500000], [2, 0x31A00000], [3, 0x31B00000], [4, 0x31C00000], [5, 0x33D00000], [0, 0x35000000], [1, 0x35000000],
+    [0, 0x35500000], [1, 0x35500000], [2, 0x32200000], [3, 0x32300000], [4, 0x32400000], [5, 0x34500000], [0, 0x37000000], [1, 0x37000000],
+    [0, 0x36500000], [1, 0x36500000], [2, 0x32A00000], [3, 0x32B00000], [4, 0x32C00000], [5, 0x35D00000], [0, 0x39000000], [1, 0x39000000],
+    [0, 0x37700000], [1, 0x37700000], [2, 0x33200000], [3, 0x33300000], [4, 0x33400000], [5, 0x36500000], [0, 0x3b000000], [1, 0x3b000000],
+    [0, 0x38500000], [1, 0x38500000], [2, 0x33A00000], [3, 0x33B00000], [4, 0x33C00000], [5, 0x37D00000], [0, 0x3d000000], [1, 0x3d000000],
+    [0, 0x39500000], [1, 0x39500000], [2, 0x34200000], [3, 0x34300000], [4, 0x34400000], [5, 0x38500000], [0, 0x3f000000], [1, 0x3f000000],
+    [0, 0x3a000000], [1, 0x3a000000], [2, 0x34A00000], [3, 0x34B00000], [4, 0x34C00000], [5, 0x39D00000], [0, 0x42000000], [1, 0x42000000],
+    
+    ]}
+  output: {type: queue, input: unary1 , entries: 16, grid_size: [1, 1], t: 40, mblock: [1, 2], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[4, 0x30000000]]}
+
+graphs:
+  test_unary_chip0:
+    target_device: 0
+    input_count: 8
+    unary0: {type: gelu, grid_loc: [0, 0], grid_size: [1, 2], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, 
+      ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 40, mblock: [1, 1], ublock: [2, 2], input_0_tms: [vslice: 40]}
+    eth_datacopy: {type: ethernet_datacopy,  grid_size: [1,2], attributes: {ingress_channels: [8,9], egress_channels: [0,1], dest_device: 1}, 
+      inputs: [unary0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, 
+      untilize_output: false, t: 40, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+  test_unary_chip1:
+    target_device: 1
+    input_count: 8
+    unary1: {type: datacopy, grid_loc: [2, 2], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 40, mblock: [1, 2], ublock: [2, 2], input_0_tms: []}
+
+programs:
+  - program0:
+      - staticvar: {$lptr: 0, $gptr: 0, $5: 1, $microbatch: 8, $8: 32}
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - varinst: [$gptr, incwrap, $microbatch, $8] # add two variables
+      - varinst: [$lptr, incwrap, $microbatch, $8] # add two variables
+      - endloop: 
+

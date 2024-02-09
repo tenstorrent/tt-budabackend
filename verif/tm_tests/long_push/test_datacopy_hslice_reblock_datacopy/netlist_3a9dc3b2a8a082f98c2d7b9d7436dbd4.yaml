@@ -1,0 +1,89 @@
+
+# input_grid_r = $TEMPLATE_input_grid_r
+
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 12
+    grid_size: [4, 3]
+    t: 2
+    mblock: [1, 5]
+    ublock: [4, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x10a41600], [6, 0x1379dce0], [6, 0x1927e400], [6, 0x20718a60], [6, 0x281cc6c0], [6, 0x2eafe020], [6, 0x326fa260], [6, 0x3282ef00], [6, 0x37c78600], [6, 0x3bc77d40], [6, 0x3c8ade40], [6, 0x3f5c1aa0]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 8
+    grid_size: [2, 1]
+    t: 30
+    mblock: [4, 1]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x15009d60], [4, 0x2a079fa0]]
+    ublock_order: r
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 4
+    passthrough: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [4, 3]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 4
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 2
+      mblock: [1, 5]
+      ublock: [4, 1]
+      input_0_tms: []
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [2, 3] 
+      grid_size: [2, 1]
+      inputs: [passthrough] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 10
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 30
+      mblock: [4, 1]
+      ublock: [2, 1]
+      input_0_tms: [hslice: 15]
+      
+programs:
+  - program0:
+      #- var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var : [$c_loop_count]
+      - staticvar : {$lptr : 0, $gptr : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, 4, 24] # add two variables
+      - varinst: [$gptr, incwrap, 4, 24] # add two variables
+      - endloop 
+
+
+

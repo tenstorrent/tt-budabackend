@@ -1,0 +1,122 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  in0_device0: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  in1_device0: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x18000000]]}
+  in2_device0: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  in3_device0: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x28000000]]}
+
+  in0_device1: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x10000000]]}
+  # in1_device1: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x18000000]]}
+  # in2_device1: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x20000000]]}
+  # in3_device1: {type: queue, input: HOST   , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x28000000]]}
+
+  out0_device0: {type: queue, input: unary0_device0 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x00000000]}
+  out1_device0: {type: queue, input: unary1_device0 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x10000000]}
+  out2_device0: {type: queue, input: unary2_device0 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x20000000]}
+  out3_device0: {type: queue, input: unary3_device0 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x30000000]}
+
+  # Completely overlapping, should work once unique host hugepages per device.
+  out0_device1: {type: queue, input: unary0_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x00000000]} # [0x08000000]}
+  # out0_device1: {type: queue, input: unary0_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x00000000]}
+
+  # out1_device1: {type: queue, input: unary1_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x10000000]}
+  # out2_device1: {type: queue, input: unary2_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x20000000]}
+  # out3_device1: {type: queue, input: unary3_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x30000000]}
+
+  # Workaround - non-overlapping.
+  # out0_device1: {type: queue, input: unary0_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x08000000]}
+  # out1_device1: {type: queue, input: unary1_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x18000000]}
+  # out2_device1: {type: queue, input: unary2_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x28000000]}
+  # out3_device1: {type: queue, input: unary3_device1 , entries: 64, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x38000000]}
+
+
+graphs:
+  graph0_device0:
+    target_device: 0
+    input_count: 32
+    unary0_device0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0_device0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph1_device0:
+    target_device: 0
+    input_count: 32
+    unary1_device0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in1_device0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph2_device0:
+    target_device: 0
+    input_count: 32
+    unary2_device0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in2_device0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph3_device0:
+    target_device: 0
+    input_count: 32
+    unary3_device0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in3_device0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  graph0_device1:
+    target_device: 1
+    input_count: 32
+    unary0_device1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0_device1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  # graph1_device1:
+  #   target_device: 1
+  #   input_count: 32
+  #   unary1_device1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in1_device1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  # graph2_device1:
+  #   target_device: 1
+  #   input_count: 32
+  #   unary2_device1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in2_device1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  # graph3_device1:
+  #   target_device: 1
+  #   input_count: 32
+  #   unary3_device1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in3_device1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+
+programs:
+  - program_unary_device0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_input_count, set, 32]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: graph0_device0, queue_settings: {
+          in0_device0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: graph1_device0, queue_settings: {
+          in1_device0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: graph2_device0, queue_settings: {
+          in2_device0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: graph3_device0, queue_settings: {
+          in3_device0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+  - program_unary_device1:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_input_count, set, 32]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: graph0_device1, queue_settings: {
+          in0_device1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      # - execute: {graph_name: graph1_device1, queue_settings: {
+      #     in1_device1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      # - execute: {graph_name: graph2_device1, queue_settings: {
+      #     in2_device1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      # - execute: {graph_name: graph3_device1, queue_settings: {
+      #     in3_device1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0_device0, in1_device0, in2_device0, in3_device0, in0_device1, in1_device1, in2_device1, in3_device1]
+    outputs: [out0_device0, out1_device0, out2_device0, out3_device0, out0_device1, out1_device1, out2_device1, out3_device1]

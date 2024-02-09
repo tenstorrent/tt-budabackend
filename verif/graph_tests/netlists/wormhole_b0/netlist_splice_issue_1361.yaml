@@ -1,0 +1,116 @@
+# git checkout f2be13036
+# pytest pybuda/test/test_sanity.py::test_concat_two_kinds_pad[Golden]
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  in0:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 3], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in1:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 2], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x301284e0]]}
+  in2:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 2], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x301edd80]]}
+  in3:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 2], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x302b3620]]}
+  in4:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 2], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30378ec0]]}
+  in5:                                                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 2], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x3043e760]]}
+  y:                                                   {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [98, 11], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30504000]]}
+
+  # output
+  test_concat_two_kinds_pad.output_mm0:                {input: mm0_output_nop_0, type: queue, entries: 1, grid_size: [7, 1], t: 2, mblock: [7, 3], ublock: [1, 2], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[5, 0x3e5a000], [0, 0x3e5a000], [1, 0x3e5a000], [2, 0x3e5a000], [3, 0x7b970c0], [4, 0x7b970c0], [5, 0x3f5a000]]}
+
+  # parameter
+  w:                                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [11, 3], ublock: [1, 2], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x385a000]]}
+
+  # constant
+  lc.input_tensor.concatenate_0.dc.sparse_matmul.8.0:  {input: HOST, type: queue, entries: 1, grid_size: [3, 5], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[0, 0x3b5a000], [1, 0x3b5a000], [2, 0x3b5a000], [3, 0x7ab4100], [4, 0x7ab4100], [5, 0x3b5a000], [0, 0x3c5a000], [1, 0x3c5a000], [2, 0x3c5a000], [3, 0x7ab4280], [4, 0x7ab4280], [5, 0x3c5a000], [0, 0x3d5a000], [1, 0x3d5a000], [2, 0x3d5a000]]}
+  lc.input_tensor.concatenate_0.dc.sparse_matmul.8.1:  {input: HOST, type: queue, entries: 1, grid_size: [3, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[3, 0x7ab4400], [4, 0x7ab4400], [5, 0x3d5a000]]}
+
+  # epoch_to_epoch
+  e2e_concatenate_0.dc.sparse_matmul.8.lc2_0:          {input: concatenate_0.dc.sparse_matmul.8.lc2, type: queue, entries: 1, grid_size: [3, 7], t: 2, mblock: [4, 7], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[2, 0x385a000], [3, 0x7ab5440], [4, 0x7ab5440], [5, 0x385a000], [0, 0x395a000], [1, 0x395a000], [2, 0x395a000], [3, 0x7aedb60], [4, 0x7aedb60], [5, 0x395a000], [0, 0x3a5a000], [1, 0x3a5a000], [2, 0x3a5a000], [3, 0x7b26280], [4, 0x7b26280], [5, 0x3a5a000], [3, 0x67a0000], [4, 0x67a0000], [2, 0x67a0000], [3, 0x7b5e9a0], [4, 0x7b5e9a0]]}
+  e2e_concatenate_0.dc.select.9_0:                     {input: concatenate_0.dc.select.9, type: queue, entries: 1, grid_size: [1, 7], t: 2, mblock: [11, 7], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x365a000], [1, 0x365a000], [2, 0x365a000], [3, 0x7bebb60], [4, 0x7bebb60], [5, 0x365a000], [0, 0x385a000]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    m0: {type: multiply, grid_loc: [0, 0], grid_size: [7, 1], inputs: [in0, in0],
+         t: 1, mblock: [14, 3], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    m1: {type: multiply, grid_loc: [0, 1], grid_size: [7, 1], inputs: [in1, in2],
+         t: 1, mblock: [14, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    m2: {type: multiply, grid_loc: [0, 2], grid_size: [7, 1], inputs: [in2, in3],
+         t: 1, mblock: [14, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    m3: {type: multiply, grid_loc: [0, 3], grid_size: [7, 1], inputs: [in3, in4],
+         t: 1, mblock: [14, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    m4: {type: multiply, grid_loc: [0, 4], grid_size: [7, 1], inputs: [in4, in4],
+         t: 1, mblock: [14, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    m5: {type: multiply, grid_loc: [0, 5], grid_size: [7, 1], inputs: [in5, m1],
+         t: 1, mblock: [14, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    concatenate_0.dc.concatenate.5: {type: splice, grid_loc: [0, 6], grid_size: [7, 1], inputs: [m0, m1, m2, m3, m4, m5],
+         t: 2, mblock: [7, 13], ublock: [1, 1], buf_size_mb: 2, input_buf_min_size_tiles: [0, 30, 0, 0, 0, 0], ublock_order: c, in_df: [Float32, Float32, Float32, Float32, Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_5_tms: [vslice: 2], input_4_tms: [vslice: 2], input_3_tms: [vslice: 2], input_2_tms: [vslice: 2], input_1_tms: [vslice: 2], input_0_tms: [vslice: 2],
+         attributes: {input0: [0, 21, 21], input1: [0, 14, 14], input2: [0, 14, 14], input3: [0, 14, 14], input4: [0, 14, 14], input5: [0, 14, 14]}}
+    concatenate_0.dc.sparse_matmul.8.lc2: {type: matmul, grid_loc: [7, 0], grid_size: [3, 7], inputs: [lc.input_tensor.concatenate_0.dc.sparse_matmul.8.0, concatenate_0.dc.concatenate.5, lc.input_tensor.concatenate_0.dc.sparse_matmul.8.1],
+         t: 2, mblock: [4, 7], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Float32, RawUInt32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_2_tms: [broadcast: {c: 7}], input_1_tms: [transpose], input_0_tms: [broadcast: {c: 7}],
+         attributes: {fracture_factor: 1, identity: true, m_k: 1, num_index_tiles: 1, num_sparse_tiles: 5, sparse_tile_ptr_bits: 4, u_kt: 13}}
+
+  fwd_0_1_temporal_epoch_1:
+    target_device: 0
+    input_count: 1
+    concatenate_0.dc.select.9: {type: splice, grid_loc: [0, 0], grid_size: [1, 7], inputs: [e2e_concatenate_0.dc.sparse_matmul.8.lc2_0],
+         t: 2, mblock: [11, 7], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {input0: [0, 77, 84]}}
+
+  fwd_0_2_temporal_epoch_2:
+    target_device: 0
+    input_count: 1
+    m6_transpose_nop_0: {type: nop, grid_loc: [0, 0], grid_size: [7, 1], inputs: [e2e_concatenate_0.dc.select.9_0],
+         t: 2, mblock: [7, 11], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    m6: {type: multiply, grid_loc: [0, 1], grid_size: [7, 1], inputs: [m6_transpose_nop_0, y],
+         t: 2, mblock: [7, 11], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_1_tms: [vslice: 2]}
+    mm0: {type: matmul, grid_loc: [0, 2], grid_size: [7, 1], inputs: [m6, w],
+         t: 2, mblock: [7, 3], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2],
+         attributes: {m_k: 11, min_buffer_input: 0, u_kt: 1}}
+    mm0_output_nop_0: {type: nop, grid_loc: [0, 3], grid_size: [7, 1], inputs: [mm0],
+         t: 2, mblock: [7, 3], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd_0:
+    - param: [$p_loop_count]
+    - var: {$gptr_q1: 0, $lptr_q1: 0, $gptr_q3: 0, $lptr_q3: 0, $c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $gptr_q2: 0, $lptr_q2: 0}
+    - loop: $p_loop_count
+    -   allocate_queue: [e2e_concatenate_0.dc.sparse_matmul.8.lc2_0]
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               in0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               in1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               in2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               in3: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               in4: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               in5: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.concatenate_0.dc.sparse_matmul.8.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.concatenate_0.dc.sparse_matmul.8.1: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    -   allocate_queue: [e2e_concatenate_0.dc.select.9_0]
+    -   execute: {graph_name: fwd_0_1_temporal_epoch_1, queue_settings: {
+               e2e_concatenate_0.dc.sparse_matmul.8.lc2_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1}} }
+    -   deallocate_queue: [e2e_concatenate_0.dc.sparse_matmul.8.lc2_0]
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 2]
+    -   execute: {graph_name: fwd_0_2_temporal_epoch_2, queue_settings: {
+               y: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               e2e_concatenate_0.dc.select.9_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q3, rd_ptr_global: $gptr_q3},
+               w: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   deallocate_queue: [e2e_concatenate_0.dc.select.9_0]
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q3, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q3, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+

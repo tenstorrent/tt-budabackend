@@ -1,0 +1,153 @@
+# git checkout ff89988c
+# pytest pybuda/test/benchmark/benchmark.py -m resnet_bringup_layer -c head -opt 3 --loop_count 1 -mb 64 --trace verbose
+
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  #x:                                                                                  {input: HOST, type: queue, entries: 128, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+  x:                                                                                  {input: HOST, type: queue, entries: 128, grid_size: [1, 7], t: 1, mblock: [1, 56], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x30000000], [2, 0x30000000], [3, 0x30000000], [4, 0x30000000], [5, 0x30000000], [6, 0x30000000], [7, 0x30000000]]}
+
+  # output
+  resnet_bringup_head.output_resnet_bringup_head.conv:                                {input: resnet_bringup_head.output_resnet_bringup_head.conv_tm_nop, type: queue, entries: 128, grid_size: [2, 2], t: 2, mblock: [1, 49], ublock: [1, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x4fb7e80], [1, 0x575f820], [2, 0x575fbe0], [3, 0x575f820]]}
+
+  # parameter
+  resnet_bringup_head.conv.weights_fork_clone55:                                      {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [1, 1], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[7, 0x4fb12c0], [0, 0x4fb1940], [1, 0x4fb2300], [2, 0x4fb2300]]}
+  resnet_bringup_head.conv.weights_fork_clone60:                                      {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [1, 1], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x4fb3860], [2, 0x4fb3c20], [3, 0x4fb3fc0], [4, 0x4fb3fc0]]}
+  resnet_bringup_head.conv.weights_fork_clone65:                                      {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [1, 1], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x4fb5260], [4, 0x4fb58e0], [5, 0x4fb59c0], [6, 0x4fb59c0]]}
+  resnet_bringup_head.conv.weights:                                                   {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [1, 1], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[5, 0x4fb6f20], [6, 0x4fb72e0], [7, 0x4fb6f20], [0, 0x4fb75a0]]}
+
+  # constant
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0:   {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 7], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[1, 0x4fb0900], [2, 0x4fb0900], [3, 0x4fb0900], [4, 0x4fb0900], [5, 0x4fb0900], [6, 0x4fb0900], [7, 0x4fb0900]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1:   {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x4fb0900], [1, 0x4fb12c0], [2, 0x4fb12c0], [3, 0x4fb12c0], [4, 0x4fb12c0], [5, 0x4fb12c0], [6, 0x4fb12c0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.0:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 9], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[3, 0x4fb2300], [4, 0x4fb2300], [5, 0x4fb2300], [6, 0x4fb2300], [7, 0x4fb1ba0], [0, 0x4fb2220], [1, 0x4fb2be0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.1:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[2, 0x4fb2be0], [3, 0x4fb2f80], [4, 0x4fb2f80], [5, 0x4fb2f80], [6, 0x4fb2f80], [7, 0x4fb2820], [0, 0x4fb2ea0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.0:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 7], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[5, 0x4fb3fc0], [6, 0x4fb3fc0], [7, 0x4fb3860], [0, 0x4fb3ee0], [1, 0x4fb4140], [2, 0x4fb4500], [3, 0x4fb48a0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.1:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[4, 0x4fb48a0], [5, 0x4fb4980], [6, 0x4fb4980], [7, 0x4fb4220], [0, 0x4fb48a0], [1, 0x4fb4b00], [2, 0x4fb4ec0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.0:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 9], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[7, 0x4fb5260], [0, 0x4fb58e0], [1, 0x4fb5b40], [2, 0x4fb5f00], [3, 0x4fb5b40], [4, 0x4fb61c0], [5, 0x4fb62a0]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.1:  {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[6, 0x4fb62a0], [7, 0x4fb5ee0], [0, 0x4fb6560], [1, 0x4fb67c0], [2, 0x4fb6b80], [3, 0x4fb67c0], [4, 0x4fb6e40]]}
+
+  # epoch_to_epoch
+  e2e_resnet_bringup_head.conv.dc.add.30_0:                                           {input: fused_add, type: queue, entries: 64, grid_size: [7, 1], t: 2, mblock: [7, 1], ublock: [4, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x4fb7800], [2, 0x4fb7bc0], [3, 0x4fb7800], [4, 0x4fb7e80], [5, 0x4fb7800], [6, 0x4fb7bc0], [7, 0x4fb7800]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 64
+    buf_x: {type: nop, grid_loc: [0, 0], grid_size: [7, 1], inputs: [x],
+         t: 2, mblock: [7, 1], ublock: [4, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_0_tms: [transpose, vslice: 2]}
+    resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2: {type: matmul, grid_loc: [0, 1], grid_size: [7, 1], inputs: [lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0, buf_x, lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1],
+         t: 2, mblock: [14, 1], ublock: [8, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Bfp8_b, RawUInt32], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: LoFi,
+         #input_1_tms: [transpose, vslice: 2],
+         attributes: {fracture_factor: 1, identity: true, m_k: 2, num_index_tiles: 1, num_sparse_tiles: 7, sparse_tile_ptr_bits: 5, u_kt: 98}}
+    resnet_bringup_head.conv.dc.matmul.12: {type: matmul, grid_loc: [0, 2], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2, resnet_bringup_head.conv.weights_fork_clone55],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2], input_0_tms: [vslice: 4, hstack: 4],
+         attributes: {m_k: 4, min_buffer_input: 0, u_kt: 1}}
+         #attributes: {m_k: 4, u_kt: 1}}
+    resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.lc2: {type: matmul, grid_loc: [0, 3], grid_size: [7, 1], inputs: [lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.0, buf_x, lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.1],
+         t: 2, mblock: [14, 1], ublock: [8, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Bfp8_b, RawUInt32], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: LoFi,
+         #forked_dram_inputs: [x: resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2],
+         #input_1_tms: [transpose, vslice: 2],
+         attributes: {fracture_factor: 1, identity: true, m_k: 2, num_index_tiles: 1, num_sparse_tiles: 9, sparse_tile_ptr_bits: 5, u_kt: 98}}
+    resnet_bringup_head.conv.dc.matmul.17: {type: matmul, grid_loc: [0, 4], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.lc2, resnet_bringup_head.conv.weights_fork_clone60],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2], input_0_tms: [vslice: 4, hstack: 4],
+         attributes: {m_k: 4, min_buffer_input: 0, u_kt: 1}}
+         #attributes: {m_k: 4, u_kt: 1}}
+    resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.lc2: {type: matmul, grid_loc: [0, 5], grid_size: [7, 1], inputs: [lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.0, buf_x, lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.1],
+         t: 2, mblock: [14, 1], ublock: [8, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Bfp8_b, RawUInt32], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: LoFi,
+         #forked_dram_inputs: [x: resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2],
+         #input_1_tms: [transpose, vslice: 2],
+         attributes: {fracture_factor: 1, identity: true, m_k: 2, num_index_tiles: 1, num_sparse_tiles: 7, sparse_tile_ptr_bits: 5, u_kt: 98}}
+    resnet_bringup_head.conv.dc.matmul.22: {type: matmul, grid_loc: [0, 6], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.lc2, resnet_bringup_head.conv.weights_fork_clone65],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2], input_0_tms: [vslice: 4, hstack: 4],
+         attributes: {m_k: 4, min_buffer_input: 0, u_kt: 1}}
+         #attributes: {m_k: 4, u_kt: 1}}
+    resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.lc2: {type: matmul, grid_loc: [0, 7], grid_size: [7, 1], inputs: [lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.0, buf_x, lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.1],
+         t: 2, mblock: [14, 1], ublock: [8, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Bfp8_b, RawUInt32], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: LoFi,
+         #forked_dram_inputs: [x: resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2],
+         #input_1_tms: [transpose, vslice: 2],
+         attributes: {fracture_factor: 1, identity: true, m_k: 2, num_index_tiles: 1, num_sparse_tiles: 9, sparse_tile_ptr_bits: 5, u_kt: 98}}
+    resnet_bringup_head.conv.dc.matmul.27: {type: matmul, grid_loc: [0, 8], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.lc2, resnet_bringup_head.conv.weights],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2], input_0_tms: [vslice: 4, hstack: 4],
+         attributes: {m_k: 4, min_buffer_input: 0, u_kt: 1}}
+         #attributes: {m_k: 4, u_kt: 1}}
+    fused_add: {type: fused_op, grid_loc: [0, 9], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.matmul.12, resnet_bringup_head.conv.dc.matmul.17, resnet_bringup_head.conv.dc.matmul.22, resnet_bringup_head.conv.dc.matmul.27],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi, attributes: {fused_op_id: 0}}
+
+  fwd_1:
+    target_device: 0
+    input_count: 64
+    resnet_bringup_head.output_resnet_bringup_head.conv_tm_nop: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [e2e_resnet_bringup_head.conv.dc.add.30_0],
+         t: 2, mblock: [1, 49], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_0_tms: [transpose]}
+
+
+programs:
+  - run_fwd:
+    - var: {$gptr_q1: 0, $lptr_q1: 0, $c_microbatch_size: 64, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   allocate_queue: [e2e_resnet_bringup_head.conv.dc.add.30_0]
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               x: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               resnet_bringup_head.conv.weights_fork_clone55: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.0: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.14.dc.sparse_matmul.1.1: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               resnet_bringup_head.conv.weights_fork_clone60: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.0: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.19.dc.sparse_matmul.1.1: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               resnet_bringup_head.conv.weights_fork_clone65: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.0: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.24.dc.sparse_matmul.1.1: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               resnet_bringup_head.conv.weights: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 256]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 256]
+    -   execute: {graph_name: fwd_1, queue_settings: {
+               e2e_resnet_bringup_head.conv.dc.add.30_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1}} }
+    -   deallocate_queue: [e2e_resnet_bringup_head.conv.dc.add.30_0]
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 128]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 128]
+    - endloop
+
+fused_ops:
+  0:
+    inputs: 4
+    intermediates: 0
+    schedules:
+      -
+        - add_0: {type: add, inputs: [input0, input1], mblock: [7, 1], ublock: [4, 2], output: dest}
+        - add_1: {type: add, inputs: [dest, input2], mblock: [7, 1], ublock: [4, 2], output: dest}
+        - add_2: {type: add, inputs: [dest, input3], mblock: [7, 1], ublock: [4, 2], output: output}
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+  io-config:
+    inputs: [x]
+    outputs: [resnet_bringup_head.output_resnet_bringup_head.conv]
+
+performance-check:
+  host:
+    backend-samples-per-second:
+      expected: 0
+      rtol: 0.1

@@ -1,0 +1,64 @@
+devices:
+  arch: [WORMHOLE_B0, grayskull]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 3], ublock: [2, 3], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [1, 3], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x38000000]]}
+  output0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 3], ublock: [2, 3], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0:
+      type: depthwise
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      attributes: {m_k: 1, u_kt: 1, min_buffer_input: 0}
+      untilize_output: false
+      t: 1
+      mblock: [2, 3]
+      ublock: [2, 3]
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 256] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 256] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.85
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type:
+    constant_value: 1.0
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    #overrides:
+    #  input1:
+    #    type: Constant
+    #    constant_value: 1.0

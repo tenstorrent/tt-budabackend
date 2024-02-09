@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [2, 2]
+    t: 2
+    mblock: [1, 2]
+    ublock: [2, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x14860080], [1, 0x1e286300], [1, 0x2b3201e0], [1, 0x3c7ff380]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [2, 2]
+    t: 2
+    mblock: [1, 1]
+    ublock: [2, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x118b52e0], [0, 0x25ab4260], [0, 0x3bb9a4e0], [0, 0x3e454be0]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 4
+    grid_size: [1, 1]
+    t: 2
+    mblock: [2, 1]
+    ublock: [2, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x1f53e0e0]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  2
+    op0: 
+      type: matmul
+      grid_loc: [1, 1]
+      grid_size: [1, 1]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 4, u_kt: 1}
+      untilize_output: false
+      t: 2
+      mblock: [2, 1]
+      ublock: [2, 4]
+      input_0_tms: [hstack: 1]
+      input_1_tms: [hstack: 1]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 2, 4]
+      - varinst: [$gptr0, incwrap, 2, 4]
+      - varinst: [$lptr1, incwrap, 2, 4]
+      - varinst: [$gptr1, incwrap, 2, 4]
+      - endloop: 

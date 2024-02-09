@@ -1,0 +1,37 @@
+
+config:
+  # Single Core
+  min-ops: 3
+  max-ops: 3
+  hw-grid-r: 10
+  hw-grid-c: 12
+  max-tensor-dim-r: 2
+  min-tensor-dim-r: 2
+  max-tensor-dim-c: 2
+  min-tensor-dim-c: 2
+  max-tensor-dim-z: 1
+  min-tensor-dim-z: 1
+  max-tensor-dim-w: 1
+  min-tensor-dim-w: 1
+  max-core-dim-r: 1
+  min-core-dim-r: 1
+  max-core-dim-c: 1
+  min-core-dim-c: 1
+  max-batch-size: 1
+  min-batch-size: 1
+  data-formats: Bfp8_b
+  conv-kernel-sizes: 3,5,7
+  single-graph-data-format: True
+nodes:
+  - name: feeder_op
+    types:
+      - tt_eltwise_unary_op
+  - name: target_op
+    types:
+      - OP_UNDER_TEST
+  - name: drainer_op
+    types:
+      - tt_eltwise_unary_op
+edges:
+  - [[feeder_op, 0], [target_op, 0]]
+  - [[target_op, 0], [drainer_op, 0]]

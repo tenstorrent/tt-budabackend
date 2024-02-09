@@ -1,0 +1,64 @@
+devices:
+  arch: [grayskull, wormhole_b0]
+
+queues:
+
+  # input
+  act:                                                       {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  test_module.output_softmax:                                {input: softmax.dc.multiply.5, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [2, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # constant
+  lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x8200100]]}
+  lc.input_tensor.softmax.dc.reduce_sum.3.0:                 {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x8200100]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    softmax.dc.reduce_max.0: {type: reduce, grid_loc: [0, 0], grid_size: [2, 1], inputs: [act],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 2}}
+    softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [0, 1], grid_size: [2, 1], inputs: [softmax.dc.reduce_max.0, lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    softmax.dc.subtract.1: {type: subtract, grid_loc: [0, 2], grid_size: [2, 2], inputs: [act, softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 2}]}
+    softmax.dc.exp.2: {type: exp, grid_loc: [0, 4], grid_size: [2, 1], inputs: [softmax.dc.subtract.1],
+         t: 1, mblock: [1, 2], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    softmax.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [0, 5], grid_size: [2, 1], inputs: [softmax.dc.exp.2, lc.input_tensor.softmax.dc.reduce_sum.3.0],
+         t: 1, mblock: [1, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}],
+         attributes: {m_k: 1, u_kt: 2}}
+    softmax.dc.reciprocal.4: {type: reciprocal, grid_loc: [0, 6], grid_size: [1, 1], inputs: [softmax.dc.reduce_sum.3.lc1],
+         t: 1, mblock: [2, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    softmax.dc.multiply.5: {type: multiply, grid_loc: [2, 2], grid_size: [1, 2], inputs: [softmax.dc.exp.2, softmax.dc.reciprocal.4], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 2}]}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $c_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.softmax.dc.reduce_sum.3.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               act: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.1
+    uniform_upper_bound: 1.0

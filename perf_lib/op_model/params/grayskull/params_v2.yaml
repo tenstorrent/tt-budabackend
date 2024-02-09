@@ -1,0 +1,109 @@
+# See scripts/performance_model.py for how these numbers are generated
+# e.g. ./scripts/performance_model.py --model matmul scripts/perf_data/matmul-op-performance.csv
+
+# See scripts/performance_model.py for how these numbers are generated
+# e.g. ./scripts/performance_model.py --model eltwise scripts/perf_data/sqrt-op-performance.csv
+
+default: # same as nop
+  ublock_weight: 305
+  tile_weight: 56
+
+add:
+  ublock_weight: 293.96263856
+  tile_weight: 50.43405251
+
+subtract:
+  ublock_weight: 293.60199392
+  tile_weight: 50.50601309
+
+multiply:
+  ublock_weight: 261.21061127
+  tile_weight: 54.83754362
+
+maximum:
+  ublock_weight: 30.74320292
+  tile_weight: 260.32786291
+
+exp:
+  ublock_weight: 0
+  tile_weight: 2666
+
+exp_approx:
+  ublock_weight: 31.07656877
+  tile_weight: 668.07644903
+
+gelu:
+  ublock_weight: 64
+  tile_weight: 286
+
+gelu_derivative:
+  ublock_weight: 0
+  tile_weight: 3116
+
+gelu_derivative_approx:
+  ublock_weight: 12.08514142
+  tile_weight: 822.24602774
+
+log:
+  ublock_weight: 0
+  tile_weight: 1413
+
+nop:
+  ublock_weight: 305
+  tile_weight: 56
+
+power:
+  ublock_weight: 140.92380467
+  tile_weight: 125.59285517
+
+reciprocal:
+  ublock_weight: 29
+  tile_weight: 915
+
+reciprocal_approx:
+  ublock_weight: 31.8097882
+  tile_weight: 905.52756067
+
+sigmoid:
+  ublock_weight: 84.15414291
+  tile_weight: 174.75984679
+
+sqrt:
+  ublock_weight: 195
+  tile_weight: 159
+
+reduce-r:
+  ublock_weight: 76
+  tile_weight: 59
+
+reduce-c:
+  ublock_weight: 0
+  tile_weight: 91
+
+reduce-z:
+  ublock_weight: 0
+  tile_weight: 287
+  z_weight: 268
+
+splice:
+  ublock_weight: 132
+  tile_weight: 69
+
+depthwise:
+  math_tiles_weight: 79
+  math_dest_spill_weight: 0
+  unpack_ublocks_weight: 0
+  unpack_tiles_weight: 0
+
+matmul:
+  m_k_weight: 1321
+  ublock_weight: 56
+  tile_weight: 36
+  sparse_reload: 20
+  sparse_reload_config: 20
+  sparse_reload_wait_pop: 20
+  sparse_pack_wait_push: 25
+  sparse_pack: 25
+  sparse_ublock_decode: 8
+  sparse_nz_ublock_decode: 8
+  sparse_nz_tile_decode: 12

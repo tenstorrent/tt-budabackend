@@ -1,0 +1,183 @@
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  act1:                                 {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  act2:                                 {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x300120a0]]}
+
+  # output
+  test_module.output_add:               {input: add, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+  output_grad_act2:                     {input: bw_in0_matmul2_matmul_1_output_nop_0, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x4040]}
+
+  # parameter
+  test_module.weights1:                 {input: opt_in1_test_module.weights1_subtract_2, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x10000000]]}
+  test_module.weights2:                 {input: opt_in0_test_module.weights2_subtract_2, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x10000000]]}
+
+  # epoch_to_epoch
+  e2e_matmul2_0:                        {input: matmul2, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  e2e_matmul1_0:                        {input: matmul1, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+  # optimizer_parameter
+  input_opt_test_module.weights1_0.lr:  {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[7, 0x10000000]]}
+  input_opt_test_module.weights2_0.lr:  {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+
+  # loss
+  loss_test_module.output_add:          {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30004140]]}
+
+  # grad_accumulator
+  grad_acc_test_module.weights2:        {input: bw_in1_matmul2_matmul_1, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x20000000]]}
+  grad_acc_test_module.weights1:        {input: bw_in1_matmul1_matmul_1, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x20000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 2
+    matmul1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [act1, test_module.weights1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    matmul2: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [act2, test_module.weights2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    matmul3: {type: matmul, grid_loc: [0, 2], grid_size: [1, 1], inputs: [matmul1, matmul2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    buffer_0_matmul2_add: {type: nop, grid_loc: [0, 3], grid_size: [1, 1], inputs: [matmul2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add: {type: add, grid_loc: [0, 4], grid_size: [1, 1], inputs: [matmul3, buffer_0_matmul2_add], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+  bwd_1:
+    target_device: 0
+    input_count: 2
+    bw_in0_matmul3_matmul_1: {type: matmul, grid_loc: [1, 2], grid_size: [1, 1], inputs: [loss_test_module.output_add, e2e_matmul2_0],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [transpose],
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in1_matmul3_matmul_1_transpose_nop_0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_matmul1_0],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    bw_in1_matmul3_matmul_1: {type: matmul, grid_loc: [1, 0], grid_size: [1, 1], inputs: [bw_in1_matmul3_matmul_1_transpose_nop_0, loss_test_module.output_add],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in0_matmul2_combine_add_0: {type: add, grid_loc: [1, 1], grid_size: [1, 1], inputs: [loss_test_module.output_add, bw_in1_matmul3_matmul_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    bw_in0_matmul2_matmul_1: {type: matmul, grid_loc: [3, 1], grid_size: [1, 1], inputs: [bw_in0_matmul2_combine_add_0, test_module.weights2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [transpose],
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in1_matmul2_matmul_1_transpose_nop_0: {type: nop, grid_loc: [0, 1], grid_size: [1, 1], inputs: [act2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    bw_in1_matmul2_matmul_1: {type: matmul, grid_loc: [2, 1], grid_size: [1, 1], inputs: [bw_in1_matmul2_matmul_1_transpose_nop_0, bw_in0_matmul2_combine_add_0], gradient_op: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in0_matmul2_matmul_1_output_nop_0: {type: nop, grid_loc: [4, 1], grid_size: [1, 1], inputs: [bw_in0_matmul2_matmul_1], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    bw_in1_matmul1_matmul_1_transpose_nop_0: {type: nop, grid_loc: [0, 2], grid_size: [1, 1], inputs: [act1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    bw_in1_matmul1_matmul_1: {type: matmul, grid_loc: [2, 2], grid_size: [1, 1], inputs: [bw_in1_matmul1_matmul_1_transpose_nop_0, bw_in0_matmul3_matmul_1], gradient_op: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+
+  opt_2:
+    target_device: 0
+    input_count: 1
+    opt_in1_test_module.weights1_multiply_1: {type: multiply, grid_loc: [0, 0], grid_size: [1, 1], inputs: [grad_acc_test_module.weights1, input_opt_test_module.weights1_0.lr],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 2}, broadcast: {r: 2}]}
+    opt_in1_test_module.weights1_subtract_2: {type: subtract, grid_loc: [0, 1], grid_size: [1, 1], inputs: [test_module.weights1, opt_in1_test_module.weights1_multiply_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    opt_in0_test_module.weights2_multiply_1: {type: multiply, grid_loc: [0, 2], grid_size: [1, 1], inputs: [grad_acc_test_module.weights2, input_opt_test_module.weights2_0.lr],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 2}, broadcast: {r: 2}]}
+    opt_in0_test_module.weights2_subtract_2: {type: subtract, grid_loc: [0, 3], grid_size: [1, 1], inputs: [test_module.weights2, opt_in0_test_module.weights2_multiply_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0, $gptr_q0_shadow: 0}
+    - varinst: [$gptr_q0, set, $gptr_q0_shadow]
+    - var: {$c_zero: 0, $c_wrap: 2}
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               act2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               test_module.weights1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               test_module.weights2: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0_shadow, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+  - run_bwd:
+    - param: [$p_zero_grad, $p_microbatch_count, $p_microbatch_size]
+    - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q1: 0, $lptr_q1: 0}
+    - var: {$c_zero: 0, $c_wrap: 2}
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]
+    - varinst: [$v_zero_grad, set, $p_zero_grad]
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: bwd_1, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               act2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               loss_test_module.output_add: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               e2e_matmul1_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               e2e_matmul2_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               test_module.weights2: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               grad_acc_test_module.weights2: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               grad_acc_test_module.weights1: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr_q1, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr_q2, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$lptr_q1, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$lptr_q2, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$v_zero_grad, set, 0]
+    - endloop
+
+  - run_opt:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - execute: {graph_name: opt_2, queue_settings: {
+             test_module.weights1: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             test_module.weights2: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             grad_acc_test_module.weights2: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             grad_acc_test_module.weights1: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+
+
+
+test-config:
+  test-args:
+    minibatch_count: 5
+    microbatch_size: 2 # input_count
+    microbatch_count: 1 # entries / input_count
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.80
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      test_module.weights.*:
+        type: Normal
+        normal_mean: 0.0
+        normal_stddev: 0.01
+      loss_test_module.output_add:
+        type: Constant
+        constant_value: 0.1
+      input_opt_test_module.weights2_0.lr:
+        type: Constant
+        constant_value: 0.01
+      input_opt_test_module.weights1_0.lr:
+        type: Constant
+        constant_value: 0.01

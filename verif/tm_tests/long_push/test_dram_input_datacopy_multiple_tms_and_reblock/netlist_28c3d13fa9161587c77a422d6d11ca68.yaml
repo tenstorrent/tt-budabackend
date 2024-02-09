@@ -1,0 +1,76 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [8, 2]
+    t: 22
+    mblock: [2, 4]
+    ublock: [1, 5]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000020], [0, 0x101bee40], [0, 0x1037dc60], [0, 0x1053ca80], [0, 0x106fb8a0], [0, 0x108ba6c0], [0, 0x10a794e0], [0, 0x10c38300], [0, 0x10df7120], [0, 0x10fb5f40], [0, 0x11174d60], [0, 0x11333b80], [0, 0x114f29a0], [0, 0x116b17c0], [0, 0x118705e0], [0, 0x11a2f400]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 1
+    grid_size: [4, 2]
+    t: 22
+    mblock: [1, 20]
+    ublock: [4, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000040], [1, 0x1037dc60], [1, 0x106fb880], [1, 0x10a794a0], [1, 0x10df70c0], [1, 0x11174ce0], [1, 0x114f2900], [1, 0x11870520]]
+
+graphs:
+  test_multi_tm_dram_op:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [0, 6] 
+      grid_size: [4, 2]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 22
+      mblock: [1, 20]
+      ublock: [4, 1]
+      input_0_tms: [vstack: 1, vstack: 1]
+      
+programs:
+  - multi_tm_test_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_op,
+          queue_settings: {
+               dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

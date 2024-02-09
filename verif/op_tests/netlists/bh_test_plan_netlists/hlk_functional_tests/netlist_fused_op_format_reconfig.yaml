@@ -1,0 +1,77 @@
+devices:
+  arch: [wormhole_b0, blackhole]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 4], df: Bfp4_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input1:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 4], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x12000000]]}
+  input2:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x14000000]]}
+  output1:  {type: queue, input: op0 , entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x16000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1, input2]
+      in_df: [Bfp4_b, Bfp8_b, Float16_b]
+      acc_df: Float16
+      out_df: Float16_b  
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 1
+      mblock: [4, 4]
+      ublock: [2, 4]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 4]
+      -   varinst: [$gptr, incwrap, $c_input_count, 4]
+      - endloop 
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 1
+    schedules:
+      -
+        - datacopy: {type: datacopy, inputs: [input0], mblock: [4, 4], ublock: [2, 4], output: intermed0}
+        - multiply0: {type: multiply, inputs: [input1, intermed0], pop: [intermed0], mblock: [4, 4], ublock: [2, 4], output: dest}
+        - add0: {type: add, inputs: [input2, dest], mblock: [4, 4], ublock: [2, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #constant_value: 2.0
+    #type: DebugTileId
+    #debug_tile_id_base: 1.0
+    #debug_tile_id_step: 1.0
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 2.0
+

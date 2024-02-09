@@ -1,0 +1,124 @@
+# test_config_id=86
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [10, 3]
+    t: 1
+    mblock: [2, 20]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x100012c0], [2, 0x100a3ae0], [2, 0x10146300], [2, 0x101e8b20], [2, 0x1028b340], [2, 0x1032db60], [2, 0x103d0380], [2, 0x10472ba0], [2, 0x105153c0], [2, 0x105b7be0], [2, 0x1065a400], [2, 0x106fcc20], [2, 0x1079f440], [2, 0x10841c60], [2, 0x108e4480], [2, 0x10986ca0], [2, 0x10a294c0], [2, 0x10acbce0], [2, 0x10b6e500], [2, 0x10c10d20], [2, 0x10cb3540], [2, 0x10d55d60], [2, 0x10df8580], [2, 0x10e9ada0], [2, 0x10f3d5c0], [2, 0x10fdfde0], [2, 0x11082600], [2, 0x11124e20], [2, 0x111c7640], [2, 0x11269e60]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 4
+    grid_size: [1, 1]
+    t: 1
+    mblock: [120, 1]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x100012a0]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 4
+    grid_size: [1, 2]
+    t: 20
+    mblock: [1, 9]
+    ublock: [2, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000600], [0, 0x105b6e20]]
+
+graphs:
+  test_multi_tm_datacopy_matmul:
+    target_device: 0
+    input_count: 2
+    feeder0:
+      type: datacopy
+      grid_loc: [0, 6]
+      grid_size: [10, 3]
+      inputs: [dram_input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [2, 20]
+      ublock: [1, 2]
+    feeder1:
+      type: datacopy
+      grid_loc: [0, 9]
+      grid_size: [1, 1]
+      inputs: [dram_input1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [120, 1]
+      ublock: [1, 1]
+    op0:
+      type: matmul
+      grid_loc: [0, 10]
+      grid_size: [1, 2]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 120, u_kt: 1}
+      untilize_output: false
+      t: 20
+      mblock: [1, 9]
+      ublock: [2, 2]
+      input_0_tms: [broadcast: {r: 2}, vslice: 20]
+      input_1_tms: [broadcast: {z: 20}, broadcast: {c: 36}]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_matmul,
+          queue_settings: {
+            dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 2 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations# Generation Command: SEED=517 ARCH_NAME=grayskull verif/template_netlist/run_generate_ci_tests.sh test_modules.test_datacopy_matmul_multiple_tms_and_reblock verif/graph_tests/netlists/z3/test_datacopy_matmul_2tms_and_reblock_20220929_083806 107 1

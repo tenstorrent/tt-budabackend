@@ -1,0 +1,58 @@
+devices:
+ arch: [wormhole, wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST    , entries: 16, grid_size: [2, 2], t: 2, mblock: [4, 8], ublock: [2, 2], df: Float16, target_device: 7, loc: dram, dram: [[1, 0x30000000], [1, 0x31000000], [1, 0x32000000], [1, 0x33000000]]}
+  output: {type: queue, input: multiply , entries: 16, grid_size: [2, 2], t: 2, mblock: [4, 8], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x34000000], [0, 0x35000000], [0, 0x36000000], [0, 0x37000000]]}
+
+graphs:
+  test_unary_chip0: 
+    target_device: 0
+    input_count: 16
+    multiply: {type: multiply, grid_loc: [2, 2], grid_size: [2, 2], inputs: [datacopy0, datacopy0], acc_df: Float16, in_df: [Float16,Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 2, mblock: [4, 8], ublock: [2, 2], input_0_tms: []}
+  
+  test_unary_chip1:
+    target_device: 1
+    input_count: 16
+  test_unary_chip2:
+    target_device: 2
+    input_count: 16
+  test_unary_chip3:
+    target_device: 3
+    input_count: 16
+  test_unary_chip4:
+    target_device: 4
+    input_count: 16
+  test_unary_chip5:
+    target_device: 5
+    input_count: 16
+  test_unary_chip6:
+    target_device: 6
+    input_count: 16
+  test_unary_chip7:
+    target_device: 7
+    input_count: 16
+    datacopy0: {type: datacopy, grid_loc: [2, 2], grid_size: [2, 2], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 2, mblock: [4, 8], ublock: [2, 2], input_0_tms: []}
+
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - var: [$2]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {
+            }}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip2, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip3, queue_settings: {
+      }}
+      - execute: {graph_name: test_unary_chip4, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip5, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip6, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip7, queue_settings: {
+            q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}
+      }}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - endloop: 
+

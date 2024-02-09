@@ -1,0 +1,59 @@
+devices:
+  arch: [wormhole, wormhole_b0]
+queues:
+  input:  {type: queue, input: HOST, entries: 20, grid_size: [7, 7], t: 1, mblock: [1, 3], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x2469cd80], [2, 0x24a27e20], [1, 0x24db2ec0], [1, 0x2513df60], [0, 0x254c9000], [4, 0x258540a0], [5, 0x25bdf140], [0, 0x25f6a1e0], [5, 0x262f5280], [2, 0x26680320], [4, 0x26a0b3c0], [2, 0x26d96460], [4, 0x27121500], [1, 0x274ac5a0], [4, 0x27837640], [4, 0x27bc26e0], [1, 0x27f4d780], [1, 0x282d8820], [3, 0x286638c0], [0, 0x289ee960], [1, 0x28d79a00], [3, 0x29104aa0], [5, 0x2948fb40], [5, 0x2981abe0], [5, 0x29ba5c80], [2, 0x29f30d20], [2, 0x2a2bbdc0], [3, 0x2a646e60], [5, 0x2a9d1f00], [2, 0x2ad5cfa0], [5, 0x2b0e8040], [5, 0x2b4730e0], [2, 0x2b7fe180], [0, 0x2bb89220], [4, 0x2bf142c0], [4, 0x2c29f360], [1, 0x2c62a400], [2, 0x2c9b54a0], [3, 0x2cd40540], [0, 0x2d0cb5e0], [3, 0x2d456680], [1, 0x2d7e1720], [0, 0x2db6c7c0], [0, 0x2def7860], [0, 0x2e282900], [2, 0x2e60d9a0], [2, 0x2e998a40], [0, 0x2ed23ae0], [3, 0x2f0aeb80]]}
+  output: {type: ram, input: op0 , entries: 1, grid_size: [7, 7], t: 1, mblock: [1, 3], ublock: [2, 2], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x3484b500], [2, 0x34bd65a0], [1, 0x34f61640], [1, 0x352ec6e0], [0, 0x35677780], [4, 0x35a02820], [5, 0x35d8d8c0], [0, 0x36118960], [5, 0x364a3a00], [2, 0x3682eaa0], [4, 0x36bb9b40], [2, 0x36f44be0], [4, 0x372cfc80], [1, 0x3765ad20], [4, 0x379e5dc0], [4, 0x37d70e60], [1, 0x380fbf00], [1, 0x38486fa0], [3, 0x38812040], [0, 0x38b9d0e0], [1, 0x38f28180], [3, 0x392b3220], [5, 0x3963e2c0], [5, 0x399c9360], [5, 0x39d54400], [2, 0x3a0df4a0], [2, 0x3a46a540], [3, 0x3a7f55e0], [5, 0x3ab80680], [2, 0x3af0b720], [5, 0x3b2967c0], [5, 0x3b621860], [2, 0x3b9ac900], [0, 0x3bd379a0], [4, 0x3c0c2a40], [4, 0x3c44dae0], [1, 0x3c7d8b80], [2, 0x3cb63c20], [3, 0x3ceeecc0], [0, 0x3d279d60], [3, 0x3d604e00], [1, 0x3d98fea0], [0, 0x3dd1af40], [0, 0x3e0a5fe0], [0, 0x3e431080], [2, 0x3e7bc120], [2, 0x3eb471c0], [0, 0x3eed2260], [3, 0x3f25d300]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  5
+    op0: 
+      type: datacopy
+      grid_loc: [0, 1]   # [r,c]
+      grid_size: [7, 7] # [r,c]
+      inputs: [input] 
+      in_df: [Float16_b] 
+      acc_df: Float32
+      out_df: Float32  
+      intermed_df: Float32
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false 
+      gradient_op: true
+      t: 1
+      mblock: [1,  3]
+      ublock: [2, 2]
+      input_0_tms:
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+        #      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_loop_count, set,  2]   # load loop count
+      - varinst: [$c_input_count, set, 5]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input:  {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 40]
+      - varinst: [$gptr, incwrap, $c_input_count, 40]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 2
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+

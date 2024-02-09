@@ -1,0 +1,183 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  input                         : {type: queue, input: HOST     , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  e2e_0                         : {type: queue, input: unary01  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30100000]]}
+  e2e_1                         : {type: queue, input: unary03  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30200000]]}
+  e2e_2                         : {type: queue, input: unary05  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30300000]]}
+
+  e2e_3                         : {type: queue, input: unary07  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30400000]]}
+  e2e_4                         : {type: queue, input: unary09  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30500000]]}
+  e2e_5                         : {type: queue, input: unary11  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30600000]]}
+  e2e_6                         : {type: queue, input: unary13  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30700000]]}
+
+  e2e_7                         : {type: queue, input: unary15  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30800000]]}
+  e2e_8                         : {type: queue, input: unary17  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30900000]]}
+
+  output                        : {type: queue, input: unary19  , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+
+graphs:
+
+  # Temporal Epoch 0. Chip0 -> Chip1.
+  device0_temporal_epoch_0:
+    target_device: 0
+    input_count: 4
+    unary00: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device1_temporal_epoch_0:
+    target_device: 1
+    input_count: 4
+    unary01: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary00], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 1. Chip1 -> Chip0
+  device1_temporal_epoch_1:
+    target_device: 1
+    input_count: 4
+    unary02: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device0_temporal_epoch_1:
+    target_device: 0
+    input_count: 4
+    unary03: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary02], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 2. Chip0 -> Chip1
+  device0_temporal_epoch_2:
+    target_device: 0
+    input_count: 4
+    unary04: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device1_temporal_epoch_2:
+    target_device: 1
+    input_count: 4
+    unary05: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary04], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 3. Chip1 -> Chip0
+  device1_temporal_epoch_3:
+    target_device: 1
+    input_count: 4
+    unary06: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device0_temporal_epoch_3:
+    target_device: 0
+    input_count: 4
+    unary07: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary06], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 4. Chip0 -> Chip1.
+  device0_temporal_epoch_4:
+    target_device: 0
+    input_count: 4
+    unary08: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device1_temporal_epoch_4:
+    target_device: 1
+    input_count: 4
+    unary09: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary08], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 5. Chip1 -> Chip0
+  device1_temporal_epoch_5:
+    target_device: 1
+    input_count: 4
+    unary10: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_4], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device0_temporal_epoch_5:
+    target_device: 0
+    input_count: 4
+    unary11: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary10], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 6. Chip0 -> Chip1
+  device0_temporal_epoch_6:
+    target_device: 0
+    input_count: 4
+    unary12: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_5], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device1_temporal_epoch_6:
+    target_device: 1
+    input_count: 4
+    unary13: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary12], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 7. Chip1 -> Chip0
+  device1_temporal_epoch_7:
+    target_device: 1
+    input_count: 4
+    unary14: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_6], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device0_temporal_epoch_7:
+    target_device: 0
+    input_count: 4
+    unary15: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary14], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 8. Chip0 -> Chip1
+  device0_temporal_epoch_8:
+    target_device: 0
+    input_count: 4
+    unary16: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_7], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device1_temporal_epoch_8:
+    target_device: 1
+    input_count: 4
+    unary17: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary16], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  # Temporal Epoch 9. Chip1 -> Chip0
+  device1_temporal_epoch_9:
+    target_device: 1
+    input_count: 4
+    unary18: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_8], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  device0_temporal_epoch_9:
+    target_device: 0
+    input_count: 4
+    unary19: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [unary18], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+
+programs:
+  - program_0:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 5, $c_input_count: 4, $c_input_wrap: 160}
+      - loop: $c_loop_count
+
+
+      # Chip 0 -> 1
+      - execute: {graph_name: device0_temporal_epoch_0, queue_settings: {input: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device1_temporal_epoch_0}
+      # Chip 1 -> 0
+      - execute: {graph_name: device1_temporal_epoch_1, queue_settings: {e2e_0: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device0_temporal_epoch_1}
+      # Chip 0 -> 1
+      - execute: {graph_name: device0_temporal_epoch_2, queue_settings: {e2e_1: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device1_temporal_epoch_2}
+      # Chip 1 -> 0
+      - execute: {graph_name: device1_temporal_epoch_3, queue_settings: {e2e_2: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device0_temporal_epoch_3}
+
+      # Chip 0 -> 1
+      - execute: {graph_name: device0_temporal_epoch_4, queue_settings: {e2e_3: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device1_temporal_epoch_4}
+      # Chip 1 -> 0
+      - execute: {graph_name: device1_temporal_epoch_5, queue_settings: {e2e_4: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device0_temporal_epoch_5}
+      # Chip 0 -> 1
+      - execute: {graph_name: device0_temporal_epoch_6, queue_settings: {e2e_5: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device1_temporal_epoch_6}
+      # Chip 1 -> 0
+      - execute: {graph_name: device1_temporal_epoch_7, queue_settings: {e2e_6: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device0_temporal_epoch_7}
+
+      # Chip 0 -> 1
+      - execute: {graph_name: device0_temporal_epoch_8, queue_settings: {e2e_7: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device1_temporal_epoch_8}
+      # Chip 1 -> 0
+      - execute: {graph_name: device1_temporal_epoch_9, queue_settings: {e2e_8: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - execute: {graph_name: device0_temporal_epoch_9}
+
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [input]
+    outputs: [output]

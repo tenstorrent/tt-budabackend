@@ -1,0 +1,99 @@
+# test_config_id=5
+devices:
+  arch: grayskull
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [100, 76]
+    ublock: [1, 3]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000000]]
+
+  output0_dram:
+    type: queue
+    input: drainer0
+    entries: 1
+    grid_size: [1, 1]
+    t: 950
+    mblock: [2, 12]
+    ublock: [1, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: host
+    host: [0x0]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    feeder0:
+      type: datacopy
+      grid_loc: [0, 9]
+      grid_size: [1, 1]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      t: 1900
+      mblock: [1, 4]
+      ublock: [1, 3]
+      input_0_tms: [vslice: 100, hslice: 19]
+
+    drainer0:
+      type: datacopy
+      grid_loc: [0, 10]
+      grid_size: [2, 2]
+      inputs: [feeder0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: true
+      t: 950
+      mblock: [1, 6]
+      ublock: [1, 1]
+      input_0_tms: [vstack: 2]
+      untilize_output: true
+
+programs:
+  - program0:
+    - var: [$c_microbatch_count, $c_zero]
+    - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+    - varinst: [$c_microbatch_count, set, 1]
+    - varinst: [$c_zero, set, 0]
+    - loop: $c_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_op,
+          queue_settings: {
+               input0_dram: {
+                prologue: false,
+                epilogue: false,
+                zero: false,
+                rd_ptr_local: $lptr_q0,
+                rd_ptr_global: $gptr_q0,
+              }
+          }
+        }
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations
