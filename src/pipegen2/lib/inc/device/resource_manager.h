@@ -91,6 +91,7 @@ public:
     // Check if L1 memory is overflowing on a particular core.
     void check_if_out_of_l1_data_buffers_memory(const tt_cxy_pair& core_physical_location) const;
 
+    // Get all L1 memory allocations on a particular core.
     const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_l1_memory_allocations(
         const tt_cxy_pair& core_physical_location) const;
 
