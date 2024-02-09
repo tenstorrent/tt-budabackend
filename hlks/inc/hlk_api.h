@@ -17,6 +17,12 @@ enum class Dim : std::uint8_t
     Invalid   = 0xFF,
 };
 
+enum SortDir : bool
+ {
+    ArgMax      = false,
+    ArgMin      = true,
+};
+
 struct hlk_relu_config_t {
     std::uint32_t
         ApplyRelu : 16;  // 0 ? no relu, 1 ? val<0=>val=0, 2 ? val<threshold=>val=0, 3 - val>threshold=>val=threshold

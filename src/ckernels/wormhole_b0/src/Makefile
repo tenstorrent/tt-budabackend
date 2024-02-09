@@ -27,17 +27,17 @@ OUTPUT_DIR = out
 FIRMWARE_RISCV_DIR = $(BUDA_HOME)/src/firmware/riscv
 FIRMWARE_RISCV_INC_DIR = $(BUDA_HOME)/build/src/firmware/riscv
 INCLUDES = \
+	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/common/inc \
 	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/buda/common/inc \
 	-I$(KERNEL_PARAM_OVERRIDE_DIR)/ \
 	-I$(BUDA_HOME)/build/tests/$(TEST_NAME) \
 	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/src/test_params/ \
 	-I$(CKERNEL_INC_DIR)/gen/out \
+	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/llk_lib/ \
 	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/buda/llk_io/ \
 	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/buda/llk_api/ \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
-	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc \
-	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/llk_lib/ \
 
 VPATH=out
 
