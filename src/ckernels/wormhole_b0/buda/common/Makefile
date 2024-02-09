@@ -65,7 +65,9 @@ INCLUDES = \
 	-I$(CKERNEL_INC_DIR)/gen/out \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
-	-I$(BUDA_HOME)/perf_lib/
+	-I$(BUDA_HOME)/perf_lib/ \
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc \
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/llk_lib/
 endif
 
 DISABLE_FWLOG ?= 1

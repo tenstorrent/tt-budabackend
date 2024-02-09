@@ -16,13 +16,7 @@ INCLUDES = \
 	-I$(CKERNEL_DIR)/gen/out \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
-
-ifeq ("$(ARCH_NAME)", "grayskull")
-  INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/common/inc
-else
-  INCLUDES += -I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc
-endif
-
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc \
 
 DISABLE_FWLOG ?= 1
 

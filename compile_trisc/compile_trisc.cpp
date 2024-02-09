@@ -1067,8 +1067,6 @@ std::string get_trisc_link_cmd(
 
     make_cmd << " ENABLE_TT_LOG=" + to_string(enable_tt_log);
     make_cmd << " ENABLE_TT_LLK_DUMP=" + to_string(enable_tt_llk_dump);
-
-    log_debug(tt::LogCompileTrisc, "Make command = {}", make_cmd.str());
     
     return make_cmd.str();
 }

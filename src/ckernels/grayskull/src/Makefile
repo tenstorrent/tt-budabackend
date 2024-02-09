@@ -36,14 +36,8 @@ INCLUDES = \
 	-I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/buda/llk_api/ \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
-
-ifeq ("$(ARCH_NAME)", "grayskull")
-  	INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/common/inc
-  	INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/llk_lib/
-else
-	INCLUDES += -I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/buda/common/inc
-	INCLUDES += -I$(CKERNEL_INC_OVERRIDE_DIR)/$(ARCH_NAME)/llk_lib/
-endif
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc \
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/llk_lib/ \
 
 VPATH=out
 
