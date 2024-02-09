@@ -50,12 +50,6 @@ INCLUDES = -I$(BUDA_HOME)/src/firmware/riscv/targets/ncrisc \
 	-I$(BUDA_HOME)/src/firmware/riscv/common \
 	-I$(BUDA_HOME)
 
-ifeq ("$(ARCH_NAME)", "grayskull")
-  INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_grayskull/common/inc
-else
-  INCLUDES += -I$(BUDA_HOME)/src/ckernels/$(ARCH_NAME)/common/inc
-endif
-
 ifeq ("$(ARCH_NAME)", "wormhole_b0")
   INCLUDES += -I$(BUDA_HOME)/src/firmware/riscv/wormhole/noc 
 else
@@ -64,8 +58,10 @@ endif
 
 ifeq ("$(ARCH_NAME)", "blackhole")
   LINKER_SCRIPT_NAME = ncrisc-noiram.ld
+  INCLUDES += -I$(BUDA_HOME)/src/ckernels/$(ARCH_NAME)/common/inc
 else
   LINKER_SCRIPT_NAME = ncrisc.ld
+  INCLUDES += -I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc
 endif
 LINKER_SECTIONS_PREFIX = ncrisc
 
