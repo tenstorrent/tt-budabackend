@@ -38,10 +38,9 @@ graphs:
 
 programs:
   - run_fwd:
-    - param: [$p_microbatch_count]
-    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $c_microbatch_count: 1}
     - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
-    - loop: $p_microbatch_count
+    - loop: $c_microbatch_count
     -   execute: {graph_name: fwd_0, queue_settings: {
                ff.output.dense.bias: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
                ff.output.dense.weight: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
