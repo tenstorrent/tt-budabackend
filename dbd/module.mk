@@ -7,6 +7,9 @@ dbd: dbd/server
 	$(PRINT_TARGET)
 	$(PRINT_OK)
 
+# Tests target: it builds everything and tests and run tests
+dbdtests: dbd dbd/server/unit_tests
+
 # MARKDOWN_FILES=
 MARKDOWN_FILES=debuda-py-intro.md
 MARKDOWN_FILES+=debuda-py-tutorial.md

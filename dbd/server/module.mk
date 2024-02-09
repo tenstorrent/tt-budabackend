@@ -1,4 +1,4 @@
-dbd/server: dbd/server/app dbd/server/lib dbd/server/unit_tests
+dbd/server: dbd/server/app dbd/server/lib
 
 ifndef DEBUDA_SERVER_LIB_SRCS
   include $(BUDA_HOME)/dbd/server/lib/module.mk
