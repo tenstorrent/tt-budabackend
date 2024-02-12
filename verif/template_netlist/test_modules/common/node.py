@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+from typing import Optional, Union
+
 from z3 import *
-from typing import Optional, Dict, List, Union
 
 from test_modules.common.enums import Dimension, NodeType
 from test_modules.common.constants import TEMPLATE_VAR_PREFIX, SIZE_C_VAR_NAME, SIZE_R_VAR_NAME
-from test_modules.common.data_formats import get_tile_size_z3_var
-from test_modules.common.resource_constraints import ResourceConstrNode, ResourceConstrNodeSide
 
 class Node:
     """
@@ -202,10 +201,6 @@ class Node:
     def get_prologue_var(self, graph_name: str) -> Optional[z3.Var]:
         """Returns prologue attribute of node if it has one, otherwise None."""
         return getattr(self, f"{graph_name}_prologue", None)
-
-    def get_tile_size_var(self) -> z3.Var:
-        """Returns z3 variable representing tile size for this node."""
-        return get_tile_size_z3_var(self.get_data_format_var())
 
     def get_attr_from_model(self, model_vars: dict, attr_name: str) -> int:
         """

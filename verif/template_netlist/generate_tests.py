@@ -12,8 +12,10 @@ import sys
 import textwrap
 
 from util import *
-from z3_config_generator import generate_z3_configs
+
+from test_modules.common.device_architecture import DeviceArchitecture
 from test_modules.common.solution_search import SolutionSearchConfig, SearchType
+from z3_config_generator import generate_z3_configs
 
 
 def generate_all_configs(
@@ -145,7 +147,7 @@ if __name__ == "__main__":
         "--arch",
         default="grayskull",
         type=str,
-        help="Name of device architecture, one of: ['grayskull', 'wormhole', 'wormhole_b0']",
+        help=f"Name of device architecture, one of: {DeviceArchitecture.get_supported_arch_names()}",
     )
     parser.add_argument("--random-seed", default=0, type=int, help="Random seed for solver")
     parser.add_argument(
@@ -201,9 +203,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args(sys.argv[1:])
 
-    if args.arch not in ["grayskull", "wormhole", "wormhole_b0"]:
+    if args.arch not in DeviceArchitecture.get_supported_arch_names():
         raise argparse.ArgumentError(
-            None, "--arch must be one of: ['grayskull', 'wormhole', 'wormhole_b0']"
+            None, f"--arch must be one of: {DeviceArchitecture.get_supported_arch_names()}"
         )
 
     if args.search_type not in ["default", "serial-sweep", "parallel-sweep"]:

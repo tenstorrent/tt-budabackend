@@ -13,10 +13,9 @@ from logging import Logger
 
 from z3 import *
 
-from test_modules.common.data_formats import get_tile_size_z3_var
+from test_modules.common.data_formats import DataFormat
 from test_modules.common.device_architecture import DeviceArchitecture, WormholeB0Architecture
 from test_modules.common.node import Node
-from test_modules.common.data_formats import DataFormat
 from test_modules.common.enums import (
     TMS,
     BufferLoc,
@@ -1471,7 +1470,7 @@ class TemplateNetlistTestBase(ABC):
             kernel_input_buffer_size_tiles, input_buffer_min_size_tiles
         )
 
-        return op_input_buffer_size_tiles * in_node.get_tile_size_var()
+        return op_input_buffer_size_tiles * self.get_tile_size_z3_var(in_node.get_data_format_var())
 
     def constrain_op_l1_usage(self, op_node: Node) -> None:
         """Constraints L1 usage for a given op node such that all input, prologue, intermediate
@@ -1546,7 +1545,7 @@ class TemplateNetlistTestBase(ABC):
         mb_m = If(op_node.untilize == Untilize.true.value, 1, op_node.mb_m)
 
         return (
-            op_node.get_tile_size_var()
+            self.get_tile_size_z3_var(op_node.get_data_format_var())
             * mb_m
             * op_node.ub_r
             * op_node.mb_n
@@ -1588,8 +1587,8 @@ class TemplateNetlistTestBase(ABC):
             ((in_node.grid_size_x + op_node.grid_size_x - 1) / op_node.grid_size_x)
             * ((in_node.grid_size_y + op_node.grid_size_y - 1) / op_node.grid_size_y)
             * in_node.get_macro_block_t_size_var()
-            * in_node.get_tile_size_var(),
-            0,
+            * self.get_tile_size_z3_var(in_node.get_data_format_var()),
+            0
         )
 
     def get_eltwise_op_input_buffer_size_tiles(self, op_node: Node, input_idx) -> z3.Var:
@@ -1901,7 +1900,7 @@ class TemplateNetlistTestBase(ABC):
         op_node:
             Op node.
         """
-        return 2 * op_node.ub_r * op_node.ub_c * get_tile_size_z3_var(op_node.intermed_df)
+        return 2 * op_node.ub_r * op_node.ub_c * self.get_tile_size_z3_var(op_node.intermed_df)
 
     def get_fused_op_input_consumer_op(self, op_node: Node, input_name: str) -> Node:
         """Returns which scheduled op of a given fused op node consumer the given input.
@@ -2113,7 +2112,7 @@ class TemplateNetlistTestBase(ABC):
             Queue node for which to define constraints.
         """
         # Each tensor must fit into a DDR channel.
-        tiles_per_channel = self.arch.get_dram_buffer_size() / q_node.get_tile_size_var()
+        tiles_per_channel = self.arch.get_dram_buffer_size() / self.get_tile_size_z3_var(q_node.get_data_format_var())
 
         self.solver.add(
             tiles_per_channel
@@ -2144,7 +2143,7 @@ class TemplateNetlistTestBase(ABC):
                 * q_node.ub_c
                 * q_node.t_dim
                 * q_node.entries
-                * q_node.get_tile_size_var()
+                * self.get_tile_size_z3_var(q_node.get_data_format_var())
                 + self.arch.dram_queue_header_size
             )
         )
@@ -2607,46 +2606,53 @@ class TemplateNetlistTestBase(ABC):
         model_vars:
             Dictionary of variable names and their generated values.
         """
-        curr_start_addr = [self.arch.dram_buffer_start_addr] * self.arch.num_dram_channels
-        curr_hots_addr = 0
-
-        for q_node in self.queues:
-            has_assigned_dram_channeld = False
-
-            grid_size_x = q_node.get_attr_from_model(model_vars, "grid_size_x")
-            grid_size_y = q_node.get_attr_from_model(model_vars, "grid_size_y")
-
-            q_buffer_count = grid_size_x * grid_size_y
-            q_buffers_size = q_node.get_attr_from_model(model_vars, "buffers_size")
-
-            # Host buffer allocation.
-            if model_vars[q_node.loc.sexpr()] == BufferLoc.host.value:
-                model_vars[q_node.loc_template_str] = "[" + hex(curr_hots_addr) + "]"
-                curr_hots_addr += q_buffers_size
-                continue
-
-            # Dram buffer allocation.
+        def pick_dram_channel() -> int:
+            """ 
+            Helper, moved here to not bloat code in surrounding function. 
+            Has nothing to do with the rest of class. 
+            """
+            has_assigned_dram_channel = False
             dram_channel = random.choice(range(self.arch.num_dram_channels))
-            while not has_assigned_dram_channeld:
-                q_end_address = curr_start_addr[dram_channel] + q_buffer_count * q_buffers_size
+            
+            while not has_assigned_dram_channel:
+                q_end_address = curr_start_addr[dram_channel] + num_queue_buffers * single_dram_buffer_size
                 if q_end_address < self.arch.dram_buffer_end_addr:
-                    has_assigned_dram_channeld = True
+                    has_assigned_dram_channel = True
                 else:
                     dram_channel = random.choice(range(self.arch.num_dram_channels))
 
-            model_vars[q_node.loc_template_str] = TemplateNetlistTestBase.dram_string(
-                channel=dram_channel,
-                start_addr=curr_start_addr[dram_channel],
-                buffer_count=q_buffer_count,
-                buffer_size=q_buffers_size,
-            )
+            return dram_channel
 
-            curr_start_addr[dram_channel] += q_buffer_count * q_buffers_size
-            # Dram addresses need to be a multiple of NOC data width since it
-            # does not support unaligned accesses.
-            curr_start_addr[dram_channel] += (
-                curr_start_addr[dram_channel] % self.arch.noc_data_word_width_bytes
-            )
+        curr_start_addr = [self.arch.dram_buffer_start_addr] * self.arch.num_dram_channels
+        curr_host_addr = 0
+
+        for q_node in self.queues:
+            grid_size_x = q_node.get_attr_from_model(model_vars, "grid_size_x")
+            grid_size_y = q_node.get_attr_from_model(model_vars, "grid_size_y")
+
+            num_queue_buffers = grid_size_x * grid_size_y
+            # Single DRAM buffer size is guaranteed to be aligned to arch, since queue headers are aligned as well as 
+            # tile sizes.
+            single_dram_buffer_size = q_node.get_attr_from_model(model_vars, "buffers_size")
+            total_queue_size = num_queue_buffers * single_dram_buffer_size
+
+            if model_vars[q_node.loc.sexpr()] == BufferLoc.host.value:
+                model_vars[q_node.loc_template_str] = "[" + hex(curr_host_addr) + "]"
+                curr_host_addr += total_queue_size
+
+            elif model_vars[q_node.loc.sexpr()] == BufferLoc.dram.value:
+                dram_channel = pick_dram_channel()
+
+                model_vars[q_node.loc_template_str] = TemplateNetlistTestBase.dram_string(
+                    channel=dram_channel,
+                    start_addr=curr_start_addr[dram_channel],
+                    buffer_count=num_queue_buffers,
+                    buffer_size=single_dram_buffer_size,
+                )
+
+                curr_start_addr[dram_channel] += total_queue_size
+            else:
+                raise RuntimeError(f"Queue {q_node.name}'s location is not in DRAM nor on HOST!")
 
     @staticmethod
     def fix_prologue_format(queue: Node, gname: str, model_vars: Dict) -> None:
@@ -3818,3 +3824,46 @@ class TemplateNetlistTestBase(ABC):
                 f"Field {key_name} is expected to be template field but it is: '{field}'."
             )
         return field
+
+    def get_tile_size_z3_var(self, df_var: z3.Var) -> z3.Var:
+        """Returns z3 variable representing tile size for given data
+        format.
+
+        Parameters
+        ----------
+        df_var: z3.Var
+            Data format variable.
+
+        Returns
+        -------
+        z3.Var
+        """
+        return If(
+            And(
+                df_var >= DataFormat.Bfp2_b.value,
+                df_var <= DataFormat.Bfp2.value
+            ),
+            self.arch.get_tile_size(DataFormat.Bfp2),
+            If(
+                And(
+                    df_var >= DataFormat.Bfp4_b.value,
+                    df_var <= DataFormat.Bfp4.value
+                ),
+                self.arch.get_tile_size(DataFormat.Bfp4),
+                If(
+                    And(
+                        df_var >= DataFormat.Bfp8_b.value,
+                        df_var <= DataFormat.Bfp8.value
+                    ),
+                    self.arch.get_tile_size(DataFormat.Bfp8),
+                    If(
+                        And(
+                            df_var >= DataFormat.Float16_b.value,
+                            df_var <= DataFormat.Float16.value
+                        ),
+                        self.arch.get_tile_size(DataFormat.Float16),
+                        self.arch.get_tile_size(DataFormat.Float32),
+                    )
+                )
+            )
+        )
