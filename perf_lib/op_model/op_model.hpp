@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <map>
-#include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "op_params.hpp"
 #include "sparse_matmul_params.hpp"
@@ -15,7 +14,7 @@ namespace tt {
 
 class OpModel {
    public:
-    enum class OpType {
+    enum class OpCategory {
         Unary,
         Binary,
         Nary,
@@ -26,11 +25,12 @@ class OpModel {
         Topk,
         Unknown,
     };
+
     static constexpr std::uint32_t MIN_CYCLES = 0;
     static constexpr std::uint32_t MAX_CYCLES = (1 << 30);
     static const std::unordered_map<ARCH, std::uint32_t> VERSIONS;
 
-    static OpType op_type(const tt_op_model_desc& op_desc);
+    static OpCategory get_op_category(OpType op_type);
 
     static std::map<ARCH, OpModel>& get_instances();
 
@@ -39,8 +39,6 @@ class OpModel {
     static uint32_t get_op_cycles(const tt_op_model_desc& op_desc);
 
     static float get_op_param(const tt_op_model_desc& op_desc, const std::string& param_name);
-
-    static std::string get_weight_attr(const tt_op_model_desc& op_desc);
 
    private:
     std::unique_ptr<OpModelParams> m_model_params;

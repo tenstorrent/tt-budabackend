@@ -39,9 +39,9 @@ std::string get_arch_string_from_enum(tt::ARCH arch) {
     }
 }
 
-void validate(const tt_op_model_desc& op_desc, tt::ARCH arch) {
+void validate(const tt_op_model_desc& op_desc, tt::ARCH arch, OpType op_type) {
     log_assert(OpModel::VERSIONS.find(arch) != OpModel::VERSIONS.end(), "No OpModelParams for arch: {}", arch);
-    log_assert(op_desc.type != "", "Must specify op type");
+    log_assert(op_type != OpType::Unknown, "Op type {} doesn't exist", op_desc.type);
     log_assert(op_desc.data_format != DataFormat::Invalid, "Must have a valid data format");
     log_assert(op_desc.math_fidelity != MathFidelity::Invalid, "Must have a valid math fidelity");
     log_assert(op_desc.t > 0, "Must have valid t");
@@ -62,6 +62,51 @@ void validate(const tt_op_model_desc& op_desc, tt::ARCH arch) {
         "Int data formats are supported on B0 only.");
 }
 
+OpModel::OpCategory OpModel::get_op_category(OpType op_type) {
+    static std::unordered_map<OpType, OpCategory> mapping = {
+        {OpType::Nop, OpCategory::Unary},
+        {OpType::Abs, OpCategory::Unary},
+        {OpType::Cosine, OpCategory::Unary},
+        {OpType::Dropout, OpCategory::Unary},
+        {OpType::Exp, OpCategory::Unary},
+        {OpType::Gelu, OpCategory::Unary},
+        {OpType::GeluDerivative, OpCategory::Unary},
+        {OpType::Log, OpCategory::Unary},
+        {OpType::Lrelu, OpCategory::Unary},
+        {OpType::Power, OpCategory::Unary},
+        {OpType::Reciprocal, OpCategory::Unary},
+        {OpType::Sigmoid, OpCategory::Unary},
+        {OpType::Sine, OpCategory::Unary},
+        {OpType::Sqrt, OpCategory::Unary},
+        {OpType::Square, OpCategory::Unary},
+        {OpType::Tanh, OpCategory::Unary},
+        {OpType::Add, OpCategory::Binary},
+        {OpType::Subtract, OpCategory::Binary},
+        {OpType::Multiply, OpCategory::Binary},
+        {OpType::Maximum, OpCategory::Binary},
+        {OpType::Quantization, OpCategory::Binary},
+        {OpType::Dequantization, OpCategory::Binary},
+        {OpType::Requantization, OpCategory::Binary},
+        {OpType::Depthwise, OpCategory::Depthwise},
+        {OpType::Matmul, OpCategory::Matmul},
+        {OpType::MatmulSparse, OpCategory::Matmul},
+        {OpType::Embedding, OpCategory::Embedding},
+        {OpType::EthernetDatacopy, OpCategory::Unary},
+        {OpType::Reduce, OpCategory::Unary},
+        {OpType::ReduceZ, OpCategory::Unary},
+        {OpType::Splice, OpCategory::Nary},
+        {OpType::Tilizer, OpCategory::Unary},
+        {OpType::Topk, OpCategory::Topk},
+        {OpType::FusedOp, OpCategory::FusedOp},
+    };
+
+    if (mapping.find(op_type) == mapping.end()) {
+        return OpCategory::Unknown;
+    }
+
+    return mapping.at(op_type);
+}
+
 uint32_t get_math_weight(MathFidelity math_fidelity) {
     static std::unordered_map<MathFidelity, int> math_fidelity_weight = {
         {MathFidelity::LoFi, 1},
@@ -77,22 +122,6 @@ uint32_t get_math_weight(MathFidelity math_fidelity) {
     }
 
     return math_fidelity_weight[math_fidelity];
-}
-
-std::unordered_map<std::string, float> get_sparse_matmul_params(const tt_op_model_desc& op_desc) {
-    std::unordered_map<std::string, float> p;
-    p["reload"] = OpModel::get_op_param(op_desc, "sparse_reload");
-    p["reload_config"] = OpModel::get_op_param(op_desc, "sparse_reload_config");
-    p["reload_wait_pop"] = OpModel::get_op_param(op_desc, "sparse_reload_wait_pop");
-    p["pack_wait_push"] = OpModel::get_op_param(op_desc, "sparse_pack_wait_push");
-    p["pack"] = OpModel::get_op_param(op_desc, "sparse_pack");
-    p["ublock_decode"] = OpModel::get_op_param(op_desc, "sparse_ublock_decode");
-    p["nz_ublock_decode"] = OpModel::get_op_param(op_desc, "sparse_nz_ublock_decode");
-    p["nz_tile_decode"] = OpModel::get_op_param(op_desc, "sparse_nz_tile_decode");
-    for (auto& kv : p) {
-        log_assert(kv.second > 0, "sparse_matmul param {} must be greater than 0", kv.first);
-    }
-    return p;
 }
 
 float get_sparse_matmul_math_fidelity_weight(MathFidelity math_fidelity) {
@@ -118,123 +147,22 @@ float get_sparse_matmul_math_fidelity_weight(MathFidelity math_fidelity) {
     }
 }
 
-std::string OpModel::get_weight_attr(const tt_op_model_desc& op_desc) {
-    DataFormat format = op_desc.data_format;
-    if (op_desc.type == "matmul") {
-        if (format == DataFormat::Bfp2 || format == DataFormat::Bfp2_b || format == DataFormat::Bfp4 ||
-            format == DataFormat::Bfp4_b || format == DataFormat::Bfp8 || format == DataFormat::Bfp8_b) {
-            return "bfp";
-        }
-    }
-    if (op_type(op_desc) == OpType::Unary) {
-        if (op_desc.vector_mode == SfpuVectorMode::R) {
-            return "vector_r";
-        } else if (op_desc.vector_mode == SfpuVectorMode::C) {
-            return "vector_c";
-        }
-    }
-
-    // INT8 params are supported on B0 starting with version 3
-    if (op_desc.version >= 3) {
-        // eltwise int8
-        if (op_type(op_desc) == OpType::Binary || op_desc.type == "nop") {
-            if (op_desc.data_format == DataFormat::Int8) {
-                return "int8";
-            }
-        }
-        // eltwise int32
-        static std::unordered_set<std::string> ops_supporting_int32 = {
-            "nop",
-            "add",
-            "dequantization",
-            "requantization",
-            "maximum",
-        };
-        if (ops_supporting_int32.find(op_desc.type) != ops_supporting_int32.end()) {
-            if (op_desc.data_format == DataFormat::Int32) {
-                return "int32";
-            }
-        };
-
-        // matmul
-        if (op_desc.type == "matmul") {
-            if (op_desc.data_format == DataFormat::Int8 || op_desc.data_format == DataFormat::Int32) {
-                return "int32";
-            }
-        }
-    }
-    return "";
-}
-
-OpModel::OpType OpModel::op_type(const tt_op_model_desc& op_desc) {
-    static std::unordered_set<std::string> binary_ops = {
-        "add",
-        "subtract",
-        "multiply",
-        "quantization",
-        "dequantization",
-        "requantization",
-        "maximum"
-    };
-    static std::unordered_set<std::string> nary_ops = {"splice"};
-    static std::unordered_set<std::string> unary_ops = {
-        "abs",
-        "cosine",
-        "datacopy",
-        "dropout",
-        "ethernet_datacopy",
-        "exp",
-        "gelu",
-        "gelu_derivative",
-        "log",
-        "lrelu",
-        "nop", 
-        "power",
-        "reciprocal",
-        "reduce",
-        "sigmoid",
-        "sine",
-        "sqrt",
-        "square",
-        "tanh",
-        "tilizer",
-    };
-
-    if (unary_ops.find(op_desc.type) != unary_ops.end()) {
-        return OpModel::OpType::Unary;
-    } else if (binary_ops.find(op_desc.type) != binary_ops.end()) {
-        return OpModel::OpType::Binary;
-    } else if (nary_ops.find(op_desc.type) != nary_ops.end()) {
-        return OpModel::OpType::Nary;
-    } else if (op_desc.type == "matmul") {
-        return OpModel::OpType::Matmul;
-    } else if (op_desc.type == "depthwise") {
-        return OpModel::OpType::Depthwise;
-    } else if (op_desc.type == "embedding") {
-        return OpModel::OpType::Embedding;
-    } else if (op_desc.type == "fused_op") {
-        return OpModel::OpType::FusedOp;
-    } else if (op_desc.type == "topk") {
-        return OpModel::OpType::Topk;
-    } else {
-        return OpModel::OpType::Unknown;
-    }
-}
-
 uint32_t OpModel::get_op_cycles(const tt_op_model_desc& op_desc) {
     tt::ARCH arch = get_arch_enum_from_string(op_desc.arch);
-    validate(op_desc, arch);
+    OpType op_type = get_op_type_from_descriptor(op_desc);
+    validate(op_desc, arch, op_type);
+    OpCategory op_category = OpModel::get_op_category(op_type);
+
     auto& op_model = OpModel::get(arch);
-    OpType op_type = OpModel::op_type(op_desc);
 
     std::uint32_t model_cycles = 0;
-    switch (op_type) {
-        case OpType::Unary: model_cycles = op_model.compute_execution_cycles_unary(op_desc); break;
-        case OpType::Binary: model_cycles = op_model.compute_execution_cycles_binary(op_desc); break;
-        case OpType::Nary: model_cycles = op_model.compute_execution_cycles_nary(op_desc); break;
-        case OpType::Matmul: model_cycles = op_model.compute_execution_cycles_matmul(op_desc); break;
-        case OpType::Depthwise: model_cycles = op_model.compute_execution_cycles_depthwise(op_desc); break;
-        case OpType::Unknown: model_cycles = op_model.compute_execution_cycles_other(op_desc); break;
+    switch (op_category) {
+        case OpCategory::Unary: model_cycles = op_model.compute_execution_cycles_unary(op_desc); break;
+        case OpCategory::Binary: model_cycles = op_model.compute_execution_cycles_binary(op_desc); break;
+        case OpCategory::Nary: model_cycles = op_model.compute_execution_cycles_nary(op_desc); break;
+        case OpCategory::Matmul: model_cycles = op_model.compute_execution_cycles_matmul(op_desc); break;
+        case OpCategory::Depthwise: model_cycles = op_model.compute_execution_cycles_depthwise(op_desc); break;
+        case OpCategory::Unknown: model_cycles = op_model.compute_execution_cycles_other(op_desc); break;
         // for other ops we recognize, but don't have estimates, we default to unary function and default params
         default: model_cycles = op_model.compute_execution_cycles_unary(op_desc); break;
     }
@@ -263,27 +191,10 @@ OpModel& OpModel::get(const ARCH arch) {
 
 float OpModel::get_op_param(const tt_op_model_desc& op_desc, const std::string& param_name) {
     tt::ARCH arch = get_arch_enum_from_string(op_desc.arch);
-    validate(op_desc, arch);
-
-    std::string op_name = op_desc.type;
-    if (op_name == "reduce") {
-        log_assert(op_desc.op_attr != "", "Reduce dim must be set in op_attr");
-        op_name += "-" + op_desc.op_attr;
-    }
-    if (op_name == "matmul") {
-        if (op_desc.l1_accumulate) {
-            op_name += "_l1_acc";
-        }
-    }
-    if (op_type(op_desc) == OpType::Unary) {
-        if (op_desc.approx_mode) {
-            op_name += "_approx";
-        }
-    }
-
-    std::string weight_attr = get_weight_attr(op_desc);
-    OpModel& model = get(arch);
-    return model.get_param(op_name, op_desc.version, param_name, weight_attr);
+    OpType op_type = get_op_type_from_descriptor(op_desc);
+    validate(op_desc, arch, op_type);
+    auto& op_model = OpModel::get(arch);
+    return op_model.m_model_params->get_param(op_desc, param_name);
 }
 
 OpModel::OpModel(const tt::ARCH arch) {
@@ -307,26 +218,21 @@ OpModel::OpModel(const tt::ARCH arch) {
     }
 }
 
-float OpModel::get_param(
-    const std::string& op_name,
-    const std::uint32_t version,
-    const std::string& param_name,
-    const std::string& param_attr) {
-    return m_model_params->get_param(op_name, version, param_name, param_attr);
-}
-
 uint32_t OpModel::compute_execution_cycles_unary(const tt_op_model_desc& op_desc) {
     uint32_t num_ublocks = op_desc.mblock_m * op_desc.mblock_n;
     uint32_t num_tiles = num_ublocks * op_desc.ublock_rt * op_desc.ublock_ct;
     std::string op_type = op_desc.type;
-    float w1 = OpModel::get_op_param(op_desc, "ublock_weight");
-    float w2 = OpModel::get_op_param(op_desc, "tile_weight");
+
+    const auto& params = m_model_params->get_params(op_desc);
+
+    float w1 = params.at("ublock_weight");
+    float w2 = params.at("tile_weight");
     float w3 = 0;
     uint32_t z = 1;
 
     if (op_desc.reduce_z > 1 && op_type == "reduce" && op_desc.op_attr == "z") {
         z = op_desc.reduce_z;
-        w3 = OpModel::get_op_param(op_desc, "z_weight");
+        w3 = params.at("z_weight");
     }
 
     float cycle_count = op_desc.t * z * (num_ublocks * w1 + num_tiles * w2 + w3);
@@ -336,6 +242,7 @@ uint32_t OpModel::compute_execution_cycles_unary(const tt_op_model_desc& op_desc
 uint32_t OpModel::compute_execution_cycles_binary(const tt_op_model_desc& op_desc) {
     uint32_t num_ublocks = op_desc.mblock_m * op_desc.mblock_n;
     uint32_t num_tiles = num_ublocks * op_desc.ublock_rt * op_desc.ublock_ct;
+    const auto& params = m_model_params->get_params(op_desc);
 
     uint32_t df_weight = 1;
     // maximum is done on SFPU, so math thread is the bottleneck
@@ -348,8 +255,8 @@ uint32_t OpModel::compute_execution_cycles_binary(const tt_op_model_desc& op_des
     }
 
     float cycle_count = op_desc.t * (
-        num_ublocks * OpModel::get_op_param(op_desc, "ublock_weight") +
-        num_tiles * OpModel::get_op_param(op_desc, "tile_weight") * df_weight
+        num_ublocks * params.at("ublock_weight") +
+        num_tiles * params.at("tile_weight") * df_weight
     );
     
     return static_cast<uint32_t>(cycle_count);
@@ -362,9 +269,11 @@ uint32_t OpModel::compute_execution_cycles_depthwise(const tt_op_model_desc& op_
 uint32_t OpModel::compute_execution_cycles_nary(const tt_op_model_desc& op_desc) {
     uint32_t num_ublocks = op_desc.mblock_m * op_desc.mblock_n;
     uint32_t num_tiles = num_ublocks * op_desc.ublock_rt * op_desc.ublock_ct;
+    const auto& params = m_model_params->get_params(op_desc);
+
     float cycle_count = op_desc.t * (
-        num_ublocks * OpModel::get_op_param(op_desc, "ublock_weight") +
-        num_tiles * OpModel::get_op_param(op_desc, "tile_weight")
+        num_ublocks * params.at("ublock_weight") +
+        num_tiles * params.at("tile_weight")
     );
     return static_cast<uint32_t>(cycle_count);
 }
@@ -400,14 +309,18 @@ uint32_t OpModel::compute_execution_cycles_matmul(const tt_op_model_desc& op_des
 uint32_t OpModel::compute_execution_cycles_dense_matmul(const tt_op_model_desc& op_desc) {
     log_assert(op_desc.mblock_k > 0, "Must have valid mblock_k");
     log_assert(op_desc.ublock_kt > 0, "Must have valid ublock_kt");
+
+    const auto& params = m_model_params->get_params(op_desc);
+
     uint32_t num_ublocks = op_desc.mblock_m * op_desc.mblock_n;
     uint32_t m_k_executions = op_desc.mblock_k - 1;
     uint32_t mblock_executions = op_desc.mblock_k * num_ublocks;
     uint32_t ublock_executions = mblock_executions * op_desc.ublock_kt * op_desc.ublock_rt * op_desc.ublock_ct;
+
     float math_weight = get_math_weight(op_desc.math_fidelity);
-    float m_k_weight = OpModel::get_op_param(op_desc, "m_k_weight");
-    float m_weight = OpModel::get_op_param(op_desc, "ublock_weight");
-    float u_weight = OpModel::get_op_param(op_desc, "tile_weight");
+    float m_k_weight = params.at("m_k_weight");
+    float m_weight = params.at("ublock_weight");
+    float u_weight = params.at("tile_weight");
     float cycle_count = op_desc.t * (
         m_k_executions * m_k_weight +
         mblock_executions * m_weight +
@@ -420,6 +333,8 @@ uint32_t OpModel::compute_execution_cycles_dense_matmulV2(const tt_op_model_desc
     log_assert(op_desc.mblock_k > 0, "Must have valid mblock_k");
     log_assert(op_desc.ublock_kt > 0, "Must have valid ublock_kt");
 
+    const auto& params = m_model_params->get_params(op_desc);
+
     uint32_t num_ublocks = op_desc.mblock_k * op_desc.mblock_m * op_desc.mblock_n;
 
     // calculate math tiles scaled by fidelity phases
@@ -430,17 +345,17 @@ uint32_t OpModel::compute_execution_cycles_dense_matmulV2(const tt_op_model_desc
     // calculate math tiles on the outer m,k,n,r,t dimensions (skip all inner k, and first outer k)
     uint32_t math_dest_spill_ublocks = (op_desc.mblock_k - 1) * op_desc.mblock_m * op_desc.mblock_n;
     uint32_t math_dest_spill_tiles = math_dest_spill_ublocks * op_desc.ublock_rt * op_desc.ublock_ct;
-
-    float math_w1 = OpModel::get_op_param(op_desc, "math_tiles_weight");
-    float math_w2 = OpModel::get_op_param(op_desc, "math_dest_spill_weight");
+    
+    float math_w1 = params.at("math_tiles_weight");
+    float math_w2 = params.at("math_dest_spill_weight");
 
     // unpack_tiles_per_ublock: models MM op0 reuse across tiles in each op1 horizontal strip
     uint32_t unpack_tiles_per_ub = op_desc.ublock_kt * op_desc.ublock_rt * (1 + op_desc.ublock_ct);
     uint32_t unpack_total_tiles = unpack_tiles_per_ub * num_ublocks;
 
     // unpack_tile_weight: models unpack at full rate then at reduced rate due to fidelity phase backpressure from math
-    float unpack_w1 = OpModel::get_op_param(op_desc, "unpack_ublocks_weight");
-    float unpack_w2 = OpModel::get_op_param(op_desc, "unpack_tiles_weight");
+    float unpack_w1 = params.at("unpack_ublocks_weight");
+    float unpack_w2 = params.at("unpack_tiles_weight");
 
     // V2 model combines math and unpack cycles into a single cycle count where
     // - math models a fidelity phases component and a dest spill component
@@ -453,6 +368,9 @@ uint32_t OpModel::compute_execution_cycles_dense_matmulV2(const tt_op_model_desc
 uint32_t OpModel::compute_execution_cycles_sparse_matmul(const tt_op_model_desc& op_desc) {
     log_assert(op_desc.mblock_k > 0, "Must have valid mblock_k");
     log_assert(op_desc.sparse_indices > 0, "Must have valid sparse_indices");
+
+    const auto& params = m_model_params->get_params(op_desc);
+
     // Shorter names to make the formulas more readable
     uint32_t t = op_desc.t, ublock_rt = op_desc.ublock_rt, ublock_ct = op_desc.ublock_ct,
              mblock_m = op_desc.mblock_m, mblock_k = op_desc.mblock_k, mblock_n = op_desc.mblock_n;
@@ -464,18 +382,27 @@ uint32_t OpModel::compute_execution_cycles_sparse_matmul(const tt_op_model_desc&
     uint32_t num_sparse_nz_ublocks = num_sparse_nz_tiles / (t * ublock_rt * ublock_ct);
     num_sparse_ublocks = std::max(num_sparse_ublocks, num_sparse_nz_ublocks);  // avoid underflow in the subtraction below
 
-    float tile_weight = OpModel::get_op_param(op_desc, "tile_weight");
+    float tile_weight = params.at("tile_weight");
     float math_weight = get_math_weight(op_desc.math_fidelity);
     float math_cycles = num_sparse_nz_tiles * mblock_n * ublock_ct * tile_weight * math_weight;
     float reload_cycles, pack_cycles, encode_decode_cycles;
-    auto c = get_sparse_matmul_params(op_desc);
 
-    // Compute the number of cycles for each phase of the sparse matmul 
-    reload_cycles = (num_sparse_ublocks * c["reload_wait_pop"] + num_sparse_nz_ublocks * (c["reload_config"] + c["reload"] * ublock_ct * ublock_rt)) * mblock_n;
-    if (mblock_k > 1)
-        reload_cycles += mblock_m * t * (c["reload_config"] + c["reload"] * ublock_ct * ublock_rt) * mblock_n;
-    pack_cycles = c["pack_wait_push"] * (num_sparse_ublocks - num_sparse_nz_ublocks) * mblock_n + c["pack"] * 2 * t * mblock_n * mblock_m * ublock_ct * ublock_rt;
-    encode_decode_cycles = num_sparse_nz_tiles * c["nz_tile_decode"] * (2 + mblock_n) + num_sparse_ublocks * c["ublock_decode"] + num_sparse_nz_ublocks * c["nz_ublock_decode"];
+    // Compute the number of cycles for each phase of the sparse matmul
+    reload_cycles =
+        (num_sparse_ublocks * params.at("reload_wait_pop") +
+         num_sparse_nz_ublocks * (params.at("reload_config") + params.at("reload") * ublock_ct * ublock_rt)) *
+        mblock_n;
+
+    if (mblock_k > 1) {
+        reload_cycles += mblock_m * t * (params.at("reload_config") + params.at("reload") * ublock_ct * ublock_rt) * mblock_n;
+    }
+
+    pack_cycles = params.at("pack_wait_push") * (num_sparse_ublocks - num_sparse_nz_ublocks) * mblock_n +
+                  params.at("pack") * 2 * t * mblock_n * mblock_m * ublock_ct * ublock_rt;
+
+    encode_decode_cycles = num_sparse_nz_tiles * params.at("nz_tile_decode") * (2 + mblock_n) +
+                           num_sparse_ublocks * params.at("ublock_decode") +
+                           num_sparse_nz_ublocks * params.at("nz_ublock_decode");
 
     float cycle_count = math_cycles + reload_cycles + pack_cycles + encode_decode_cycles;
     log_trace(
@@ -511,6 +438,8 @@ uint32_t OpModel::compute_execution_cycles_sparse_matmulV2(const tt_op_model_des
         op_desc.sparse_nz_strips > 0 && op_desc.sparse_nz_ublocks > 0 && op_desc.sparse_indices > 0,
         "Must have at least one non-zero strip, ublock and tile");
 
+    const auto& params = m_model_params->get_params(op_desc);
+
     // Shorter names to make the formulas more readable
     uint32_t t = op_desc.t;
     uint32_t ublock_rt = op_desc.ublock_rt;
@@ -523,9 +452,9 @@ uint32_t OpModel::compute_execution_cycles_sparse_matmulV2(const tt_op_model_des
     uint32_t nz_tiles = op_desc.sparse_indices;
 
     uint32_t sparse_ublocks = nz_strips * mblock_m;
-    uint32_t nz_strips_decode = OpModel::get_op_param(op_desc, "v2_sparse_nz_strip_decode");
-    uint32_t nz_ublocks_decode = OpModel::get_op_param(op_desc, "v2_sparse_nz_ublock_decode");
-    uint32_t sparse_ublocks_decode = OpModel::get_op_param(op_desc, "v2_sparse_ublock_decode");
+    uint32_t nz_strips_decode = params.at("v2_nz_strip_decode");
+    uint32_t nz_ublocks_decode = params.at("v2_nz_ublock_decode");
+    uint32_t sparse_ublocks_decode = params.at("v2_ublock_decode");
 
     // Retrieve cycles for different stages in sparse matmul given the op parameters
     const auto& sparse_params = get_sparse_matmul_paramsV2(op_desc);
