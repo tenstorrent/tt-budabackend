@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "fork_pipe.h"
+#include "model/rational_graph/pipes/ncrisc_reader_pipe_interface.h"
 
 namespace pipegen2
 {
-    class DramMulticastPipe : public ForkPipe
+    class DramMulticastPipe : public ForkPipe, public INcriscReaderPipe
     {
     public:
         DramMulticastPipe(RGPipeProperties&& rg_pipe_properties,
@@ -30,6 +31,13 @@ namespace pipegen2
         const std::vector<int>& get_dram_input_reader_index() const { return m_dram_input_reader_index; }
 
         unsigned int get_max_dram_input_buffer_size_tiles() const { return m_max_dram_input_buffer_size_tiles; }
+
+        std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
+        {
+            // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
+            // to other cores.
+            return { get_physical_location() };
+        }
 
     private:
         // Total pipe readers for every input in this pipe. Contains duplicates as it has one entry for every element in

@@ -33,10 +33,10 @@ namespace pipegen2
         UnpackerOutput
     };
 
-#ifdef TT_DEBUG
-    // Returns appropriate name string for each node type, used for debug visualizer to visualize rational graph.
+    // Returns appropriate name string for each node type.
     std::string node_type_to_string(RGNodeType node_type);
 
+#ifdef TT_DEBUG
     // Returns appropriate color string for each node type, used for debug visualizer to visualize rational graph.
     std::string node_type_to_color(RGNodeType node_type);
 #endif

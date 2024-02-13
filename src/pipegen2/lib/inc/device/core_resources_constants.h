@@ -24,6 +24,24 @@ constexpr unsigned int max_kernel_inputs_count = 24;
 //       Including whole epoch.h in pipegen2 introduces bunch of compile errors and warnings.
 constexpr unsigned int max_kernel_outputs_count = 24;
 
+// Forking factor (i.e. number of readers) of a scattered DRAM or PCIe buffer is limited to 255. Limit exists because
+// variable which holds this info is 8-bit and is located in NCRISC L0 4KB DATA RAM.
+constexpr unsigned int max_ncrisc_input_node_readers = 255;
+
+// DRAM and PCIe read streams use data structures (queue descriptors) stored in NCRISC L0 to keep track of which part of
+// queue we are reading from. Therefore we are limited by space due to how much of L0 has been designated for those
+// structures.
+constexpr unsigned int max_num_ncrisc_reading_streams = 8;
+
+// DRAM and PCIe write streams also use queue descriptors stored in NCRISC L0 to keep track of which part of queue we
+// are writing to. Similarly as above, we are limited by space in L0 designated for this.
+constexpr unsigned int max_num_ncrisc_writing_streams = 8;
+
+// A single DRAM IO stream can read from multiple DRAM buffers. Total number of active (all but DRAM prefetch and DRAM
+// output intermediates) DRAM buffers a worker core accesses through all of its streams must be <= 40. Again, this limit
+// comes from limitations of 4KB L0 DATA RAM in NCRISC.
+constexpr unsigned int max_num_active_buffers_accessed = 40;
+
 } // namespace core_resources_constants
 
 namespace ethernet_core_resources_constants

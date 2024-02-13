@@ -10,6 +10,7 @@
 #include "device/tt_xy_pair.h"
 
 #include "device/soc_info.h"
+#include "model/rational_graph/rational_graph.h"
 #include "model/typedefs.h"
 
 namespace pipegen2
@@ -95,9 +96,18 @@ public:
     const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_l1_memory_allocations(
         const tt_cxy_pair& core_physical_location) const;
 
+    // Checks if rational graph satisfies various resource constraints.
+    void validate_rational_graph_resources(const RationalGraph* rational_graph) const;
+
 private:
     // Gets worker core resources for a given worker core location.
     WorkerCoreResources* get_worker_core_resources(const tt_cxy_pair& core_physical_location) const;
+
+    // Gets ethernet core resources for a given ethernet core location.
+    EthernetCoreResources* get_ethernet_core_resources(const tt_cxy_pair& core_physical_location) const;
+
+    // Gets core resources for a given core location.
+    CoreResources* get_core_resources(const tt_cxy_pair& core_physical_location) const;
 
     // Tracks allocation info on the corresponding core resource.
     void track_l1_stream_buffer_allocation_on_core(const StreamNode* stream_node, 
@@ -109,12 +119,6 @@ private:
     unsigned int allocate_core_l1_data_buffer(const tt_cxy_pair& core_physical_location,
                                               unsigned int size_in_bytes) const;
 
-    // Gets ethernet core resources for a given ethernet core location.
-    EthernetCoreResources* get_ethernet_core_resources(const tt_cxy_pair& core_physical_location) const;
-
-    // Gets core resources for a given core location.
-    CoreResources* get_core_resources(const tt_cxy_pair& core_physical_location) const;
-
     // Holds all chip info.
     std::unique_ptr<SoCInfo> m_soc_info;
 
@@ -123,7 +127,6 @@ private:
 
     // Map of resources for each eth core on each chip, mapped by their physical coordinates.
     std::unordered_map<tt_cxy_pair, std::unique_ptr<EthernetCoreResources>> m_ethernet_cores_resources;
-
 };
 
 } // namespace pipegen2

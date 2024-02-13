@@ -73,7 +73,9 @@ public:
         kEthernetStreams = 6,
         kPackerMulticastStreams = 7,
         kPackerStreams = 8,
-        kIntermediateStreams = 9
+        kIntermediateStreams = 9,
+        kNcriscReaderStreams = 10,
+        kNcriscWriterStreams = 11
     };
 
     IllegalCoreResourceAllocationException(const std::string& error_message,

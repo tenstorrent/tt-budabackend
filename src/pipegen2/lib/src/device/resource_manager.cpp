@@ -9,6 +9,7 @@
 #include "logger.hpp"
 
 #include "device/ethernet_core_resources.h"
+#include "device/ncrisc_resources_checker.h"
 #include "device/resource_manager_internal.h"
 #include "device/worker_core_resources.h"
 #include "model/stream_graph/stream_node.h"
@@ -228,6 +229,13 @@ const std::vector<std::unique_ptr<L1MemoryAllocation>>& ResourceManager::get_l1_
     const tt_cxy_pair& core_physical_location) const
 {
     return get_core_resources(core_physical_location)->get_all_memory_allocations();
+}
+
+void ResourceManager::validate_rational_graph_resources(const RationalGraph* rational_graph) const
+{
+    // For now, we only check NCRISC resources usage.
+    NcriscResourcesChecker ncrisc_resources_checker;
+    ncrisc_resources_checker.check(rational_graph);
 }
 
 } // namespace pipegen2

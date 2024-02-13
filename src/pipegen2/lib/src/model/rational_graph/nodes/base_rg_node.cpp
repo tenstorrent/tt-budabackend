@@ -8,7 +8,6 @@
 
 namespace pipegen2
 {
-#ifdef TT_DEBUG
     std::string node_type_to_string(RGNodeType node_type)
     {
         switch (node_type)
@@ -46,6 +45,7 @@ namespace pipegen2
         }
     }
 
+#ifdef TT_DEBUG
     std::string node_type_to_color(RGNodeType node_type)
     {
         switch (node_type)

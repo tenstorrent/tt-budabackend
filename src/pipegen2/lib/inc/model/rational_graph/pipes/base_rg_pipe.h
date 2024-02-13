@@ -247,6 +247,9 @@ namespace pipegen2
 
         const RGBaseNode* get_first_input_node() const;
 
+        // Expects that pipe has a single input node and returns it, asserts otherwise.
+        const RGBaseNode* get_input_node() const;
+
         const std::vector<const RGBaseNode*>& get_output_nodes() const { return m_output_nodes; }
 
         // Expects that pipe has a single output node and returns it, asserts otherwise.

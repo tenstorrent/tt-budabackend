@@ -6,7 +6,6 @@
 #include <numeric>
 #include <unordered_set>
 
-#include "model/rational_graph/nodes/unpacker_output_node.h"
 #include "pipegen2_utils.h"
 
 namespace pipegen2
@@ -81,6 +80,14 @@ namespace pipegen2
         log_assert(!m_inputs.empty(), "Expecting at least one input to the pipe");
 
         return m_inputs[0].get_node();
+    }
+
+    const RGBaseNode* RGBasePipe::get_input_node() const
+    {
+        std::vector<const RGBaseNode*> input_nodes = get_unique_input_nodes();
+        log_assert(input_nodes.size() == 1, "Expecting only a single unique node at the pipe input");
+
+        return input_nodes[0];
     }
 
     const RGBaseNode* RGBasePipe::get_output_node() const

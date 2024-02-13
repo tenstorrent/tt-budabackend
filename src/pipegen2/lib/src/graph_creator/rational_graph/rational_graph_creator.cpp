@@ -6,6 +6,7 @@
 #include <stack>
 #include <stdexcept>
 
+#include "device/resource_manager.h"
 #include "device/tt_xy_pair.h"
 
 #include "data_flow_calculator/pcie_flow_calculator.h"
@@ -52,6 +53,7 @@
 #include "model/rational_graph/pipes/join/gather_to_pcie_pipe.h"
 #include "model/rational_graph/pipes/join/shared_packer_intermed_pipe.h"
 #include "model/rational_graph/pipes/join/union_pipe.h"
+#include "model/rational_graph/rational_graph.h"
 #include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_utils.h"
@@ -96,8 +98,15 @@ namespace pipegen2
                               resource_manager->get_soc_info());
 
         create_relay_nodes(pg_subgraph->get_buffers(), rational_graph_nodes);
-        return std::make_unique<RationalGraph>(std::move(rational_graph_nodes), std::move(rational_graph_pipes),
-                                               is_subgraph_doing_pcie_transfer(pg_subgraph));
+
+        std::unique_ptr<RationalGraph> rational_graph = std::make_unique<RationalGraph>(
+            std::move(rational_graph_nodes),
+            std::move(rational_graph_pipes),
+            is_subgraph_doing_pcie_transfer(pg_subgraph));
+
+        resource_manager->validate_rational_graph_resources(rational_graph.get());
+
+        return rational_graph;
     }
 
     std::vector<std::unique_ptr<RGBaseNode>> RationalGraphCreator::create_rational_graph_nodes(
