@@ -17,5 +17,5 @@ namespace analyzer {
         std::vector<std::shared_ptr<EthernetPipe>> ethernet_pipes;
     };
     // load epoch pipes
-    EpochPipes load_pipegen_yaml(Chip& c, std::string filename);
+    EpochPipes load_pipegen_yaml(std::vector<Chip>& chips, std::string filename);
 }

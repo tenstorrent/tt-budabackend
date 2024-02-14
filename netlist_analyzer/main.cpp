@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
         ::generate_pipegen_spec(args.netlist_path, analyzer_output_dir_path, arch_string, args.cluster_file);
     }
 
-    auto netlist_analyzer = tt_netlist_analyzer(args.arch, args.netlist_path);
+    auto netlist_analyzer = tt_netlist_analyzer(args.arch, args.netlist_path, args.cluster_file);
     
     netlist_analyzer.run_net2pipe_flow(analyzer_output_dir_path);
 

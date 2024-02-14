@@ -17,7 +17,7 @@ namespace analyzer {
 
     class Chip {
         public:
-            Chip(std::string arch);
+            Chip(std::string arch, uint32_t harvesting_mask = 0);
             Chip(Chip const&) = default;
             ~Chip() = default;
 
@@ -51,6 +51,17 @@ namespace analyzer {
                 return grid_size;
             };
 
+            enum class CoreType {
+                ARC,
+                DRAM,
+                ETH,
+                PCIE,
+                WORKER,
+                HARVESTED,
+                ROUTER_ONLY,
+                UNKNOWN
+            };
+
         private:
 
             void registerLinks(const std::shared_ptr<Link> link) {
@@ -62,20 +73,20 @@ namespace analyzer {
                 }
             }
 
+            uint32_t get_harvested_noc_rows(uint32_t harvesting_mask);
+            void createFromYaml(std::string path_of_device_descriptor_file, uint32_t harvesting_mask = 0);
+
             std::vector<std::shared_ptr<DramInternal>> dram_internals;
 
             std::string arch_name;
 
             int slowest_op_cycles;
             int bw_limited_op_cycles;
-            
+
             std::vector<std::shared_ptr<Link>> links_sorted_by_percent_capacity;
             std::vector<std::shared_ptr<Op>> ops_sorted_by_cycles_per_tensor;
 
             std::unordered_map<std::string, std::shared_ptr<Grid>> grids_by_name;
-
-            void createDefaultGS();
-            void createWHB0();
 
             Shape grid_size;
             Shape core_grid_size;
@@ -83,7 +94,7 @@ namespace analyzer {
             std::unordered_map<int, std::shared_ptr<Node>> _eth_nodes;
             std::shared_ptr<Node> _pcie_node;
             std::unordered_map<int, std::unordered_map<int, std::shared_ptr<Node>>> _nodes;
-            std::unordered_map<int, std::unordered_map<int, std::pair<int, int>>> _core_to_chip_translation;            
+            std::unordered_map<int, std::unordered_map<int, std::pair<int, int>>> _core_to_chip_translation;
 
     };
 }

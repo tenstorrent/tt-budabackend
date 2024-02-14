@@ -93,9 +93,10 @@ TEST(BasicSuite, DramUnaryDramOutputYaml) {
 
 TEST(BasicSuite, PipegenYamlRead) {
     Chip c = Chip("grayskull");
+    std::vector<Chip> chips = {c};
 
     // Load pipes
-    EpochPipes epoch_pipes = load_pipegen_yaml(c, "./netlist_analyzer/tests/pipegen_yamls/dram_unary_dram_pipegen.yaml");
+    EpochPipes epoch_pipes = load_pipegen_yaml(chips, "./netlist_analyzer/tests/pipegen_yamls/dram_unary_dram_pipegen.yaml");
     
     // map Pipes
     for (auto &p : epoch_pipes.pipes) {
@@ -107,9 +108,10 @@ TEST(BasicSuite, PipegenYamlRead) {
 
 TEST(BasicSuite, YamlReadOutputYamlReport) {
     Chip c = Chip("grayskull");
+    std::vector<Chip> chips = {c};
 
     // Load pipes
-    EpochPipes epoch_pipes = load_pipegen_yaml(c, "./netlist_analyzer/tests/pipegen_yamls/dram_unary_dram_pipegen.yaml");
+    EpochPipes epoch_pipes = load_pipegen_yaml(chips, "./netlist_analyzer/tests/pipegen_yamls/dram_unary_dram_pipegen.yaml");
     
     // map Pipes
     for (auto &p : epoch_pipes.pipes) {
@@ -122,9 +124,10 @@ TEST(BasicSuite, YamlReadOutputYamlReport) {
 
 TEST(BasicSuite, DramMatmulDramMcast) {
     Chip c = Chip("grayskull");
+    std::vector<Chip> chips = {c};
 
     // Load pipes
-    EpochPipes epoch_pipes = load_pipegen_yaml(c, "./netlist_analyzer/tests/pipegen_yamls/dram_matmul_dram_pipegen.yaml");
+    EpochPipes epoch_pipes = load_pipegen_yaml(chips, "./netlist_analyzer/tests/pipegen_yamls/dram_matmul_dram_pipegen.yaml");
     
     // map Pipes
     for (auto &p : epoch_pipes.pipes) {

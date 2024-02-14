@@ -14,7 +14,7 @@
 
 namespace analyzer {
 
- EpochPipes load_pipegen_yaml(Chip& c, std::string filename) {
+EpochPipes load_pipegen_yaml(std::vector<Chip>& chips, std::string filename) {
 
     EpochPipes result;
 
@@ -39,7 +39,7 @@ namespace analyzer {
         for (const auto & it : pipegen_yaml) {
             std::string key = it.first.as<std::string>();
             auto yaml_node = it.second;
-            
+
             // Process graph name
             if(key == "graph_name") {
                 result.graph_name = it.second.as<std::string>();
@@ -60,7 +60,7 @@ namespace analyzer {
                 const int tiles_per_input =  yaml_node["tiles_per_input"] ? yaml_node["tiles_per_input"].as<int>() : 0;
                 buffers[buffer_id].buffer_t_factor = tiles_per_input / (replicate * scg);
                 buffers[buffer_id].num_tiles = scg;
-                
+
                 // Handle prologed DRAM
                 if(yaml_node["prefetch_type"] and yaml_node["prefetch_type"].as<int>() == 1) {
                     buffers[buffer_id].prefetch_type = yaml_node["prefetch_type"].as<int>();
@@ -109,7 +109,7 @@ namespace analyzer {
             // Process pipe
             const std::string pipe_string = "pipe_";
             //std::cout << "key: " << key << std::endl;
-            
+
             if(key.compare(0, pipe_string.size(), pipe_string) == 0) {
                 uint64_t pipe_id = yaml_node["id"].as<uint64_t>();
                 const int pipe_periodic_repeat = yaml_node["pipe_periodic_repeat"].as<int>();
@@ -129,17 +129,17 @@ namespace analyzer {
 
                     log_assert(yaml_node["output_list"].size() == 1, "ethernet pipe must have 1 output");
                     const uint64_t output_id = yaml_node["output_list"][0].as<uint64_t>();
-                    
+
 
                     const int num_tiles = buffers[input_id].buffer_t_factor * buffers[input_id].num_tiles;
                     const int tile_size = buffers[input_id].tile_size;
 
                     const int input_chip_id  = buffers[input_id].chip_id;
                     const int input_eth_chan = buffers[input_id].ethernet_channel;
-                    
+
                     const int output_chip_id  = buffers[output_id].chip_id;
                     const int output_eth_chan = buffers[output_id].ethernet_channel;
-                    
+
                     result.ethernet_pipes.push_back(std::shared_ptr<EthernetPipe>(new EthernetPipe({
                         .pipe_id = pipe_id,
                         .num_tiles = num_tiles,
@@ -152,7 +152,7 @@ namespace analyzer {
 
                     continue;
                 }
-                
+
                 int pipe_dram_bank = -1; // Must only be from a single bank. Dire performance penalties if reading / writing from mixed banks
 
                 std::vector<GridLoc> inputs;
@@ -166,6 +166,7 @@ namespace analyzer {
                     log_assert(input_t_factor == -1 or input_t_factor == buffers[id].buffer_t_factor, "Incorrect input_t_factor");
                     input_t_factor = buffers[id].buffer_t_factor;
 
+                    Chip& c = chips.at(buffers[id].chip_id);
                     if(buffers[id].dram_channel != -1) {
                         inputs.push_back(c.getDramNode(buffers[id].dram_channel, buffers[id].dram_sub_channel)->soc_location);
                         pipe_dram_bank = buffers.at(id).dram_bank;
@@ -192,13 +193,15 @@ namespace analyzer {
                 bool output_scatter_pipe = yaml_node["output_list"][0].IsSequence();
 
                 if(output_scatter_pipe) {
+                    int chip_location = yaml_node["mcast_core_rc"][0][0].as<int>();
+                    Chip& c = chips.at(chip_location);
                     for(size_t c_rep = 0; c_rep < yaml_node["output_list"].size(); c_rep += pipe_consumer_repeat) {
                         std::vector<GridLoc> outputs;
-                        
+
                         for (const auto output: yaml_node["output_list"][c_rep]) {
                             uint64_t id = output.as<uint64_t>();
                             log_assert(tile_size == buffers[id].tile_size, "Incorrect tile size");
-                            
+
                             if(buffers[id].dram_channel != -1) {
                                 outputs.push_back(c.getDramNode(buffers[id].dram_channel, buffers[id].dram_sub_channel)->soc_location);
                                 pipe_dram_bank = buffers.at(id).dram_bank;
@@ -217,8 +220,7 @@ namespace analyzer {
                         else {
                             pipe_location = c.getCoreNode(yaml_node["mcast_core_rc"][c_rep][1].as<int>(), yaml_node["mcast_core_rc"][c_rep][2].as<int>())->soc_location;
                         }
-                        
-                        int chip_location = yaml_node["mcast_core_rc"][c_rep][0].as<int>();
+
                         log_assert(outputs.size() == 1, "Expected a single output");
                         result.pipes.push_back(std::shared_ptr<Pipe>(new Pipe(
                             pipe_id,
@@ -239,12 +241,14 @@ namespace analyzer {
                     }
                 }
                 else {
+                    int chip_location = yaml_node["mcast_core_rc"][0].as<int>();
+                    Chip& c = chips.at(chip_location);
                     std::vector<GridLoc> outputs;
                     for (const auto output: yaml_node["output_list"]) {
                         //std::cout << "output: " << output << std::endl;
                         uint64_t id = output.as<uint64_t>();
 /*
-                        uint64_t id = output.IsSequence() ? 
+                        uint64_t id = output.IsSequence() ?
                                       output[0].as<uint64_t>() :
                                       output.as<uint64_t>();
 */
@@ -267,12 +271,11 @@ namespace analyzer {
                     else {
                         pipe_location = c.getCoreNode(yaml_node["mcast_core_rc"][1].as<int>(), yaml_node["mcast_core_rc"][2].as<int>())->soc_location;
                     }
-                    int chip_location = yaml_node["mcast_core_rc"][0].as<int>();
 /*
-                    GridLoc pipe_location = yaml_node["mcast_core_rc"][0].IsSequence() ? 
+                    GridLoc pipe_location = yaml_node["mcast_core_rc"][0].IsSequence() ?
                                             c.getCoreNode(yaml_node["mcast_core_rc"][0][1].as<int>(), yaml_node["mcast_core_rc"][0][2].as<int>())->soc_location :
                                             c.getCoreNode(yaml_node["mcast_core_rc"][1].as<int>(), yaml_node["mcast_core_rc"][2].as<int>())->soc_location;
- */                   
+ */
                     result.pipes.push_back(std::shared_ptr<Pipe>(new Pipe(
                         pipe_id,
                         inputs,
@@ -293,7 +296,7 @@ namespace analyzer {
             }
         }
     }
-    return result;  
+    return result;
 }
 
 }

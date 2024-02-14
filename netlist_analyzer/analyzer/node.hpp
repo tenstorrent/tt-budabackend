@@ -102,8 +102,10 @@ class RouterNode : public Node {
 
 class CoreNode : public Node {
     public:
-        CoreNode(const GridLoc& loc, const NodeLinks& node_links) : Node(loc, node_links) {
+        bool is_harvested;
+        CoreNode(const GridLoc& loc, const NodeLinks& node_links, bool is_harvested = false) : Node(loc, node_links) {
             this->node_type = "core";    
+            this->is_harvested = is_harvested;
         };
         ~CoreNode() = default;
 

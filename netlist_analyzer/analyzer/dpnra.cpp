@@ -9,7 +9,6 @@
 #include "op.hpp"
 #include "queue.hpp"
 
-
 #include "utils/logger.hpp"
 #include "pipe_inference.hpp"
 #include "pipe_mapper.hpp"
@@ -20,8 +19,9 @@ using namespace analyzer;
 
 namespace dpnra {
 
-Analyzer::Analyzer(std::string arch) {
+Analyzer::Analyzer(std::string arch, std::vector<analyzer::Chip> chips) {
     this->arch = arch;
+    this->m_chips = chips;
 }
 
 void Analyzer::assign_grid(GridConfig grid_config, int chip_id) {
@@ -63,7 +63,8 @@ void Analyzer::assign_grid(GridConfig grid_config, int chip_id) {
     } else {
         log_fatal("Unsupported grid_config={} in place_grid", grid_config);
     }
-};
+}
+
 void Analyzer::assign_edge(EdgeConfig edge_config, int chip_id) {
     log_debug(tt::LogAnalyzer, "Assigning Edge: {}", edge_config);
     // Base case --> new chip or new edge vector
@@ -78,57 +79,36 @@ void Analyzer::assign_edge(EdgeConfig edge_config, int chip_id) {
 
 void Analyzer::place_chip(int chip_id) {
     log_debug(tt::LogAnalyzer, "Placing Chip: {}", chip_id);
+    /*
     // Place all the grids onto the chip
-    chip_id_to_chip.insert({chip_id, Chip(this->arch)});
-
+    chip_id_to_chip.insert({chip_id, Chip(this->arch, chip_id_to_harvesting_mask[chip_id])});
+    */
     log_assert(
         chip_id_to_grids.find(chip_id) != chip_id_to_grids.end(), "Cannot find any grids for chip_id={}", chip_id);
 
     for (const auto& [grid_name, grid] : chip_id_to_grids.at(chip_id)) {
         //chip_id_to_grids.at(chip_id).at(grid.first)->map(chip_id_to_chip.at(chip_id));
-        chip_id_to_chip.at(chip_id).mapGrid(grid_name, grid);
-    }
-}
-
-void Analyzer::load_pipes_for_chip(int chip_id, const std::string &pipegen_yaml_path) {
-    log_debug(tt::LogAnalyzer, "Loading Pipes for Chip: {}", chip_id);
-
-     log_assert(
-            chip_id_to_chip.find(chip_id) != chip_id_to_chip.end(),
-            "Cannot find chip_id={}",
-            chip_id);
-
-    auto & chip = chip_id_to_chip.at(chip_id);
-    // Load pipes
-    log_info(tt::LogAnalyzer, "Loading pipegen.yaml for chip_id: {}: {}", chip_id, pipegen_yaml_path);
-    EpochPipes epoch_pipes = load_pipegen_yaml(chip, pipegen_yaml_path);
-    
-    // map Pipes
-    for (auto &p : epoch_pipes.pipes) {
-        mapGenericPipe(chip, p.get());
+        m_chips.at(chip_id).mapGrid(grid_name, grid);
     }
 }
 
 void Analyzer::load_pipes_for_chips(const std::string &pipegen_yaml_path) {
-    log_debug(tt::LogAnalyzer, "Loading Pipes for Chips");
-
     // Load pipes
-    //log_info(tt::LogAnalyzer, "Loading pipegen.yaml for chip_id: {}: {}", chip_id, pipegen_yaml_path);
-    auto & arch_chip = chip_id_to_chip.at(0); // TODO: this assumes all chips are identical archs
-    EpochPipes epoch_pipes = load_pipegen_yaml(arch_chip, pipegen_yaml_path); // TODO: this assumes all chips are identical archs
+    log_debug(tt::LogAnalyzer, "Loading pipes from {}", pipegen_yaml_path);
+    EpochPipes epoch_pipes = load_pipegen_yaml(m_chips, pipegen_yaml_path);
     
     // map Pipes
     for (auto &p : epoch_pipes.pipes) {
-        auto & chip = chip_id_to_chip.at(p->chip_location);
+        auto & chip = m_chips.at(p->chip_location);
         mapGenericPipe(chip, p.get());
     }
 
     // map ethernet Pipes
     for (auto &p : epoch_pipes.ethernet_pipes) {
-        auto & input_chip = chip_id_to_chip.at(p->input_chip_id);
+        auto & input_chip = m_chips.at(p->input_chip_id);
         mapEthernetPipe(input_chip, p->input_chip_id, p.get());
         if(p->input_chip_id != p->output_chip_id) { // Avoid double mapping
-            auto & output_chip = chip_id_to_chip.at(p->output_chip_id);
+            auto & output_chip = m_chips.at(p->output_chip_id);
             mapEthernetPipe(output_chip, p->output_chip_id, p.get());
         }
     }
@@ -136,10 +116,12 @@ void Analyzer::load_pipes_for_chips(const std::string &pipegen_yaml_path) {
 
 void Analyzer::route_chip(int chip_id) {
     log_debug(tt::LogAnalyzer, "Routing Chip: {}", chip_id);
+    //log_assert(chip_id >= 0 && chip_id < m_chips.size(), "Cannot find chip_id={}", chip_id);
+    // Comment out below because all chips should be visible in cluster desc
     // Route all the edges onto the chip
-    if (chip_id_to_chip.find(chip_id) == chip_id_to_chip.end()) {
-        chip_id_to_chip.insert({chip_id, Chip(this->arch)});
-    }
+    //if (chip_id_to_chip.find(chip_id) == chip_id_to_chip.end()) {
+        //chip_id_to_chip.insert({chip_id, Chip(this->arch)});
+    //}
     log_assert(
         chip_id_to_grid_pairs.find(chip_id) != chip_id_to_grid_pairs.end(),
         "Cannot find any edges for chip_id={}",
@@ -169,27 +151,26 @@ void Analyzer::route_chip(int chip_id) {
     }
     // map Pipes
     for (auto& p : pipes) {
-        mapPipe(chip_id_to_chip.at(chip_id), p);
+        mapPipe(m_chips.at(chip_id), p);
     }
 }
+
 void Analyzer::test_chip(int chip_id) {
     log_info(tt::LogAnalyzer, "Testing Chip: {}", chip_id);
-    log_assert(
-        chip_id_to_chip.find(chip_id) != chip_id_to_chip.end(), "Cannot find chip_id={}", chip_id);
-    chip_id_to_chip.at(chip_id).printLinks();
+    //log_assert(chip_id >= 0 && chip_id < m_chips.size(), "Cannot find chip_id={}", chip_id);
+    m_chips.at(chip_id).printLinks();
 }
 
 void Analyzer::analyze_chip(int chip_id) { 
     log_info(tt::LogAnalyzer, "Analyzing Chip: {}", chip_id);
-    log_assert(
-        chip_id_to_chip.find(chip_id) != chip_id_to_chip.end(), "Cannot find chip_id={}", chip_id);
-    chip_id_to_chip.at(chip_id).report();
-};
+    //log_assert(chip_id >= 0 && chip_id < m_chips.size(), "Cannot find chip_id={}", chip_id);
+    m_chips.at(chip_id).report();
+}
+
 void Analyzer::serialize_chip(int chip_id, const std::string& filename) { 
     log_info(tt::LogAnalyzer, "Serializing Chip: {}", chip_id);
-    log_assert(
-        chip_id_to_chip.find(chip_id) != chip_id_to_chip.end(), "Cannot find chip_id={}", chip_id);
-    chip_id_to_chip.at(chip_id).outputYaml(filename, chip_id);
-};
+    //log_assert(chip_id >= 0 && chip_id < m_chips.size(), "Cannot find chip_id={}", chip_id);
+    m_chips.at(chip_id).outputYaml(filename, chip_id);
+}
 
 }  // namespace dpnra

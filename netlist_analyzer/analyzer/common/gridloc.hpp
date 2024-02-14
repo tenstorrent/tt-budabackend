@@ -5,6 +5,7 @@
 
 #include "utils/logger.hpp"
 #include "vector"
+#include <regex>
 
 namespace analyzer {
 
@@ -27,6 +28,23 @@ struct GridLoc {
     std::vector<int> to_vec() const { return {y, x}; }
 
     GridLoc from_vec(const std::vector<int>& v) { return GridLoc({v[0], v[1]}); }
+
+    static GridLoc from_str(const std::string& str) {
+        // read from coordinates separated by a dash, e.g. "1-2"
+        int x_coord;
+        int y_coord;
+        std::regex expr("([0-9]+)[-,xX]([0-9]+)");
+        std::smatch x_y_pair;
+
+        if (std::regex_search(str, x_y_pair, expr)) {
+            x_coord = std::stoi(x_y_pair[1]);
+            y_coord = std::stoi(x_y_pair[2]);
+        } else {
+            throw std::runtime_error("Could not parse the core id: " + str);
+        }
+
+        return GridLoc(y_coord, x_coord);
+    }
 
     bool operator==(const GridLoc& o) const { return (y == o.y) && (x == o.x); }
 

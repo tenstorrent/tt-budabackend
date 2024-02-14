@@ -14,14 +14,13 @@
 
 namespace dpnra {
 class Analyzer {
-    public:
-    Analyzer(std::string arch);
+  public:
+    Analyzer(std::string arch, std::vector<analyzer::Chip> chips);
     ~Analyzer() = default;
 
     void assign_grid(analyzer::GridConfig grid_config, int chip_id);
     void assign_edge(analyzer::EdgeConfig edge_config, int chip_id);
     void place_chip(int chip_id);
-    void load_pipes_for_chip(int chip_id, const std::string &build_dir_path);
     void load_pipes_for_chips(const std::string &pipegen_yaml_path);
     void route_chip(int chip_id);
     void test_chip(int chip_id);
@@ -30,11 +29,12 @@ class Analyzer {
     void run_per_core_checks();
     void run_grid_checks();
 
-    private:
-        std::string arch;
-        std::unordered_map<int, std::unordered_map<std::string, std::shared_ptr<analyzer::Grid>>> chip_id_to_grids;
-        std::unordered_map<int, analyzer::Chip> chip_id_to_chip; // FIXME: Can remove once map functions moved to mapper API
-        std::unordered_map<int, std::set<std::pair<std::string, std::string>>> chip_id_to_grid_pairs;
+  private:
+    std::string arch;
+    std::vector<analyzer::Chip> m_chips;
+    std::unordered_map<int, std::unordered_map<std::string, std::shared_ptr<analyzer::Grid>>> chip_id_to_grids;
+
+    std::unordered_map<int, std::set<std::pair<std::string, std::string>>> chip_id_to_grid_pairs;
 };
 
 }
