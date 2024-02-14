@@ -104,11 +104,34 @@ std::string tt_cluster::get_cluster_desc_path(const std::string& root) {
         else {
             // Cluster desc has not been generated. 
             // Generate and store it in out_dir.
-            generate_cluster_desc_yaml(root);
+            if (detect_available_devices(tt::TargetDevice::Silicon)[0] == tt::ARCH::GRAYSKULL) {
+                create_cluster_desc_for_gs(root);
+            }
+            else {
+                generate_cluster_desc_yaml(root);
+            }
             cluster_desc_path = custom_cluster_desc_path;
         }
     }
     return custom_cluster_desc_path;
+}
+
+void tt_cluster::create_cluster_desc_for_gs(const std::string& root) {
+    log_debug(tt::LogRuntime, "Creating custom cluster desc for GS");
+    auto available_device_ids = tt_SiliconDevice::detect_available_device_ids();
+    ofstream f(root + "/cluster_desc.yaml");
+
+    f << " chips: {\n}\n";
+    f << "ethernet_connections: [\n]\n";
+    f << "harvesting: [\n]\n";
+    f << "chips_with_mmio: [\n";
+
+    for (int i = 0; i < available_device_ids.size(); i++) {
+        f << std::to_string(i) << ": " << std::to_string(available_device_ids[i]) << ", \n";
+    }
+    f << "]";
+
+    f.close();
 }
 
 // Return vector of device names detected, used by API function. Assumes all devices are the same arch.

@@ -78,7 +78,12 @@ void generate_sdesc_yaml_for_overlay_compile(std::set<chip_id_t> chips, tt::ARCH
 
 void generate_cluster_desc_yaml(const string &build_dir_path) {
     std::string cmd = buda_home();
-    cmd += "device/bin/silicon/wormhole/create-ethernet-map " + build_dir_path + "/cluster_desc.yaml";
+    if (using_arm_host()) {
+        cmd += "umd/device/bin/silicon/aarch64/create-ethernet-map " + build_dir_path + "/cluster_desc.yaml";
+    }
+    else {
+        cmd += "umd/device/bin/silicon/x86/create-ethernet-map " + build_dir_path + "/cluster_desc.yaml";
+    }
     log_info(tt::LogRuntime, "running: '{}'", cmd);
     log_assert(system(cmd.c_str()) == 0, "Unable to generate cluster descriptor file");
     log_debug(tt::LogRuntime, "Generated cluster descriptor file at path={}/cluster_desc.yaml", build_dir_path);

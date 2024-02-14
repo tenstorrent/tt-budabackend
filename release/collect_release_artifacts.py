@@ -78,8 +78,16 @@ bbe_files = {
         "path": "perf_lib/op_model/params",
         "files": "*"
     },
-    "device_silicon_wormhole_bin": {
-        "path": "device/bin/silicon/wormhole",
+    "device_silicon_wormhole_bin_x86": {
+        "supported_arches": [ARCH_AMD64],
+        "path": "./umd/device/bin/silicon/x86",
+        "files": [
+            "create-ethernet-map"
+        ]
+    },
+    "device_silicon_wormhole_bin_aarch64": {
+        "supported_arches": [ARCH_ARM64],
+        "path": "./umd/device/bin/silicon/aarch64",
         "files": [
             "create-ethernet-map"
         ]

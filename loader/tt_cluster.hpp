@@ -97,7 +97,7 @@ struct tt_cluster
     //! device driver and misc apis
     static std::string get_cluster_desc_path(const std::string& root);
     static std::vector<tt::ARCH> detect_available_devices(const TargetDevice &target_type, bool only_detect_mmio = true);
-
+    static void create_cluster_desc_for_gs(const std::string& root);
     void open_device(
         const tt::ARCH &arch,
         const TargetDevice &target_type,
