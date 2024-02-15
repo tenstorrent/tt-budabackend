@@ -85,11 +85,13 @@ for p in 1..num_phases
     :buf_size => input0_data_buf_size,
     :msg_info_buf_addr => buf_addr + input0_data_buf_size,
     :dest => [],
+    :src => [input0_park_stream],
     :remote_source => true,   
     :receiver_endpoint => true,   
     :num_msgs => num_input0_data_buf_msgs,
     :msg_size => input0_data_buf_msg_size,
     :next_phase_src_change => true,
+    :data_buf_no_flow_ctrl => true,
     :reg_update_vc => 1
   }
   
@@ -104,6 +106,7 @@ for p in 1..num_phases
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input0_data_stream],
+    :dest_data_buf_no_flow_ctrl => true,
     :num_msgs => num_input0_park_buf_msgs,
     :msg_size => input0_park_buf_msg_size,
 #    :preload_data => (0..num_msgs-1).map { |i| (start_seed_0 + (i << 16)) },
@@ -122,11 +125,13 @@ for p in 1..num_phases
     :buf_size => input1_data_buf_size,
     :msg_info_buf_addr => buf_addr + input1_data_buf_size,
     :dest => [],
+    :src => [input1_park_stream],
     :remote_source => true,   
     :receiver_endpoint => true,   
     :num_msgs => num_input1_data_buf_msgs,
     :msg_size => input1_data_buf_msg_size,
     :next_phase_src_change => true,
+    :data_buf_no_flow_ctrl => true,
     :reg_update_vc => 1
   }
 
@@ -141,6 +146,7 @@ for p in 1..num_phases
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input1_data_stream],
+    :dest_data_buf_no_flow_ctrl => true,
     :num_msgs => num_input1_park_buf_msgs,
     :msg_size => input1_park_buf_msg_size,
 #    :preload_data => (0..num_msgs-1).map { |i| (start_seed_0 + (i << 16)) },
@@ -179,6 +185,7 @@ for p in 1..num_phases
     :buf_size => output0_park_buf_size,
     :msg_info_buf_addr => buf_addr + output0_park_buf_size,
     :dest => [],
+    :src => [output0_data_stream],
     :remote_source => true,   
     :num_msgs => num_output0_park_buf_msgs,
     :msg_size => output0_park_buf_msg_size,

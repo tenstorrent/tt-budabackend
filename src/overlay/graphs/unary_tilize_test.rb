@@ -100,6 +100,7 @@ for p in 1..num_phases
     :buf_size => output0_park_buf_size,
     :msg_info_buf_addr => buf_addr + output0_park_buf_size,
     :dest => [],
+    :src => [output0_data_stream],
     :remote_source => true,   
     :num_msgs => num_output0_park_buf_msgs,
     :msg_size => output0_park_buf_msg_size,

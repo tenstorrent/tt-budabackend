@@ -1,5 +1,5 @@
 
-$unary_multi_in_test_graph = {}
+$unary_multi_in_streaming_test_graph = {}
 
 ##
 
@@ -66,11 +66,11 @@ for p in 1..num_phases
 
   phase = :"phase_#{p}"
 
-  $unary_multi_in_test_graph[phase] = {}
+  $unary_multi_in_streaming_test_graph[phase] = {}
 
   buf_addr = input0_data_base
 
-  $unary_multi_in_test_graph[phase][input0_data_stream] = {
+  $unary_multi_in_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
     :buf_addr => buf_addr,
@@ -90,7 +90,7 @@ for p in 1..num_phases
 
   buf_addr = input1_data_base
 
-  $unary_multi_in_test_graph[phase][input1_data_stream] = {
+  $unary_multi_in_streaming_test_graph[phase][input1_data_stream] = {
     :input_index => 1,
     :auto_run => true,
     :buf_addr => buf_addr,
@@ -110,7 +110,7 @@ for p in 1..num_phases
 
   buf_addr = input2_data_base
 
-  $unary_multi_in_test_graph[phase][input2_data_stream] = {
+  $unary_multi_in_streaming_test_graph[phase][input2_data_stream] = {
     :input_index => 2,
     :auto_run => true,
     :buf_addr => buf_addr,
@@ -130,7 +130,7 @@ for p in 1..num_phases
 
   buf_addr = input3_data_base
 
-  $unary_multi_in_test_graph[phase][input3_data_stream] = {
+  $unary_multi_in_streaming_test_graph[phase][input3_data_stream] = {
     :input_index => 3,
     :auto_run => true,
     :buf_addr => buf_addr,
@@ -160,13 +160,13 @@ for p in 1..num_phases
 
   phase = :"phase_#{p}"
 
-  if !$unary_multi_in_test_graph[phase]
-    $unary_multi_in_test_graph[phase] = {}
+  if !$unary_multi_in_streaming_test_graph[phase]
+    $unary_multi_in_streaming_test_graph[phase] = {}
   end
 
   resend = output0_no_resend ? false : (((p-1) % num_microblocks_in_buf) == 0 ? false : true)
 
-  $unary_multi_in_test_graph[phase][output0_stream] = {
+  $unary_multi_in_streaming_test_graph[phase][output0_stream] = {
     :output_index => 0,
     :auto_run => true,
     :buf_addr => buf_addr,
