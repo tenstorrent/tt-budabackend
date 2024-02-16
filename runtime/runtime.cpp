@@ -1906,11 +1906,13 @@ std::string tt_runtime::runtime_data_to_yaml() {
     f << "branch_name: '" << gitinfo.first << "'" << endl;
     f << "commit_hash: '" << gitinfo.second << "'" << endl;
 
-    for (const auto& chip : soc_descs) {
+    if (soc_descs.size() > 0) {
         f << "worker_grid_sizes_per_chip:" << endl;
-        f << "  " << chip.first << ": " << endl;
-        f << "     x: " << chip.second.worker_grid_size.x << endl;
-        f << "     y: " << chip.second.worker_grid_size.y << endl;
+        for (const auto& chip : soc_descs) {
+            f << "  " << chip.first << ": " << endl;
+            f << "     x: " << chip.second.worker_grid_size.x << endl;
+            f << "     y: " << chip.second.worker_grid_size.y << endl;
+        }
     }
 
     if (loader) {
