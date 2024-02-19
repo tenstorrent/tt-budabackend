@@ -113,6 +113,22 @@ class yaml_not_implemented_server : public tt::dbd::server {
             "\n  chip_id: " + std::to_string(chip_id));
         return {};
     }
+    std::optional<std::vector<uint8_t>> get_device_ids() override {
+        send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_device_ids)));
+        return {};
+    }
+    std::optional<std::string> get_device_arch(uint8_t chip_id) override {
+        send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::get_device_arch)) +
+            "\n  chip_id: " + std::to_string(chip_id));
+        return {};
+    }
+    std::optional<std::string> get_device_soc_description(uint8_t chip_id) override {
+        send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::get_device_soc_description)) +
+            "\n  chip_id: " + std::to_string(chip_id));
+        return {};
+    }
 
    public:
     yaml_not_implemented_server(bool enable_yaml) : enable_yaml(enable_yaml) {}
@@ -180,6 +196,10 @@ TEST(debuda_server, get_cluster_description) {
     test_not_implemented_request(tt::dbd::request{tt::dbd::request_type::get_cluster_description}, "- type: 102");
 }
 
+TEST(debuda_server, get_device_ids) {
+    test_not_implemented_request(tt::dbd::request{tt::dbd::request_type::get_device_ids}, "- type: 104");
+}
+
 TEST(debuda_server, pci_read4) {
     test_not_implemented_request(
         tt::dbd::pci_read4_request{tt::dbd::request_type::pci_read4, 1, 2, 3, 123456},
@@ -227,6 +247,20 @@ TEST(debuda_server, get_harvester_coordinate_translation) {
         tt::dbd::get_harvester_coordinate_translation_request{
             tt::dbd::request_type::get_harvester_coordinate_translation, 1},
         "- type: 103\n  chip_id: 1");
+}
+
+TEST(debuda_server, get_device_arch) {
+    test_not_implemented_request(
+        tt::dbd::get_device_arch_request{
+            tt::dbd::request_type::get_device_arch, 1},
+        "- type: 105\n  chip_id: 1");
+}
+
+TEST(debuda_server, get_device_soc_description) {
+    test_not_implemented_request(
+        tt::dbd::get_device_soc_description_request{
+            tt::dbd::request_type::get_device_soc_description, 1},
+        "- type: 106\n  chip_id: 1");
 }
 
 TEST(debuda_server, pci_write) {

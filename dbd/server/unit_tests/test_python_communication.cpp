@@ -61,6 +61,8 @@ TEST(debuda_python_communication, get_runtime_data) { call_python("get_runtime_d
 
 TEST(debuda_python_communication, get_cluster_description) { call_python("get_cluster_description", "- type: 102\n"); }
 
+TEST(debuda_python_communication, get_device_ids) { call_python("get_device_ids", "- type: 104\n"); }
+
 TEST(debuda_python_communication, pci_read4) {
     call_python("pci_read4", "- type: 10\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n");
 }
@@ -93,6 +95,14 @@ TEST(debuda_python_communication, pci_read_tile) {
 
 TEST(debuda_python_communication, get_harvester_coordinate_translation) {
     call_python("get_harvester_coordinate_translation", "- type: 103\n  chip_id: 1\n");
+}
+
+TEST(debuda_python_communication, get_device_arch) {
+    call_python("get_device_arch", "- type: 105\n  chip_id: 1\n");
+}
+
+TEST(debuda_python_communication, get_device_soc_description) {
+    call_python("get_device_soc_description", "- type: 106\n  chip_id: 1\n");
 }
 
 TEST(debuda_python_communication, pci_write) {

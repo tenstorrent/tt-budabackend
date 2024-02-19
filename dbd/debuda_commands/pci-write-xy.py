@@ -19,6 +19,7 @@ Examples:
 
 command_metadata = {"short": "wxy", "type": "low-level", "description": __doc__}
 
+from debuda import UIState
 import tt_device
 from tt_coordinate import OnChipCoordinate
 from docopt import docopt
@@ -29,19 +30,19 @@ def print_a_pci_write(x, y, addr, val, comment=""):
     print(f"{x}-{y} 0x{addr:08x} ({addr}) <= 0x{val:08x} ({val:d})")
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
 
     core_loc_str = args["<core-loc>"]
     addr = int(args["<addr>"], 0)
     data = int(args["<data>"], 0)
 
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
     core_loc = OnChipCoordinate.create(core_loc_str, device=current_device)
 
     tt_device.SERVER_IFC.pci_write_xy(
-        ui_state["current_device_id"], *core_loc.to("nocVirt"), 0, addr, data=data
+        ui_state.current_device_id, *core_loc.to("nocVirt"), 0, addr, data=data
     )
     print_a_pci_write(*core_loc.to("nocTr"), addr, data)
 

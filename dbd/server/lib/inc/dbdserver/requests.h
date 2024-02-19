@@ -28,6 +28,9 @@ enum class request_type : uint8_t {
     get_runtime_data,
     get_cluster_description,
     get_harvester_coordinate_translation,
+    get_device_ids,
+    get_device_arch,
+    get_device_soc_description,
 };
 
 // Structures for receiving requests
@@ -98,6 +101,15 @@ struct pci_read_tile_request : request {
 } __attribute__((packed));
 
 struct get_harvester_coordinate_translation_request : request {
+    uint8_t chip_id;
+} __attribute__((packed));
+
+struct get_device_arch_request : request {
+    uint8_t chip_id;
+} __attribute__((packed));
+
+
+struct get_device_soc_description_request : request {
     uint8_t chip_id;
 } __attribute__((packed));
 

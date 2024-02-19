@@ -26,5 +26,7 @@ class yaml_communication : public tt::dbd::communication {
     std::string serialize(const tt::dbd::dma_buffer_read4_request& request);
     std::string serialize(const tt::dbd::pci_read_tile_request& request);
     std::string serialize(const tt::dbd::get_harvester_coordinate_translation_request& request);
+    std::string serialize(const tt::dbd::get_device_arch_request& request);
+    std::string serialize(const tt::dbd::get_device_soc_description_request& request);
     std::string serialize_bytes(const uint8_t* data, size_t size);
 };

@@ -31,6 +31,7 @@ command_metadata = {
 
 import sys
 from tabulate import tabulate
+from debuda import UIState
 from tt_object import TTObjectIDDict
 import tt_util as util
 import tt_device
@@ -298,7 +299,7 @@ def compare_dram_and_l1_binaries(build_dir_binary: List[int], dram_binary: List[
         WARN(f"Binaries match")
     
 
-def run(cmd_text, context, ui_state = None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
     verbose = 0 if args['<verbose>'] is None else int(args['<verbose>'])
     global bcc_verbose
@@ -306,7 +307,7 @@ def run(cmd_text, context, ui_state = None):
     
     core_loc_str = args['<core-loc>']
     core_loc_str = args['<core-loc>']
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
     core_loc = OnChipCoordinate.create(core_loc_str, device=current_device)
     

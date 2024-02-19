@@ -10,12 +10,13 @@ command_metadata = {
     "description": "Shows summary for core 'x-y'.",
 }
 
+from debuda import UIState
 import tt_util as util
 
 
-def run(args, context, ui_state=None):
+def run(args, context, ui_state: UIState = None):
     noc0_loc = int(args[1]), int(args[2])
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
 
     output_table = dict()

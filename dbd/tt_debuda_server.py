@@ -25,6 +25,9 @@ class debuda_server_request_type(Enum):
     get_runtime_data = 101
     get_cluster_description = 102
     get_harvester_coordinate_translation = 103
+    get_device_ids = 104
+    get_device_arch = 105
+    get_device_soc_description = 106
 
 
 class debuda_server_bad_request(Exception):
@@ -190,6 +193,32 @@ class debuda_server_communication:
         )
         return self._check(self._socket.recv())
 
+    def get_device_ids(self):
+        self._socket.send(
+            bytes([debuda_server_request_type.get_device_ids.value])
+        )
+        return self._check(self._socket.recv())
+
+    def get_device_arch(self, chip_id: int):
+        self._socket.send(
+            struct.pack(
+                "<BB",
+                debuda_server_request_type.get_device_arch.value,
+                chip_id,
+            )
+        )
+        return self._check(self._socket.recv())
+
+    def get_device_soc_description(self, chip_id: int):
+        self._socket.send(
+            struct.pack(
+                "<BB",
+                debuda_server_request_type.get_device_soc_description.value,
+                chip_id,
+            )
+        )
+        return self._check(self._socket.recv())
+
 
 class debuda_server:
     def __init__(self, address: str, port: int):
@@ -282,4 +311,17 @@ class debuda_server:
     def get_harvester_coordinate_translation(self, chip_id: int):
         return self.parse_string(
             self._communication.get_harvester_coordinate_translation(chip_id)
+        )
+
+    def get_device_ids(self):
+        return self._communication.get_device_ids()
+
+    def get_device_arch(self, chip_id: int):
+        return self.parse_string(
+            self._communication.get_device_arch(chip_id)
+        )
+    
+    def get_device_soc_description(self, chip_id: int):
+        return self.parse_string(
+            self._communication.get_device_soc_description(chip_id)
         )

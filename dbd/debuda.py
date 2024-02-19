@@ -22,6 +22,7 @@ Arguments:
   output_dir                     Output directory of a buda run. If left blank, the most recent subdirectory of tt_build/ will be used.
 """
 try:
+    from functools import cached_property
     import sys, os, argparse, traceback, fnmatch, importlib
     from tabulate import tabulate
     from prompt_toolkit import PromptSession
@@ -47,6 +48,7 @@ def application_path():
 
 sys.path.append(application_path())
 
+from tt_debuda_server import debuda_server_not_supported
 from tt_coordinate import OnChipCoordinate
 import tt_util as util, tt_device, tt_netlist
 import tt_firmware as fw
@@ -279,91 +281,127 @@ def locate_most_recent_build_output_dir():
     return None
 
 
-# This function initializes the addresses of the variables we often access
-def create_device_access_cache(context):
-    # Compute the offset for the epoch_id field
-    epoch_id_addr, _ = context.elf.parse_addr_size("brisc.EPOCH_INFO_PTR.epoch_id")
-    if epoch_id_addr is None:
-        raise util.TTException(f"Could not find address of epoch_id field in ELF file.")
+# All-encompassing structure representing a Debuda context
+class Context:
+    def __init__(self, netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path):
+        self._netlist_filepath = netlist_filepath
+        self._run_dirpath = run_dirpath
+        self._runtime_data_yaml = runtime_data_yaml
+        self._cluster_desc_path = cluster_desc_path
 
-    arch = context.netlist.get_arch()
-    has_erisc = arch.lower() != "grayskull"
-    if has_erisc:
-        eth_epoch_id_addr, _ = context.elf.parse_addr_size(
-            "erisc_app.EPOCH_INFO_PTR.epoch_id"
-        )
-        # eth_epoch_id_addr = 0x20080 + context.elf.parse_address("@epoch_t.epoch_id")
-        if eth_epoch_id_addr is None:
-            raise util.TTException(
-                f"Could not ind address of epoch_id field in erisc ELF file."
+    @cached_property
+    def netlist(self):
+        if self._run_dirpath is None or self._runtime_data_yaml is None:
+            raise util.TTException(f"We are running with limited functionality, elf files are not available.")
+        return tt_netlist.Netlist(self._netlist_filepath, self._run_dirpath, self._runtime_data_yaml)
+
+    @cached_property
+    def devices(self):
+        device_ids = self.device_ids
+        devices = dict()
+        for device_id in device_ids:
+            try:
+                device_desc_path = self.server_ifc.get_device_soc_description(device_id)
+            except:
+                device_desc_path = tt_device.get_soc_desc_path(device_id, self._run_dirpath)
+            # util.INFO(f"Loading device {device_id} from {device_desc_path}")
+            devices[device_id] = tt_device.Device.create(
+                self.arch,
+                device_id=device_id,
+                cluster_desc=self.cluster_desc.root,
+                device_desc_path=device_desc_path,
+                context=self
             )
+        return devices
 
-    for d in context.devices.values():
-        d.EPOCH_ID_ADDR = epoch_id_addr
-        if has_erisc:
-            d.ETH_EPOCH_ID_ADDR = eth_epoch_id_addr
+    @cached_property
+    def cluster_desc(self):
+        if self._cluster_desc_path is None:
+            raise util.TTException(f"We are running with limited functionality, cluster description is not available.")
+        return util.YamlFile(self._cluster_desc_path)
 
+    @cached_property
+    def is_buda(self):
+        return not self._runtime_data_yaml is None
+
+    @cached_property
+    def device_ids(self):
+        try:
+            device_ids = self.server_ifc.get_device_ids()
+            return util.set(d for d in device_ids)
+        except:
+            return self.netlist.get_device_ids()
+
+    @cached_property
+    def arch(self):
+        try:
+            return self.server_ifc.get_device_arch(min(self.device_ids))
+        except:
+            return self.netlist.get_arch()
+
+    @cached_property
+    def elf(self):
+        if self._run_dirpath is None:
+            raise util.TTException(f"We are running with limited functionality, elf files are not available.")
+
+        elf_files_to_load = {
+            "brisc": f"{self._run_dirpath}/brisc/brisc.elf",
+            "ncrisc": f"{self._run_dirpath}/ncrisc/ncrisc.elf",
+        }
+        if self.arch.lower() != "grayskull":
+            elf_files_to_load["erisc_app"] = f"{self._run_dirpath}/erisc/erisc_app.elf"
+
+        return fw.ELF(elf_files_to_load)
+
+    @cached_property
+    def epoch_id_address(self):
+        address, _ = self.elf.parse_addr_size("brisc.EPOCH_INFO_PTR.epoch_id")
+        if address is None:
+            raise util.TTException(f"Could not find address of epoch_id field in ELF file.")
+        return address
+    
+    @cached_property
+    def eth_epoch_id_address(self):
+        if self.arch.lower() == "grayskull":
+            raise util.TTException(f"There are no eth cores on grayskull.")
+        address, _ = self.elf.parse_addr_size("erisc_app.EPOCH_INFO_PTR.epoch_id")
+        # address = 0x20080 + context.elf.parse_address("@epoch_t.epoch_id")
+        if address is None:
+            raise util.TTException(f"Could not ind address of epoch_id field in erisc ELF file.")
+        return address
+
+    def __repr__(self):
+        return f"context"
 
 # Loads all files necessary to debug a single buda run
 # Returns a debug 'context' that contains the loaded information
 def load_context(netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path):
-    # All-encompassing structure representing a Debuda context
-    class Context:
-        netlist = None  # Netlist and related 'static' data (i.e. data stored in files such as blob.yaml, pipegen.yaml)
-        devices = None  # A list of objects of class Device used to obtain 'dynamic' data (i.e. data read from the devices)
-        cluster_desc = None  # Cluster description (i.e. the 'cluster_desc.yaml' file)
+    context = Context(netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path)
 
-        def __repr__(self):
-            return f"context"
-
-    context = Context()
-
-    # Load netlist files
-    context.netlist = tt_netlist.Netlist(
-        netlist_filepath, run_dirpath, runtime_data_yaml
-    )
-
-    # Load the cluster descriptor. This file is created by the tt_runtime::tt_runtime -> generate_cluster_descriptor.
-    # There is also a 'cluster_desc.yaml' file in the run_dirpath directory...
-    if not os.path.exists(cluster_desc_path):
-        context.cluster_desc = None
-    else:
-        context.cluster_desc = util.YamlFile(cluster_desc_path)
-
-    # Create the devices
-    arch = context.netlist.get_arch()
-    device_ids = context.netlist.get_device_ids()
-    context.devices = dict()
-    for device_id in device_ids:
-        device_desc_path = tt_device.get_soc_desc_path(device_id, run_dirpath)
-        # util.INFO(f"Loading device {device_id} from {device_desc_path}")
-        context.devices[device_id] = tt_device.Device.create(
-            arch,
-            device_id=device_id,
-            cluster_desc=context.cluster_desc.root,
-            device_desc_path=device_desc_path,
-        )
-
-    # Create the ELF objects
-    elf_files_to_load = {
-        "brisc": f"{run_dirpath}/brisc/brisc.elf",
-        "ncrisc": f"{run_dirpath}/ncrisc/ncrisc.elf",
-    }
-    if arch.lower() != "grayskull":
-        elf_files_to_load["erisc_app"] = f"{run_dirpath}/erisc/erisc_app.elf"
-
-    context.elf = fw.ELF(elf_files_to_load)
-
-    # Create accessors
-    create_device_access_cache(context)
-
-    # Assign a device to each graph.
-    for _, graph in context.netlist.graphs.items():
-        graph.device = context.devices[graph.device_id()]
-    context.netlist.devices = context.devices
+    # TODO: Make this lazy load for buda
+    if context.is_buda:
+        # Assign a device to each graph.
+        for _, graph in context.netlist.graphs.items():
+            graph.device = context.devices[graph.device_id()]
+        context.netlist.devices = context.devices
 
     return context
 
+class UIState:
+    def __init__(self, context: Context) -> None:
+        self.context = context
+        self.current_device_id = 0  # Currently selected device id
+        self.current_location = OnChipCoordinate(0, 0, "netlist", self.current_device)  # Currently selected core
+        self.current_stream_id = 8  # Currently selected stream_id
+        self.current_prompt = ""  # Based on the current x,y,stream_id tuple
+        try:
+            self.current_graph_name = context.netlist.graphs.first().id()  # Currently selected graph name
+        except:
+            self.current_graph_name = None
+
+    @property
+    def current_device(self):
+        return self.context.devices[self.current_device_id] if self.current_device_id is not None else None
 
 def main_loop(args, context):
     """
@@ -372,22 +410,12 @@ def main_loop(args, context):
     cmd_raw = ""
 
     commands = import_commands()
-    current_device = context.devices[0]
 
     # Create prompt object.
     context.prompt_session = PromptSession(completer=DebudaCompleter(commands, context))
 
     # Initialize current UI state
-    ui_state = {
-        "current_loc": OnChipCoordinate(
-            0, 0, "netlist", current_device
-        ),  # Currently selected core
-        "current_stream_id": 8,  # Currently selected stream_id
-        "current_graph_name": context.netlist.graphs.first().id(),  # Currently selected graph name
-        "current_prompt": "",  # Based on the current x,y,stream_id tuple
-        "current_device": current_device,  # Currently selected device
-        "current_device_id": 0,  # Currently selected device id
-    }
+    ui_state = UIState(context)
 
     navigation_suggestions = None
 
@@ -399,37 +427,25 @@ def main_loop(args, context):
     # Main command loop
     while True:
         have_non_interactive_commands = len(non_interactive_commands) > 0
-        current_loc = ui_state["current_loc"]
+        current_loc = ui_state.current_location
 
         if (
-            ui_state["current_loc"] is not None
-            and ui_state["current_graph_name"] is not None
-            and ui_state["current_device"] is not None
+            ui_state.current_location is not None
+            and ui_state.current_graph_name is not None
+            and ui_state.current_device is not None
         ):
-            ui_state["current_prompt"] = (
+            ui_state.current_prompt = (
                 f"NocTr:{util.CLR_PROMPT}{current_loc.to_str()}{util.CLR_PROMPT_END} "
             )
-            ui_state[
-                "current_prompt"
-            ] += f"netlist:{util.CLR_PROMPT}{current_loc.to_str('netlist')}{util.CLR_PROMPT_END} "
-            ui_state[
-                "current_prompt"
-            ] += f"stream:{util.CLR_PROMPT}{ui_state['current_stream_id']}{util.CLR_PROMPT_END} "
-            graph = context.netlist.graph(ui_state["current_graph_name"])
+            ui_state.current_prompt += f"netlist:{util.CLR_PROMPT}{current_loc.to_str('netlist')}{util.CLR_PROMPT_END} "
+            ui_state.current_prompt += f"stream:{util.CLR_PROMPT}{ui_state.current_stream_id}{util.CLR_PROMPT_END} "
+            graph = context.netlist.graph(ui_state.current_graph_name)
             op_name = graph.location_to_op_name(current_loc)
-            ui_state[
-                "current_prompt"
-            ] += f"op:{util.CLR_PROMPT}{op_name}{util.CLR_PROMPT_END} "
+            ui_state.current_prompt += f"op:{util.CLR_PROMPT}{op_name}{util.CLR_PROMPT_END} "
 
         try:
-            ui_state["current_device_id"] = context.netlist.graph_name_to_device_id(
-                ui_state["current_graph_name"]
-            )
-            ui_state["current_device"] = (
-                context.devices[ui_state["current_device_id"]]
-                if ui_state["current_device_id"] is not None
-                else None
-            )
+            if not ui_state.current_graph_name is None:
+                ui_state.current_device_id = context.netlist.graph_name_to_device_id(ui_state.current_graph_name)
 
             print_navigation_suggestions(navigation_suggestions)
 
@@ -441,7 +457,11 @@ def main_loop(args, context):
                         f"{util.CLR_INFO}Executing command: %s{util.CLR_END}" % cmd_raw
                     )
             else:
-                my_prompt = f"Current epoch:{util.CLR_PROMPT}{context.netlist.graph_name_to_epoch_id(ui_state['current_graph_name'])}{util.CLR_PROMPT_END}({ui_state['current_graph_name']}) device:{util.CLR_PROMPT}{ui_state['current_device_id']}{util.CLR_PROMPT_END} {ui_state['current_prompt']}> "
+                if context.is_buda:
+                    epoch_id = context.netlist.graph_name_to_epoch_id(ui_state.current_graph_name)
+                else:
+                    epoch_id = None
+                my_prompt = f"Current epoch:{util.CLR_PROMPT}{epoch_id}{util.CLR_PROMPT_END}({ui_state.current_graph_name}) device:{util.CLR_PROMPT}{ui_state.current_device_id}{util.CLR_PROMPT_END} {ui_state.current_prompt}> "
                 cmd_raw = context.prompt_session.prompt(HTML(my_prompt))
 
             cmd_int = try_int(cmd_raw)
@@ -517,15 +537,17 @@ def main():
             )
             args["<output_dir>"] = most_recent_build_output_dir
         else:
-            util.FATAL(
-                f"Output directory (output_dir) was not supplied and cannot be determined automatically. Exiting..."
+            util.WARN(
+                f"Output directory (output_dir) was not supplied and cannot be determined automatically. Continuing with limited functionality..."
             )
 
     # Try to load the runtime data from the output directory
-    runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
     runtime_data_yaml = None
-    if os.path.exists(runtime_data_yaml_filename):
-        runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
+    runtime_data_yaml_filename = None
+    if not args['<output_dir>'] is None:
+        runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
+        if os.path.exists(runtime_data_yaml_filename):
+            runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
 
     # Try to connect to the server. If it is not already running, it will be started.
     print(f"Connecting to Debuda server at {args['--debuda-server-address']}")
@@ -537,9 +559,17 @@ def main():
 
     # We did not find the runtime_data.yaml file, so we need to get the runtime data from the server
     if runtime_data_yaml is None:
-        runtime_data_yaml = server_ifc.get_runtime_data()
+        try:
+            runtime_data_yaml = server_ifc.get_runtime_data()
+        except debuda_server_not_supported as e:
+            # It is ok to continue with limited functionality
+            pass
 
-    cluster_desc_path = os.path.abspath(server_ifc.get_cluster_desc_path())
+    try:
+        cluster_desc_path = os.path.abspath(server_ifc.get_cluster_desc_path())
+    except debuda_server_not_supported as e:
+        # It is ok to continue with limited functionality
+        cluster_desc_path = None
 
     # Create the context
     context = load_context(

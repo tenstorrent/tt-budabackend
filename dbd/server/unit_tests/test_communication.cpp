@@ -74,6 +74,10 @@ TEST(debuda_communication, get_cluster_description) {
     test_yaml_request(tt::dbd::request{tt::dbd::request_type::get_cluster_description}, "- type: 102");
 }
 
+TEST(debuda_communication, get_device_ids) {
+    test_yaml_request(tt::dbd::request{tt::dbd::request_type::get_device_ids}, "- type: 104");
+}
+
 TEST(debuda_communication, pci_read4) {
     test_yaml_request(
         tt::dbd::pci_read4_request{tt::dbd::request_type::pci_read4, 1, 2, 3, 123456},
@@ -121,6 +125,20 @@ TEST(debuda_communication, get_harvester_coordinate_translation) {
         tt::dbd::get_harvester_coordinate_translation_request{
             tt::dbd::request_type::get_harvester_coordinate_translation, 1},
         "- type: 103\n  chip_id: 1");
+}
+
+TEST(debuda_communication, get_device_arch) {
+    test_yaml_request(
+        tt::dbd::get_device_arch_request{
+            tt::dbd::request_type::get_device_arch, 1},
+        "- type: 105\n  chip_id: 1");
+}
+
+TEST(debuda_communication, get_device_soc_description) {
+    test_yaml_request(
+        tt::dbd::get_device_soc_description_request{
+            tt::dbd::request_type::get_device_soc_description, 1},
+        "- type: 106\n  chip_id: 1");
 }
 
 TEST(debuda_communication, pci_write) {

@@ -12,6 +12,7 @@ Examples:
   eq
 """
 
+from debuda import UIState
 import tt_util as util
 import tt_device
 from tt_netlist import Queue
@@ -21,11 +22,11 @@ command_metadata = {"type": "low-level", "short": "eq", "description": __doc__}
 
 
 # Prints epoch queues
-def run(args, context, ui_state=None):
+def run(args, context, ui_state: UIState = None):
     verbose = len(args) > 1
     runtime_data = context.netlist.runtime_data_yaml.root
     arch_name = runtime_data.get("arch_name").upper()
-    graph_name = ui_state["current_graph_name"]
+    graph_name = ui_state.current_graph_name
     device_id = context.netlist.graph_name_to_device_id(graph_name)
     epoch_device = context.devices[device_id]
     distribtued_eq = bool(runtime_data.get("distribute_epoch_tables", 1))

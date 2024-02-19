@@ -23,10 +23,11 @@ command_metadata = {
 }
 
 from docopt import docopt
+from debuda import UIState
 import tt_util as util
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState =None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
     try:
         buffer_id = int(args["<buffer-id>"])
@@ -36,7 +37,7 @@ def run(cmd_text, context, ui_state=None):
 
     navigation_suggestions = []
 
-    graph_name = ui_state["current_graph_name"]
+    graph_name = ui_state.current_graph_name
     graph = context.netlist.graph(graph_name)
 
     if type(buffer_id) == int:

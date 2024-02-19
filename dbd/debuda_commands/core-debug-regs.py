@@ -16,15 +16,16 @@ Examples:
 """
 
 from docopt import docopt
+from debuda import UIState
 import tt_util as util
 from tt_coordinate import OnChipCoordinate
 
 command_metadata = {"short": "cdr", "type": "low-level", "description": __doc__}
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
 
     if args["<core-loc>"]:

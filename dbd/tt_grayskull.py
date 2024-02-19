@@ -12,8 +12,8 @@ class GrayskullL1AddressMap(tt_device.L1AddressMap):
         ## Taken from l1_address_map.h. Ideally make this auto-generated
         self._l1_address_map = dict()
         self._l1_address_map["trisc0"] = tt_device.BinarySlot(offset_bytes = 0 + 20 * 1024 + 32 * 1024, size_bytes = 20 * 1024)
-        self._l1_address_map["trisc1"] : tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc0"].offset_bytes + self._l1_address_map["trisc0"].size_bytes, size_bytes = 16 * 1024)
-        self._l1_address_map["trisc2"] : tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc1"].offset_bytes + self._l1_address_map["trisc1"].size_bytes, size_bytes = 20 * 1024)
+        self._l1_address_map["trisc1"] = tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc0"].offset_bytes + self._l1_address_map["trisc0"].size_bytes, size_bytes = 16 * 1024)
+        self._l1_address_map["trisc2"] = tt_device.BinarySlot(offset_bytes = self._l1_address_map["trisc1"].offset_bytes + self._l1_address_map["trisc1"].size_bytes, size_bytes = 20 * 1024)
         # Brisc, ncrisc, to be added
         
 class GrayskullDRAMEpochCommandAddressMap(tt_device.L1AddressMap):
@@ -23,8 +23,8 @@ class GrayskullDRAMEpochCommandAddressMap(tt_device.L1AddressMap):
         ## Taken from dram_address_map.h. Ideally make this auto-generated
         self._l1_address_map = dict()
         self._l1_address_map["trisc0"] = tt_device.BinarySlot(offset_bytes = -1, size_bytes = 20 * 1024)
-        self._l1_address_map["trisc1"] : tt_device.BinarySlot(offset_bytes = -1, size_bytes = 16 * 1024)
-        self._l1_address_map["trisc2"] : tt_device.BinarySlot(offset_bytes = -1, size_bytes = 20 * 1024)
+        self._l1_address_map["trisc1"] = tt_device.BinarySlot(offset_bytes = -1, size_bytes = 16 * 1024)
+        self._l1_address_map["trisc2"] = tt_device.BinarySlot(offset_bytes = -1, size_bytes = 20 * 1024)
         # Brisc, ncrisc, to be added
 
 #
@@ -81,9 +81,8 @@ class GrayskullDevice(tt_device.Device):
     def _handle_harvesting_for_nocTr_noc0_map(self, num_harvested_rows):
         assert num_harvested_rows == 0, "Harvesting not supported for Grayskull"
 
-    def __init__(self, id, arch, cluster_desc, device_desc_path):
-        super().__init__(id, arch, cluster_desc, {"functional_workers": GrayskullL1AddressMap(), "dram": GrayskullDRAMEpochCommandAddressMap()})
-        self.yaml_file = util.YamlFile(device_desc_path)
+    def __init__(self, id, arch, cluster_desc, device_desc_path, context):
+        super().__init__(id, arch, cluster_desc, {"functional_workers": GrayskullL1AddressMap(), "dram": GrayskullDRAMEpochCommandAddressMap()}, device_desc_path, context)
 
     def row_count(self):
         return len(GrayskullDevice.DIE_Y_TO_NOC_0_Y)

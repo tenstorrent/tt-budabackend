@@ -14,6 +14,7 @@ Examples:
 """
 
 import tabulate
+from debuda import UIState
 from tt_debug_risc import RiscDebug, RiscLoc
 
 command_metadata = {"short": "gpr", "type": "low-level", "description": __doc__}
@@ -55,10 +56,10 @@ RISC_REGS = {
 }
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     result = {}
-    device_id = ui_state["current_device_id"]
-    loc = ui_state["current_loc"]
+    device_id = ui_state.current_device_id
+    loc = ui_state.current_location
     for i in range(0, 4):
         risc = RiscDebug(RiscLoc(loc, 0, i))
         risc.enable_debug()

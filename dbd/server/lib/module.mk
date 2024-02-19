@@ -9,6 +9,13 @@ DEBUDA_SERVER_LIB_INCLUDES = \
 	$(BASE_INCLUDES) \
 	-Idbd/server/lib/inc \
 
+DEBUDA_SERVER_LIB_INCLUDES = $(RUNTIME_INCLUDES) -I$(BUDA_HOME)/umd
+ifeq ("$(ARCH_NAME)", "wormhole_b0")
+  DEBUDA_SERVER_LIB_INCLUDES += -I$(BUDA_HOME)/umd/device/wormhole/
+else
+  DEBUDA_SERVER_LIB_INCLUDES += -I$(BUDA_HOME)/umd/device/$(ARCH_NAME)/
+endif
+
 -include $(DEBUDA_SERVER_LIB_DEPS)
 
 .PRECIOUS: $(OBJDIR)/dbd/server/lib/%.o

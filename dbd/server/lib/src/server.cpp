@@ -60,6 +60,17 @@ void tt::dbd::server::process(const tt::dbd::request& base_request) {
             respond(get_harvester_coordinate_translation(request.chip_id));
             break;
         }
+        case tt::dbd::request_type::get_device_ids: respond(get_device_ids()); break;
+        case tt::dbd::request_type::get_device_arch: {
+            auto& request = static_cast<const tt::dbd::get_device_arch_request&>(base_request);
+            respond(get_device_arch(request.chip_id));
+            break;
+        }
+        case tt::dbd::request_type::get_device_soc_description: {
+            auto& request = static_cast<const tt::dbd::get_device_soc_description_request&>(base_request);
+            respond(get_device_soc_description(request.chip_id));
+            break;
+        }
     }
 }
 

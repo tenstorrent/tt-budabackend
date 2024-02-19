@@ -79,6 +79,13 @@ class simulation_server : public tt::dbd::server {
     std::optional<std::string> get_harvester_coordinate_translation(uint8_t chip_id) override {
         return "get_harvester_coordinate_translation(" + std::to_string(chip_id) + ")";
     }
+    std::optional<std::vector<uint8_t>> get_device_ids() override { return std::vector<uint8_t>{0, 1}; }
+    std::optional<std::string> get_device_arch(uint8_t chip_id) override {
+        return "get_device_arch(" + std::to_string(chip_id) + ")";
+    }
+    std::optional<std::string> get_device_soc_description(uint8_t chip_id) override {
+        return "get_device_soc_description(" + std::to_string(chip_id) + ")";
+    }
 };
 
 void call_python(
@@ -143,4 +150,16 @@ TEST(debuda_python_server, get_cluster_description) { call_python_server("get_cl
 
 TEST(debuda_python_server, get_harvester_coordinate_translation) {
     call_python_server("get_harvester_coordinate_translation");
+}
+
+TEST(debuda_python_server, get_device_ids) {
+    call_python_server("get_device_ids");
+}
+
+TEST(debuda_python_server, get_device_arch) {
+    call_python_server("get_device_arch");
+}
+
+TEST(debuda_python_server, get_device_soc_description) {
+    call_python_server("get_device_soc_description");
 }

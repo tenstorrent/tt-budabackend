@@ -11,7 +11,8 @@ void yaml_communication::process(const tt::dbd::request& request) {
     switch (request.type) {
         case tt::dbd::request_type::ping:
         case tt::dbd::request_type::get_runtime_data:
-        case tt::dbd::request_type::get_cluster_description: respond(serialize(request)); break;
+        case tt::dbd::request_type::get_cluster_description:
+        case tt::dbd::request_type::get_device_ids: respond(serialize(request)); break;
 
         case tt::dbd::request_type::pci_write4:
             respond(serialize(static_cast<const tt::dbd::pci_write4_request&>(request)));
@@ -39,6 +40,12 @@ void yaml_communication::process(const tt::dbd::request& request) {
             break;
         case tt::dbd::request_type::get_harvester_coordinate_translation:
             respond(serialize(static_cast<const tt::dbd::get_harvester_coordinate_translation_request&>(request)));
+            break;
+        case tt::dbd::request_type::get_device_arch:
+            respond(serialize(static_cast<const tt::dbd::get_device_arch_request&>(request)));
+            break;
+        case tt::dbd::request_type::get_device_soc_description:
+            respond(serialize(static_cast<const tt::dbd::get_device_soc_description_request&>(request)));
             break;
 
         default:
@@ -103,6 +110,16 @@ std::string yaml_communication::serialize(const tt::dbd::pci_read_tile_request& 
 }
 
 std::string yaml_communication::serialize(const tt::dbd::get_harvester_coordinate_translation_request& request) {
+    return "- type: " + std::to_string(static_cast<int>(request.type)) +
+           "\n  chip_id: " + std::to_string(request.chip_id);
+}
+
+std::string yaml_communication::serialize(const tt::dbd::get_device_arch_request& request) {
+    return "- type: " + std::to_string(static_cast<int>(request.type)) +
+           "\n  chip_id: " + std::to_string(request.chip_id);
+}
+
+std::string yaml_communication::serialize(const tt::dbd::get_device_soc_description_request& request) {
     return "- type: " + std::to_string(static_cast<int>(request.type)) +
            "\n  chip_id: " + std::to_string(request.chip_id);
 }

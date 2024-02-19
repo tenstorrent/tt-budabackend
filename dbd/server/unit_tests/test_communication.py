@@ -34,6 +34,11 @@ def get_cluster_description():
     check_response(server_communication.get_cluster_description(), "- type: 102")
 
 
+def get_device_ids():
+    global server_communication
+    check_response(server_communication.get_device_ids(), "- type: 104")
+
+
 def pci_read4():
     global server_communication
     check_response(
@@ -95,6 +100,22 @@ def get_harvester_coordinate_translation():
     check_response(
         server_communication.get_harvester_coordinate_translation(1),
         "- type: 103\n  chip_id: 1",
+    )
+
+
+def get_device_arch():
+    global server_communication
+    check_response(
+        server_communication.get_device_arch(1),
+        "- type: 105\n  chip_id: 1",
+    )
+
+
+def get_device_soc_description():
+    global server_communication
+    check_response(
+        server_communication.get_device_soc_description(1),
+        "- type: 106\n  chip_id: 1",
     )
 
 

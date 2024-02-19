@@ -17,6 +17,7 @@ Examples:
 """
 
 from tabulate import tabulate
+from debuda import UIState
 import tt_util as util
 from tt_coordinate import OnChipCoordinate
 from docopt import docopt
@@ -62,13 +63,13 @@ def get_l1_buffer_info_from_blob(device_id, graph, loc, stream_id, phase):
 
 
 # Prints a tile (message) from a given buffer
-def dump_message_xy(context, ui_state, tile_id, raw):
+def dump_message_xy(context, ui_state: UIState, tile_id, raw):
     is_tile = raw == 0
-    device_id = ui_state["current_device_id"]
-    graph_name = ui_state["current_graph_name"]
+    device_id = ui_state.current_device_id
+    graph_name = ui_state.current_graph_name
     graph = context.netlist.graph(graph_name)
     current_device = context.devices[device_id]
-    loc, stream_id = ui_state["current_loc"], ui_state["current_stream_id"]
+    loc, stream_id = ui_state.current_location, ui_state.current_stream_id
     current_phase = current_device.get_stream_phase(loc, stream_id)
     try:
         buffer_addr, buffer_size, msg_size = get_l1_buffer_info_from_blob(
@@ -122,7 +123,7 @@ def dump_message_xy(context, ui_state, tile_id, raw):
         util.ERROR("Not enough data in blob.yaml")
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
     try:
         tile_id = int(args["<tile-id>"])

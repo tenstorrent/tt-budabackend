@@ -38,6 +38,9 @@ class server : public communication {
     virtual std::optional<std::string> get_runtime_data() = 0;
     virtual std::optional<std::string> get_cluster_description() = 0;
     virtual std::optional<std::string> get_harvester_coordinate_translation(uint8_t chip_id) = 0;
+    virtual std::optional<std::vector<uint8_t>> get_device_ids() = 0;
+    virtual std::optional<std::string> get_device_arch(uint8_t chip_id) = 0;
+    virtual std::optional<std::string> get_device_soc_description(uint8_t chip_id) = 0;
 
    private:
     // Helper functions that wrap optional into tt::dbd::communication::respond function calls.

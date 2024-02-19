@@ -688,27 +688,10 @@ std::unique_ptr<buda_soc_description> load_soc_descriptor_from_file(const tt::AR
     return load_soc_descriptor_from_yaml(file_path);
 }
 
-void DebudaIFC::bar_write32 (int logical_device_id, uint32_t addr, uint32_t data) {
-    auto dev = dynamic_cast<tt_SiliconDevice *> (m_cluster->device.get());
-    dev->bar_write32 (logical_device_id, addr, data);
-}
-uint32_t DebudaIFC::bar_read32 (int logical_device_id, uint32_t addr) {
-    auto dev = dynamic_cast<tt_SiliconDevice *> (m_cluster->device.get());
-    return dev->bar_read32 (logical_device_id, addr);
+tt_SiliconDevice* DebudaIFC::get_casted_device() {
+    return dynamic_cast<tt_SiliconDevice *> (m_cluster->device.get());
 }
 
-bool DebudaIFC::is_chip_mmio_capable(int logical_device_id) {
-    auto mmio_targets = m_cluster->device->get_target_mmio_device_ids();
-    return mmio_targets.find(logical_device_id) != mmio_targets.end();
-}
-
-// Return a string mapping as text, so that python can interpret it directly
-std::string DebudaIFC::get_harvested_coord_translation(int logical_device_id) {
-    auto dev = dynamic_cast<tt_SiliconDevice *> (m_cluster->device.get());
-    std::unordered_map<tt_xy_pair, tt_xy_pair> harvested_coord_translation = dev->get_harvested_coord_translation_map(logical_device_id);
-    std::string ret = "{ ";
-    for (auto &kv : harvested_coord_translation) {
-        ret += "(" + std::to_string(kv.first.x) + "," + std::to_string(kv.first.y) + ") : (" + std::to_string(kv.second.x) + "," + std::to_string(kv.second.y) + "), ";
-    }
-    return ret + " }";
+std::set<chip_id_t> DebudaIFC::get_target_device_ids() {
+    return m_cluster->target_device_ids;
 }

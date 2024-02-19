@@ -22,6 +22,7 @@ Examples:
 
 from docopt import docopt
 from cgi import print_form
+from debuda import UIState
 from tt_object import DataArray
 import tt_device
 import tt_util as util
@@ -30,13 +31,13 @@ from tt_coordinate import OnChipCoordinate
 command_metadata = {"short": "ddb", "type": "low-level", "description": __doc__}
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
     trisc_id = int(args["<trisc-id>"])
     num_words = int(args["<num-words>"])
     print_format = args["<format>"] if args["<format>"] else "hex32"
-    loc = ui_state["current_loc"]
-    device_id = ui_state["current_device_id"]
+    loc = ui_state.current_location
+    device_id = ui_state.current_device_id
     device = context.devices[device_id]
     TRISC_DEBUG_BASE = [71680, 88064, 108544]
 

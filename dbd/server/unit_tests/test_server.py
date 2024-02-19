@@ -136,6 +136,24 @@ def get_harvester_coordinate_translation():
     print("pass" if read == "get_harvester_coordinate_translation(1)" else "fail")
 
 
+def get_device_ids():
+    global server
+    read = server.get_device_ids()
+    print("pass" if read == b'\x00\x01' else "fail")
+
+
+def get_device_arch():
+    global server
+    read = server.get_device_arch(1)
+    print("pass" if read == "get_device_arch(1)" else "fail")
+
+
+def get_device_soc_description():
+    global server
+    read = server.get_device_soc_description(1)
+    print("pass" if read == "get_device_soc_description(1)" else "fail")
+
+
 def main():
     # Check if at least two arguments are provided (script name + function name)
     if len(sys.argv) < 3:

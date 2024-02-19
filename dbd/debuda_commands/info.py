@@ -26,6 +26,7 @@ Examples:
 command_metadata = {"short": "i", "type": "high-level", "description": __doc__}
 
 from docopt import docopt
+from debuda import UIState
 import tt_util as util
 from tt_object import DataArray
 from tt_coordinate import OnChipCoordinate
@@ -84,12 +85,12 @@ def print_access_path(device, core_loc, elf, path):
     return len(members)
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(command_metadata["description"], argv=cmd_text.split()[1:])
 
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
-    current_loc = ui_state["current_loc"]
+    current_loc = ui_state.current_location
 
     core_locs = args["-c"] if args["-c"] else [current_loc.to_str()]
     core_array = []

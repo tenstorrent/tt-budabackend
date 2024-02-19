@@ -31,6 +31,7 @@ Examples:
 command_metadata = {"short": "brxy", "type": "low-level", "description": __doc__}
 
 from docopt import docopt
+from debuda import UIState
 import tt_util as util
 from tt_object import DataArray
 from tt_coordinate import OnChipCoordinate
@@ -38,11 +39,11 @@ import tt_device
 import time
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(command_metadata["description"], argv=cmd_text.split()[1:])
 
     core_loc_str = args["<core-loc>"]
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
     core_loc = OnChipCoordinate.create(core_loc_str, device=current_device)
 
@@ -83,7 +84,7 @@ def run(cmd_text, context, ui_state=None):
             )
     else:
         print_a_pci_burst_read(
-            ui_state["current_device_id"],
+            ui_state.current_device_id,
             *core_loc.to("nocVirt"),
             0,
             addr,

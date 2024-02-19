@@ -103,6 +103,7 @@ tt_debuda_server::tt_debuda_server(tt_runtime* runtime) : runtime(runtime) {
                 log_info(tt::LogDebuda, "Debug server starting on {}...", connection_address);
 
                 try {
+                    set_device(DebudaIFC(runtime->cluster.get()).get_casted_device());
                     start(port);
                     log_info(tt::LogDebuda, "Debug server started on {}.", connection_address);
                 } catch (...) {
@@ -120,97 +121,6 @@ tt_debuda_server::tt_debuda_server(tt_runtime* runtime) : runtime(runtime) {
 
 tt_debuda_server::~tt_debuda_server() { log_info(tt::LogDebuda, "Debug server ended on {}", connection_address); }
 
-std::optional<uint32_t> tt_debuda_server::pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) {
-    tt_cxy_pair target(chip_id, noc_x, noc_y);
-    uint32_t size_in_bytes = 4;
-    bool small_access = false;
-    bool register_txn = true;
-    std::vector<std::uint32_t> mem_vector;
-
-    runtime->cluster->read_dram_vec(mem_vector, target, address, size_in_bytes, small_access, register_txn);
-    log_trace(
-        tt::LogDebuda, "pci_read4 from {}-{} 0x{:x} data: 0x{:x}", noc_x, noc_y, (uint32_t)address, mem_vector[0]);
-    return mem_vector[0];
-}
-std::optional<uint32_t> tt_debuda_server::pci_write4(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) {
-    tt_cxy_pair target(chip_id, noc_x, noc_y);
-    std::vector<std::uint32_t> mem_vector;
-
-    mem_vector.push_back(data);
-    runtime->cluster->write_dram_vec(mem_vector, target, address);
-    log_trace(tt::LogDebuda, "pci_write4 to {}-{} 0x{:x} data: 0x{:x}", noc_x, noc_y, (uint32_t)address, mem_vector[0]);
-    return 4;
-}
-std::optional<std::vector<uint8_t>> tt_debuda_server::pci_read(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) {
-    tt_cxy_pair target(chip_id, noc_x, noc_y);
-    bool small_access = false;  // TODO: This might be set to true for bigger reads :)
-    bool register_txn = true;
-    std::vector<std::uint32_t> mem_vector;
-
-    runtime->cluster->read_dram_vec(mem_vector, target, address, size, small_access, register_txn);
-    log_trace(tt::LogDebuda, "pci_read from {}-{} 0x{:x} data: 0x{:x}", noc_x, noc_y, (uint32_t)address, mem_vector[0]);
-
-    std::vector<uint8_t> result(mem_vector.size() * sizeof(uint32_t));
-    memcpy(&result[0], &mem_vector[0], result.size());
-    return result;
-}
-std::optional<uint32_t> tt_debuda_server::pci_write(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t* data, uint32_t size) {
-    tt_cxy_pair target(chip_id, noc_x, noc_y);
-    std::vector<std::uint32_t> mem_vector;
-
-    if (size % 4 != 0)
-        log_trace(tt::LogDebuda, "pci_write data truncated, data size ({}) needs to be rounded to 4 bytes", size);
-    if (size >= 4) {
-        mem_vector.resize(size / 4);
-        memcpy(&mem_vector[0], data, size / 4 * 4);
-        runtime->cluster->write_dram_vec(mem_vector, target, address);
-        log_trace(
-            tt::LogDebuda, "pci_write to {}-{} 0x{:x} data: 0x{:x}", noc_x, noc_y, (uint32_t)address, mem_vector[0]);
-        return size / 4 * 4;
-    } else {
-        log_trace(tt::LogDebuda, "pci_write nothing to write as data size ({}) is less than 4 bytes", size);
-        return 0;
-    }
-}
-std::optional<uint32_t> tt_debuda_server::pci_read4_raw(uint8_t chip_id, uint64_t address) {
-    // TODO: finish this
-    DebudaIFC difc(runtime->cluster.get());
-    if (difc.is_chip_mmio_capable(chip_id)) {
-        uint32_t val = difc.bar_read32(chip_id, address);
-        // log_debug(tt::LogDebuda, "pci_read4_raw from 0x{:x} data: 0x{:x}", transfer_req.addr, val);
-        return val;
-    } else {
-        return {};
-    }
-}
-std::optional<uint32_t> tt_debuda_server::pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) {
-    // TODO: finish this
-    DebudaIFC difc(runtime->cluster.get());
-    if (difc.is_chip_mmio_capable(chip_id)) {
-        // log_debug(tt::LogDebuda, "pci_write4_raw to 0x{:x} data: 0x{:x}", transfer_req.addr, transfer_req.data);
-        difc.bar_write32(chip_id, address, data);
-        return 4;
-    } else {
-        return {};
-    }
-}
-std::optional<uint32_t> tt_debuda_server::dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) {
-    std::uint32_t size_in_bytes = 4;
-    std::vector<std::uint32_t> mem_vector;
-
-    runtime->cluster->read_sysmem_vec(mem_vector, address, channel, size_in_bytes, chip_id);
-    log_debug(
-        tt::LogDebuda,
-        "dma_buffer_read4 from 0x{:x} bytes: {} data: 0x{:x} ...",
-        (uint32_t)address,
-        size_in_bytes,
-        mem_vector[0]);
-    return mem_vector[0];
-}
-
 std::optional<std::string> tt_debuda_server::pci_read_tile(
     uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) {
     tt::DataFormat df = to_data_format(data_format);
@@ -227,13 +137,21 @@ std::optional<std::string> tt_debuda_server::pci_read_tile(
         return {};
     }
 }
-std::optional<std::string> tt_debuda_server::get_runtime_data() { return get_runtime_data_yaml(runtime); }
-std::optional<std::string> tt_debuda_server::get_cluster_description() { return get_cluster_desc_path(runtime); }
-std::optional<std::string> tt_debuda_server::get_harvester_coordinate_translation(uint8_t chip_id) {
-    DebudaIFC difc(runtime->cluster.get());
 
-    return difc.get_harvested_coord_translation(chip_id);
+std::optional<std::string> tt_debuda_server::get_runtime_data() { return get_runtime_data_yaml(runtime); }
+
+std::optional<std::string> tt_debuda_server::get_cluster_description() { return get_cluster_desc_path(runtime); }
+
+std::optional<std::vector<uint8_t>> tt_debuda_server::get_device_ids() {
+    std::vector<uint8_t> device_ids;
+
+    for (auto i : DebudaIFC(runtime->cluster.get()).get_target_device_ids()) {
+        device_ids.push_back(i);
+    }
+    return device_ids;
 }
+
+std::optional<std::string> tt_debuda_server::get_device_soc_description(uint8_t chip_id) { return {}; }
 
 void tt_debuda_server::wait_terminate() {
     // iF m_connection_addr is an empty string, we did not start a server, so we do not need to wait

@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 
 # SPDX-License-Identifier: Apache-2.0
+from functools import cached_property
 import os, subprocess, time, struct, signal, re, zmq, pickle, atexit, ast
 from typing import Sequence
 from socket import timeout
 from tabulate import tabulate
+from debuda import Context
 from tt_debuda_server import debuda_server
 from tt_object import TTObject
 import tt_util as util
@@ -47,7 +49,10 @@ def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
 
     try:
         global DEBUDA_STUB_PROCESS
-        debuda_stub_args = [f"{port}", f"{runtime_data_yaml_filename}"]
+        if runtime_data_yaml_filename is None:
+            debuda_stub_args = [f"{port}"]
+        else:
+            debuda_stub_args = [f"{port}", f"{runtime_data_yaml_filename}"]
         DEBUDA_STUB_PROCESS = subprocess.Popen(
             [debuda_stub_path] + debuda_stub_args,
             preexec_fn=os.setsid,
@@ -250,6 +255,26 @@ class DEBUDA_SERVER_SOCKET_IFC:
         )
         return DEBUDA_SERVER.get_harvester_coordinate_translation(chip_id)
 
+    def get_device_ids():
+        assert DEBUDA_SERVER_SOCKET_IFC.enabled, (
+            DEBUDA_SERVER_SOCKET_IFC.NOT_ENABLED_ERROR_MSG + f" (get_device_ids)"
+        )
+        return DEBUDA_SERVER.get_device_ids()
+
+    def get_device_arch(chip_id):
+        assert DEBUDA_SERVER_SOCKET_IFC.enabled, (
+            DEBUDA_SERVER_SOCKET_IFC.NOT_ENABLED_ERROR_MSG
+            + f" (get_device_arch) with arguments: chip_id={chip_id}"
+        )
+        return DEBUDA_SERVER.get_device_arch(chip_id)
+
+    def get_device_soc_description(chip_id):
+        assert DEBUDA_SERVER_SOCKET_IFC.enabled, (
+            DEBUDA_SERVER_SOCKET_IFC.NOT_ENABLED_ERROR_MSG
+            + f" (get_device_soc_description) with arguments: chip_id={chip_id}"
+        )
+        return DEBUDA_SERVER.get_device_soc_description(chip_id)
+
 
 # This interface is used to read cached values of device reads.
 class DEBUDA_SERVER_CACHED_IFC:
@@ -373,6 +398,39 @@ class DEBUDA_SERVER_CACHED_IFC:
             )
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
+    def get_device_ids():
+        key = "device_ids"
+        if (
+            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
+            or not DEBUDA_SERVER_CACHED_IFC.enabled
+        ):
+            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                DEBUDA_SERVER_SOCKET_IFC.get_device_ids()
+            )
+        return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
+
+    def get_device_arch(chip_id):
+        key = f"device_arch_{chip_id}"
+        if (
+            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
+            or not DEBUDA_SERVER_CACHED_IFC.enabled
+        ):
+            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                DEBUDA_SERVER_SOCKET_IFC.get_device_arch(chip_id)
+            )
+        return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
+
+    def get_device_soc_description(chip_id):
+        key = f"get_device_soc_description_{chip_id}"
+        if (
+            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
+            or not DEBUDA_SERVER_CACHED_IFC.enabled
+        ):
+            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                DEBUDA_SERVER_SOCKET_IFC.get_device_soc_description(chip_id)
+            )
+        return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
+
 
 # PCI interface is a cached interface through Debuda server
 class SERVER_IFC(DEBUDA_SERVER_CACHED_IFC):
@@ -472,7 +530,7 @@ class Device(TTObject):
     
 
     # Class method to create a Device object given device architecture
-    def create(arch, device_id, cluster_desc, device_desc_path):
+    def create(arch, device_id, cluster_desc, device_desc_path: str, context: Context):
         dev = None
         if arch.lower() == "grayskull":
             import tt_grayskull
@@ -482,6 +540,7 @@ class Device(TTObject):
                 arch=arch,
                 cluster_desc=cluster_desc,
                 device_desc_path=device_desc_path,
+                context=context
             )
         if "wormhole" in arch.lower():
             import tt_wormhole
@@ -491,6 +550,7 @@ class Device(TTObject):
                 arch=arch,
                 cluster_desc=cluster_desc,
                 device_desc_path=device_desc_path,
+                context=context
             )
 
         if dev is None:
@@ -566,7 +626,19 @@ class Device(TTObject):
     def netlist_to_tensix(self, netlist_loc):
         return (self.netlist_row_to_tensix_row[netlist_loc[0]], netlist_loc[1])
 
-    def __init__(self, id, arch, cluster_desc, address_maps: Dict[str, AddressMap]):
+    @cached_property
+    def yaml_file(self):
+        return util.YamlFile(self._device_desc_path)
+
+    @cached_property
+    def EPOCH_ID_ADDR(self):
+        return self._context.epoch_id_address
+
+    @cached_property
+    def ETH_EPOCH_ID_ADDR(self):
+        return self._context.eth_epoch_id_address
+
+    def __init__(self, id, arch, cluster_desc, address_maps: Dict[str, AddressMap], device_desc_path: str, context: Context):
         """
 
         Args:
@@ -576,6 +648,8 @@ class Device(TTObject):
         self._arch = arch
         self._has_mmio = False
         self._address_maps = address_maps
+        self._device_desc_path = device_desc_path
+        self._context = context
         for chip in cluster_desc["chips_with_mmio"]:
             if id in chip:
                 self._has_mmio = True

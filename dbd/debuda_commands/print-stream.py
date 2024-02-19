@@ -23,15 +23,16 @@ command_metadata = {
     "description": __doc__,
 }
 
+from debuda import UIState
 import tt_stream, tt_util as util
 from tt_coordinate import OnChipCoordinate
 from docopt import docopt
 
 
 # Prints all information on a stream
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
-    current_device_id = ui_state["current_device_id"]
+    current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
 
     core_loc_str = args["<core-loc>"]
@@ -57,7 +58,7 @@ def run(cmd_text, context, ui_state=None):
     # 1. Append blobs
     buffer_ids = util.set()
     non_active_phases = dict()
-    graph = context.netlist.graph(ui_state["current_graph_name"])
+    graph = context.netlist.graph(ui_state.current_graph_name)
 
     # 1a. Append the op name to description
     for n in navigation_suggestions:
@@ -118,6 +119,6 @@ def run(cmd_text, context, ui_state=None):
     # 4. TODO: Print forks
 
     # Update the current UI state
-    ui_state["current_loc"] = stream_loc
-    ui_state["current_stream_id"] = stream_id
+    ui_state.current_location = stream_loc
+    ui_state.current_stream_id = stream_id
     return navigation_suggestions

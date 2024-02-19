@@ -8,6 +8,7 @@
 #include <chrono>
 #include "device/device_api.h"
 #include "common/model/test_common.hpp"
+#include "device/tt_device.h"
 #include "perf_lib/postprocess.hpp"
 #include "host_mem_address_map.h"
 #include "l1_address_map.h"
@@ -163,12 +164,11 @@ std::ostream &operator<<(std::ostream &os, tt_target_dram const &dram);
 std::unique_ptr<buda_soc_description> load_soc_descriptor_from_file(const tt::ARCH &arch, std::string file_path);
 
 // DebudaIFC provides access to internals that are normally hidden
+class tt_SiliconDevice;
 class DebudaIFC {
         tt_cluster *m_cluster;
     public:
         DebudaIFC (tt_cluster *cluster) : m_cluster(cluster) {}
-        void bar_write32 (int logical_device_id, uint32_t addr, uint32_t data);
-        uint32_t bar_read32 (int logical_device_id, uint32_t addr);
-        bool is_chip_mmio_capable(int logical_device_id);
-        std::string get_harvested_coord_translation(int logical_device_id);
+        tt_SiliconDevice* get_casted_device();
+        std::set<chip_id_t> get_target_device_ids();
 };

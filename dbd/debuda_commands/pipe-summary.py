@@ -15,6 +15,7 @@ Examples:
   pipe 125000000000
 """
 
+from debuda import UIState
 import tt_util as util
 from docopt import docopt
 
@@ -26,11 +27,11 @@ command_metadata = {
 }
 
 
-def run(cmd_text, context, ui_state=None):
+def run(cmd_text, context, ui_state: UIState = None):
     args = docopt(__doc__, argv=cmd_text.split()[1:])
     pipe_id = int(args["<pipe-id>"], 0) if args["<pipe-id>"] else 0
 
-    graph_name = ui_state["current_graph_name"]
+    graph_name = ui_state.current_graph_name
     graph = context.netlist.graph(graph_name)
     pipe = graph.get_pipes(pipe_id).first()
     navigation_suggestions = []
