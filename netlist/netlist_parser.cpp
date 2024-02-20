@@ -2916,6 +2916,14 @@ void netlist_parser::verify_complex_settings() {
                 }
             }
 
+            // Constraint: stoch_rnd must be none or fpu for Bfp8 formats
+            if (is_bfp8_format(op_info.intermed_data_format) || is_bfp8_format(op_info.output_data_format)) {
+                log_assert(op_info.attributes.stoch_rnd_mode == StochRndMode::None || op_info.attributes.stoch_rnd_mode == StochRndMode::Fpu,
+                           "graph={} op={} - stoch_rnd mode 'pack' and 'all' are not enabled for Bfp8 formats",
+                           graph_it.second.name, 
+                           op_info.name); 
+            }
+
             // Constraint: gradient_op must be false for identity matmul
             if(is_valid_matmul_op(op_info.type) and op_info.attributes.identity) {
                 log_assert(
