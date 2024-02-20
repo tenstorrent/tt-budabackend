@@ -11,6 +11,7 @@
 
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
+#include "base_types.hpp"
 
 #include "model/typedefs.h"
 
@@ -88,6 +89,9 @@ public:
 
     // Converts core coordinates from original coordinate system to system used in harvested devices.
     tt_cxy_pair convert_unharvested_core_location_to_harvested(const tt_cxy_pair& unharvested_core_location) const;
+
+    // Gets the mapping of individual chips to its soc descriptors.
+    const std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> get_soc_decriptors() const;
 
 protected:
     // Protected constructor.

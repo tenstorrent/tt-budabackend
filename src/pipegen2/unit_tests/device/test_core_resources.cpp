@@ -28,7 +28,7 @@ using namespace unit_test_utils;
 
 TEST(Pipegen2_CoreResources, AllocateGatherStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -47,7 +47,7 @@ TEST(Pipegen2_CoreResources, AllocateGatherStream_ProperAllocatedStreamStorage)
 
 TEST(Pipegen2_CoreResources, AllocateMulticastStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -66,7 +66,7 @@ TEST(Pipegen2_CoreResources, AllocateMulticastStream_ProperAllocatedStreamStorag
 
 TEST(Pipegen2_CoreResources, AllocateGeneralPurposeStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -93,7 +93,8 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraTileHeadersSpace_AllocateUntilOutOfM
     unsigned int max_num_tile_header_buffers = l1_data_buffers_available_space / tile_header_buffer_size;
 
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
 
     // Fill entire data buffers memory with tile headers, but don't overflow.
     worker_core_resources.allocate_l1_extra_tile_headers_space(max_num_tile_header_buffers);
@@ -112,6 +113,7 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraTileHeadersSpace_AllocateUntilOutOfM
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
                 l1_data_buffers_available_space,
                 (max_num_tile_header_buffers + 1) * tile_header_buffer_size);
@@ -132,7 +134,8 @@ TEST(Pipegen2_CoreResources, AllocateL1DataBuffer_AllocateUntilOutOfMemory)
     unsigned int allocated_l1_data_buffers_size = available_space - 1;
 
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
 
     // Allocate nothing, dummy call.
     unsigned int l1_current_data_buffers_space_address;
@@ -163,6 +166,7 @@ TEST(Pipegen2_CoreResources, AllocateL1DataBuffer_AllocateUntilOutOfMemory)
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
                 allocated_l1_data_buffers_size,
                 allocated_l1_data_buffers_size + 1);
@@ -176,7 +180,8 @@ TEST(Pipegen2_CoreResources, AllocateL1DataBuffer_AllocateUntilOutOfMemory)
 TEST(Pipegen2_CoreResources, AllocateKernelInput_RepeatedCallsUntilExcThrown)
 {
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_kernel_inputs;
 
     for (unsigned int input_index = 0;
@@ -198,6 +203,7 @@ TEST(Pipegen2_CoreResources, AllocateKernelInput_RepeatedCallsUntilExcThrown)
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kKernelInputIndex,
                 expected_kernel_inputs.size(),
                 expected_kernel_inputs.size() + 1);
@@ -211,7 +217,8 @@ TEST(Pipegen2_CoreResources, AllocateKernelInput_RepeatedCallsUntilExcThrown)
 TEST(Pipegen2_CoreResources, AllocateKernelOutput_RepeatedCallsUntilExcThrown)
 {
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_kernel_outputs;
 
     for (unsigned int output_index = 0;
@@ -233,6 +240,7 @@ TEST(Pipegen2_CoreResources, AllocateKernelOutput_RepeatedCallsUntilExcThrown)
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kKernelOutputIndex,
                 expected_kernel_outputs.size(),
                 expected_kernel_outputs.size() + 1);
@@ -245,7 +253,7 @@ TEST(Pipegen2_CoreResources, AllocateKernelOutput_RepeatedCallsUntilExcThrown)
 
 TEST(Pipegen2_CoreResources, GetMulticastStreamsCount_ExpectingExactReturnValue)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Number of multicast streams on worker core is equal to gather/multicast stream ids range since multicast streams
     // are allocated from gather/multicast pool.
@@ -261,7 +269,7 @@ TEST(Pipegen2_CoreResources, GetMulticastStreamsCount_ExpectingExactReturnValue)
 **********************************************************************************************************************/
 TEST(Pipegen2_CoreResources, AddStreamBufferAllocation_AddingOneStream)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
     StreamNode stream_node(StreamType::Gather, tt_cxy_pair(0, 0, 0), 0);
     stream_node.assign_stream_id(1);
     

@@ -35,9 +35,6 @@ namespace pipegen2
     std::string stream_type_to_color(StreamType stream_type);
 #endif
 
-    // Returns appropriate name string for each stream type.
-    std::string stream_type_to_string(StreamType stream_type);
-
     // Structure that binds a stream node to the common config which will be used to create its phases. Used during pipe
     // streams creation, where each pipe can add some properties to that common config, and then eventually some pipe
     // streams creator will use it to create the phases for the stream.
@@ -244,6 +241,11 @@ namespace pipegen2
         bool is_multicast_stream() const;
 
         unsigned int get_max_num_tiles_per_phase() const { return m_max_num_tiles_per_phase; }
+
+        bool is_ncrisc_reader_or_writer() const { return m_ncrisc_configs.size() > 0; }
+
+        // Returns appropriate name string for each stream type.
+        static std::string stream_type_to_string(StreamType stream_type);
 
     private:
         void set_max_num_tiles_per_phase(unsigned int max_num_tiles_per_phase)

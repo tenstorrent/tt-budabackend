@@ -374,4 +374,15 @@ const buda_SocDescriptor* SoCInfo::get_soc_descriptor(const ChipId chip_id) cons
     return soc_descriptor_it->second.get();
 }
 
+const std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> SoCInfo::get_soc_decriptors() const
+{
+    std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> soc_descriptor;
+    for (auto& soc_descriptor_it : m_soc_descriptors)
+    {
+        soc_descriptor.emplace(static_cast<tt::chip_id_t>(soc_descriptor_it.first), soc_descriptor_it.second.get());
+    }
+    
+    return soc_descriptor;
+}
+
 } // namespace pipegen2

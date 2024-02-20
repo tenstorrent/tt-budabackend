@@ -30,7 +30,8 @@ using namespace unit_test_utils;
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     // We should be able to allocate packer stream only for valid output operand ID. Everything else should throw an
     // error.
@@ -46,6 +47,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
                 verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    logical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kPackerStreams);
             });
     }
@@ -62,6 +64,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
                  verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    logical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kPackerStreams);
             });
     }
@@ -70,7 +73,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateTwiceForSameOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     EXPECT_NO_THROW(worker_core_resources.allocate_packer_stream(OPERAND_OUTPUT_START_INDEX));
 
@@ -84,6 +88,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateTwiceForSameOper
             verify_out_of_core_resource_exception(
                 ex,
                 physical_core_location,
+                logical_core_location,
                 OutOfCoreResourcesException::CoreResourceType::kPackerStreams,
                 1 /* available_core_resources */,
                 2 /* used_core_resources */);
@@ -92,7 +97,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateTwiceForSameOper
 
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateAllValidOperandIDs)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     for (unsigned int operand_id = OPERAND_OUTPUT_START_INDEX; operand_id < OPERAND_RELAY_START_INDEX; operand_id++)
     {
@@ -109,7 +114,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateAllValidOperandI
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_ProperAllocatedStreamStorage)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -128,7 +134,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_ProperAllocatedStreamSto
 TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     // We should be able to allocate unpacker stream only for valid input operand ID. Everything else should throw an
     // error.
@@ -146,6 +153,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
                 verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    logical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kUnpackerStreams);
             });
     }
@@ -162,6 +170,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
                 verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    logical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kUnpackerStreams);
             });
     }
@@ -170,7 +179,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
 TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateTwiceForSameOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     EXPECT_NO_THROW(worker_core_resources.allocate_unpacker_stream(OPERAND_INPUT_START_INDEX));
 
@@ -184,6 +194,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateTwiceForSameOp
             verify_out_of_core_resource_exception(
                 ex,
                 physical_core_location,
+                logical_core_location,
                 OutOfCoreResourcesException::CoreResourceType::kUnpackerStreams,
                 1 /* available_core_resources */,
                 2 /* used_core_resources */);
@@ -192,7 +203,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateTwiceForSameOp
 
 TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateAllValidOperandIDs)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     for (unsigned int operand_id = OPERAND_INPUT_START_INDEX; operand_id < OPERAND_OUTPUT_START_INDEX; operand_id++)
     {
@@ -222,7 +233,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateAllValidOperan
 
 TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -241,7 +252,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_ProperAllocatedStreamS
 TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair locical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, locical_core_location);
 
     // We should be able to allocate intermed stream only for valid intermed operand ID. Everything else should throw an
     // error.
@@ -259,6 +271,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
                 verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    locical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kIntermediateStreams);
             });
     }
@@ -275,6 +288,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
                 verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
+                    locical_core_location,
                     IllegalCoreResourceAllocationException::CoreResourceType::kIntermediateStreams);
             });
     }
@@ -283,7 +297,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
 TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateTwiceForSameOperandID)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(physical_core_location, logical_core_location);
 
     EXPECT_NO_THROW(worker_core_resources.allocate_intermed_stream(OPERAND_INTERMEDIATES_START_INDEX));
 
@@ -297,6 +312,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateTwiceForSameOp
             verify_out_of_core_resource_exception(
                 ex,
                 physical_core_location,
+                logical_core_location,
                 OutOfCoreResourcesException::CoreResourceType::kIntermediateStreams,
                 1 /* available_core_resources */,
                 2 /* used_core_resources */);
@@ -305,7 +321,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateTwiceForSameOp
 
 TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateAllValidOperandIDs)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     for (unsigned int operand_id = OPERAND_INTERMEDIATES_START_INDEX;
          operand_id < OPERAND_RELAY_START_INDEX;
@@ -323,7 +339,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateAllValidOperan
 
 TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesGS worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -342,7 +358,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_ProperAllocatedStreamS
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerMulticastStream_AllocateTwiceForSameOperandId)
 {
     const tt_cxy_pair physical_core_location{0, 0, 0};
-    WorkerCoreResourcesWH worker_core_resources(physical_core_location);
+    const tt_cxy_pair logical_core_location{0, 0, 0};
+    WorkerCoreResourcesWH worker_core_resources(physical_core_location, logical_core_location);
 
     EXPECT_NO_THROW(worker_core_resources.allocate_packer_multicast_stream(
         worker_core_resources_wh_constants::packer_multicast_stream_operand_id_range_start));
@@ -358,6 +375,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerMulticastStream_AllocateTwiceFo
             verify_out_of_core_resource_exception(
                 ex,
                 physical_core_location,
+                logical_core_location,
                 OutOfCoreResourcesException::CoreResourceType::kPackerMulticastStreams,
                 1 /* available_core_resources */,
                 2 /* used_core_resources */);
@@ -366,7 +384,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerMulticastStream_AllocateTwiceFo
 
 TEST(Pipegen2_WorkerCoreResources, AllocatePackerMulticastStream_ProperAllocatedStreamStorage)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Should be empty.
     EXPECT_TRUE(worker_core_resources.get_allocated_stream_ids().empty());
@@ -391,7 +409,8 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerMulticastStream_ProperAllocated
 TEST(Pipegen2_WorkerCoreResources, GetNextAvailableGeneralPurposeStreamId_RepeatedCallsUntilExcThrown)
 {
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_stream_ids;
 
     // Expecting streams to be allocated in a certain order.
@@ -414,6 +433,7 @@ TEST(Pipegen2_WorkerCoreResources, GetNextAvailableGeneralPurposeStreamId_Repeat
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
                 expected_stream_ids.size(),
                 expected_stream_ids.size() + 1);

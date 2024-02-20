@@ -45,7 +45,8 @@ protected:
 TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableGatherMulticastStreamId_RepeatedCallsUntilExcThrown)
 {
     const tt_cxy_pair core_physical_location{0, 0, 0};
-    WorkerCoreResourcesWH worker_core_resources(core_physical_location);
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesWH worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_stream_ids;
 
     for (uint8_t stream_id = worker_core_resources_wh_constants::gather_multicast_streams_id_range_start;
@@ -67,6 +68,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableGatherMulticastStreamId_R
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_logical_location,
                 OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
                 expected_stream_ids.size(),
                 expected_stream_ids.size() + 1);
@@ -80,7 +82,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableGatherMulticastStreamId_R
 
 TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableGatherStreamId_ExpectingExactReturnValue)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Sanity check that first call will return stream from beginning of the range.
     verify_no_throw_and_return_value_eq<StreamId>(
@@ -98,7 +100,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableGatherStreamId_ExpectingE
 
 TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableMulticastStreamId_ExpectingExactReturnValue)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Sanity check that first call will return stream from beginning of the range.
     verify_no_throw_and_return_value_eq<StreamId>(
@@ -116,7 +118,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, GetNextAvailableMulticastStreamId_Expecti
 
 TEST_F(Pipegen2_WorkerCoreResourcesWH, AllocatePackerMulticastStream_InvalidOperandID)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // We should be able to allocate packer-multicast stream only for valid packer-multicast stream operand ID.
     // Everything else should throw an error.
@@ -137,7 +139,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, AllocatePackerMulticastStream_InvalidOper
 
 TEST_F(Pipegen2_WorkerCoreResourcesWH, AllocatePackerMulticastStream_AllocateAllValidOperandIDs)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     for (unsigned int operand_id = worker_core_resources_wh_constants::packer_multicast_stream_operand_id_range_start;
          operand_id < worker_core_resources_wh_constants::packer_multicast_stream_operand_id_range_end;
@@ -163,7 +165,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesWH, AllocatePackerMulticastStream_AllocateAll
 
 TEST_F(Pipegen2_WorkerCoreResourcesWH, CalculateMulticastStreamsCount_ExpectingExactReturnValue)
 {
-    WorkerCoreResourcesWH worker_core_resources({0, 0, 0});
+    WorkerCoreResourcesWH worker_core_resources({0, 0, 0}, {0, 0, 0});
 
     // Number of multicast streams on ethernet core is equal to gather/multicast stream ids range since multicast
     // streams are allocated from gather/multicast pool.

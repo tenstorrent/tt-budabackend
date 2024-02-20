@@ -88,6 +88,17 @@ public:
     {
     }
 
+    IllegalCoreResourceAllocationException(const std::string& error_message,
+                                           const tt_cxy_pair& physical_location,
+                                           const tt_cxy_pair& logical_location,
+                                           CoreResourceType core_resource_type) :
+        BasePipegen2CompileException(error_message,
+                                     logical_location,
+                                     std::make_optional(physical_location)),
+        m_core_resource_type(core_resource_type)
+    {
+    }
+
     CoreResourceType get_core_resource_type() const { return m_core_resource_type; }
 
 private:
@@ -112,6 +123,18 @@ public:
 
     OutOfCoreResourcesException(const std::string& error_message,
                                 const tt_cxy_pair& physical_location,
+                                const tt_cxy_pair& logical_location,
+                                CoreResourceType core_resource_type,
+                                unsigned int avaiable_core_resources,
+                                unsigned int used_core_resources) :
+        IllegalCoreResourceAllocationException(error_message, physical_location, logical_location, core_resource_type),
+        m_total_core_resources_available(avaiable_core_resources),
+        m_core_resources_used(used_core_resources)
+    {
+    }
+
+    OutOfCoreResourcesException(const std::string& error_message,
+                                const tt_cxy_pair& physical_location,
                                 CoreResourceType core_resource_type,
                                 unsigned int avaiable_core_resources) :
         OutOfCoreResourcesException(error_message,
@@ -122,6 +145,20 @@ public:
     {
     }
 
+    OutOfCoreResourcesException(const std::string& error_message,
+                                const tt_cxy_pair& physical_location,
+                                const tt_cxy_pair& logical_location,
+                                CoreResourceType core_resource_type,
+                                unsigned int avaiable_core_resources) :
+        OutOfCoreResourcesException(error_message,
+                                    physical_location,
+                                    logical_location,
+                                    core_resource_type,
+                                    avaiable_core_resources,
+                                    avaiable_core_resources + 1 /* used_core_resources */)
+    {
+    }
+    
     unsigned int get_total_core_resources_available() const { return m_total_core_resources_available; }
 
     unsigned int get_core_resources_used() const { return m_core_resources_used; }

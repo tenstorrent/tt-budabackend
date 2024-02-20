@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "device/core_resources.h"
-
 #include "device/core_resources_constants.h"
 #include "device/l1_memory_allocation.h"
 #include "device/stream_buffer_allocation.h"
@@ -13,11 +12,13 @@ namespace pipegen2
 {
 
 CoreResources::CoreResources(const tt_cxy_pair& core_physical_location,
+                             const tt_cxy_pair& core_logical_location,
                              StreamId extra_streams_id_range_start,
                              StreamId extra_streams_id_range_end,
                              int l1_data_buffers_space_start_address,
                              int l1_data_buffers_space_end_address) :
     m_core_physical_location(core_physical_location),
+    m_core_logical_location(core_logical_location),
     c_extra_streams_id_range_start(extra_streams_id_range_start),
     c_extra_streams_id_range_end(extra_streams_id_range_end),
     c_l1_data_buffers_space_start_address(l1_data_buffers_space_start_address),
@@ -51,6 +52,7 @@ void CoreResources::allocate_l1_extra_overlay_blob_space(unsigned int size_in_by
 unsigned int CoreResources::allocate_l1_data_buffer(unsigned int size_in_bytes)
 {
     m_l1_current_data_buffers_space_address -= size_in_bytes;
+
     return m_l1_current_data_buffers_space_address;
 }
 
@@ -66,12 +68,15 @@ void CoreResources::check_if_out_of_l1_data_buffers_memory()
             (c_l1_data_buffers_space_start_address + m_l1_extra_overlay_blob_space);
 
         throw OutOfCoreResourcesException(
-            "Core " + m_core_physical_location.str() + " is out of data buffers memory (allocated " +
+            "Core " + m_core_physical_location.str() +
+            " (logical location: " + m_core_logical_location.str() +
+            ") is out of data buffers memory (allocated " +
             std::to_string(allocated_space_in_bytes) + " bytes out of available " +
             std::to_string(total_available_space) + " bytes).\n" +
             "Allocated stream buffers:\n" +
             allocations_to_string(),
             m_core_physical_location,
+            m_core_logical_location,
             OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
             total_available_space - constants::unused_data_buffers_space_bytes,
             allocated_space_in_bytes - constants::unused_data_buffers_space_bytes);
@@ -112,8 +117,10 @@ unsigned int CoreResources::allocate_kernel_input()
         throw OutOfCoreResourcesException(
             "Out of available kernel inputs on core " + m_core_physical_location.str() + ". " +
             " Number of available kernel inputs per core is " +
-            std::to_string(core_resources_constants::max_kernel_inputs_count) + ".",
+            std::to_string(core_resources_constants::max_kernel_inputs_count) + ". " +
+            " Op name is " + get_op_name() + ".",
             m_core_physical_location,
+            m_core_logical_location,
             OutOfCoreResourcesException::CoreResourceType::kKernelInputIndex,
             core_resources_constants::max_kernel_inputs_count);
     }
@@ -128,8 +135,10 @@ unsigned int CoreResources::allocate_kernel_output()
         throw OutOfCoreResourcesException(
             "Out of available kernel outputs on core " + m_core_physical_location.str() + ". " +
             " Number of available kernel outputs per core is " +
-            std::to_string(core_resources_constants::max_kernel_outputs_count) + ".",
+            std::to_string(core_resources_constants::max_kernel_outputs_count) + "." +
+            " Op name is " + get_op_name() + ".",
             m_core_physical_location,
+            m_core_logical_location,
             OutOfCoreResourcesException::CoreResourceType::kKernelOutputIndex,
             core_resources_constants::max_kernel_outputs_count);
     }
@@ -143,17 +152,26 @@ unsigned int CoreResources::get_multicast_streams_count() const
 }
 
 void CoreResources::track_stream_buffer_allocation(const StreamNode* stream_node, 
-                                                   unsigned int allocated_buffer_size, 
-                                                   unsigned int allocated_buffer_address) 
+                                                   const unsigned int allocated_buffer_size, 
+                                                   const unsigned int allocated_buffer_address) 
 {
     std::unique_ptr<L1MemoryAllocation> stream_buffer_allocation = 
         std::make_unique<StreamBufferAllocation>(stream_node, allocated_buffer_size, allocated_buffer_address);
+    if (stream_node->get_op_name() != "")
+    {
+        set_op_name(stream_node->get_op_name());
+    }
     m_memory_allocations.push_back(std::move(stream_buffer_allocation));
 }
 
 std::string CoreResources::allocations_to_string() const
 {
     std::stringstream string_stream;
+    string_stream << "Core: \n";
+    string_stream << "\tchip: " << get_logical_location().chip << "\n";
+    string_stream << "\tr: " << get_logical_location().y << "\n";
+    string_stream << "\tc: " << get_logical_location().x << "\n";
+    string_stream << "\top_name: " << get_op_name() << "\n";
     for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation : get_all_memory_allocations())
     {
         string_stream << memory_allocation->allocation_info() << "\n";

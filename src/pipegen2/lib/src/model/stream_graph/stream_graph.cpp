@@ -98,7 +98,7 @@ namespace pipegen2
             StreamId stream_id = stream->get_stream_id();
             std::size_t stream_graph_id = i;
             stream_to_graph_id[stream] = stream_graph_id;
-            std::string stream_type = stream_type_to_string(stream->get_stream_type());
+            std::string stream_type = StreamNode::stream_type_to_string(stream->get_stream_type());
             std::string stream_location = stream->get_physical_location().str();
             std::string stream_color = stream_type_to_color(stream->get_stream_type());
             json_builder << " { \"id\": \"" << stream_graph_id << "_" << stream_location

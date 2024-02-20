@@ -10,8 +10,9 @@
 namespace pipegen2
 {
 
-WorkerCoreResourcesGS::WorkerCoreResourcesGS(const tt_cxy_pair& core_physical_location) :
-    WorkerCoreResources(core_physical_location),
+WorkerCoreResourcesGS::WorkerCoreResourcesGS(const tt_cxy_pair& core_physical_location, 
+                                             const tt_cxy_pair& core_logical_location) :
+    WorkerCoreResources(core_physical_location, core_logical_location),
     m_next_available_gather_multicast_stream_id(
         worker_core_resources_gs_constants::gather_multicast_streams_id_range_start)
 {
@@ -38,6 +39,7 @@ StreamId WorkerCoreResourcesGS::get_next_available_gather_multicast_stream_id()
             ". Available number of gather / multicast streams per GS worker core is " +
             std::to_string(gather_mcast_streams_count) + ".",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
             gather_mcast_streams_count);
     }

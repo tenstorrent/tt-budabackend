@@ -3,41 +3,47 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/resource_manager.h"
 
+#include "common/buda_soc_descriptor.h"
 #include "dram_address_map.h"
 #include "eth_l1_address_map.h"
 #include "l1_address_map.h"
 #include "logger.hpp"
 
+#include "device/core_resources.h"
 #include "device/ethernet_core_resources.h"
 #include "device/ncrisc_resources_checker.h"
 #include "device/resource_manager_internal.h"
 #include "device/worker_core_resources.h"
 #include "model/stream_graph/stream_node.h"
+#include "pipegen2_location_utils.h"
 
 namespace pipegen2
 {
 
 ResourceManager::ResourceManager(std::unique_ptr<SoCInfo> soc_info) : m_soc_info(std::move(soc_info))
-{
-    for (ChipId chip_id : m_soc_info->get_chip_ids())
     {
-        for (const tt_cxy_pair& core_physical_location : m_soc_info->get_worker_cores_physical_locations(chip_id))
+        for (ChipId chip_id : m_soc_info->get_chip_ids())
         {
-            m_worker_cores_resources.emplace(
-                core_physical_location,
-                resource_manager_internal::create_worker_core_resources(
-                    m_soc_info->get_device_arch(), core_physical_location));
-        }
+            for (const tt_cxy_pair& core_physical_location : m_soc_info->get_worker_cores_physical_locations(chip_id))
+            {
+                const tt_cxy_pair core_logical_location = 
+                    convert_physical_core_to_logical(core_physical_location, m_soc_info->get_soc_decriptors());
+                m_worker_cores_resources.emplace(
+                    core_physical_location,
+                    resource_manager_internal::create_worker_core_resources(m_soc_info->get_device_arch(), 
+                                                                            core_physical_location, 
+                                                                            core_logical_location));
+            }
 
-        for (const tt_cxy_pair& core_physical_location : m_soc_info->get_ethernet_cores_physical_locations(chip_id))
-        {
-            m_ethernet_cores_resources.emplace(
-                core_physical_location,
-                resource_manager_internal::create_ethernet_core_resources(
-                    m_soc_info->get_device_arch(), core_physical_location));
+            for (const tt_cxy_pair& core_physical_location : m_soc_info->get_ethernet_cores_physical_locations(chip_id))
+            {
+                m_ethernet_cores_resources.emplace(
+                    core_physical_location,
+                    resource_manager_internal::create_ethernet_core_resources(m_soc_info->get_device_arch(), 
+                                                                              core_physical_location));
+            }
         }
     }
-}
 
 ResourceManager::~ResourceManager() = default;
 
@@ -236,6 +242,17 @@ void ResourceManager::validate_rational_graph_resources(const RationalGraph* rat
     // For now, we only check NCRISC resources usage.
     NcriscResourcesChecker ncrisc_resources_checker;
     ncrisc_resources_checker.check(rational_graph);
+}
+
+std::vector<const CoreResources*> ResourceManager::get_all_worker_core_resources() const
+{
+    std::vector<const CoreResources*> core_resources_vector;
+    for (const auto& worker_it : m_worker_cores_resources)
+    {
+        core_resources_vector.push_back(worker_it.second.get());
+    }
+    
+    return core_resources_vector;
 }
 
 } // namespace pipegen2

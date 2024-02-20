@@ -99,6 +99,9 @@ public:
     // Checks if rational graph satisfies various resource constraints.
     void validate_rational_graph_resources(const RationalGraph* rational_graph) const;
 
+    // Get all core worker core resources.
+    std::vector<const CoreResources*> get_all_worker_core_resources() const;
+
 private:
     // Gets worker core resources for a given worker core location.
     WorkerCoreResources* get_worker_core_resources(const tt_cxy_pair& core_physical_location) const;
@@ -117,7 +120,7 @@ private:
     // Allocates memory for data buffer in L1 on a given core and returns the allocation address.
     // Memory is allocated from the end of L1 data buffers space towards beginning.
     unsigned int allocate_core_l1_data_buffer(const tt_cxy_pair& core_physical_location,
-                                              unsigned int size_in_bytes) const;
+                                              const unsigned int size_in_bytes) const;
 
     // Holds all chip info.
     std::unique_ptr<SoCInfo> m_soc_info;

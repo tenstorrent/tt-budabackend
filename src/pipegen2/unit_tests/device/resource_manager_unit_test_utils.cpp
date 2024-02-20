@@ -11,13 +11,14 @@
 
 std::unique_ptr<pipegen2::WorkerCoreResources> verify_create_worker_core_resources(tt::ARCH arch)
 {
-    tt_cxy_pair dummy_worker_location = tt_cxy_pair(0, 0, 0);
+    tt_cxy_pair dummy_worker_physical_location = tt_cxy_pair(0, 0, 0);
+    tt_cxy_pair dummy_worker_logical_location = tt_cxy_pair(0, 0, 0);
 
     std::unique_ptr<pipegen2::WorkerCoreResources> worker_core_resources;
 
     EXPECT_NO_THROW(
         worker_core_resources = pipegen2::resource_manager_internal::create_worker_core_resources(
-            arch, dummy_worker_location));
+            arch, dummy_worker_physical_location, dummy_worker_logical_location));
 
     return worker_core_resources;
 }

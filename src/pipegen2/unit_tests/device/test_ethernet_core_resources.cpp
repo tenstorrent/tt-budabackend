@@ -93,6 +93,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableEthernetStreamId_Repeated
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_physical_location,
                 OutOfCoreResourcesException::CoreResourceType::kEthernetStreams,
                 expected_stream_ids.size(),
                 expected_stream_ids.size() + 1);
@@ -129,6 +130,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableGatherStreamId_RepeatedCa
             verify_out_of_core_resource_exception(
                 ex,
                 core_physical_location,
+                core_physical_location,
                 OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
                 expected_stream_ids.size(),
                 expected_stream_ids.size() + 1);
@@ -164,6 +166,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableMulticastStreamId_Repeate
         {
             verify_out_of_core_resource_exception(
                 ex,
+                core_physical_location,
                 core_physical_location,
                 OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
                 expected_stream_ids.size(),
@@ -211,6 +214,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableGeneralPurposeStreamId_Re
         {
             verify_out_of_core_resource_exception(
                 ex,
+                core_physical_location,
                 core_physical_location,
                 OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
                 expected_stream_ids.size(),

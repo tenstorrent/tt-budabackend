@@ -275,6 +275,7 @@ namespace pipegen2
         ncrisc_config.dram_buf_size_bytes = total_dram_buffer_size_tiles * dram_input_node->get_tile_size();
         ncrisc_config.dram_buf_read_chunk_size_tiles = dram_input_node->get_size_tiles();
         ncrisc_config.msg_size = dram_input_node->get_tile_size();
+        ncrisc_config.prefetch_type = PrefetchType::PRE_TM;
 
         // TODO: Check if this field is actually irrelevant and if it is, remove it.
         ncrisc_config.num_msgs = total_dram_buffer_size_tiles;
@@ -574,6 +575,10 @@ namespace pipegen2
         if (dram_input_node->is_dram_io())
         {
             ncrisc_config.dram_io = true;
+        }
+        if (dram_input_node->is_dram_prefetch_post_tm())
+        {
+            ncrisc_config.prefetch_type = PrefetchType::POST_TM;
         }
 
         return ncrisc_config;

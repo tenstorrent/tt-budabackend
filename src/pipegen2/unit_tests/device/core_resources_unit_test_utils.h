@@ -15,12 +15,14 @@
 void verify_illegal_resource_allocation_exception(
     const pipegen2::IllegalCoreResourceAllocationException& ex,
     const tt_cxy_pair& physical_core_location,
+    const tt_cxy_pair& logical_core_location, 
     pipegen2::IllegalCoreResourceAllocationException::CoreResourceType core_resource_type);
 
 // Verifies that the thrown OutOfCoreResourcesException exception has all the expected fields configured.
 void verify_out_of_core_resource_exception(
     const pipegen2::OutOfCoreResourcesException& ex,
     const tt_cxy_pair& physical_core_location,
+    const tt_cxy_pair& logical_core_location,
     pipegen2::OutOfCoreResourcesException::CoreResourceType core_resource_type,
     unsigned int expected_available_core_resouce_count,
     unsigned int expected_used_core_resource_count);

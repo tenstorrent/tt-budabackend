@@ -6,6 +6,7 @@
 #include "eth_l1_address_map.h"
 
 #include "device/core_resources_constants.h"
+#include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_utils.h"
 
@@ -14,6 +15,7 @@ namespace pipegen2
 
 EthernetCoreResources::EthernetCoreResources(const tt_cxy_pair& core_physical_location) :
     CoreResources(core_physical_location,
+                  core_physical_location /* logical location */,
                   ethernet_core_resources_constants::ethernet_stream_id_range_end + 1,
                   ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1 /* extra_streams_id_range_end */,
                   eth_l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
@@ -64,6 +66,7 @@ StreamId EthernetCoreResources::get_next_available_ethernet_stream_id()
                 "Available number of streams capable of doing ethernet transfers per ethernet core is " +
                 std::to_string(streams_capable_of_eth_transfers) + ".",
                 get_physical_location(),
+                get_logical_location(),
                 OutOfCoreResourcesException::CoreResourceType::kEthernetStreams,
                 streams_capable_of_eth_transfers);
         }
@@ -93,6 +96,7 @@ StreamId EthernetCoreResources::get_next_available_gather_multicast_stream_id()
             ". Available number of gather / multicast streams per ethernet core is " +
             std::to_string(gather_mcast_streams_count) + ".",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
             gather_mcast_streams_count);
     }
@@ -121,6 +125,7 @@ StreamId EthernetCoreResources::get_next_available_general_purpose_stream_id()
             "Available number of extra (general purpose) streams per ethernet core is " +
             std::to_string(extra_streams_count) + ".",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
             extra_streams_count);
     }

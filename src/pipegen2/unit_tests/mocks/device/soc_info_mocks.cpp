@@ -39,7 +39,9 @@ std::unique_ptr<buda_SocDescriptor> SoCInfoMock::create_buda_soc_descriptor_mock
     SoCDescriptorFileMock::map_worker_logical_to_routing_coordinates(
         buda_soc_descriptor->workers,
         buda_soc_descriptor->worker_log_to_routing_x,
-        buda_soc_descriptor->worker_log_to_routing_y);
+        buda_soc_descriptor->worker_log_to_routing_y,
+        buda_soc_descriptor->routing_x_to_worker_x,
+        buda_soc_descriptor->routing_y_to_worker_y);
 
     return buda_soc_descriptor;
 }
@@ -63,7 +65,9 @@ std::unique_ptr<SoCDescriptorFileMock> SoCDescriptorFileMock::get_instance(const
 void SoCDescriptorFileMock::map_worker_logical_to_routing_coordinates(
     const std::vector<tt_xy_pair>& worker_cores,
     std::unordered_map<int, int>& worker_logical_to_routing_coordinates_x,
-    std::unordered_map<int, int>& worker_logical_to_routing_coordinates_y)
+    std::unordered_map<int, int>& worker_logical_to_routing_coordinates_y,
+    std::unordered_map<int, int>& routing_coordinates_x_to_worker_logical_x,
+    std::unordered_map<int, int>& routing_coordinates_y_to_worker_logical_y)
 {
     std::set<std::size_t> worker_x_coordinates;
     std::set<std::size_t> worker_y_coordinates;
@@ -78,6 +82,7 @@ void SoCDescriptorFileMock::map_worker_logical_to_routing_coordinates(
     for (auto it = worker_x_coordinates.begin(); it != worker_x_coordinates.end(); ++it)
     {
         worker_logical_to_routing_coordinates_x[idx] = *it;
+        routing_coordinates_x_to_worker_logical_x[*it] = idx;
         idx++;
     }
 
@@ -85,6 +90,7 @@ void SoCDescriptorFileMock::map_worker_logical_to_routing_coordinates(
     for (auto it = worker_y_coordinates.begin(); it != worker_y_coordinates.end(); ++it)
     {
         worker_logical_to_routing_coordinates_y[idx] = *it;
+        routing_coordinates_y_to_worker_logical_y[*it] = idx;
         idx++;
     }
 }

@@ -18,6 +18,7 @@
 #include "model/stream_graph/stream_graph.h"
 #include "model/stream_graph/stream_node.h"
 #include "pipegen2_exceptions.h"
+#include "device/core_resources.h"
 
 namespace pipegen2
 {
@@ -138,5 +139,31 @@ namespace pipegen2
             }
         }
         input_buffer_usage_analysis_file << "-------------------------------------" << std::endl << std::endl;
+    }
+
+    void Pipegen2::output_memory_allocations(const std::string& log_path, const int temporal_epoch)
+    {
+        std::ofstream log_file(log_path + "_" + std::to_string(temporal_epoch) + ".txt");
+        if (!log_file.is_open())
+        {
+            throw std::runtime_error("Failed to open log file");
+        }
+
+        for (const CoreResources* core_resources :  m_resource_manager->get_all_worker_core_resources())
+        {
+            if (core_resources->get_all_memory_allocations().size() > 0)
+            {
+                log_file << "Core: \n";
+                log_file << "\tchip: " << core_resources->get_logical_location().chip << "\n";
+                log_file << "\tr: " << core_resources->get_logical_location().y << "\n";
+                log_file << "\tc: " << core_resources->get_logical_location().x << "\n";
+                log_file << "\top_name: " << core_resources->get_op_name() << "\n";
+                
+                for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation : core_resources->get_all_memory_allocations())
+                {
+                    log_file << memory_allocation->allocation_info() << "\n";
+                }
+            }
+        }
     }
 }

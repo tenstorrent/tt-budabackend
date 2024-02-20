@@ -12,17 +12,17 @@ namespace resource_manager_internal
 {
 
 std::unique_ptr<WorkerCoreResources> create_worker_core_resources(
-    tt::ARCH device_arch, const tt_cxy_pair& core_physical_location)
+    tt::ARCH device_arch, const tt_cxy_pair& core_physical_location, const tt_cxy_pair& core_logical_location)
 {
     switch (device_arch)
     {
     case tt::ARCH::GRAYSKULL:
-        return std::make_unique<WorkerCoreResourcesGS>(core_physical_location);
+        return std::make_unique<WorkerCoreResourcesGS>(core_physical_location, core_logical_location);
     case tt::ARCH::WORMHOLE:
     case tt::ARCH::WORMHOLE_B0:
-        return std::make_unique<WorkerCoreResourcesWH>(core_physical_location);
+        return std::make_unique<WorkerCoreResourcesWH>(core_physical_location, core_logical_location);
     case tt::ARCH::BLACKHOLE:
-        return std::make_unique<WorkerCoreResourcesBH>(core_physical_location);
+        return std::make_unique<WorkerCoreResourcesBH>(core_physical_location, core_logical_location);
     default:
         log_assert(false, "ResourceManager: Unsupported device architecture");
     }

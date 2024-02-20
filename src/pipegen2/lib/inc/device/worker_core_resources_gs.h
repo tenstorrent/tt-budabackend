@@ -11,7 +11,7 @@ namespace pipegen2
 class WorkerCoreResourcesGS : public WorkerCoreResources
 {
 public:
-    WorkerCoreResourcesGS(const tt_cxy_pair& core_physical_location);
+    WorkerCoreResourcesGS(const tt_cxy_pair& core_physical_location, const tt_cxy_pair& core_logical_location);
 
 private:
     // Returns next available gather stream ID.

@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "device/tt_xy_pair.h"
-
+#include "model/typedefs.h"
 #include "pipegen2_exceptions.h"
 
 namespace pipegen2
@@ -314,7 +314,7 @@ void parse_buffer(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_gr
         }
         else if (attr_name == "prefetch_type")
         {
-            buffer->set_prefetch_type(static_cast<PGBuffer::PrefetchType>(parse_int_attribute_value(attr_value)));
+            buffer->set_prefetch_type(static_cast<PrefetchType>(parse_int_attribute_value(attr_value)));
         }
         else if (attr_name == "embedding_table")
         {

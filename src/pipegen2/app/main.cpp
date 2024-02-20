@@ -63,6 +63,11 @@ int main(int argc, char* argv[])
             Pipegen2::output_input_buffer_usage_analysis(
                 epoch_num, stream_graphs.get(), input_buffer_usage_analysis_csv_file.str());
         }
+        const char* log_memory_allocations_dir = std::getenv("TT_BACKEND_MEMORY_ALLOCATIONS_DIR");
+        if (log_memory_allocations_dir)
+        {
+            pipegen.output_memory_allocations(log_memory_allocations_dir, epoch_num);
+        }
     }
     catch (const std::exception& e)
     {

@@ -944,7 +944,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_Normal)
 {  
     PGBufferMock buffer_mock(
         BufferType::kUnpacker, 111000000000, 1, 64, 12, {0}, {1, 11}, 2, 16, 12, 2080, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 32, 1, 4, 131000000000, 1, 1, 12, 0, PGBuffer::PrefetchType::PRE_TM, 1, 4,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 32, 1, 4, 131000000000, 1, 1, 12, 0, PrefetchType::PRE_TM, 1, 4,
         1, 0, 1024, 192, 1, 32, 131072, 1, 1, 103424, 1);
     std::vector<std::string> yaml_lines = buffer_mock.to_json_list_of_strings_all_attributes();
     PipeGraph pipe_graph;

@@ -9,6 +9,8 @@
 
 #include "device/tt_xy_pair.h"
 
+#include "device/l1_memory_allocation.h"
+#include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 
 namespace pipegen2
@@ -60,23 +62,33 @@ public:
     // Returns streams that have been allocated on the core.
     const std::set<StreamId>& get_allocated_stream_ids() const { return m_allocated_stream_ids; }
 
-    // Returns all memory allocations on the L1 memory of the core.
-    const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_all_memory_allocations() const
+    // Returns all memory allocation on the L1 memory of the core.
+    const std::vector<std::unique_ptr<L1MemoryAllocation>>& get_all_memory_allocations() const 
     { 
         return m_memory_allocations; 
     }
 
     // Adds stream allocation to the core resource tracker.
     void track_stream_buffer_allocation(const StreamNode* stream_node, 
-                                        unsigned int buffer_size, 
-                                        unsigned int buffer_address);
+                                        const unsigned int buffer_size, 
+                                        const unsigned int buffer_address);
 
     // Checks if core is out of L1 memory for data buffers space, and throws the error if it is.
     void check_if_out_of_l1_data_buffers_memory();
 
+    // Gets logical location of the core tied to this core resource object.
+    const tt_cxy_pair& get_logical_location() const { return m_core_logical_location; }
+
+    // Sets the name of the op placed on this core.
+    void set_op_name(const std::string& op_name) { m_op_name = op_name; }
+
+    // Gets the name of the op placed on this core.
+    const std::string get_op_name() const { return m_op_name != "" ? m_op_name : "undefined"; }
+
 protected:
     // Constructor, protected from public.
     CoreResources(const tt_cxy_pair& core_physical_location,
+                  const tt_cxy_pair& core_logical_location,
                   StreamId extra_streams_id_range_start,
                   StreamId extra_streams_id_range_end,
                   int l1_data_buffers_space_start_address,
@@ -110,6 +122,9 @@ protected:
     std::set<StreamId> m_allocated_stream_ids;
 
 private:
+    // Returns a string represenations of the L1 memory allocations on the core.
+    std::string allocations_to_string() const;
+
     // Starting ID in the extra streams ID range.
     // Extra streams are used for general purpose, for example as gather input streams.
     const StreamId c_extra_streams_id_range_start;
@@ -141,11 +156,14 @@ private:
     // Physical location of the core.
     const tt_cxy_pair m_core_physical_location;
 
+    // Logical location of the core.
+    const tt_cxy_pair m_core_logical_location;
+
     // Vector of all the memory allocations on the core.
     std::vector<std::unique_ptr<L1MemoryAllocation>> m_memory_allocations;
 
-    // Returns a string represenations of the L1 memory allocations on the core.
-    std::string allocations_to_string() const;
+    // Name of the op placed on the core. If such name does not exist, the string is empty.
+    std::string m_op_name = "";
 };
 
 } // namespace pipegen2

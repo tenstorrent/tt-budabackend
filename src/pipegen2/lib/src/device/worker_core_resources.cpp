@@ -14,8 +14,9 @@
 namespace pipegen2
 {
 
-WorkerCoreResources::WorkerCoreResources(const tt_cxy_pair& core_physical_location) :
+WorkerCoreResources::WorkerCoreResources(const tt_cxy_pair& core_physical_location, const tt_cxy_pair& core_logical_location) :
     CoreResources(core_physical_location,
+                  core_logical_location,
                   static_cast<StreamId>(END_IO_STREAM + 1),
                   static_cast<StreamId>(NOC_NUM_STREAMS - 1),
                   l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
@@ -42,6 +43,7 @@ StreamId WorkerCoreResources::allocate_packer_stream(int operand_id)
             "Trying to allocate packer stream on a worker core " + get_physical_location().str() +
             ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kPackerStreams,
             1 /* available_core_resources */);
     }
@@ -70,6 +72,7 @@ StreamId WorkerCoreResources::allocate_unpacker_stream(int operand_id)
             "Trying to allocate unpacker stream on a worker core " + get_physical_location().str() +
             ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kUnpackerStreams,
             1 /* available_core_resources */);
     }
@@ -98,6 +101,7 @@ StreamId WorkerCoreResources::allocate_intermed_stream(int operand_id)
             "Trying to allocate intermediate stream on a worker core " + get_physical_location().str() +
             ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kIntermediateStreams,
             1 /* available_core_resources */);
     }
@@ -117,6 +121,7 @@ StreamId WorkerCoreResources::allocate_packer_multicast_stream(int operand_id)
             "Trying to allocate packer-multicast stream on a worker core " + get_physical_location().str() +
             ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kPackerMulticastStreams,
             1 /* available_core_resources */);
     }
@@ -136,6 +141,7 @@ StreamId WorkerCoreResources::get_next_available_general_purpose_stream_id()
             ". Total number of available extra streams per worker core is " +
             std::to_string(available_extra_streams) + ".",
             get_physical_location(),
+            get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
             available_extra_streams);
     }

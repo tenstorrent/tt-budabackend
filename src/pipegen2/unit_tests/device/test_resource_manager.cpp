@@ -183,11 +183,13 @@ protected:
 
 TEST_F(Pipegen2_ResourceManager, CreateWorkerCoreResources_AlwaysThrowsExc)
 {
-    tt_cxy_pair dummy_worker_location = tt_cxy_pair(0, 0, 0);
+    tt_cxy_pair dummy_worker_physical_location = tt_cxy_pair(0, 0, 0);
+    tt_cxy_pair dummy_worker_logical_location = tt_cxy_pair(0, 0, 0);
 
     // Expecting errors for unsupported archs.
     EXPECT_THROW(
-        resource_manager_internal::create_worker_core_resources(tt::ARCH::Invalid, dummy_worker_location),
+        resource_manager_internal::create_worker_core_resources(
+            tt::ARCH::Invalid, dummy_worker_physical_location, dummy_worker_logical_location),
         std::runtime_error);
 }
 

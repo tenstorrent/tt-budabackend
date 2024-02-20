@@ -143,6 +143,11 @@ void run_pipegen2(const string &desc_name,
             pipegen2::Pipegen2::output_input_buffer_usage_analysis(
                 temporal_epoch, stream_graphs.get(), input_buffer_usage_analysis_csv_file.str());
         }
+        const char* log_memory_allocations_dir = std::getenv("TT_BACKEND_MEMORY_ALLOCATIONS_DIR");
+        if (log_memory_allocations_dir)
+        {
+            pipegen.output_memory_allocations(log_memory_allocations_dir, temporal_epoch);
+        }
     } catch (const pipegen2::BasePipegen2CompileException &ex) {
         handle_pipegen2_compile_exception(ex, graph_name, temporal_epoch, sdesc_per_chip, compile_result);
     } catch (const pipegen2::BasePipegen2IOException &ex) {

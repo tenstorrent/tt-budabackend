@@ -7,6 +7,8 @@
 #include <optional>
 #include <vector>
 
+#include "model/typedefs.h"
+
 namespace pipegen2
 {
     class StreamNode;
@@ -28,6 +30,8 @@ namespace pipegen2
         unsigned int msg_size;
 
         unsigned int num_msgs;
+
+        std::optional<PrefetchType> prefetch_type;
 
         std::optional<bool> dram_input;
 

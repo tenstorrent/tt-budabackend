@@ -72,7 +72,9 @@ public:
     static void map_worker_logical_to_routing_coordinates(
         const std::vector<tt_xy_pair>& worker_cores,
         std::unordered_map<int, int>& worker_logical_to_routing_coordinates_x,
-        std::unordered_map<int, int>& worker_logical_to_routing_coordinates_y);
+        std::unordered_map<int, int>& worker_logical_to_routing_coordinates_y,
+        std::unordered_map<int, int>& routing_coordinates_x_to_worker_logical_x,
+        std::unordered_map<int, int>& routing_coordinates_y_to_worker_logical_y);
 };
 
 class GSSoCDescriptorFileMock : public SoCDescriptorFileMock

@@ -35,7 +35,7 @@ namespace pipegen2
     }
 #endif
 
-    std::string stream_type_to_string(StreamType stream_type)
+    std::string StreamNode::stream_type_to_string(StreamType stream_type)
     {
         switch (stream_type)
         {
@@ -69,7 +69,8 @@ namespace pipegen2
         m_operand_id(operand_id),
         m_has_assigned_buffer_address(false),
         m_is_deleted(false),
-        m_max_num_tiles_per_phase(0)
+        m_max_num_tiles_per_phase(0),
+        m_op_name("")
     {
     }
 
@@ -84,7 +85,8 @@ namespace pipegen2
         m_stream_id(-1),
         m_operand_id(operand_id),
         m_has_assigned_buffer_address(false),
-        m_is_deleted(false)
+        m_is_deleted(false),
+        m_op_name("")
     {
         add_phase_configs(phases_info, max_num_tiles_per_phase);
         get_base_config().set_num_iters_in_epoch(num_iterations_in_epoch);

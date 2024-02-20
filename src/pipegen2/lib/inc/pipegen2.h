@@ -11,6 +11,7 @@
 
 namespace pipegen2
 {
+    class L1MemoryAllocation;
     class PipeGraph;
     class RationalGraph;
     class ResourceManager;
@@ -45,6 +46,9 @@ namespace pipegen2
         static void output_input_buffer_usage_analysis(const int epoch_num,
                                                        const StreamGraphCollection* stream_graph_collection,
                                                        const std::string& input_buffer_usage_analysis_path);
+
+        // Outputs analysis of L1 memory allocations by stream buffers.
+        void output_memory_allocations(const std::string& log_path, const int temporal_epoch);
 
     private:
         // Creates pipe graph from the input net2pipe pipegen yaml.
