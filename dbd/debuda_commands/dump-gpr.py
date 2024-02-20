@@ -6,8 +6,9 @@ Usage:
   gpr
 
 Description:
-  Prints all RISC-V registers for TRISC0, TRISC1, TRISC2 and Brisc on current core.
-  If the core cannot be paused(halted), it prints nothing. If core is not active, an exception is thrown.
+  Prints all RISC-V registers for BRISC, TRISC0, TRISC1, and TRISC2 on the current core.
+  If the core cannot be halted, it prints nothing. If core is not active, an exception
+  is thrown.
 
 Examples:
   gpr
@@ -15,7 +16,8 @@ Examples:
 
 import tabulate
 from debuda import UIState
-from tt_debug_risc import RiscDebug, RiscLoc
+from tt_debug_risc import RiscDebug, RiscLoc, get_risc_name
+import tt_device
 
 command_metadata = {"short": "gpr", "type": "low-level", "description": __doc__}
 
@@ -59,17 +61,26 @@ RISC_REGS = {
 def run(cmd_text, context, ui_state: UIState = None):
     result = {}
     device_id = ui_state.current_device_id
+    noc_id = 0
+    device = context.devices[device_id]
     loc = ui_state.current_location
+
+    halted_state={}
+
     for i in range(0, 4):
         risc = RiscDebug(RiscLoc(loc, 0, i))
+        was_halted = risc.is_halted()
+        halted_state[i] = was_halted
+
         risc.enable_debug()
-        risc.pause()
-        if risc.is_paused():
+        risc.halt()
+        if risc.is_halted():
             result[i] = {}
             for j in range(0, 33):
                 reg_val = risc.read_gpr(j)
                 result[i][j] = reg_val
-            risc.contnue()
+            if not was_halted:
+                risc.cont()
         else:
             print(f"Core {i} cannot be paused.")
 
@@ -79,10 +90,34 @@ def run(cmd_text, context, ui_state: UIState = None):
         for j in range(0, 4):
             row.append(f"0x{result[j][i]:08x}" if j in result else "-")
         table.append(row)
+
+    # Determine soft reset status
+    reset_reg = tt_device.SERVER_IFC.pci_read_xy(device_id, *loc.to("nocVirt"), noc_id, 0xffb121b0)
+    table.append ([
+        "Soft reset",
+        (reset_reg >> 11) & 1,
+        (reset_reg >> 12) & 1,
+        (reset_reg >> 13) & 1,
+        (reset_reg >> 14) & 1,
+    ])
+
+    # Determine the halted status
+    table.append ([
+        "Halted",
+        halted_state[0],
+        halted_state[1],
+        halted_state[2],
+        halted_state[3],
+    ])
+
+    # Print the table
     if len(table) > 0:
+        headers = ["Register"]
+        for risc_id in range (0, 4):
+            headers.append(get_risc_name(risc_id))
         print(
             tabulate.tabulate(
-                table, headers=["Register", "Brisc", "Trisc0", "Trisc1", "Trisc2"]
+                table, headers=headers
             )
         )
 
