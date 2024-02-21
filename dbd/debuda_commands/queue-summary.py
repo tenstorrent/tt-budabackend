@@ -21,6 +21,7 @@ Examples:
 
 command_metadata = {"short": "q", "type": "high-level", "description": __doc__}
 
+from typing import Sequence
 import tt_util as util
 from tt_object import TTObjectIDDict, DataArray
 import tt_device
@@ -39,7 +40,7 @@ def get_queue_data(context, queue):
         target_device = int(q_data["target_device"])
         for queue_position in range(len(q_data["host"])):
             dram_place = q_data["host"][queue_position]
-            if type(dram_place) is list:
+            if isinstance(dram_place, Sequence):
                 host_chan = dram_place[0]
                 host_addr = dram_place[1]
             elif type(dram_place) is int:
@@ -47,7 +48,7 @@ def get_queue_data(context, queue):
                 host_chan = 0
                 host_addr = dram_place[0]
             else:
-                assert False, f"Unexpected Host queue addr format"
+                assert False, f"Unexpected Host queue addr format. Current format: {type(dram_place)}, expected Sequence or int"
 
             rdptr = (
                 tt_device.SERVER_IFC.host_dma_read(target_device, host_addr, host_chan)
@@ -96,7 +97,7 @@ def read_queue_contents(context, queue, start_addr, num_bytes):
         for queue_position in range(len(q_data["host"])):
             dram_place = q_data["host"][queue_position]
 
-            if type(dram_place) is list:
+            if isinstance(dram_place, Sequence):
                 host_chan = dram_place[0]
                 host_addr = dram_place[1]
             elif type(dram_place) is int:
@@ -104,7 +105,7 @@ def read_queue_contents(context, queue, start_addr, num_bytes):
                 host_chan = 0
                 host_addr = dram_place[0]
             else:
-                assert False, f"Unexpected Host queue addr format"
+                assert False, f"Unexpected Host queue addr format. Current format: {type(dram_place)}, expected Sequence or int"
 
             da = DataArray(f"host-0x{host_addr:08x}-ch{host_chan}-{num_words * 4}")
             for i in range(num_words):

@@ -25,7 +25,7 @@ from tt_graph import Queue
 from tt_temporal_epoch import TemporalEpoch
 from tt_coordinate import OnChipCoordinate
 from docopt import docopt
-from typing import List, Set, Dict, Any
+from typing import List, Sequence, Set, Dict, Any
 from tt_stream import Stream
 import subprocess
 from collections import defaultdict, Counter
@@ -835,7 +835,7 @@ def is_unpacker_stream(ha_context: HangAnalysisContext, stream_id: HAStreamId):
     assert phase > 0
     stream_blob = get_stream_blob(ha_context, stream_id, phase)
     device = get_device_of_stream(ha_context, stream_id)
-    assert type(stream_blob["dest"] is list)
+    assert isinstance(stream_blob["dest"], Sequence)
     is_dest_field_missing_or_empty = (
         "dest" not in stream_blob or len(stream_blob["dest"]) == 0
     )  # "[]")
