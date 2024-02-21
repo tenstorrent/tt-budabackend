@@ -21,26 +21,22 @@ $PARAMS = {
   :graph_name => "unary_test",
   :graph_input_file => nil,
   :graph_yaml => 0,
-  :epoch_max_inputs => 24,
-  :epoch_max_outputs => 24,
-  :noc_num_streams => 64,
   :overlay_blob_size => (64 * 1024) - 128,
   :overlay_blob_size_eth => (32 * 1024) - 128,
   :blob_section_start => (140 * 1024) + 128,
-  :data_buffer_space_base => (204 * 1024), 
-  # BH has data section reduced for ncrisc runtime sections
-  # :data_buffer_space_base => (220 * 1024), 
+  :data_buffer_space_base => (204 * 1024),
   :tensix_mem_size => (1024 * 1024),
   :blob_section_start_eth => 0,
   :data_buffer_space_base_eth => 0,
   :eth_cores => "",
   :worker_cores => "",
-  :max_msgs_per_phase => 2048,
   :noc_translation_id_enabled => 0,
   :next_epoch_dram_addr => 0,
   :nrisc_no_fw_load => 0,
   :verbose => 0,
-  :chip_ids => ""
+  :verbose_debug => 0, # Note that setting this to 1 will provide full debug info, but won't produce working hex!
+  :chip_ids => "",
+  :alignment => 32,
 }
 
 print("ruby ")
@@ -62,7 +58,14 @@ for i in 0..ARGV.length-1
 end
 print("\n")
 
-#  pp $PARAMS
+require "#{$PARAMS[:blob_gen_root]}/graphs/graph_list.rb"
+require "#{$PARAMS[:blob_gen_root]}/stream_regs.rb"
+
+# Verbose output.
+$verbose = $PARAMS[:verbose]
+# Full debug will allow you to see each step of output with string markings in hex arrays, but won't produce 
+# working hex files for cores!
+$verbose_debug = $PARAMS[:verbose_debug]
 
 $phase_mask = 0xFFFFFFFF
 $phase_shift = 32
@@ -70,31 +73,111 @@ $wrapped_phase_mask = 0x7FFF
 $epoch_shift = 15
 $epoch_max = 31
 $dram_io_is_scatter_loop = 0x8000000000000000
+
+# unused_data_buffers_space_bytes from pipegen2_constants.h
 $unused_buf_space_bytes = 64
 
-#end
-
-####
-
-require "#{$PARAMS[:blob_gen_root]}/graphs/graph_list.rb"
-require "#{$PARAMS[:blob_gen_root]}/stream_regs.rb"
-
-#######
-
-$epoch_max_inputs = $PARAMS[:epoch_max_inputs]
-$epoch_max_outputs = $PARAMS[:epoch_max_outputs]
-$noc_num_streams = $PARAMS[:noc_num_streams]
-
-$msg_info_buf_size = $PARAMS[:max_msgs_per_phase] * 16
-
-$epoch_dram_scatter_state_struct_size = 1 * 32
-$epoch_dram_stream_info_struct_size = 4 * 8
-$epoch_dram_state_struct_size = 3 * 4 * 8
-$epoch_stream_info_struct_size = 5 * 32
+# EPOCH_MAX_INPUTS from epoch.h
+$epoch_max_inputs = 24
+# EPOCH_MAX_OUTPUTS_ETH from epoch.h
+$epoch_max_outputs = 24
+# EPOCH_MAX_OUTPUT_FORKS from epoch.h
 $epoch_max_output_forks = 16
+# EPOCH_MAX_NUM_TILE_SIZES from epoch.h
 $epoch_max_num_tile_sizes = 8
-$epoch_info_struct_size = 96*4 + 40*4 + 4*($epoch_max_inputs + $epoch_max_outputs + $noc_num_streams + (2 * $epoch_max_num_tile_sizes))
+# PERF_NUM_THREADS from l1_address_map.h
+$perf_num_threads = 5
+# NOC_NUM_STREAMS from noc_overlay_parameters.h
+$noc_num_streams = 64
 
+# general_max_num_tiles_per_phase from pipegen2_constants.h
+$max_msgs_per_phase = 2048 
+# tile_header_size_bytes from pipegen2_constants.h
+$tile_header_size_bytes = 16 
+$msg_info_buf_size = $max_msgs_per_phase * $tile_header_size_bytes
+
+# Helper function which aligns value up to be divisible by --alignment parameter.
+def AlignStructSizeInBytes(length_in_bytes)
+  return (length_in_bytes + $PARAMS[:alignment] - 1) / $PARAMS[:alignment] * $PARAMS[:alignment]
+end
+
+# Unaligned epoch_t struct size. One such struct exists per core.
+$epoch_t_struct_size = 454 + 8 * $epoch_max_num_tile_sizes + 4 * ($epoch_max_inputs + $epoch_max_outputs + $noc_num_streams) + 18 * $perf_num_threads
+# Aligned epoch_t struct size.
+$epoch_t_struct_padded_size = AlignStructSizeInBytes($epoch_t_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$epoch_t_struct_padding = ($epoch_t_struct_padded_size - $epoch_t_struct_size) / 4
+
+# Unaligned epoch_stream_info_t struct size. One such struct exist per used stream on core.
+$epoch_stream_info_t_struct_size = 144 + 1 * $epoch_max_output_forks
+# Analigned epoch_stream_info_t struct size.
+$epoch_stream_info_t_struct_padded_size = AlignStructSizeInBytes($epoch_stream_info_t_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$epoch_stream_info_t_struct_padding = ($epoch_stream_info_t_struct_padded_size - $epoch_stream_info_t_struct_size) / 4
+
+# Unaligned scatter_pipe_state_t struct size. Exists only if `is_scatter_pack` and `scatter_order_size > 1`.
+$scatter_pipe_state_t_struct_size = 16
+# Unaligned scatter_pipe_blob_t struct size.
+$scatter_pipe_blob_t_struct_size = 8
+# Note that we don't need to align scatter_pipe_state_t and scatter_pipe_blob_t structs, 
+# the whole array is instead padded to achieve alignment.
+def GetScatterPipeStateAndBlobListPaddedSize(blob_scatter)
+  length = 0
+
+  if blob_scatter.size() > 0
+    blob_scatter.each do |scatter_idx, blob_scatter_elem|
+      length = length + $scatter_pipe_state_t_struct_size
+      for unroll_idx in 0..(blob_scatter_elem[:offsets].length()-1)
+        length = length + $scatter_pipe_blob_t_struct_size
+      end
+    end
+  end
+
+  return AlignStructSizeInBytes(length)
+end
+
+# Unaligned epoch_stream_dram_io_info_t struct size. This and structs below exist only if stream has NCRISC config assigned.
+$epoch_stream_dram_io_info_t_struct_size = 32
+# Aligned epoch_stream_dram_io_info_t struct size.
+$epoch_stream_dram_io_info_t_struct_padded_size = AlignStructSizeInBytes($epoch_stream_dram_io_info_t_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$epoch_stream_dram_io_info_t_struct_padding = ($epoch_stream_dram_io_info_t_struct_padded_size - $epoch_stream_dram_io_info_t_struct_size) / 4
+
+# Unaligned dram_io_state_t::dram_to_l1 struct size. Exists one per NCRSIC config.
+$dram_io_state_t_dram_to_l1_struct_size = 32
+# Aligned dram_io_state_t::dram_to_l1 struct size.
+$dram_io_state_t_dram_to_l1_struct_padded_size = AlignStructSizeInBytes($dram_io_state_t_dram_to_l1_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$dram_io_state_t_dram_to_l1_struct_padding = ($dram_io_state_t_dram_to_l1_struct_padded_size - $dram_io_state_t_dram_to_l1_struct_size) / 4
+# Unaligned dram_io_state_t::l1_to_dram struct size.
+$dram_io_state_t_l1_to_dram_struct_size = 32
+# Aligned dram_io_state_t::l1_to_dram struct size.
+$dram_io_state_t_l1_to_dram_struct_padded_size = AlignStructSizeInBytes($dram_io_state_t_l1_to_dram_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$dram_io_state_t_l1_to_dram_struct_padding = ($dram_io_state_t_l1_to_dram_struct_padded_size - $dram_io_state_t_l1_to_dram_struct_size) / 4
+# Unaligned rest of dram_io_state_t struct size.
+$dram_io_state_t_rest_of_struct_size = 32
+# Aligned rest of dram_io_state_t struct size.
+$dram_io_state_t_rest_of_struct_padded_size = AlignStructSizeInBytes($dram_io_state_t_rest_of_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$dram_io_state_t_rest_of_struct_padding = ($dram_io_state_t_rest_of_struct_padded_size - $dram_io_state_t_rest_of_struct_size) / 4
+# Aligned dram_io_state_t struct size.
+$dram_io_state_t_struct_padded_size = $dram_io_state_t_dram_to_l1_struct_padded_size + $dram_io_state_t_l1_to_dram_struct_padded_size + $dram_io_state_t_rest_of_struct_padded_size
+
+# Unaligned dram_io_scatter_state_t struct size. Exists only if NCRISC config has dram_scatter_offsets.
+$dram_io_scatter_state_t_struct_size = 32
+# Aligned dram_io_scatter_state_t struct size.
+$dram_io_scatter_state_t_struct_padded_size = AlignStructSizeInBytes($dram_io_scatter_state_t_struct_size)
+# Number of zeros to pad to achieve alignment. One zero is 4B.
+$dram_io_scatter_state_t_struct_padding = ($dram_io_scatter_state_t_struct_padded_size - $dram_io_scatter_state_t_struct_size) / 4
+# dram_io_scatter_state_t.scatter_offsets is tt_uint64_t tt_l1_ptr * , thus 8B.
+$dram_io_scatter_offsets_size = 8
+
+# Note that we don't need to align each dram_scatter_offset item,
+# the whole array is instead padded to achieve alignment.
+def GetDramScatterOffsetsListPaddedSize(dram_scatter_offsets_length)
+  return AlignStructSizeInBytes(dram_scatter_offsets_length * $dram_io_scatter_offsets_size)
+end
 
 $msg_size_msg_info_buf_map = {}
 $msg_size_msg_info_buf_map_eth = {}
@@ -249,27 +332,6 @@ end
 
 def GetFirstMsgDW(seed_dw, msg_size)
   return (seed_dw & 0xFFFF0000) + (msg_size >> 4)
-end
-
-
-def GetDramScatterOffsetsSize(length)
-  return ((length * 8) % 32) == 0 ? (length * 8) : ((length * 8) / 32) * 32 + 32
-end
-
-
-def GetPipeScatterStateSize(blob_scatter)
-  length = 0
-
-  if blob_scatter.size() > 0
-    blob_scatter.each do |scatter_idx, blob_scatter_elem|
-      length = length + 16 # scatter_pipe_state_t
-      for unroll_idx in 0..(blob_scatter_elem[:offsets].length()-1)
-        length = length + 8 # scatter_pipe_blob_t
-      end
-    end
-  end
-
-  return (length % 32) == 0 ? length : (length / 32) * 32 + 32
 end
 
 def GetNextPreloadDW(prev_dw)
@@ -469,17 +531,17 @@ def compile_pkernel(pkernel, graph_name, chip_id, y, x, out_name, params)
   output_dir = File.expand_path(pkernel_out + out_name)
   buda_home = File.expand_path($PARAMS[:root])
   make_cmd = "make "
-  if $PARAMS[:verbose] == 0
+  if $verbose == 0
     make_cmd += "-s "
   end
   make_cmd += "-C #{$PARAMS[:root]}/src/pkernels/toolchain all "
   make_cmd += "-j8 "
-  make_cmd += "VERBOSE_BUILD=#{($PARAMS[:verbose] > 0 ? 1 : 0)} "
+  make_cmd += "VERBOSE_BUILD=#{($verbose > 0 ? 1 : 0)} "
   make_cmd += "ARCH_NAME=#{$PARAMS[:chip]} "
   make_cmd += "OUTPUT_DIR=#{output_dir} "
   make_cmd += "BUDA_HOME=#{buda_home} "
   make_cmd += "FIRMWARE_NAME=#{out_name} "
-  if $PARAMS[:verbose] == 1
+  if $verbose == 1
     puts make_cmd
   end
   system(make_cmd)
@@ -495,13 +557,18 @@ def compile_pkernel(pkernel, graph_name, chip_id, y, x, out_name, params)
 end
 
 
-def PopulateEpochInfo(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_info_stream_addr)
+# Main function where epoch_t (from epoch.h) is being written to output stream which will end up in resulting .hex
+def PopulateEpochTStruct(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_info_stream_addr)
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
-  epoch_info_dws = []
-  epoch_info_dws << core_epoch_info[:num_inputs]
-  epoch_info_dws << core_epoch_info[:num_outputs]
-  epoch_info_dws << core_epoch_info[:stream_info].length
-  epoch_info_dws << epoch_valid # {epoch_valid, all_streams_ready, all_streams_and_kernels_done, end_program}
+  epoch_t_dws = []
+  # *** Writing epoch_t ***
+  if $verbose_debug == 1
+    epoch_t_dws << "epoch_t start"
+  end
+  epoch_t_dws << core_epoch_info[:num_inputs]
+  epoch_t_dws << core_epoch_info[:num_outputs]
+  epoch_t_dws << core_epoch_info[:stream_info].length
+  epoch_t_dws << epoch_valid # {epoch_valid, all_streams_ready, all_streams_and_kernels_done, end_program}
 
   num_tile_sizes = core_epoch_info[:overlay_valid] == 1? (IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x].size : $msg_size_msg_info_buf_map[chip_id].size) : 0
   tile_sizes_dws = []
@@ -521,36 +588,36 @@ def PopulateEpochInfo(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_
     t -= 1;
   end
   
-  epoch_info_dws << num_tile_sizes
-  epoch_info_dws += tile_sizes_dws
-  epoch_info_dws += tile_header_buf_addr_dws
+  epoch_t_dws << num_tile_sizes
+  epoch_t_dws += tile_sizes_dws
+  epoch_t_dws += tile_header_buf_addr_dws
     
   for i in 0..($epoch_max_inputs-1)
     if i < core_epoch_info[:num_inputs]
       stream_id = core_epoch_info[:input_streams][i]
-      epoch_info_dws << epoch_info_stream_addr[stream_id]
+      epoch_t_dws << epoch_info_stream_addr[stream_id]
     else
-      epoch_info_dws << 0   
+      epoch_t_dws << 0   
     end
   end
   for i in 0..($epoch_max_outputs-1)
     if i < core_epoch_info[:num_outputs]
       stream_id = core_epoch_info[:output_streams][i]
-      epoch_info_dws << epoch_info_stream_addr[stream_id]
+      epoch_t_dws << epoch_info_stream_addr[stream_id]
     else
-      epoch_info_dws << 0   
+      epoch_t_dws << 0   
     end
   end
   n = 0
   
   for stream_id in 0..($noc_num_streams-1)
     if core_epoch_info[:stream_to_info_index][stream_id]
-      epoch_info_dws << epoch_info_stream_addr[stream_id]
+      epoch_t_dws << epoch_info_stream_addr[stream_id]
       n += 1
     end
   end  
   while n < $noc_num_streams
-    epoch_info_dws << 0
+    epoch_t_dws << 0
     n += 1
   end
 
@@ -558,78 +625,96 @@ def PopulateEpochInfo(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_
     core_epoch_info[:skip_kernels] = 1
   end
 
-  epoch_info_dws << 0 # perf_dram_copy_req[0]
-  epoch_info_dws << 0 # perf_dram_copy_req[1]
-  epoch_info_dws << 0 # perf_dram_copy_req[2]
-  epoch_info_dws << 0 # perf_dram_copy_req[3]
-  epoch_info_dws << 0 # perf_dram_copy_req[4]
-  epoch_info_dws << 0 # perf_dram_copy_ack[0]
-  epoch_info_dws << 0 # perf_dram_copy_ack[1]
-  epoch_info_dws << 0 # perf_dram_copy_ack[2]
-  epoch_info_dws << 0 # perf_dram_copy_ack[3]
-  epoch_info_dws << 0 # perf_dram_copy_ack[4]
+  epoch_t_dws << 0 # perf_dram_copy_req[0]
+  epoch_t_dws << 0 # perf_dram_copy_req[1]
+  epoch_t_dws << 0 # perf_dram_copy_req[2]
+  epoch_t_dws << 0 # perf_dram_copy_req[3]
+  epoch_t_dws << 0 # perf_dram_copy_req[4]
+  epoch_t_dws << 0 # perf_dram_copy_ack[0]
+  epoch_t_dws << 0 # perf_dram_copy_ack[1]
+  epoch_t_dws << 0 # perf_dram_copy_ack[2]
+  epoch_t_dws << 0 # perf_dram_copy_ack[3]
+  epoch_t_dws << 0 # perf_dram_copy_ack[4]
 
   if perf_blobs && perf_blobs[yx_label]
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][0] & 0xFFFFFFFF) # perf_dram_addr[0] low
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][0] >> 32)        # perf_dram_addr[0] high
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][1] & 0xFFFFFFFF) # perf_dram_addr[1] low
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][1] >> 32)        # perf_dram_addr[1] high
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][2] & 0xFFFFFFFF) # perf_dram_addr[2] low
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][2] >> 32)        # perf_dram_addr[2] high
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][3] & 0xFFFFFFFF) # perf_dram_addr[3] low
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][3] >> 32)        # perf_dram_addr[3] high
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][4] & 0xFFFFFFFF) # perf_dram_addr[4] low
-    epoch_info_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][4] >> 32)        # perf_dram_addr[4] high
-    epoch_info_dws << ((perf_blobs[yx_label][:dram_perf_buf_max_req][1] << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][0]) # {perf_dram_size[1], perf_dram_size[0]}
-    epoch_info_dws << ((perf_blobs[yx_label][:dram_perf_buf_max_req][3] << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][2]) # {perf_dram_size[3], perf_dram_size[2]}
-    epoch_info_dws << ((0 << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][4]) # {UNUSED[0], perf_dram_size[4]}
-    epoch_info_dws << 0 # {UNUSED[2], UNUSED[1]}
-    epoch_info_dws << 0 # {UNUSED[4], UNUSED[3]}
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][0] & 0xFFFFFFFF) # perf_dram_addr[0] low
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][0] >> 32)        # perf_dram_addr[0] high
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][1] & 0xFFFFFFFF) # perf_dram_addr[1] low
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][1] >> 32)        # perf_dram_addr[1] high
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][2] & 0xFFFFFFFF) # perf_dram_addr[2] low
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][2] >> 32)        # perf_dram_addr[2] high
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][3] & 0xFFFFFFFF) # perf_dram_addr[3] low
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][3] >> 32)        # perf_dram_addr[3] high
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][4] & 0xFFFFFFFF) # perf_dram_addr[4] low
+    epoch_t_dws << (perf_blobs[yx_label][:dram_perf_buf_noc_addr][4] >> 32)        # perf_dram_addr[4] high
+    epoch_t_dws << ((perf_blobs[yx_label][:dram_perf_buf_max_req][1] << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][0]) # {perf_dram_size[1], perf_dram_size[0]}
+    epoch_t_dws << ((perf_blobs[yx_label][:dram_perf_buf_max_req][3] << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][2]) # {perf_dram_size[3], perf_dram_size[2]}
+    epoch_t_dws << ((0 << 16) | perf_blobs[yx_label][:dram_perf_buf_max_req][4]) # {UNUSED[0], perf_dram_size[4]}
+    epoch_t_dws << 0 # {UNUSED[2], UNUSED[1]}
+    epoch_t_dws << 0 # {UNUSED[4], UNUSED[3]}
   else
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
   end
-  epoch_info_dws << 0 # extra_dram_q_state_addr
+  epoch_t_dws << 0 # extra_dram_q_state_addr
 
-  epoch_info_dws << ((core_epoch_info[:ublock_ct] ? core_epoch_info[:ublock_ct] << 16 : 0) | (core_epoch_info[:ublock_rt] ? core_epoch_info[:ublock_rt] : 0))
-  epoch_info_dws << ((core_epoch_info[:mblock_n] ? core_epoch_info[:mblock_n] << 16 : 0) | (core_epoch_info[:mblock_m] ? core_epoch_info[:mblock_m] : 0))
-  epoch_info_dws << ((core_epoch_info[:has_packer_mcast_opt] ? 1 << 24 : 0) | (core_epoch_info[:has_eth_stream_trans] ? 1 << 16 : 0) | (core_epoch_info[:mblock_k] ? core_epoch_info[:mblock_k] : 0))
+  epoch_t_dws << ((core_epoch_info[:ublock_ct] ? core_epoch_info[:ublock_ct] << 16 : 0) | (core_epoch_info[:ublock_rt] ? core_epoch_info[:ublock_rt] : 0))
+  epoch_t_dws << ((core_epoch_info[:mblock_n] ? core_epoch_info[:mblock_n] << 16 : 0) | (core_epoch_info[:mblock_m] ? core_epoch_info[:mblock_m] : 0))
+  epoch_t_dws << ((core_epoch_info[:has_packer_mcast_opt] ? 1 << 24 : 0) | (core_epoch_info[:has_eth_stream_trans] ? 1 << 16 : 0) | (core_epoch_info[:mblock_k] ? core_epoch_info[:mblock_k] : 0))
 
-  epoch_info_dws << ((core_epoch_info[:skip_kernels] << 16) | (core_epoch_info[:overlay_valid] & 0xFF))
-  epoch_info_dws << core_epoch_info[:epoch_id]
+  epoch_t_dws << ((core_epoch_info[:skip_kernels] << 16) | (core_epoch_info[:overlay_valid] & 0xFF))
+  epoch_t_dws << core_epoch_info[:epoch_id]
   
-  #Initialize  tile clear blob to 0.
-    for i in 0..(15)
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
-    epoch_info_dws << 0
+  # Initialize  tile clear blob to 0.
+  for i in 0..(15)
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
+    epoch_t_dws << 0
   end
 
-  epoch_info_dws << 0x1 # dummy_phase_tile_header_and_data[0]
-  epoch_info_dws << 0x0 # dummy_phase_tile_header_and_data[1]
-  epoch_info_dws << 0x0 # dummy_phase_tile_header_and_data[2]
-  epoch_info_dws << (IsEthernetYX(y,x) ? 0 : core_epoch_info[:overlay_blob_extra_size])
+  if $verbose_debug == 1
+    epoch_t_dws << "epoch_t padding start"
+  end
+  # Pad with zeros to achieve alignment.
+  $epoch_t_struct_padding.times do
+    epoch_t_dws << 0
+  end
 
-  return epoch_info_dws
+  if $verbose_debug == 1
+    epoch_t_dws << "dummy phase header and data"
+  end
+  # dummy phase tile header and data needs to be at the end of epoch_t
+  # end of writing epoch_t from epoch.h to output stream
+  epoch_t_dws << 0x1 # dummy_phase_tile_header_and_data[0]
+  epoch_t_dws << 0x0 # dummy_phase_tile_header_and_data[1]
+  epoch_t_dws << 0x0 # dummy_phase_tile_header_and_data[2]
+  epoch_t_dws << (IsEthernetYX(y,x) ? 0 : core_epoch_info[:overlay_blob_extra_size])
+
+  if $verbose_debug == 1
+    epoch_t_dws << "epoch_t end"
+  end
+  # *** End of writing epoch_t ***
+  
+  return epoch_t_dws
 end
 
-def PopulateInvalidEpochInfo(chip_id, y, x)
+def PopulateInvalidEpochTStruct(chip_id, y, x)
   core_epoch_info = {
     :num_inputs => 0,
     :num_outputs => 0,
@@ -646,28 +731,46 @@ def PopulateInvalidEpochInfo(chip_id, y, x)
     :epoch_id => 0
   }
 
-  return PopulateEpochInfo(core_epoch_info, 1, "chip_#{chip_id}__y_#{y}__x_#{x}", nil, {})
+  return PopulateEpochTStruct(core_epoch_info, 1, "chip_#{chip_id}__y_#{y}__x_#{x}", nil, {})
 end
 
 def compute_epoch_info_addrs(epoch_info, yx_label, epoch_info_space_start)
   epoch_info_stream_addr = {}
   epoch_stream_info_total_size = 0
+
   for stream_id in 0..($noc_num_streams-1)
     if epoch_info[yx_label][:stream_to_info_index][stream_id]
-      epoch_info_stream_addr[stream_id] = epoch_info_space_start + $epoch_info_struct_size + epoch_stream_info_total_size
-      epoch_stream_info_total_size += $epoch_stream_info_struct_size
+      # epoch_stream_info_t struct starts right after epoch_t struct.
+      epoch_info_stream_addr[stream_id] = epoch_info_space_start + $epoch_t_struct_padded_size + epoch_stream_info_total_size
+
+      # Increase size by full size of epoch_stream_info_t.
+      epoch_stream_info_total_size += $epoch_stream_info_t_struct_padded_size
+
       stream_info_index = epoch_info[yx_label][:stream_to_info_index][stream_id]
       stream_info = epoch_info[yx_label][:stream_info][stream_info_index]
+  
+      # If stream is_scatter_pack and scatter_order_size > 1, we add list of scatter_pipe_state_t structs
+      # followed by list of scatter_pipe_blob_t structs.
       if stream_info[:blob_scatter].size() > 0
-        epoch_stream_info_total_size += GetPipeScatterStateSize(stream_info[:blob_scatter])
+        # Increase size by full size of those lists.
+        epoch_stream_info_total_size += GetScatterPipeStateAndBlobListPaddedSize(stream_info[:blob_scatter])
       end
+
+      # If stream has NCRISC configs assigned
       if stream_info[:dram_stream]
-        epoch_stream_info_total_size += $epoch_dram_stream_info_struct_size
+        # Increase size by full size of epoch_stream_dram_io_info_t.
+        epoch_stream_info_total_size += $epoch_stream_dram_io_info_t_struct_padded_size
+
         for dram_buf_id in 0..(stream_info[:dram_stream_buf_list].length()-1)
-          epoch_stream_info_total_size += $epoch_dram_state_struct_size
+          # For each NCRISC config we add one dram_io_scatter_state_t struct. Increase size by full size of dram_io_scatter_state_t.
+          epoch_stream_info_total_size += $dram_io_state_t_struct_padded_size
+
           if (stream_info[:dram_stream_buf_list][dram_buf_id][:dram_scatter_offsets].length() > 0)
-            epoch_stream_info_total_size += $epoch_dram_scatter_state_struct_size
-            epoch_stream_info_total_size += GetDramScatterOffsetsSize(stream_info[:dram_stream_buf_list][dram_buf_id][:dram_scatter_offsets].length())
+            # For each DRAM scatter offset, we add one dram_io_scatter_state_t struct. Increase size by full size of dram_io_scatter_state_t.
+            epoch_stream_info_total_size += $dram_io_scatter_state_t_struct_padded_size
+
+            # For each DRAM scatter offset, we write $dram_io_scatter_offsets_size bytes of data. Increase size by full list of offsets.
+            epoch_stream_info_total_size += GetDramScatterOffsetsListPaddedSize(stream_info[:dram_stream_buf_list][dram_buf_id][:dram_scatter_offsets].length())
           end
         end
       end
@@ -684,7 +787,16 @@ def WriteBlobHexFile(blob_hex_filename, blob_hex_sections)
     addr_marker = (sect_addr >> 2).to_s(16).rjust(8, "0")
     blob_hex_file.puts("@#{addr_marker}")
     blob_hex_sections[sect_addr].each do |dw|
-      dw_str = dw.to_s(16).rjust(8, "0")
+      # If verbose_debug is on, this will produce hex files with string stamps in them, which won't work!
+      if dw.is_a? String
+        if $verbose_debug == 1
+          dw_str = dw
+        else
+          next
+        end
+      else
+        dw_str = dw.to_s(16).rjust(8, "0")
+      end
       blob_hex_file.puts(dw_str)      
     end
   end
@@ -716,7 +828,7 @@ autocfg = $tt_overlay_graphs[graph_name]
 dram_blobs = autocfg[:dram_blob]
 perf_blobs = autocfg[:dram_perf_dump_blob]
 
-if $PARAMS[:verbose] == 2
+if $verbose == 2
   puts "%%%%%%%%%%%%%%%%"
   pp autocfg
   puts "%%%%%%%%%%%%%%%%"
@@ -754,11 +866,13 @@ end
 
 # Add default settings to graph
 phase_info = $tt_stream_seq[graph_name]
-if $PARAMS[:verbose] == 2
+
+if $verbose == 2
   puts "%%%%%%%%%%%%%%%%"
   pp phase_info
   puts "%%%%%%%%%%%%%%%%"
 end
+
 phase_info.each do |yx_label, streams|
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
   streams.each do |stream_id, phases|
@@ -766,6 +880,7 @@ phase_info.each do |yx_label, streams|
     $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id] = phase_nums
   end
 end
+
 phase_info.each do |yx_label, streams|
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
   streams.each do |stream_id, phases|
@@ -1036,7 +1151,7 @@ phase_info.each do |yx_label, streams|
   end
 end
 
-if $PARAMS[:verbose] == 1
+if $verbose == 1
   pp "Tile sizes found: "
   pp $msg_size_msg_info_buf_map
 end
@@ -1045,8 +1160,6 @@ end
 ######
 
 FileUtils.mkdir_p "#{$PARAMS[:blob_out_dir]}"
-
-epoch_info = {}
   
 sender_dummy_phase_num_dest = {}
 phase_info.each do |yx_label, streams|
@@ -1072,7 +1185,79 @@ phase_info.each do |yx_label, streams|
   end
 end
 
+# *** epoch_info dict definition and init ***
+# Example
+# {
+#   :chip_0__y_1__x_2=>{
+#     :num_inputs=>2,
+#     :num_outputs=>1,
+#     :input_streams=>{0=>9, 1=>8},
+#     :output_streams=>{0=>24},
+#     :stream_info=>[
+#       {
+#         :stream_id=>9,
+#         ...
+#         :dram_stream=>true,
+#         :dram_stream_buf_list=>[
+#           {
+#             :dram_buf_noc_addr=>4848615424,
+#             :dram_buf_size_bytes=>4160,
+#             ...
+#             :dram_scatter_offsets=>[4848615424]
+#           },
+#           ...
+#         ],
+#         :producer_epoch_id=>0,
+#         ...
+#         :blob_size=>48
+#       },
+#       {
+#         :stream_id=>8,
+#         ...
+#       }
+#     ],
+#     :stream_to_info_index=>{9=>0, 8=>1, 24=>2},
+#     :overlay_valid=>1,
+#     :has_eth_stream_trans=>nil,
+#     :has_packer_mcast_opt=>nil,
+#     :overlay_blob_extra_size=>0,
+#     :skip_kernels=>0,
+#     :ublock_rt=>1,
+#     :ublock_ct=>1,
+#     :mblock_m=>1,
+#     :mblock_n=>1,
+#     :mblock_k=>1,
+#     :full_blob_size=>256
+#   },
+#   :chip_0__y_1__x_1=>{
+#     ...
+#   }
+# }
 
+epoch_info = {}
+
+# Iterate through phase_info which is a dict of form
+# {
+#   chip_and_core_1 : {
+#       stream_id_1: {
+#         first_phase_of_this_stream: {
+#           phase_info_from_blob.yaml
+#         },
+#         second_phase_of_this_stream: {
+#           ...
+#         },
+#         ...
+#       },
+#       stream_id_2: {
+#         ...
+#       }
+#       ...
+#   },
+#   chip_and_core_2 : {
+#     ...
+#   }
+#   ...
+# }
 phase_info.each do |yx_label, streams|
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d\d*)__x_(\d\d*)/).last.map {|str| str.to_i }
   epoch_info[yx_label] = {:num_inputs => 0, :num_outputs => 0, 
@@ -1081,8 +1266,12 @@ phase_info.each do |yx_label, streams|
                           :overlay_valid => 1, :has_eth_stream_trans => false, :has_packer_mcast_opt => false,
                           :overlay_blob_extra_size => 0,
                           :skip_kernels => 0}
+  
   curr_blob_relative_offset = 0
   blob_hex_file = "#{$PARAMS[:blob_out_dir]}/#{graph_name}_#{chip_id}_#{y}_#{x}.hex"
+
+  # Iterate through streams on core. Each stream has its `phases` map which is dict
+  # containing info about each phase that stream goes through.
   streams.each do |stream_id, phases|
     yx_stream_label = (yx_label.to_s + "__stream_id_" + stream_id.to_s).to_sym
     phase_nums = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id]
@@ -1092,11 +1281,15 @@ phase_info.each do |yx_label, streams|
     receiver_has_dummy_phase = Set[]
     curr_blob_start_offset = curr_blob_relative_offset
     scatter_prev_phase = {}
+
     for p in 0..(num_phases-1) do
       phase = phases[phase_nums[p]]
-      if $PARAMS[:verbose] == 1
+
+      if $verbose == 1
         pp ("     *** Stream #{stream_id}, phase #{phase_nums[p]} auto cfg offset = 0x#{curr_blob_relative_offset.to_s(16)}, buf_addr=0x#{phase[:buf_addr].to_s(16)}, buf_size=0x#{phase[:buf_size].to_s(16)}, msg_info_buf_addr=0x#{phase[:msg_info_buf_addr].to_s(16)}");
       end
+
+      # Counts inputs and outputs to this core, stores it in epoch_t[yx_label].
       ["input", "output"].each do |key_type|
         if phase[:"#{key_type}_index"]
           index = phase[:"#{key_type}_index"]
@@ -1112,6 +1305,8 @@ phase_info.each do |yx_label, streams|
         flags = GetStreamFlags(stream_id, phase, dram_stream ? dram_blobs[yx_stream_label] : nil, 0)
         fork_stream_ids = phase[:fork_stream_ids]
         new_dram_stream_buf_list = []
+
+        # If stream reads or writes to DRAM through NCRISC, fetch its NCRISC configs.
         if dram_stream
           dram_blobs[yx_stream_label].each do |dram_blob_idx, dram_blob|
             if dram_blob[:dram_buf_size_q_slots]
@@ -1130,6 +1325,7 @@ phase_info.each do |yx_label, streams|
                 end
               end
             end
+            # List of NCRISC configs for this core and stream i.e. epoch_t[yx_label][:stream_info].
             new_dram_stream_buf_list << {:dram_buf_noc_addr => modify_DRAM_NOC_addr(dram_blob[:dram_buf_noc_addr], dram_blob[:dram_output] ? phase[:outgoing_data_noc] : phase[:incoming_data_noc]),
                                          :dram_buf_size_bytes => dram_blob[:dram_buf_size_bytes],
                                          :dram_buf_size_tiles => dram_blob[:dram_buf_size_tiles],
@@ -1177,6 +1373,8 @@ phase_info.each do |yx_label, streams|
                                                :tile_dim_r => phase[:tile_dim_r], :tile_dim_c => phase[:tile_dim_c], :c_dim_loop_num_rows => phase[:c_dim_loop_num_rows],
                                                :aliased_stream_id => phase[:space_shared_with_stream], :aliased_stream_type => 0
                                               }
+
+        # Does some validity checks.
         if phase[:overlay_blob_extra_size] && phase[:overlay_blob_extra_size] != 0
           if (epoch_info[yx_label][:overlay_blob_extra_size] && epoch_info[yx_label][:overlay_blob_extra_size] != 0 && epoch_info[yx_label][:overlay_blob_extra_size] != phase[:overlay_blob_extra_size])
             abort("Error! found different overlay_blob_extra_size for #{yx_label}")
@@ -1232,6 +1430,7 @@ phase_info.each do |yx_label, streams|
       if epoch_curr_stream_info[:dram_stream] && epoch_curr_stream_info[:dram_stream_buf_list][0][:dram_padding] && (phase[:buf_base_addr] != epoch_curr_stream_info[:buf_base_addr] || phase[:buf_addr] != epoch_curr_stream_info[:buf_addr])
         abort("Error! found phases with different buf_addr/buf_base_addr for padding stream: #{yx_stream_label}, phase #{phase_nums[p]}")
       end
+
       next_phase = (p == (num_phases-1)) ? nil : phases[phase_nums[p+1]]
       prev_phase = (p == 0) ? nil : phases[phase_nums[p-1]]
       if !next_phase
@@ -1248,7 +1447,7 @@ phase_info.each do |yx_label, streams|
             abort("aliased_stream_type not found for ethernet firmware stream. #{yx_label}")
           # elsif (epoch_info[yx_label][:stream_info][stream_info_index][:use_ethernet_fw_stream])
           elsif (phase[:use_ethernet_fw_stream])
-            if $PARAMS[:verbose] == 1
+            if $verbose == 1
               pp ("#{yx_label}__#{stream_id} use_ethernet_fw_stream.");
             end
             epoch_info[yx_label][:stream_info][stream_info_index][:aliased_stream_type] |= 0x4
@@ -1262,7 +1461,7 @@ phase_info.each do |yx_label, streams|
           if (!epoch_info[yx_label][:stream_info][stream_info_index][:aliased_stream_type])
             abort("aliased_stream_type not found for ethernet firmware stream. #{yx_label}")
           elsif (phase[:use_ethernet_fw_stream])
-            if $PARAMS[:verbose] == 1
+            if $verbose == 1
               pp ("#{yx_label}__#{stream_id} use_ethernet_fw_stream.");
             end
             epoch_info[yx_label][:stream_info][stream_info_index][:aliased_stream_type] |= 0x4
@@ -1276,7 +1475,7 @@ phase_info.each do |yx_label, streams|
           dest_prev_phase, dest_prev_stream_cfg = GetPrevPhase(phase_info, dest_phase_nums, dest_num_phases, phase_nums[p], dest_chip, dest_x, dest_y, dest_stream_id)
           dest_phase = $tt_stream_seq[graph_name][:"chip_#{dest_chip}__y_#{dest_y}__x_#{dest_x}"][dest_stream_id][dest_prev_phase]
         end
-        if $PARAMS[:verbose] == 1
+        if $verbose == 1
           pp ("          *** Dest x=#{dest_x}, y=#{dest_y}, chip=#{dest_chip}, stream_id=#{stream_id}, dest_phase=#{dest_phase[:phase_num]}");
         end
       else
@@ -1352,19 +1551,19 @@ phase_info.each do |yx_label, streams|
           abort
         end
         if has_dummy_phase
-          dummy_phase_addr = (IsEthernetYX(y,x) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]) + $epoch_info_struct_size - 16
+          dummy_phase_addr = (IsEthernetYX(y,x) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]) + $epoch_t_struct_padded_size - 16
           if has_dummy_phase_receiver
             last_phase[:"cfg_dw_list_dummy_#{mblock_buffering_idx}"] << get_dummy_phase_blob(chip_id, x, y, stream_id, phase, dummy_phase_addr, nil, false, has_dummy_phase_receiver)
-            if $PARAMS[:verbose] == 1
+            if $verbose == 1
               if mblock_buffering_idx == 0
                 pp ("#{yx_stream_label}, phase #{phase_nums[p]} adding dummy receiver phase for with src #{phase[:src]}")
               end
             end
           end
           if has_dummy_phase_sender
-            dest_dummy_phase_addr = (IsEthernetYX(dest_y,dest_x) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]) + $epoch_info_struct_size - 16
+            dest_dummy_phase_addr = (IsEthernetYX(dest_y,dest_x) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]) + $epoch_t_struct_padded_size - 16
             last_phase[:"cfg_dw_list_dummy_#{mblock_buffering_idx}"] << get_dummy_phase_blob(chip_id, x, y, stream_id, phase, dummy_phase_addr, dest_dummy_phase_addr, has_dummy_phase_sender, false)
-            if $PARAMS[:verbose] == 1
+            if $verbose == 1
               if mblock_buffering_idx == 0
                 pp ("#{yx_stream_label}, phase #{phase_nums[p]} adding dummy sender phase for with dest #{phase[:dest]}")
               end
@@ -1448,16 +1647,23 @@ phase_info.each do |yx_label, streams|
     epoch_curr_stream_info[:blob_size] = curr_blob_relative_offset - curr_blob_start_offset
     curr_blob_relative_offset += epoch_curr_stream_info[:blob_size]*(num_mblock_buffering-1)
   end
+  # TODO Should this be changed as well? Should blobs be aligned or just successive?
   epoch_info[yx_label][:full_blob_size] = curr_blob_relative_offset
-  if $PARAMS[:verbose] == 2
+  if $verbose == 2
     puts "#{yx_label} => "
     pp epoch_info[yx_label][:stream_info]
   end
 end
 
+if $verbose == 1
+  puts "printing epoch_info dict with cores as keys"
+  pp epoch_info
+end
+
 used_cores = Set[]
 
-
+# Main loop where epoch_stream_info_t, scatter_pipe_state_t, scatter_pipe_blob_t, epoch_stream_dram_io_info_t,
+# dram_io_state_t, dram_io_scatter_state_t are written
 phase_info.each do |yx_label, streams|
   
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
@@ -1469,13 +1675,29 @@ phase_info.each do |yx_label, streams|
 
   puts("2 graph_name #{graph_name} blob out dir #{$PARAMS[:blob_out_dir]}")
   blob_hex_filename = GetBlobHexFileName(graph_name, chip_id, y, x)#"#{$PARAMS[:blob_out_dir]}/#{graph_name}_#{chip_id}_#{y}_#{x}.hex"
-  if $PARAMS[:verbose] == 1
+  if $verbose == 1
     pp ("Outputting hex file #{blob_hex_filename}...")
   end
 
   epoch_stream_info_total_size, epoch_info_stream_addr = compute_epoch_info_addrs(epoch_info, yx_label, epoch_info_space_start)
-  
-  epoch_info_section_size = $epoch_info_struct_size + epoch_stream_info_total_size
+  epoch_info_section_size = $epoch_t_struct_padded_size + epoch_stream_info_total_size
+
+  if $verbose == 1
+    puts "\n"
+    puts "$epoch_t_struct_padded_size: #{$epoch_t_struct_padded_size}"
+    puts "epoch_stream_info_total_size: #{epoch_stream_info_total_size}"
+    puts "epoch_info_section_size: #{epoch_info_section_size}"
+    puts "\n"
+
+    puts "---"
+    puts "epoch_t struct for core #{yx_label}"
+    puts "start addr = 0x#{epoch_info_space_start.to_s(16)}"
+    puts "end addr = 0x#{($epoch_t_struct_padded_size + epoch_info_space_start).to_s(16)}"
+    puts "total size = #{$epoch_t_struct_padded_size}"
+    puts "contains info from following dict: "
+    pp epoch_info[yx_label].reject { |k, v| k == :stream_info }
+    puts "\n"
+  end
 
   stream_hex_bin_offset = 0
 
@@ -1492,22 +1714,28 @@ phase_info.each do |yx_label, streams|
             blob_scatter_elem[:offsets][unroll_idx] = (blob_scatter_elem[:offsets][unroll_idx] + epoch_info_space_start + epoch_info_section_size)
           end
         end
-        blob_scatter_offsets_base = epoch_info_stream_addr[stream_id] + $epoch_stream_info_struct_size
-        blob_scatter_offsets_size = GetPipeScatterStateSize(stream_info[:blob_scatter])
+        blob_scatter_offsets_base = epoch_info_stream_addr[stream_id] + $epoch_stream_info_t_struct_padded_size
+        blob_scatter_offsets_size = GetScatterPipeStateAndBlobListPaddedSize(stream_info[:blob_scatter])
       else
         blob_scatter_offsets_base = 0
         blob_scatter_offsets_size = 0
       end
 
       curr_stream_all_bin_hex_size = 0
-      stream_hex_bin_start = epoch_info_space_start + epoch_info_section_size + epoch_info[yx_label][:full_blob_size] + stream_hex_bin_offset
 
       epoch_info[yx_label][:epoch_id] = (stream_info[:start_phase] >> $phase_shift)
 
-      if $PARAMS[:verbose] == 1
+      if $verbose == 1
         puts "---"
-        puts "#{yx_label}, #{stream_id} => blob start addr = #{stream_info[:blob_start_absolute_address].to_s(16)}"
+        puts "stream info for #{yx_label}, stream #{stream_id}"
+        puts "start addr = 0x#{stream_info[:blob_start_absolute_address].to_s(16)}"
         pp stream_info
+        puts "\n"
+      end
+
+      # *** Writing epoch_stream_info_t ***
+      if $verbose_debug == 1
+        stream_info_dws << "epoch_stream_info_t start for stream " + stream_id.to_s
       end
       stream_info_dws << ((stream_info[:producer_epoch_id] << 16) | stream_id)
       stream_info_dws << (((stream_info[:aliased_stream_id] & 0xFF) << 24) | ((stream_info[:aliased_stream_type] & 0xFF) << 16) | (stream_info[:start_phase] & 0xFFFF))
@@ -1558,7 +1786,7 @@ phase_info.each do |yx_label, streams|
         log_2x_untilize_copy_iters = Math.log2(stream_info[:tile_dim_r]).round
       end
       stream_info_dws << ((num_dram_bufs << 16) | (log_2x_untilize_copy_iters << 8) | (untilize_copy_iters << 0))
-      stream_info_dws << epoch_info_stream_addr[stream_id] + $epoch_stream_info_struct_size + blob_scatter_offsets_size
+      stream_info_dws << epoch_info_stream_addr[stream_id] + $epoch_stream_info_t_struct_padded_size + blob_scatter_offsets_size
       stream_info_dws << ((stream_info[:num_fork_streams] ? stream_info[:num_fork_streams] : 0) | (stream_info[:padding_scatter_order_size] ? stream_info[:padding_scatter_order_size] << 16 : 0))
       if (stream_info[:fork_stream_ids] && stream_info[:fork_stream_ids].length > $epoch_max_output_forks)
         abort("Error! fork_stream_ids exceeds max fork allowed for #{yx_label}, stream_id=#{stream_id}")
@@ -1595,7 +1823,59 @@ phase_info.each do |yx_label, streams|
         stream_info_dws << 0
         stream_info_dws << 0
       end
+      if $verbose_debug == 1
+        stream_info_dws << "epoch_stream_info_t padding start"
+      end
+      # Pad to achieve alignment.
+      $epoch_stream_info_t_struct_padding.times do
+        stream_info_dws << 0
+      end
+      if $verbose_debug == 1
+        stream_info_dws << "epoch_stream_info_t end "
+      end
+      # *** End of writing epoch_stream_info_t ***
+
+      # If stream is_scatter_pack and scatter_order_size > 1, additional info is written.
+      # Example
+      # :blob_scatter=>
+      #  {0=>
+      #    {:offsets=>
+      #      [168,
+      #       480,
+      #       780,
+      #       ...
+      #       4980,
+      #       5280,
+      #       5580,
+      #       5880],
+      #     :phase_num_cfg_regs=>
+      #      [14,
+      #       11,
+      #       11,
+      #       ...
+      #       11,
+      #       11],
+      #     :num_unroll_iter=>20},
+      #   1=>
+      #    {:offsets=>
+      #      [280,
+      #       580,
+      #       880,
+      #       ...
+      #       5980],
+      #     :phase_num_cfg_regs=>
+      #      [11,
+      #       11,
+      #       11,
+      #       ...
+      #       11],
+      #     :num_unroll_iter=>20},
+      #
       if stream_info[:blob_scatter].size() > 0
+        # *** Writing scatter_pipe_blob_t and scatter_pipe_state_t ***
+        if $verbose_debug == 1
+          stream_info_dws << "scatter_pipe_blob_t and scatter_pipe_state_t start"
+        end
         full_slots = 0
         scatter_pipe_state_t_array_base = blob_scatter_offsets_base + stream_info[:blob_scatter].size() * 16
         stream_info[:blob_scatter].each do |scatter_idx, blob_scatter_elem|
@@ -1613,12 +1893,20 @@ phase_info.each do |yx_label, streams|
             full_slots = full_slots + 8
           end
         end
+        if $verbose_debug == 1
+          stream_info_dws << "scatter_pipe_blob_t and scatter_pipe_state_t padding start"
+        end
         for count in (full_slots/4)..(blob_scatter_offsets_size/4-1)
           stream_info_dws << 0
         end
+        # *** End of writing scatter_pipe_blob_t and scatter_pipe_state_t ***
+        if $verbose_debug == 1
+          stream_info_dws << "scatter_pipe_blob_t and scatter_pipe_state_t end"
+        end
       end
+
+      # If stream has NCRISC config assigned, additional info is written.
       if stream_info[:dram_stream]        
-        
         dram_buf = stream_info[:dram_stream_buf_list][0]
         if stream_info[:moves_raw_data]
           epoch_q_slots_remaining = stream_info[:epoch_num_msgs] / (dram_buf[:dram_q_slot_size_tiles] / stream_info[:total_strides])
@@ -1651,6 +1939,10 @@ phase_info.each do |yx_label, streams|
           has_multi_readers = has_multi_readers || stream_info[:dram_stream_buf_list][dram_buf_id][:total_readers] > 1
         end
 
+        # *** Writing epoch_stream_dram_io_info_t ***
+        if $verbose_debug == 1
+          stream_info_dws << "epoch_stream_dram_io_info_t start"
+        end
         stream_info_dws << dram_buf[:dram_q_slot_size_bytes]
         stream_info_dws << (((has_multi_readers ? 1 : 0) << 24) | ((stream_info[:dram_output_no_push] ? 1 : 0) << 16) | (stream_info[:outgoing_data_noc] << 8) | stream_info[:incoming_data_noc])
         if (stream_info[:scatter_list_stream_id] && stream_info[:scatter_list_stream_id] != 0)
@@ -1662,19 +1954,33 @@ phase_info.each do |yx_label, streams|
         end
         stream_info_dws << stream_info[:dram_embeddings_row_shift]
         stream_info_dws << epoch_q_slots_remaining
-        start_dram_state_ptr = epoch_info_stream_addr[stream_id] + $epoch_stream_info_struct_size + blob_scatter_offsets_size + $epoch_dram_stream_info_struct_size
+        start_dram_state_ptr = epoch_info_stream_addr[stream_id] + $epoch_stream_info_t_struct_padded_size + blob_scatter_offsets_size + $epoch_stream_dram_io_info_t_struct_padded_size
         curr_dram_state_ptr = start_dram_state_ptr
         stream_info_dws << (((stream_info[:hw_tilize] ? 1 : 0) << 24) | ((stream_info[:dram_writes_with_cmd_buf] ? 1 : 0) << 16) | stream_info[:dram_embeddings_row_tiles])
         stream_info_dws << curr_dram_state_ptr
+        
+        # Pad with zeros to achieve alignment.
+        if $verbose_debug == 1
+          stream_info_dws << "epoch_stream_dram_io_info_t padding start"
+        end
+        $epoch_stream_dram_io_info_t_struct_padding.times do
+          stream_info_dws << 0
+        end
+        if $verbose_debug == 1
+          stream_info_dws << "epoch_stream_dram_io_info_t end"
+        end
+        # *** End of writing epoch_stream_dram_io_info_t ***
+
+        # Iterate per NCRISC config.
         for dram_buf_id in 0..(stream_info[:dram_stream_buf_list].length()-1)
           dram_buf = stream_info[:dram_stream_buf_list][dram_buf_id]
-          dram_scatter_struct_ptr = dram_buf[:dram_scatter_offsets].length() > 0 ? curr_dram_state_ptr + $epoch_dram_state_struct_size : 0
-          dram_scatter_offset_ptr = curr_dram_state_ptr + $epoch_dram_state_struct_size + $epoch_dram_scatter_state_struct_size
-          dram_scatter_offsets_size_bytes = GetDramScatterOffsetsSize(dram_buf[:dram_scatter_offsets].length())
+          dram_scatter_struct_ptr = dram_buf[:dram_scatter_offsets].length() > 0 ? curr_dram_state_ptr + $dram_io_state_t_struct_padded_size : 0
+          dram_scatter_offset_ptr = curr_dram_state_ptr + $dram_io_state_t_struct_padded_size + $dram_io_scatter_state_t_struct_padded_size
+          dram_scatter_offsets_size_bytes = GetDramScatterOffsetsListPaddedSize(dram_buf[:dram_scatter_offsets].length())
           if (dram_buf_id == stream_info[:dram_stream_buf_list].length()-1)
             curr_dram_state_ptr = start_dram_state_ptr
           else
-            curr_dram_state_ptr += $epoch_dram_state_struct_size + (dram_buf[:dram_scatter_offsets].length() > 0 ? dram_scatter_offsets_size_bytes + $epoch_dram_scatter_state_struct_size : 0)
+            curr_dram_state_ptr += $dram_io_state_t_struct_padded_size + (dram_buf[:dram_scatter_offsets].length() > 0 ? dram_scatter_offsets_size_bytes + $dram_io_scatter_state_t_struct_padded_size : 0)
           end
           if dram_buf[:dram_output]
             data_chunk_size_tiles = dram_buf[:dram_buf_write_chunk_size_tiles]
@@ -1711,11 +2017,16 @@ phase_info.each do |yx_label, streams|
             dest_stream_info = epoch_info[dest_yx_label][:stream_info][dest_stream_info_index]
             dest_epoch_info_space_start = IsEthernetYX(dest_y,dest_x) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]
             dest_epoch_stream_info_offset, dest_epoch_info_stream_addr = compute_epoch_info_addrs(epoch_info, dest_yx_label, dest_epoch_info_space_start)
-            dest_blob_scatter_offsets_size = dest_stream_info[:blob_scatter].size() > 0 ? GetPipeScatterStateSize(dest_stream_info[:blob_scatter]) : 0
-            dram_streaming_header_addr = dest_epoch_info_stream_addr[dest_stream_id] + $epoch_stream_info_struct_size + dest_blob_scatter_offsets_size + $epoch_dram_stream_info_struct_size
+            dest_blob_scatter_offsets_size = dest_stream_info[:blob_scatter].size() > 0 ? GetScatterPipeStateAndBlobListPaddedSize(dest_stream_info[:blob_scatter]) : 0
+            dram_streaming_header_addr = dest_epoch_info_stream_addr[dest_stream_id] + $epoch_stream_info_t_struct_padded_size + dest_blob_scatter_offsets_size + $epoch_stream_dram_io_info_t_struct_padded_size
             dram_streaming_header_addr = append_mmio_pipe_coordinates(dram_buf[:dram_buf_noc_addr], dram_streaming_header_addr)
           end
 
+          # *** Writing dram_io_state_t ***
+          # *** Writing dram_io_state_t::dram_to_l1_t ***
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::dram_to_l1_t start"
+          end
           stream_info_dws << 0  # rd_dram_rdptr
           stream_info_dws << 0  # rd_dram_wrptr
           stream_info_dws << 0  # rd_epoch_id_tag
@@ -1724,6 +2035,22 @@ phase_info.each do |yx_label, streams|
           stream_info_dws << 0  
           stream_info_dws << (dram_buf[:dram_input] && dram_buf[:dram_streaming] ? (stream_info[:start_phase] >> $phase_shift) : 0)
           stream_info_dws << 0  # dram_streaming_tag
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::dram_to_l1_t padding start"
+          end
+          # Pad to achieve alignment.
+          $dram_io_state_t_dram_to_l1_struct_padding.times do
+            stream_info_dws << 0
+          end
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::dram_to_l1_t end"
+          end
+          # *** End of writing dram_io_state_t::dram_to_l1_t ***
+          
+          # *** Writing dram_io_state_t::l1_to_dram_t ***
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::l1_to_dram_t start"
+          end
           stream_info_dws << 0  # wr_dram_rdptr
           stream_info_dws << 0  # wr_dram_wrptr
           stream_info_dws << 0  # wr_epoch_id_tag
@@ -1732,6 +2059,22 @@ phase_info.each do |yx_label, streams|
           stream_info_dws << (dram_streaming_header_addr >> 32)
           stream_info_dws << data_chunk_size_bytes
           stream_info_dws << (((dram_buf[:dram_padding] ? 1 : 0) << 16) | data_chunk_size_tiles)
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::l1_to_dram_t padding start"
+          end
+          # Pad to achieve alignment.
+          $dram_io_state_t_l1_to_dram_struct_padding.times do
+            stream_info_dws << 0
+          end
+          if $verbose_debug == 1
+            stream_info_dws << "dram_io_state_t::l1_to_dram_t end"
+          end
+          # *** End of writing dram_io_state_t::l1_to_dram_t ***
+
+          # *** Writing rest of dram_io_state_t ***
+          if $verbose_debug == 1
+            stream_info_dws << "rest of dram_io_state_t start"
+          end
           stream_info_dws << dram_buf[:dram_buf_size_bytes]
           stream_info_dws << dram_buf[:dram_buf_size_q_slots]
           stream_info_dws << (dram_buf[:dram_buf_noc_addr] & 0xFFFFFFFF)
@@ -1740,7 +2083,23 @@ phase_info.each do |yx_label, streams|
           stream_info_dws << ((dram_buf[:total_readers] << 8) | dram_buf[:reader_index]) # {stride_wrap, unused, total_readers, reader_index}
           stream_info_dws << dram_scatter_struct_ptr
           stream_info_dws << curr_dram_state_ptr
+          if $verbose_debug == 1
+            stream_info_dws << "rest of dram_io_state_t padding start"
+          end
+          # Pad to achieve alignment.
+          $dram_io_state_t_rest_of_struct_padding.times do
+            stream_info_dws << 0
+          end
+          if $verbose_debug == 1
+            stream_info_dws << "rest of dram_io_state_t end"
+          end
+          # *** End of writing rest of dram_io_state_t ***
+
           if (dram_buf[:dram_scatter_offsets].length() > 0)
+            # *** Writing dram_io_scatter_state_t ***
+            if $verbose_debug == 1
+              stream_info_dws << "dram_io_scatter_state_t start"
+            end
             stream_info_dws << 0 # scatter_offsets_index
             stream_info_dws << dram_buf[:dram_scatter_offsets].length()
             stream_info_dws << dram_buf[:dram_scatter_chunk_size_bytes]
@@ -1749,27 +2108,49 @@ phase_info.each do |yx_label, streams|
             stream_info_dws << 0 # unused2
             stream_info_dws << 0 # unused3
             stream_info_dws << dram_scatter_offset_ptr
+            if $verbose_debug == 1
+              stream_info_dws << "dram_io_scatter_state_t padding start"
+            end
+            # Pad to achieve alignment.
+            $dram_io_scatter_state_t_struct_padding.times do
+              stream_info_dws << 0
+            end
+            if $verbose_debug == 1
+              stream_info_dws << "dram_io_scatter_state_t end"
+            end
+            # *** End of writing dram_io_scatter_state_t ***
             
+            # *** Writing dram scatter offsets ***
+            if $verbose_debug == 1
+              stream_info_dws << "dram scatter offsets start"
+            end
             if stream_info[:hw_tilize]
-              for dram_scatter_offsets_id in 0..(dram_scatter_offsets_size_bytes/4-1)
-                if (dram_scatter_offsets_id < dram_buf[:dram_scatter_offsets].length())
-                  stream_info_dws << dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id]
-                else
-                  stream_info_dws << 0
-                end
+              for dram_scatter_offsets_id in 0..(dram_buf[:dram_scatter_offsets].length()-1)
+                stream_info_dws << dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id]
+              end
+              if $verbose_debug == 1
+                stream_info_dws << "dram scatter offsets padding start"
+              end
+              for dram_scatter_offsets_id in dram_buf[:dram_scatter_offsets].length()..(dram_scatter_offsets_size_bytes/4-1)
+                stream_info_dws << 0
               end
             else
-              for dram_scatter_offsets_id in 0..(dram_scatter_offsets_size_bytes/8-1)
-                if (dram_scatter_offsets_id < dram_buf[:dram_scatter_offsets].length())
-                  stream_info_dws << (dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id] & 0xFFFFFFFF)
-                  stream_info_dws << (dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id] >> 32)
-                else
-                  stream_info_dws << 0
-                  stream_info_dws << 0
-                end
+              for dram_scatter_offsets_id in 0..(dram_buf[:dram_scatter_offsets].length()-1)
+                stream_info_dws << (dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id] & 0xFFFFFFFF)
+                stream_info_dws << (dram_buf[:dram_scatter_offsets][dram_scatter_offsets_id] >> 32)
+              end
+              if $verbose_debug == 1
+                stream_info_dws << "dram scatter offsets padding start"
+              end
+              for dram_scatter_offsets_id in dram_buf[:dram_scatter_offsets].length()..(dram_scatter_offsets_size_bytes/8-1)
+                stream_info_dws << 0
+                stream_info_dws << 0
               end
             end
-
+            if $verbose_debug == 1
+              stream_info_dws << "dram scatter offsets end"
+            end
+            # *** End of writing dram scatter offsets ***
           end
         end
       end
@@ -1777,6 +2158,7 @@ phase_info.each do |yx_label, streams|
     end
   end
 
+  # TODO Some intermediates stuff.
   streams.each do |stream_id, phases|
     stream_info_index = epoch_info[yx_label][:stream_to_info_index][stream_id]
     stream_info = epoch_info[yx_label][:stream_info][stream_info_index]
@@ -1785,39 +2167,50 @@ phase_info.each do |yx_label, streams|
         # infinite loop for intermediates - last word needs to be added here after we've computed the absolute blob address
         phase[:cfg_dw_list_0].pop
         phase[:cfg_dw_list_0] << intermediates_blob_loop_dw(stream_info[:blob_start_absolute_address])
-        if $PARAMS[:verbose] == 1
+        if $verbose == 1
           puts "#{yx_label}, stream=#{stream_id}, phase=#{phase_num} -> intermediate phase, looping blob back to address 0x#{stream_info[:blob_start_absolute_address].to_s(16)}"
         end
       end
     end
   end
 
-  epoch_info_dws = PopulateEpochInfo(epoch_info[yx_label], 1, yx_label, perf_blobs, epoch_info_stream_addr)
-  epoch_info_dws += stream_info_dws
+  # The first line writes epoch_t, the second writes all other structures
+  epoch_t_dws = PopulateEpochTStruct(epoch_info[yx_label], 1, yx_label, perf_blobs, epoch_info_stream_addr)
+  epoch_t_dws += stream_info_dws
 
+  if $verbose_debug == 1
+    puts "---"
+    puts "epoch_t_dws content"
+    pp epoch_t_dws
+  end
+
+  # Writing hex data in overlay blob.
   addr_marker = (epoch_info_space_start >> 2).to_s(16).rjust(8, "0")
   blob_hex_sections[epoch_info_space_start] = []
-  if $PARAMS[:verbose] == 1
+  if $verbose == 1
     pp "   Section 0x#{epoch_info_space_start.to_s(16)} -> epoch info"
   end
-  epoch_info_dws.each do |dw|
+  epoch_t_dws.each do |dw|
     blob_hex_sections[epoch_info_space_start] << dw
   end
   
   blob_space_start = epoch_info_space_start + epoch_info_section_size
   curr_blob_addr = blob_space_start
   blob_hex_sections[blob_space_start] = []
-  if $PARAMS[:verbose] == 1
+  if $verbose == 1
     pp "   Section 0x#{blob_space_start.to_s(16)} -> stream blob"
   end
   streams.each do |stream_id, phases|
+    if $verbose_debug == 1
+      blob_hex_sections[blob_space_start] << "Writing blob hex for stream " + stream_id.to_s
+    end
     first_phase_key, first_phase = phases.first
     num_mblock_buffering = first_phase[:num_mblock_buffering] ? first_phase[:num_mblock_buffering] : 1
     for mblock_buffering_idx in 0..(num_mblock_buffering-1) do
       phases.each do |phase_num, phase|
         header_dw = phase[:cfg_header_dw]
         blob_hex_sections[blob_space_start] << header_dw
-        if $PARAMS[:verbose] == 1
+        if $verbose == 1
           expected_next_addr = curr_blob_addr + 4*(phase[:"cfg_dw_list_#{mblock_buffering_idx}"].length + 1)
           pp "        Addr 0x#{curr_blob_addr.to_s(16)} -> stream #{stream_id}, buffer_idx #{mblock_buffering_idx}, phase #{phase_num}, header_dw = #{header_dw.to_s(16)}, num regs = #{phase[:"cfg_dw_list_#{mblock_buffering_idx}"].length + 1}, expected next address = #{expected_next_addr.to_s(16)}"
         end
@@ -1829,7 +2222,7 @@ phase_info.each do |yx_label, streams|
         if phase[:preload_data]
           buf_addr = phase[:buf_addr]
           blob_hex_sections[buf_addr] = []
-          if $PARAMS[:verbose] == 1
+          if $verbose == 1
             pp "    Section 0x#{buf_addr.to_s(16)} -> stream #{stream_id}, phase #{phase_num} preload data"
           end
           phase[:preload_data].each do |seed_dw|
@@ -1852,7 +2245,7 @@ phase_info.each do |yx_label, streams|
         auto_cfg_size = !is_last_phase ? last_phase[:"cfg_dw_list_dummy_#{mblock_buffering_idx}"][blob_idx+1].length() : 0
         header_dw = blob_header_dw(auto_cfg_size, 1, 0)
         blob_hex_sections[blob_space_start] << header_dw
-        if $PARAMS[:verbose] == 1
+        if $verbose == 1
           expected_next_addr = curr_blob_addr + 4*(blob_cfg.length + 1)
           pp "        Addr 0x#{curr_blob_addr.to_s(16)} -> stream #{stream_id}, buffer_idx #{mblock_buffering_idx}, phase dummy, header_dw = #{header_dw.to_s(16)}, num regs = #{blob_cfg.length + 1}, expected next address = #{expected_next_addr.to_s(16)}"
         end
@@ -1862,6 +2255,9 @@ phase_info.each do |yx_label, streams|
           curr_blob_addr = curr_blob_addr + 4
         end
       end
+    end
+    if $verbose_debug == 1
+      blob_hex_sections[blob_space_start] << "End of writing blob hex for stream " + stream_id.to_s
     end
   end
   overlay_blob_size = IsEthernetYX(y,x) ? $PARAMS[:overlay_blob_size_eth] : $PARAMS[:overlay_blob_size] + epoch_info[yx_label][:overlay_blob_extra_size]
@@ -1875,7 +2271,7 @@ end
 ValidateDataAndTileHeaderBuffersAreNonOverlapping(phase_info)
 
 ending_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-if $PARAMS[:verbose] == 1
+if $verbose == 1
   pp "Time Elapse for blob_gen.rb: #{ending_time-starting_time}s"
 end
 
@@ -1885,18 +2281,18 @@ for chip_id in chip_ids
     for c in 0..chip_ids_to_grid_size_x[chip_id]
       if not used_cores.include?(:"chip_#{chip_id}__y_#{r}__x_#{c}")
         if not WORKER_CORE_OVERRIDE_ENABLED or (WORKER_CORE_OVERRIDE_ENABLED and (IsWorkerYX(r,c) or IsEthernetYX(r,c)))
-          epoch_info_dws = PopulateInvalidEpochInfo(chip_id, r, c)
+          epoch_t_dws = PopulateInvalidEpochTStruct(chip_id, r, c)
 
           epoch_info_space_start = IsEthernetYX(r,c) ? $PARAMS[:blob_section_start_eth] : $PARAMS[:blob_section_start]
 
           blob_hex_sections = {}
           blob_hex_sections[epoch_info_space_start] = []
-          epoch_info_dws.each do |dw|
+          epoch_t_dws.each do |dw|
             blob_hex_sections[epoch_info_space_start] << dw
           end
           
           blob_hex_filename = GetBlobHexFileName(graph_name, chip_id, r, c)#"#{$PARAMS[:blob_out_dir]}/#{graph_name}_#{chip_id}_#{y}_#{x}.hex"
-          if $PARAMS[:verbose] == 1
+          if $verbose == 1
             pp ("Outputting hex file #{blob_hex_filename} for UNUSED core...")
           end
           WriteBlobHexFile(blob_hex_filename, blob_hex_sections)
