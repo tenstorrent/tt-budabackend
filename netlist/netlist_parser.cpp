@@ -4,6 +4,7 @@
 #include "netlist_parser.hpp"
 
 #include "common/tt_parallel_for.h"
+#include "common/io_lib.hpp"
 #include "device/cpuset_lib.hpp"
 #include "hlks/inc/hlk_api.h"
 #include "netlist_basic_info_types.hpp"
@@ -2339,13 +2340,14 @@ void netlist_parser::verify_complex_settings() {
                 int tile_size = size::get_tile_size_in_bytes(
                     op_info.output_data_format, true, tile_dim_array[0], tile_dim_array[1]);
                 log_assert(
-                    tile_size % 32 == 0,
-                    "Op: {} output data format {} and tile dim {} combination is not supported because it is not 32B "
+                    tile_size % tt::io::tile_alignment_bytes == 0,
+                    "Op: {} output data format {} and tile dim {} combination is not supported because it is not {}B "
                     "aligned. "
                     "Tile size in this case is {}B.",
                     op_info.name,
                     op_info.output_data_format,
                     get_string(op_info.output_tile_dim),
+                    tt::io::tile_alignment_bytes,
                     tile_size);
 
                 // Verify inputs
@@ -2354,13 +2356,14 @@ void netlist_parser::verify_complex_settings() {
                     tile_size = size::get_tile_size_in_bytes(
                         op_info.input_data_formats[i], true, tile_dim_array[0], tile_dim_array[1]);
                     log_assert(
-                        tile_size % 32 == 0,
+                        tile_size % tt::io::tile_alignment_bytes == 0,
                         "Op: {} input {} data format {} and tile dim {} combination is not supported because it is not "
-                        "32B aligned. Tile size in this case is {}B.",
+                        "{}B aligned. Tile size in this case is {}B.",
                         op_info.name,
                         i,
                         op_info.input_data_formats[i],
                         get_string(op_info.input_tile_dims[i]),
+                        tt::io::tile_alignment_bytes,
                         tile_size);
                 }
             }

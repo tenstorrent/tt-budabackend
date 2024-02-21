@@ -32,36 +32,80 @@ int tt::size::sizeof_format(DataFormat data_format) {
 
 int tt::size::get_tile_size_in_bytes(DataFormat data_formati, bool include_header_padding, int tile_height, int tile_width) {
     int size = 0;
-    bool partial_face = tile_height<16;
     int num_faces_x = ceil(float(tile_width) / 16);
-    int header_padding_size = include_header_padding ?  32 /*header+padding*/ : 0;
+    int header_size = include_header_padding ? 16 : 0; // Header is always 16 Bytes
+    // Exponent section size can change based on the tile dims. When tile_height < 16, pack exponents into a 16 Byte section
+    int exponent_section_height = (tile_height < 16) ? 16 : (ceil(float(tile_height) / 16) * 16) * num_faces_x;
 
-    int exponent_section_height = partial_face ? (include_header_padding ? 0 /*exp sec size is included in padding*/ : 1 * 16) : (ceil(float(tile_height) / 16) * 16) * num_faces_x; 
-                                                                             // exclude padding for 1,2,4,8x32 tiles in bfp format
-                                                                             // exp_section_size (16B) + header (16B) is already 32B aligned
-                                                                             // if we don't include header then we need to pad 16B as exp section size is 16B
     switch (data_formati) {
-        case DataFormat::Float32   : size = tile_height * tile_width * 4 + header_padding_size /* header and pad */; break;
-        case DataFormat::Tf32      : size = tile_height * tile_width * 4 + header_padding_size /* header and pad */; break;
-        case DataFormat::Float16   : size = tile_height * tile_width * 2 + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp8      : size = tile_height * tile_width     + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp4      : size = tile_height * tile_width / 2 + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp2      : size = tile_height * tile_width / 4 + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Float16_b : size = tile_height * tile_width * 2 + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp8_b    : size = tile_height * tile_width     + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp4_b    : size = tile_height * tile_width / 2 + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Bfp2_b    : size = tile_height * tile_width / 4 + exponent_section_height + header_padding_size /* header and pad */; break;
-        case DataFormat::Lf8       : size = tile_height * tile_width     + header_padding_size /* header and pad */; break;
-        case DataFormat::Fp8_e4m3  : size = tile_height * tile_width     + header_padding_size /* header and pad */; break;
-        case DataFormat::UInt16    : size = tile_height * tile_width * 2 + header_padding_size /* header and pad */; break;
-        case DataFormat::Int8      : size = tile_height * tile_width     + header_padding_size /* header and pad */; break;
-        case DataFormat::UInt8     : size = tile_height * tile_width     + header_padding_size /* header and pad */; break;
-        case DataFormat::Int32     : size = tile_height * tile_width * 4 + header_padding_size /* header and pad */; break;
-        case DataFormat::RawUInt8  : size = tile_height * tile_width     + header_padding_size /* header and pad */; break;
-        case DataFormat::RawUInt16 : size = tile_height * tile_width * 2 + header_padding_size /* header and pad */; break;
-        case DataFormat::RawUInt32 : size = tile_height * tile_width * 4 + header_padding_size /* header and pad */; break;
-        case DataFormat::Invalid   : size = 0; break;
-        default: log_fatal("get_tile_size_in_bytes doesn't support this format.."); break;
+        case DataFormat::Float32: 
+            size = tile_height * tile_width * 4 + header_size;
+            break;
+        case DataFormat::Tf32: 
+            size = tile_height * tile_width * 4 + header_size;
+            break;
+        case DataFormat::Float16:
+            size = tile_height * tile_width * 2 + header_size;
+            break;
+        case DataFormat::Bfp8: 
+            size = tile_height * tile_width + exponent_section_height + header_size;
+            break;
+        case DataFormat::Bfp4: 
+            size = tile_height * tile_width / 2 + exponent_section_height + header_size;
+            break;
+        case DataFormat::Bfp2: 
+            size = tile_height * tile_width / 4 + exponent_section_height + header_size;
+            break;
+        case DataFormat::Float16_b: 
+            size = tile_height * tile_width * 2 + header_size;
+            break;
+        case DataFormat::Bfp8_b: 
+            size = tile_height * tile_width + exponent_section_height + header_size;
+            break;
+        case DataFormat::Bfp4_b: 
+            size = tile_height * tile_width / 2 + exponent_section_height + header_size;
+            break;
+        case DataFormat::Bfp2_b: 
+            size = tile_height * tile_width / 4 + exponent_section_height + header_size;
+            break;
+        case DataFormat::Lf8: 
+            size = tile_height * tile_width + header_size;
+            break;
+        case DataFormat::Fp8_e4m3: 
+            size = tile_height * tile_width + header_size;
+            break;
+        case DataFormat::UInt16: 
+            size = tile_height * tile_width * 2 + header_size;
+            break;
+        case DataFormat::Int8: 
+            size = tile_height * tile_width + header_size;
+            break;
+        case DataFormat::UInt8: 
+            size = tile_height * tile_width + header_size; 
+            break;
+        case DataFormat::Int32: 
+            size = tile_height * tile_width * 4 + header_size;
+            break;
+        case DataFormat::RawUInt8:
+            size = tile_height * tile_width + header_size;
+            break;
+        case DataFormat::RawUInt16:
+            size = tile_height * tile_width * 2 + header_size;
+            break;
+        case DataFormat::RawUInt32:
+            size = tile_height * tile_width * 4 + header_size;
+            break;
+        case DataFormat::Invalid:
+            size = 0; 
+            break;
+        default: 
+            log_fatal("get_tile_size_in_bytes doesn't support this format..");
+            break;
+    }
+    
+    if (include_header_padding) {
+        // Account for trailer added at the end of the tile to pad up to the required alignment
+        size = tt::io::align_up(size, tt::io::tile_alignment_bytes); 
     }
     return size;
 }

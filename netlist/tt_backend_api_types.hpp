@@ -20,8 +20,6 @@
 namespace tt {
 
 static constexpr std::uint32_t PY_TENSOR_DIMS = 4;
-static constexpr std::uint32_t QUEUE_HEADER_SIZE_BYTES = 32;
-static constexpr std::uint32_t QUEUE_ALIGN_SIZE_BYTES = 32;
 
 /**
  * @brief Tile dimension enum used to pass variable tile sizes across the SW+HW stack.

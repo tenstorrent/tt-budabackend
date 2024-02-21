@@ -531,8 +531,10 @@ void DeviceTilizer<tilizer_backend>::init_from_grids(const std::array<std::uint3
         og.quad_num_elements = quad_width * quad_height;
         og.quad_data_size = og.quad_num_elements * format_size(g.bufq_target_format) + get_shared_exponent_size(g.bufq_target_format);
         og.quad_size = og.quad_data_size + quad_header_size;
-        pad_with_trailer = static_cast<bool>(og.quad_size % 32);
-        og.quad_size += static_cast<int>(pad_with_trailer) * quad_trailer_size; // Only add trailer for padding if the quads are not 32 byte aligned
+
+        uint32_t aligned_quad_size = tt::io::align_up(og.quad_size, tt::io::tile_alignment_bytes);
+        quad_trailer_size = aligned_quad_size - og.quad_size;
+        og.quad_size += quad_trailer_size; // Only add trailer for padding if the quads are not 32 byte aligned
         og.dram_wr_address_update = og.quad_size;
         
         if(!og.write_header) {
@@ -590,7 +592,7 @@ void DeviceTilizer<tilizer_backend>::init_from_grids(const std::array<std::uint3
     adjusted_tile_height = std::min(quad_height, tile_height);
     num_faces_y = ceil(float(quad_height) / tile_height);
     num_faces_x = ceil(float(quad_width) / tile_width);
-    transfer_size = queue_grids_[0].dram_wr_address_update - queue_grids_[0].write_header * (quad_header_size + static_cast<int>(pad_with_trailer) * quad_trailer_size);
+    transfer_size = queue_grids_[0].dram_wr_address_update - queue_grids_[0].write_header * (quad_header_size + quad_trailer_size);
 }
 
 template<Tilizer tilizer_backend>
@@ -782,7 +784,7 @@ void DeviceTilizer<tilizer_backend>::init_from_tensors(const std::vector<tt_Pyto
             
             if (og.write_header) {
                 // Always add header and trailer unless it is flat layout, then we expect contiguous data, and no header/trailer needed
-                og.block_size += (static_cast<int>(pad_with_trailer) * quad_trailer_size + quad_header_size) * quads_per_block;
+                og.block_size += (quad_trailer_size + quad_header_size) * quads_per_block;
             }
 
             if(tilizer_backend == Tilizer::FastTilizeDevicePush) {

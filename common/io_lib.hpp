@@ -11,6 +11,7 @@
 #include "netlist/tt_backend_api_types.hpp"
 #include "model/tilize_untilize_api/alignment.h"
 #include "common/aligned_allocator.h"
+#include "l1_address_map.h" // Need this to determine the minimum tile alignment
 
 template <class T, std::size_t Alignment = std::max(input_alignment, output_alignment)>
 using aligned_vector = std::vector<T, AlignedAllocator<T, Alignment>>;
@@ -19,6 +20,10 @@ using tt_py_desc = tt::tt_PytorchTensorDesc;
 namespace tt {
 //! Helper function for io purposes
 namespace io {
+// Extract NOC Address Alignment Value from l1_address_map and explictly define that as the
+// tile alignment and io_queue_header_size_bytes used in runtime IO 
+static constexpr uint32_t tile_alignment_bytes = l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT;
+static constexpr uint32_t io_queue_header_size_bytes = l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT;
 
 struct tt_io_info {
     std::string output_dir;

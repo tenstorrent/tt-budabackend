@@ -1595,7 +1595,7 @@ vector<uint32_t> get_q_update_read_qcmd(
     qcmd[1] = (epoch_queue::EpochCmdIOQueueUpdate << 28) | (dram_xy.y << 22) | (dram_xy.x << 16) |
               (uint32_t)((queue_header_or_binary_addr & (uint64_t)0x0000ffff00000000) >> 32);
     vector<uint32_t> queue_header = queue_wrap.get_vec();
-    log_assert(queue_header.size() == 8, "Currently queue header size must be equal to 32B");
+    log_assert(queue_header.size() == QUEUE_HEADER_WORDS, "The queue header size must match the QUEUE_HEADER_WORDS parameter.");
     uint8_t update_mask = mask.get();
     qcmd[2] =   (num_buffers            & 0xff)        |
                 ((reader_index          & 0xff) << 8)  |
@@ -1785,7 +1785,7 @@ void tt_epoch_loader::create_and_allocate_io_queues(const map<string, tt_queue_w
     if (skip_io_init) return;
 
     // Initialize all DRAM IO queues with default settings
-    vector<uint32_t> header_vec = {0,0,0,0,0,0,0,0};
+    vector<uint32_t> header_vec = std::vector<uint32_t>(QUEUE_HEADER_WORDS, 0);
     tt_queue_header_wrap header_wrap = {header_vec};
 
     for (auto &queue : queues) {
@@ -1937,7 +1937,7 @@ void tt_epoch_loader::send_allocate_queue_commands(const map<string, tt_queue_wr
     auto &device_epoch_ctrl = *epoch_ctrl[target_device];
     auto &dram_allocators = dram_mgr[target_device]->get_dram_allocators();
 
-    vector<uint32_t> header_vec = {0,0,0,0,0,0,0,0};
+    vector<uint32_t> header_vec = std::vector<uint32_t>(QUEUE_HEADER_WORDS, 0);
 
     for(const auto& queue : queues) {
         device_epoch_ctrl.set_queue_in_use(queue.second.my_queue_info);

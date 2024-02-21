@@ -11,6 +11,7 @@
 #include <limits>
 
 #include "size_lib.hpp"
+#include "io_lib.hpp"
 #include "tile.hpp"
 #include "model/tt_rnd_util.hpp"
 #include "tt_backend_api_types.hpp"
@@ -593,7 +594,7 @@ namespace tt {
         uint32_t num_faces_y = ceil(float(tile_height) / 16);
         uint32_t face_height = std::min(tile_height, static_cast<uint32_t>(16));
         uint32_t face_width = std::min(tile_width, static_cast<uint32_t>(16));
-        bool partial_face = face_height<16; // Tiles 1,2,4,8x32
+        bool partial_face = face_height < 16; // Tiles 1,2,4,8x32
 
         // pack exponents
         if (is_shared_exp_format(data_format)) {
@@ -664,13 +665,13 @@ namespace tt {
             pack_datums<false>(data_format, t, accum_vec, accum_vec_index, packed_data, num_faces_y, num_faces_x, face_height, face_width);
         }
 
-        // Pad to 32B boundary if needed
-        if (!(partial_face && is_shared_exp_format(data_format))) {
-            for (int i = 0; i < 4; ++i) packed_data.push_back(0x0);
-        }
+        uint32_t aligned_packed_data_size_words = tt::io::align_up(packed_data.size() * sizeof(uint32_t), tt::io::tile_alignment_bytes) / sizeof(uint32_t);
+        uint32_t trailer_size_words = aligned_packed_data_size_words - packed_data.size();
+        // Pad to required alignment in DRAM (32 Bytes for GS/WH and 64 Bytes for BH) 
+        for (int i = 0; i < trailer_size_words; i++) packed_data.push_back(0x0);
 
         // Check that we ended up on 32B granularity and correct size
-        log_assert((packed_data.size() % 8) == 0, "Packed data is not 32B aligned"); 
+        log_assert((packed_data.size() * sizeof(uint32_t) % tt::io::tile_alignment_bytes) == 0, "Packed data is not 32B aligned"); 
         log_assert(packed_data.size() == (uint32_t) (size_bytes() / 4), "Incorrect size for packed data");
     }
 

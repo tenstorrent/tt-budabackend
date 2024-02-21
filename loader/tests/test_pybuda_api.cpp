@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
                 bool is_tilized = workload.has_tilized_data(queue_info.name);
                 int queue_size  = get_queue_size(queue_info, is_tilized, tile_height, tile_width); // uses pybuda api
                 tensor_size = get_tensor_size_in_bytes(queue_info, is_tilized);
-                int header_size = queue_info.grid_size.r * queue_info.grid_size.c * tt::io::QUEUE_HEADER_SIZE_BYTES;
+                int header_size = queue_info.grid_size.r * queue_info.grid_size.c * tt::io::io_queue_header_size_bytes;
                 log_assert(tensor_size * queue_info.entries + header_size == queue_size, "Tensor and queue size mismatch"); // check size consistency manual vs. pybuda api
             }
             
@@ -578,7 +578,7 @@ int main(int argc, char **argv) {
             bool is_tilized = workload.has_tilized_data(queue_info.name);
             int queue_size  = get_queue_size(queue_info, is_tilized, tile_height, tile_width); // uses pybuda api
             int tensor_size = get_tensor_size_in_bytes(queue_info, is_tilized);
-            int header_size = queue_info.grid_size.r * queue_info.grid_size.c * tt::io::QUEUE_HEADER_SIZE_BYTES;
+            int header_size = queue_info.grid_size.r * queue_info.grid_size.c * tt::io::io_queue_header_size_bytes;
             log_assert(tensor_size * queue_info.entries + header_size == queue_size, "Tensor and queue size mismatch"); // check size consistency manual vs. pybuda api
             pop_size = batch_size * tensor_size; // Each pop is this size. Multiple pops may happen.
 

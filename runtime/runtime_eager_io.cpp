@@ -171,12 +171,12 @@ void push_tensor(const QUEUE_LOCATION &loc, const int chip_id, const tt_py_desc 
                             cluster->read_dram_vec(rdptr, dram, io_addr, 4); // refresh and try again
                             qptr.rd_ptr = rdptr[0];
                         }
-                        wr_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (qptr.incr_get_wr() * block_size);
+                        wr_addr = io_addr + tt::io::io_queue_header_size_bytes + (qptr.incr_get_wr() * block_size);
                         cluster->write_dram_vec((*block_data), dram, wr_addr);
                         wrptr = {qptr.wr_ptr};
                         cluster->write_dram_vec(wrptr, dram, io_addr + 4);
                     } else {
-                        wr_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (ram_ptr * block_size);
+                        wr_addr = io_addr + tt::io::io_queue_header_size_bytes + (ram_ptr * block_size);
                         cluster->write_dram_vec((*block_data), dram, wr_addr);
                     }
                     
@@ -237,9 +237,9 @@ void get_tensor(const QUEUE_LOCATION &loc, const int chip_id, const tt_py_desc &
                                 cluster->read_dram_vec(wrptr, dram, io_addr + 4, 4); // refresh and try again
                                 qptr.wr_ptr = wrptr[0];
                             }
-                            rd_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (qptr.get_rd_ptr() * block_size);
+                            rd_addr = io_addr + tt::io::io_queue_header_size_bytes + (qptr.get_rd_ptr() * block_size);
                         } else {
-                            rd_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (ram_ptr * block_size);
+                            rd_addr = io_addr + tt::io::io_queue_header_size_bytes + (ram_ptr * block_size);
                         }
                         // read block from dram
                         cluster->read_dram_vec(*block_data, dram, rd_addr, block_size);
@@ -262,9 +262,9 @@ void get_tensor(const QUEUE_LOCATION &loc, const int chip_id, const tt_py_desc &
                             uint32_t *queue_header = reinterpret_cast<uint32_t *>(cluster->host_dma_address(io_addr, chan_id, chip_id));
                             tt_queue_ptr &qptr = qptr_cache->get_qptr(loc, chip_id, chan_id, io_addr);
                             while (qptr.empty()) qptr.wr_ptr = *(queue_header + 1); // refresh and try again
-                            rd_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (qptr.get_rd_ptr() * block_size);
+                            rd_addr = io_addr + tt::io::io_queue_header_size_bytes + (qptr.get_rd_ptr() * block_size);
                         } else {
-                            rd_addr = io_addr + QUEUE_HEADER_SIZE_BYTES + (ram_ptr * block_size);
+                            rd_addr = io_addr + tt::io::io_queue_header_size_bytes + (ram_ptr * block_size);
                         }
                         uint32_t *data = reinterpret_cast<uint32_t *>(cluster->host_dma_address(rd_addr, chan_id, chip_id));
                         if (untilized_output) {

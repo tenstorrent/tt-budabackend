@@ -124,17 +124,14 @@ private:
 
     static constexpr std::uint32_t input_quad_width = tile_width * 2;
     static constexpr std::uint32_t input_quad_height = tile_height * 2;
+    static constexpr std::uint32_t quad_header_size = 16;
+    static constexpr std::uint32_t header_size_scale = 16;
+    static constexpr std::uint32_t queue_header_size = tt::io::io_queue_header_size_bytes;
+    static constexpr std::uint32_t intermed_buf_size_bytes = 256 * 4 * 4 + 64;
+
     std::uint32_t quad_height = tile_height * 2;
     std::uint32_t quad_width = tile_width * 2;
-
-    static constexpr std::uint32_t quad_header_size = 16;
-    static constexpr std::uint32_t quad_trailer_size = 16;
-
-    static constexpr std::uint32_t header_size_scale = 16;
-
-    static constexpr std::uint32_t queue_header_size = 32;
-
-    static constexpr std::uint32_t intermed_buf_size_bytes = 256 * 4 * 4 + 64;
+    std::uint32_t quad_trailer_size = 16;    
     std::uint32_t tensor_batch_size_in_bytes = 0;
     tt::DataFormat host_data_format = tt::DataFormat::Invalid;
     

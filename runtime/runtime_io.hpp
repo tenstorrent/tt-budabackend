@@ -19,7 +19,6 @@ namespace tt::io {
 // --------------------------------------------------------------------------------------
 using tt_target_dram = std::tuple<int, int, int>;
 
-static constexpr int QUEUE_HEADER_SIZE_BYTES = static_cast<uint32_t>(sizeof(tt_queue_header));
 extern bool debug;
 
 // --------------------------------------------------------------------------------------
@@ -89,4 +88,5 @@ template <> tt_PytorchTensorDesc get_pytorch_tensor_desc<int8_t>(tt_tensor &tens
 void finish_io_profiler();
 void setup_io_perf_profiler(tt_io_info io_info);
 
+static_assert(io_queue_header_size_bytes == sizeof(tt_queue_header));
 }

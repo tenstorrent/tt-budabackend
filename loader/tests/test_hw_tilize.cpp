@@ -268,7 +268,7 @@ struct tilized_data_info {
 vector<tilized_data_info> get_tilized_data_info(vector<tt_dram_io_desc> &input_io_desc, tt_runtime_workload &workload, std::vector<tt_tensor> &input_tensors, std::vector<tt_tensor> popped_tensors) {
     
     vector<tilized_data_info> tilized_info;
-    int queue_header_size = tt::io::QUEUE_HEADER_SIZE_BYTES;
+    int queue_header_size = tt::io::io_queue_header_size_bytes;
     log_assert(input_tensors.size() == popped_tensors.size(), "Invalid number og tensors popped");
     log_assert(input_tensors.size() > 0, "Invalid number of input tensors");
     log_assert(input_io_desc.size() == 1, "Should only have one input queue");
@@ -399,7 +399,6 @@ void push_to_hw_and_sw_tilize_pop_and_compare(tt_runtime_config &config, tt_runt
         return all_zero_tensors.at(entry_idx);
     }, -1, true); // force_sw_tilize=true
     std::vector<tt_tensor> sw_tilize_temp = pop_from_queue(workload, input_io_desc[0], runtime.cluster.get());
-
     reallocate_io_queues_and_destroy_hw_tilizer(config, runtime, workload);
 
     // Step 2: HW (Fast) Tilize and Push

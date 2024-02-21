@@ -51,8 +51,6 @@ struct tt_epoch_dram_manager
 
     public:
 
-    static constexpr int QUEUE_HEADER_SIZE_BYTES = static_cast<uint32_t>(sizeof(tt_queue_header));
-
     tt_epoch_dram_manager(chip_id_t chip, const buda_soc_description &sdesc);
 
     void allocate_epoch_queue(tt_epoch_queue* queue, bool distribute_tables);

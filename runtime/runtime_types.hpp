@@ -5,19 +5,20 @@
 
 #include <cstdint>
 #include <vector>
-
+#include "common/io_lib.hpp"
 namespace tt {
 // DRAM accessible via HOST-to-DEVICE MMIO
 constexpr uint32_t DRAM_HOST_MMIO_SIZE_BYTES    = 256 * 1024 * 1024;
 constexpr uint32_t DRAM_HOST_MMIO_CHANNEL       = 0;
 constexpr uint32_t DRAM_HOST_MMIO_RANGE_START   = 0x30000000;
-constexpr uint32_t WH_DRAM_HOST_MMIO_RANGE_END = 0x40000000; //MMIO range for WH starts at 0x30000000 and ends at 0x40000000. This is where the DRAM bank for GS ends.
+constexpr uint32_t WH_DRAM_HOST_MMIO_RANGE_END  = 0x40000000; //MMIO range for WH starts at 0x30000000 and ends at 0x40000000. This is where the DRAM bank for GS ends.
 
 // DRAM accessible via DEVICE-to-DEVICE MMIO
 constexpr uint32_t DRAM_PEER2PEER_SIZE_BYTES    = 256 * 1024 * 1024;
 constexpr uint32_t DRAM_PEER2PEER_CHANNEL       = 0;
 constexpr uint32_t DRAM_PEER2PEER_REGION_START  =  0x30000000;
-constexpr uint32_t QUEUE_HEADER_WORDS = 8;
+
+static constexpr uint32_t QUEUE_HEADER_WORDS = tt::io::io_queue_header_size_bytes / sizeof(uint32_t);
 }
 
 enum class tt_runtime_state {
@@ -98,9 +99,11 @@ struct tt_epoch_config {
 
 // Queue Header
 // ------------
-// The queue header is a 32-byte structure that store the queue state and meta data
+// The queue header is a 32-byte (for GS and WH)abd 64-byte (for BH) structure that store the 
+// queue state and meta data. THe size is controlled by the io_queue_header_size_bytes alignment
+// value, defined per arch.
 // This must be kept in sync with the FW implementation in `src/firmware/common/epoch.h`
-struct tt_queue_header {
+struct alignas(tt::io::io_queue_header_size_bytes) tt_queue_header {
     std::uint16_t global_rd_ptr         ;  // Word 0
     std::uint16_t global_rdptr_autoinc  ;
     std::uint16_t global_wr_ptr         ;  // Word 1
@@ -119,6 +122,7 @@ struct tt_queue_header {
     std::uint32_t __reserved_word_7     ;  // Word 7
 };
 
+static_assert(tt::QUEUE_HEADER_WORDS == (sizeof(tt_queue_header) / sizeof(uint32_t)));
 struct tt_queue_header_mask {
     uint8_t value = 0;
 

@@ -11,7 +11,7 @@ else
   LOADER_INCLUDES += -I$(BUDA_HOME)/umd/device/$(ARCH_NAME)/
 endif
 LOADER_LDFLAGS = -L$(BUDA_HOME) -lcommon -lhwloc -lnetlist
-LOADER_CFLAGS = $(CFLAGS) -Werror -Wno-int-to-pointer-cast
+LOADER_CFLAGS = $(CFLAGS) -Werror -Wno-int-to-pointer-cast -Wno-abi
 
 LOADER_SRCS = \
 	loader/tlb_config.cpp \

@@ -348,7 +348,7 @@ int get_buffer_end_address(int buffer_start_addr, YAML::Node queue_info){
         tilized_data = !(queue_info["layout"].as<string>() == "flat");
     }
     int tile_size = tt::size::get_tile_size_in_bytes(verif::STRING_TO_DATA_FORMAT.at(queue_info["df"].as<string>()), tilized_data);
-    return buffer_start_addr + tile_size * queue_info["entries"].as<int>() * queue_info["t"].as<int>() * queue_info["mblock"][0].as<int>() * queue_info["mblock"][1].as<int>() * queue_info["ublock"][0].as<int>() * queue_info["ublock"][1].as<int>() + tt::QUEUE_HEADER_SIZE_BYTES;
+    return buffer_start_addr + tile_size * queue_info["entries"].as<int>() * queue_info["t"].as<int>() * queue_info["mblock"][0].as<int>() * queue_info["mblock"][1].as<int>() * queue_info["ublock"][0].as<int>() * queue_info["ublock"][1].as<int>() + tt::io::io_queue_header_size_bytes;
 }
 
 void verif::shift_addresses_by_offset(std::string input_filepath, std::string output_filepath, int offset) {

@@ -154,7 +154,7 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
     io_desc.bufq_mapping.clear();
 
     log_trace(tt::LogIO, "translate_address() with queue_name: {} loc: {} src_device_id: {}", queue_info.name, queue_info.loc, queue_info.src_device_id);
-    uint32_t buf_size = tt::size::get_entry_size_in_bytes(io_desc.bufq_target_format, io_desc.layout == IO_LAYOUT::Tilized, io_desc.ublock_ct, io_desc.ublock_rt, io_desc.mblock_m, io_desc.mblock_n, io_desc.t, get_tile_dim_y(queue_info), get_tile_dim_x(queue_info)) * queue_info.entries + QUEUE_HEADER_SIZE_BYTES;
+    uint32_t buf_size = tt::size::get_entry_size_in_bytes(io_desc.bufq_target_format, io_desc.layout == IO_LAYOUT::Tilized, io_desc.ublock_ct, io_desc.ublock_rt, io_desc.mblock_m, io_desc.mblock_n, io_desc.t, get_tile_dim_y(queue_info), get_tile_dim_x(queue_info)) * queue_info.entries + tt::io::io_queue_header_size_bytes;
     if (queue_info.loc == QUEUE_LOCATION::DRAM) {
         for (auto &alloc : queue_info.alloc_info) {
             // check if the address is in the mmio range - chan, start, end
@@ -389,7 +389,7 @@ void *get_untilized_from_sysmem(const tt_dram_io_desc &desc, const tt_queue_info
     }
 
     log_assert((rd_ptr_to_range + pop_count) <= num_entries, "Entries read must reside in contiguous memory!");
-    uint32_t offset = (entry_size * rd_ptr_to_range + QUEUE_HEADER_SIZE_BYTES) / sizeof(uint32_t); // div by 4 for uint32 ptr arithmetic
+    uint32_t offset = (entry_size * rd_ptr_to_range + tt::io::io_queue_header_size_bytes) / sizeof(uint32_t); // div by 4 for uint32 ptr arithmetic
     return q_ptr + offset;
 }
 
@@ -501,7 +501,7 @@ std::vector<uint32_t> pop_untilized_vector_from_dram(const tt_dram_io_desc &desc
 
     // Read buffer entry
     std::vector<std::uint32_t> rv(total_size / sizeof(uint32_t));
-    uint32_t dram_rd_addr = alloc_info.address + QUEUE_HEADER_SIZE_BYTES + (dram_rd_ptr * entry_size);
+    uint32_t dram_rd_addr = alloc_info.address + tt::io::io_queue_header_size_bytes + (dram_rd_ptr * entry_size);
     cluster->read_dram_vec(rv, dram_loc, dram_rd_addr, total_size);
     log_trace(tt::LogIO, "Pop untilized from DRAM, entry_size={}, rd_ptr={}, rd_addr={}, {}", entry_size, dram_rd_ptr, dram_rd_addr, queue_info);
 
@@ -920,7 +920,7 @@ void push_queue_tilized_input(const tt_queue_info &queue_info, tt_tensor &input_
                     log_fatal("Invalid ublock scan order!");
                 }
             }
-            uint64_t dram_wr_addr = alloc.address + QUEUE_HEADER_SIZE_BYTES + (q_wr_ptr * entry_size);
+            uint64_t dram_wr_addr = alloc.address + tt::io::io_queue_header_size_bytes + (q_wr_ptr * entry_size);
             write_to_queue(cluster, rv, q_target, dram_wr_addr, queue_info.loc);
             
             if (queue_info.type == IO_TYPE::Queue) {
@@ -1025,7 +1025,7 @@ tt_tensor pop_queue_tilized_output(const tt_queue_info &queue_info, tt_cluster *
         int gc = alloc_index % queue_info.grid_size.c;
 
         dram_rd_ptr = dram_ptr.get_rd_ptr();
-        uint64_t dram_rd_addr = alloc.address + QUEUE_HEADER_SIZE_BYTES + (dram_rd_ptr * entry_size);
+        uint64_t dram_rd_addr = alloc.address + tt::io::io_queue_header_size_bytes + (dram_rd_ptr * entry_size);
 
         log_assert(!(dram_ptr.empty() or dram_ptr.empty_during_batched_read(tensor.getw())), "Cannot pop {} slots from queue on device! Queue = {}, rd_ptr = {}, wr_ptr = {}", tensor.getw(), queue_name, dram_ptr.rd_ptr, dram_ptr.wr_ptr);
         if(dram_rd_ptr + tensor.getw() < queue_info.entries){
@@ -1037,7 +1037,7 @@ tt_tensor pop_queue_tilized_output(const tt_queue_info &queue_info, tt_cluster *
             int first_batch_size = (queue_info.entries - dram_rd_ptr) * entry_size;
             cluster->read_dram_vec(rv, dram_loc, dram_rd_addr, first_batch_size);
             vector<std::uint32_t> tmp;
-            uint64_t second_dram_rd_addr = alloc.address + QUEUE_HEADER_SIZE_BYTES;
+            uint64_t second_dram_rd_addr = alloc.address + tt::io::io_queue_header_size_bytes;
             cluster->read_dram_vec(tmp, dram_loc, second_dram_rd_addr, batch_size - first_batch_size);
             rv.insert(rv.end(), tmp.begin(), tmp.end());
         }
@@ -1130,7 +1130,7 @@ tt_tensor pop_queue_tilized_output_sysmem(const tt_dram_io_desc &desc, const tt_
     for (int alloc_index=0; alloc_index < desc.bufq_mapping.size(); ++alloc_index) {
         log_assert((rd_ptr_to_range + pop_count) <= num_entries, "Entries read must reside in contiguous memory!");
         q_ptr = reinterpret_cast<uint32_t *>(desc.bufq_mapping.at(alloc_index));
-        uint32_t offset = (entry_size * rd_ptr_to_range + QUEUE_HEADER_SIZE_BYTES) / sizeof(uint32_t); // div by 4 for uint32 ptr arithmetic
+        uint32_t offset = (entry_size * rd_ptr_to_range + tt::io::io_queue_header_size_bytes) / sizeof(uint32_t); // div by 4 for uint32 ptr arithmetic
         uint32_t *data = q_ptr + offset;
         vector<uint32_t> rv(data, data + (batch_size/sizeof(uint32_t)));
 
@@ -1373,7 +1373,7 @@ bool push_input_to_device(const tt::tt_dram_io_desc &q_desc, const tt::tt_Tilize
             q_wr_ptr = ram_ptr;
         }
         std::vector<uint32_t> vec_to_write(reinterpret_cast<const uint32_t*>(tilized_tensor.ptr) + alloc_idx * entry_size / 4, reinterpret_cast<const uint32_t*>(tilized_tensor.ptr) + alloc_idx * entry_size / 4 + entry_size / 4);
-        std::uint32_t wr_addr = alloc.address + QUEUE_HEADER_SIZE_BYTES + q_wr_ptr * block_size;
+        std::uint32_t wr_addr = alloc.address + tt::io::io_queue_header_size_bytes + q_wr_ptr * block_size;
         const uint32_t* data_ptr = reinterpret_cast<const uint32_t*>(tilized_tensor.ptr) + alloc_idx * entry_size / 4;
         write_to_queue(cluster, data_ptr, entry_size, dram, wr_addr, queue_info.loc);
         alloc_idx++;

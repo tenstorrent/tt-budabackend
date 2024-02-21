@@ -136,7 +136,7 @@ void push_to_hw_and_sw_tilize_pop_and_compare(tt_runtime_config &config, tt_runt
     }
     log_assert(input_idx == input_tensors.size(), "There must be num_entries pre-generated tensors for each io descriptor");
     
-    int queue_header_size = tt::io::QUEUE_HEADER_SIZE_BYTES;
+    int queue_header_size = tt::io::io_queue_header_size_bytes;
     // Step 1: SW (Slow) Tilize and Push
     auto sw_start = std::chrono::high_resolution_clock::now();
     tt::io::push_host_inputs(input_io_desc, [&](tt_queue_info& queue_info, int entry_idx){

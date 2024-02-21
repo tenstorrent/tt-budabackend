@@ -15,7 +15,6 @@
 #include "golden/golden_io.hpp"
 #include "netlist_utils.hpp"
 #include "runtime/runtime_io.hpp"
-#include "common/size_lib.hpp"
 #include "utils/scoped_timer.hpp"
 #include "device/cpuset_lib.hpp"
 #include "op_model/op_model.hpp"
@@ -85,7 +84,7 @@ tt::DEVICE_STATUS_CODE push_input(
             const bool include_tile_header_size = q_desc.layout != IO_LAYOUT::Flat;
             log_assert(q_desc.tile_height > 0 && q_desc.tile_width > 0, "Tile dimensions must be positive");
             int entry_size = tt::size::get_entry_size_in_bytes(q_desc.bufq_target_format, include_tile_header_size, q_desc.ublock_ct, q_desc.ublock_rt, q_desc.mblock_m, q_desc.mblock_n, q_desc.t, q_desc.tile_height, q_desc.tile_width);
-            int io_size = (entry_size * py_tensor_desc.shape[0] + QUEUE_HEADER_SIZE_BYTES) * q_desc.bufq_grid_dim_r * q_desc.bufq_grid_dim_c;
+            int io_size = (entry_size * py_tensor_desc.shape[0] + tt::io::io_queue_header_size_bytes) * q_desc.bufq_grid_dim_r * q_desc.bufq_grid_dim_c;
             [[maybe_unused]] float push_bandwidth = ((float)io_size / (1024*1024*1024)) / ((float)duration / 1e6);
             [[maybe_unused]] float push_rate = (float)(py_tensor_desc.shape[0]) / ((float)duration / 1e6);
             log_profile("Pushed {} ({} KB) with duration = {} us, rate = {} inputs/s, {} GB/s ", q_desc.queue_name, io_size / 1024, duration, push_rate, push_bandwidth);
@@ -156,7 +155,7 @@ tt::DEVICE_STATUS_CODE get_output(
             const bool include_tile_header_size = q_desc.layout != IO_LAYOUT::Flat;
             log_assert(q_desc.tile_height > 0 && q_desc.tile_width > 0, "Tile dimensions must be positive");
             int entry_size = tt::size::get_entry_size_in_bytes(q_desc.bufq_target_format, include_tile_header_size, q_desc.ublock_ct, q_desc.ublock_rt, q_desc.mblock_m, q_desc.mblock_n, q_desc.t, q_desc.tile_height, q_desc.tile_width);
-            int io_size = (entry_size * py_tensor_desc.shape[0] + QUEUE_HEADER_SIZE_BYTES) * q_desc.bufq_grid_dim_r * q_desc.bufq_grid_dim_c;
+            int io_size = (entry_size * py_tensor_desc.shape[0] + tt::io::io_queue_header_size_bytes) * q_desc.bufq_grid_dim_r * q_desc.bufq_grid_dim_c;
             [[maybe_unused]] float get_bandwidth = ((float)io_size / (1024*1024*1024)) / ((float)duration / 1e6);;
             [[maybe_unused]] float get_rate = (float)(py_tensor_desc.shape[0]) / ((float)duration / 1e6);;
             log_profile("Read {} ({} KB) with duration: {} us, rate = {} outputs/s , {} GB/s ", q_desc.queue_name, io_size/1024, duration, get_rate, get_bandwidth);
@@ -308,11 +307,11 @@ int get_io_size_in_bytes(
     const int tile_width) {
     int entry_size =
         tt::size::get_entry_size_in_bytes(data_formati, !is_untilized, ublock_ct, ublock_rt, mblock_m, mblock_n, t, tile_height, tile_width);
-    return entry_size * entries + QUEUE_HEADER_SIZE_BYTES;
+    return entry_size * entries + tt::io::io_queue_header_size_bytes;
 }
 
 uint32_t get_next_aligned_address(const uint32_t address) {
-    constexpr uint32_t alignment = QUEUE_ALIGN_SIZE_BYTES;
+    constexpr uint32_t alignment = tt::io::tile_alignment_bytes;
     return ((address + (alignment - 1)) & ~(alignment - 1));
 }
 

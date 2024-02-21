@@ -159,7 +159,7 @@ buffer_range_t tt_runtime_workload::get_buffer_range(string queue_name, int buf_
     if (buffer_ranges_map.find(buffer_name) == buffer_ranges_map.end()) {
         tt_queue_info &queue_info = queues[queue_name].my_queue_info;
         uint32_t entry_size = get_entry_size_in_bytes(queue_info, has_tilized_data(queue_name));
-        uint32_t buf_size = entry_size * queue_info.entries + QUEUE_HEADER_SIZE_BYTES;
+        uint32_t buf_size = entry_size * queue_info.entries + tt::io::io_queue_header_size_bytes;
 
         tt_queue_allocation_info buf = queue_info.alloc_info.at(buf_id);
         buffer_ranges_map.emplace(buffer_name, buffer_range_t{queue_name, queue_info.target_device, queue_info.src_device_id, buf.channel, buf.address, buf.address + buf_size});
@@ -692,7 +692,7 @@ void tt_runtime_workload::print_cross_chip_e2e_queues() {
                 src_device = graphs.at(p_graph).my_graph_info.target_device;
             }
             int entry_size = tt::size::get_entry_size_in_bytes(q_info.data_format, include_tile_header_size, q_info.dim.ublock_ct, q_info.dim.ublock_rt, q_info.dim.mblock_m, q_info.dim.mblock_n, q_info.dim.t, get_tile_dim_y(q_info), get_tile_dim_x(q_info));
-            int buf_size = entry_size * q_info.entries + QUEUE_HEADER_SIZE_BYTES;
+            int buf_size = entry_size * q_info.entries + tt::io::io_queue_header_size_bytes;
             int num_bufs = q_info.grid_size[0] * q_info.grid_size[1];
             int io_size = buf_size * num_bufs;
             log_trace(LogRuntime, "Cross chip {}->{} e2e queue: {:<40}, entry per core = {:>4} KB, microbatch = {}, per core = {:>6} KB, total = {:.2f} MB", 
