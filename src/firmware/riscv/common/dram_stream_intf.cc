@@ -56,39 +56,39 @@ void read_phase_active(uint32_t stream_id, dram_input_stream_state_t* curr_dram_
 void update_dram_write_ptrs(bool is_ram, bool is_strided_write, uint32_t write_stride, uint32_t total_write_strides, uint32_t dram_wrptr_q_slots, uint32_t output_noc, uint32_t output_vc, 
                             uint64_t dram_buf_addr, dram_output_stream_state_t* curr_dram_output_stream_state, volatile dram_io_state_t tt_l1_ptr * l1_ptrs, uint32_t curr_stride_wrap, uint32_t next_stride_wrap) {
   if (!is_strided_write || write_stride == total_write_strides-1) {
-    l1_ptrs->wr_dram_wrptr = dram_wrptr_q_slots;
+    l1_ptrs->l1_to_dram.wr_dram_wrptr = dram_wrptr_q_slots;
     if (!is_ram) {
       while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_dram_wrptr)), dram_buf_addr+DRAM_BUF_WRPTR_OFFSET, 2,
+      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_dram_wrptr)), dram_buf_addr+DRAM_BUF_WRPTR_OFFSET, 2,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
     }
 #ifdef EPOCH_CHECK_ENABLED
-    if (l1_ptrs->rd_epoch_id_tag != DRAM_QUEUE_NO_EPOCH_CHECK)
-      l1_ptrs->wr_epoch_id_tag = DRAM_QUEUE_EPOCH_CHECK_EN | (curr_dram_output_stream_state->epoch_id);
+    if (l1_ptrs->dram_to_l1.rd_epoch_id_tag != DRAM_QUEUE_NO_EPOCH_CHECK)
+      l1_ptrs->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_EPOCH_CHECK_EN | (curr_dram_output_stream_state->epoch_id);
     else
-      l1_ptrs->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
+      l1_ptrs->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
 #else
       // No epoch check works around #928, however it will not support multiple epoch consumers that need to sync on the same queue
-      l1_ptrs->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
+      l1_ptrs->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
 #endif
     if (is_strided_write) {
-      l1_ptrs->stride_wrap = next_stride_wrap;
-      l1_ptrs->wr_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
-      l1_ptrs->rd_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
+      l1_ptrs->local.stride_wrap = next_stride_wrap;
+      l1_ptrs->l1_to_dram.wr_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
+      l1_ptrs->dram_to_l1.rd_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
       while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_epoch_id_tag)), dram_buf_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 4,
+      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_epoch_id_tag)), dram_buf_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 4,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
     } else {
       while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_epoch_id_tag)), dram_buf_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
+      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_epoch_id_tag)), dram_buf_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
     }
   } else {
-    l1_ptrs->stride_wrap = next_stride_wrap;
-    l1_ptrs->wr_stride = curr_stride_wrap + write_stride + 1;
-    l1_ptrs->rd_stride = curr_stride_wrap + write_stride + 1;
+    l1_ptrs->local.stride_wrap = next_stride_wrap;
+    l1_ptrs->l1_to_dram.wr_stride = curr_stride_wrap + write_stride + 1;
+    l1_ptrs->dram_to_l1.rd_stride = curr_stride_wrap + write_stride + 1;
     while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-    ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_stride)), dram_buf_addr+DRAM_BUF_STRIDE_OFFSET, 2,
+    ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_stride)), dram_buf_addr+DRAM_BUF_STRIDE_OFFSET, 2,
                           output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
   }
 }
@@ -190,7 +190,7 @@ void get_buf_space_available_words(dram_input_stream_state_t* curr_dram_input_st
       stream_has_free_space = false;
       return;
     }
-    uint32_t data_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
+    uint32_t data_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
     uint32_t stream_buf_size_tiles = curr_dram_input_stream_state->stream_info->buf_size_tiles;
     uint32_t stream_buf_free_tiles = stream_buf_size_tiles - tiles_available;
     uint32_t in_flight_data_rec_chunks = curr_dram_input_stream_state->in_flight_data_rec_chunks;
@@ -201,7 +201,7 @@ void get_buf_space_available_words(dram_input_stream_state_t* curr_dram_input_st
     stream_buf_bytes_free = mulsi3(stream_buf_free_tiles, tile_size_words) * MEM_WORD_WIDTH;
     stream_has_free_space = (stream_buf_free_tiles >= stream_buf_tiles_free_thr);
   } else {
-    uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+    uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
     uint32_t in_flight_bytes = curr_dram_input_stream_state->in_flight_bytes;
     uint32_t stream_buf_bytes_free_thr = (data_rec_chunk_size_bytes + in_flight_bytes);
     stream_buf_bytes_free = (stream_get_buf_space_available_words(stream_id) * MEM_WORD_WIDTH);
@@ -446,8 +446,8 @@ void dram_input_stream_scatter_read(uint32_t stream_id, uint32_t curr_phase_tile
   uint32_t in_flight_bytes = curr_dram_input_stream_state->in_flight_bytes;
   bool is_dram_read_opt_enabled = curr_dram_input_stream_state->dram_read_opt_enabled || stream_is_dram_read_opt_enabled(stream_id);
   volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
-  uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
-  dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->dram_io_scatter_state;
+  uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
+  dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->local.dram_io_scatter_state;
 
   uint32_t min_dram_io_entries = curr_dram_input_stream_state->min_dram_io_entries;
   bool all_dram_q_slot_available = true;
@@ -455,17 +455,17 @@ void dram_input_stream_scatter_read(uint32_t stream_id, uint32_t curr_phase_tile
     min_dram_io_entries = ~0;
     first_dram_q_issue = next_dram_q_issue;
     while(true) {
-      if (!l1_ptrs->dram_padding) {
+      if (!l1_ptrs->l1_to_dram.dram_padding) {
         uint32_t rdptr_val_issue = next_dram_q_issue->dram_ptr_issued_q_slots;
         uint32_t wrptr_val_issue = next_dram_q_issue->dram_ptr_incoming_q_slots & ~DRAM_PTR_UPDATE_PENDING_MASK;
         uint32_t dram_buf_size_q_slots = next_dram_q_issue->dram_buf_size_q_slots;
         uint32_t this_dram_io_entries = dram_io_entries(rdptr_val_issue, wrptr_val_issue, dram_buf_size_q_slots);
-        uint16_t rd_epoch_id_tag = l1_ptrs->rd_epoch_id_tag;
+        uint16_t rd_epoch_id_tag = l1_ptrs->dram_to_l1.rd_epoch_id_tag;
 
         if (this_dram_io_entries < min_dram_io_entries)
           min_dram_io_entries = this_dram_io_entries;
 
-        bool dram_q_slot_available = ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0 || !dram_io_local_empty(rdptr_val_issue, l1_ptrs->rd_dram_rdptr, wrptr_val_issue)) &&
+        bool dram_q_slot_available = ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0 || !dram_io_local_empty(rdptr_val_issue, l1_ptrs->dram_to_l1.rd_dram_rdptr, wrptr_val_issue)) &&
             (rd_epoch_id_tag == DRAM_QUEUE_NO_EPOCH_CHECK || rd_epoch_id_tag == curr_dram_input_stream_state->stream_info->producer_epoch_id);
         all_dram_q_slot_available = all_dram_q_slot_available && dram_q_slot_available;
       }
@@ -496,18 +496,18 @@ void dram_input_stream_scatter_read(uint32_t stream_id, uint32_t curr_phase_tile
     uint32_t stream_wr_ptr_byte = buf_ptr_inc_wrap(stream_flushed_ptr_byte, in_flight_bytes, stream_buf_size_bytes);
     uint32_t in_flight_data_rec_chunks = prev_in_flight_data_rec_chunks;
     epoch_stream_dram_io_info_t tt_l1_ptr * dram_io_info = curr_dram_input_stream_state->stream_info->dram_io_info;
-    uint64_t dram_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
-    uint32_t data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-    uint32_t q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
-    uint32_t dram_data_buf_size_bytes = l1_ptrs->dram_buf_size_bytes;
+    uint64_t dram_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
+    uint32_t data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+    uint32_t q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
+    uint32_t dram_data_buf_size_bytes = l1_ptrs->local.dram_buf_size_bytes;
 #ifdef DRAM_DECOUPLE
-    uint32_t dram_decoupled = l1_ptrs->dram_decoupled;
+    uint32_t dram_decoupled = l1_ptrs->dram_to_l1.dram_decoupled;
 #else
     uint32_t dram_decoupled = 0;
 #endif
     uint32_t dram_io_scatter_chunk_size_bytes = dram_io_scatter_state->scatter_chunk_size_bytes;
     uint32_t dram_io_scatter_size = dram_io_scatter_state->scatter_offsets_size;
-    uint32_t rd_ptr_autoinc = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0 ? l1_ptrs->rd_grd_ptr_autoinc : l1_ptrs->rd_lrd_ptr_autoinc;
+    uint32_t rd_ptr_autoinc = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0 ? l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc : l1_ptrs->dram_to_l1.rd_lrd_ptr_autoinc;
 
     volatile tt_uint64_t tt_l1_ptr * scatter_offsets = dram_io_scatter_state->scatter_offsets;
     bool has_scatter_offsets = get_scatter_offsets(dram_io_scatter_state, scatter_offsets, dram_io_info->scatter_list_stream_id);
@@ -635,8 +635,8 @@ bool dram_input_stream_scatter_queue_update(uint32_t stream_id, uint32_t &epoch_
   volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_in_flight->l1_dram_ptrs;
   uint32_t dram_buf_size_q_slots = next_dram_q_in_flight->dram_buf_size_q_slots;
   uint32_t rdptr_flushed_val = next_dram_q_in_flight->dram_ptr_flushed_q_slots;  
-  uint32_t rd_grd_ptr_autoinc = l1_ptrs->rd_grd_ptr_autoinc;
-  uint32_t rd_ptr_autoinc = (next_dram_q_in_flight->dram_q_state_flags & DRAM_Q_RAM) != 0 ? l1_ptrs->rd_grd_ptr_autoinc : l1_ptrs->rd_lrd_ptr_autoinc;
+  uint32_t rd_grd_ptr_autoinc = l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc;
+  uint32_t rd_ptr_autoinc = (next_dram_q_in_flight->dram_q_state_flags & DRAM_Q_RAM) != 0 ? l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc : l1_ptrs->dram_to_l1.rd_lrd_ptr_autoinc;
   rdptr_flushed_val = dram_io_incr_ptr(rdptr_flushed_val, rd_ptr_autoinc, dram_buf_size_q_slots);
   next_dram_q_in_flight->dram_ptr_flushed_q_slots = rdptr_flushed_val;  
 
@@ -646,11 +646,11 @@ bool dram_input_stream_scatter_queue_update(uint32_t stream_id, uint32_t &epoch_
   if (has_multi_readers) {
     first_dram_q_in_flight = next_dram_q_in_flight;
     while(true) {
-      if (!l1_ptrs->dram_padding) {
-        total_readers = l1_ptrs->total_readers;
+      if (!l1_ptrs->l1_to_dram.dram_padding) {
+        total_readers = l1_ptrs->local.total_readers;
         has_multi_readers = total_readers > 1 && rd_grd_ptr_autoinc;
-        rd_grd_ptr_autoinc = l1_ptrs->rd_grd_ptr_autoinc;
-        uint32_t reader_index = l1_ptrs->reader_index;
+        rd_grd_ptr_autoinc = l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc;
+        uint32_t reader_index = l1_ptrs->local.reader_index;
         uint32_t rd_stride;
         uint32_t curr_stride_wrap = 0;
         uint32_t next_stride_wrap = 0;
@@ -688,30 +688,30 @@ bool dram_input_stream_scatter_queue_update(uint32_t stream_id, uint32_t &epoch_
   if (has_multi_readers || rd_grd_ptr_autoinc) {
     first_dram_q_in_flight = next_dram_q_in_flight;
     while(true) {
-      if (!l1_ptrs->dram_padding) {
-        uint32_t rd_grd_ptr_autoinc = l1_ptrs->rd_grd_ptr_autoinc;
-        uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+      if (!l1_ptrs->l1_to_dram.dram_padding) {
+        uint32_t rd_grd_ptr_autoinc = l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc;
+        uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
         uint32_t rd_stride;
         uint32_t curr_stride_wrap = 0;
         uint32_t next_stride_wrap = 0;
-        uint32_t total_readers_minus_one = l1_ptrs->total_readers - 1;
+        uint32_t total_readers_minus_one = l1_ptrs->local.total_readers - 1;
         bool has_multi_readers = total_readers_minus_one > 0 && rd_grd_ptr_autoinc;
 
         stride_iter_matches(l1_ptrs, rd_stride, curr_stride_wrap, next_stride_wrap);
                           
         if ((next_dram_q_in_flight->dram_q_state_flags & DRAM_Q_RAM) == 0) {
-          if (!has_multi_readers || l1_ptrs->reader_index == total_readers_minus_one) {
+          if (!has_multi_readers || l1_ptrs->local.reader_index == total_readers_minus_one) {
             if (rd_grd_ptr_autoinc) {
-              l1_ptrs->wr_dram_rdptr = dram_io_incr_ptr(l1_ptrs->wr_dram_rdptr, rd_grd_ptr_autoinc, dram_buf_size_q_slots);
+              l1_ptrs->l1_to_dram.wr_dram_rdptr = dram_io_incr_ptr(l1_ptrs->l1_to_dram.wr_dram_rdptr, rd_grd_ptr_autoinc, dram_buf_size_q_slots);
               // Reg poll loop, flushed immediately
               while (!ncrisc_noc_fast_write_ok(input_noc, NCRISC_SMALL_TXN_CMD_BUF));
-              ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_dram_rdptr)), dram_buf_addr+DRAM_BUF_RDPTR_OFFSET, 2,
+              ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_dram_rdptr)), dram_buf_addr+DRAM_BUF_RDPTR_OFFSET, 2,
                                   DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
               if constexpr (HACK_FW_LOOPING_ENABLED) {
-                l1_ptrs->wr_dram_local_rdptr = l1_ptrs->wr_dram_rdptr;
+                l1_ptrs->l1_to_dram.wr_dram_local_rdptr = l1_ptrs->l1_to_dram.wr_dram_rdptr;
                 // Reg poll loop, flushed immediately
                 while (!ncrisc_noc_fast_write_ok(input_noc, NCRISC_SMALL_TXN_CMD_BUF));
-                ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_dram_local_rdptr)), dram_buf_addr+DRAM_BUF_LOCAL_RDPTR_OFFSET, 2,
+                ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_dram_local_rdptr)), dram_buf_addr+DRAM_BUF_LOCAL_RDPTR_OFFSET, 2,
                                       DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
               }
             }
@@ -719,19 +719,19 @@ bool dram_input_stream_scatter_queue_update(uint32_t stream_id, uint32_t &epoch_
         }
 
         if (has_multi_readers) {
-          uint32_t reader_index = l1_ptrs->reader_index;
+          uint32_t reader_index = l1_ptrs->local.reader_index;
           if (reader_index == total_readers_minus_one) {
-            l1_ptrs->stride_wrap = next_stride_wrap;
-            l1_ptrs->wr_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
-            l1_ptrs->rd_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
+            l1_ptrs->local.stride_wrap = next_stride_wrap;
+            l1_ptrs->l1_to_dram.wr_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
+            l1_ptrs->dram_to_l1.rd_stride = next_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
           } else {
-            l1_ptrs->stride_wrap = next_stride_wrap;
-            l1_ptrs->wr_stride = curr_stride_wrap + reader_index + 1;
-            l1_ptrs->rd_stride = curr_stride_wrap + reader_index + 1;
+            l1_ptrs->local.stride_wrap = next_stride_wrap;
+            l1_ptrs->l1_to_dram.wr_stride = curr_stride_wrap + reader_index + 1;
+            l1_ptrs->dram_to_l1.rd_stride = curr_stride_wrap + reader_index + 1;
           }
           // Reg poll loop, flushed immediately
           while (!ncrisc_noc_fast_write_ok(input_noc, NCRISC_SMALL_TXN_CMD_BUF));
-          ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_stride)), dram_buf_addr+DRAM_BUF_STRIDE_OFFSET, 2,
+          ncrisc_noc_fast_write(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_stride)), dram_buf_addr+DRAM_BUF_STRIDE_OFFSET, 2,
                                 DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
         }
 
@@ -766,13 +766,13 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
 
     volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
 
-    uint32_t wrptr_val_issue = l1_ptrs->rd_dram_wrptr;
+    uint32_t wrptr_val_issue = l1_ptrs->dram_to_l1.rd_dram_wrptr;
     uint32_t dram_q_slot_available = !dram_io_empty(next_dram_q_issue->dram_ptr_issued_q_slots, wrptr_val_issue);
 
     if (dram_q_slot_available) {
-      uint32_t q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
-      uint32_t data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-      uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+      uint32_t q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
+      uint32_t data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+      uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
 
       while (dram_q_slot_available) {
         uint32_t dram_num_partial_q_slot_issued_tiles = next_dram_q_issue->dram_num_partial_q_slot_issued_tiles;
@@ -806,9 +806,9 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
           next_dram_q_issue->dram_ptr_issued_q_slots = dram_io_incr_ptr_l1(next_dram_q_issue->dram_ptr_issued_q_slots, 1, dram_buf_size_q_slots);
           next_dram_q_issue = (dram_q_state_t tt_l1_ptr *)next_dram_q_issue->next;
           l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
-          data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-          data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
-          q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
+          data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+          data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
+          q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
         } else {
           next_dram_q_issue->dram_num_partial_q_slot_issued_tiles = dram_num_partial_q_slot_issued_tiles;
         }
@@ -817,7 +817,7 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
           break;
         }
 
-        wrptr_val_issue = l1_ptrs->rd_dram_wrptr;
+        wrptr_val_issue = l1_ptrs->dram_to_l1.rd_dram_wrptr;
         dram_q_slot_available = !dram_io_empty(next_dram_q_issue->dram_ptr_issued_q_slots, wrptr_val_issue);
       }
       curr_dram_input_stream_state->in_flight_data_rec_chunks = in_flight_data_rec_chunks;
@@ -828,7 +828,7 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
 
     dram_q_state_t tt_l1_ptr * next_dram_q_in_flight = curr_dram_input_stream_state->next_dram_q_in_flight;
     volatile dram_io_state_t tt_l1_ptr* l1_ptrs = (volatile dram_io_state_t tt_l1_ptr*)next_dram_q_in_flight->l1_dram_ptrs;
-    uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+    uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
 
     RISC_POST_STATUS(0xEE000000 | stream_id);
 
@@ -839,8 +839,8 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
       RISC_POST_STATUS(0xEE100000);
 
       uint32_t flushed_partial_q_slot_tiles = next_dram_q_in_flight->flushed_partial_q_slot_tiles;
-      uint32_t data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-      uint32_t q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
+      uint32_t data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+      uint32_t q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
 
       while (push_flushed) {
 
@@ -852,7 +852,7 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
           uint32_t rdptr_flushed_val = next_dram_q_in_flight->dram_ptr_flushed_q_slots;  
           rdptr_flushed_val = dram_io_incr_ptr_l1(rdptr_flushed_val, 1, dram_buf_size_q_slots);
 
-          l1_ptrs->rd_dram_rdptr = rdptr_flushed_val;
+          l1_ptrs->dram_to_l1.rd_dram_rdptr = rdptr_flushed_val;
 
           flushed_partial_q_slot_tiles = 0;
           next_dram_q_in_flight->flushed_partial_q_slot_tiles = flushed_partial_q_slot_tiles;
@@ -860,9 +860,9 @@ void process_dram_streaming_read_l1(void * pFunction, uint32_t& stream_id, uint3
           next_dram_q_in_flight = next_dram_q_in_flight->next;
           l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_in_flight->l1_dram_ptrs;
           flushed_partial_q_slot_tiles = next_dram_q_in_flight->flushed_partial_q_slot_tiles;
-          data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-          data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
-          q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
+          data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+          data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
+          q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
           epoch_q_slots_remaining--;
   #if defined(PERF_DUMP) && PERF_DUMP_LEVEL > 1
           risc::record_timestamp_l1(risc::perf_event::EPOCH_Q_SLOT_COMPLETE | stream_id);
@@ -930,7 +930,7 @@ void poll_dram_ptrs(void * pFunction, uint32_t &num_active_dram_queues, dram_q_s
     uint32_t ptr_read_pending = curr_dram_q_state->dram_ptr_incoming_q_slots & DRAM_PTR_UPDATE_PENDING_MASK;
     if (ptr_read_pending && (reads_flushed || check_packet_end_marker((uint32_t)(&(l1_ptr_addr[DRAM_HEADER_LAST]))))) {
       uint32_t l1_dram_incoming_ptr_index = curr_dram_q_state->l1_dram_incoming_ptr_index;
-      uint32_t dram_ptr_incoming_q_slots = l1_dram_incoming_ptr_index ? l1_ptrs->rd_dram_wrptr : l1_ptrs->rd_dram_rdptr;
+      uint32_t dram_ptr_incoming_q_slots = l1_dram_incoming_ptr_index ? l1_ptrs->dram_to_l1.rd_dram_wrptr : l1_ptrs->dram_to_l1.rd_dram_rdptr;
       RISC_POST_DEBUG(0xC1000000 | i);
       RISC_POST_DEBUG((uint32_t)l1_ptr_addr);
       RISC_POST_DEBUG(0xC2000000 | l1_dram_incoming_ptr_index);
@@ -938,12 +938,12 @@ void poll_dram_ptrs(void * pFunction, uint32_t &num_active_dram_queues, dram_q_s
       bool is_dram_streaming_write = !l1_dram_incoming_ptr_index && (curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0;
       curr_dram_q_state->dram_ptr_incoming_q_slots = dram_ptr_incoming_q_slots;
       if (is_dram_streaming_write) {
-        l1_ptrs->dram_streaming_tag = 0;
+        l1_ptrs->dram_to_l1.dram_streaming_tag = 0;
       }
       if (check_ptrs_flushed) {
-        bool updater_stride = l1_ptrs->wr_stride == 0;
-        if ((l1_dram_incoming_ptr_index && updater_stride && l1_ptrs->rd_grd_ptr_autoinc && l1_ptrs->wr_dram_rdptr != l1_ptrs->rd_dram_rdptr) || // read
-            (!l1_dram_incoming_ptr_index && updater_stride && l1_ptrs->wr_dram_wrptr != l1_ptrs->rd_dram_wrptr)) {
+        bool updater_stride = l1_ptrs->l1_to_dram.wr_stride == 0;
+        if ((l1_dram_incoming_ptr_index && updater_stride && l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc && l1_ptrs->l1_to_dram.wr_dram_rdptr != l1_ptrs->dram_to_l1.rd_dram_rdptr) || // read
+            (!l1_dram_incoming_ptr_index && updater_stride && l1_ptrs->l1_to_dram.wr_dram_wrptr != l1_ptrs->dram_to_l1.rd_dram_wrptr)) {
           all_ptrs_flushed = false;
         } else {
           curr_dram_q_state->dram_q_state_flags |= DRAM_Q_PTRS_LOADED_FLAG;
@@ -959,12 +959,12 @@ void poll_dram_ptrs(void * pFunction, uint32_t &num_active_dram_queues, dram_q_s
     old_i = i; // Not sure if i++ happens before or after the other incremrent, this statement makes it clear what the order should be
     volatile uint32_t tt_l1_ptr * l1_ptr_addr = curr_dram_q_state->l1_dram_ptrs;
     volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)l1_ptr_addr;
-    uint32_t rd_grd_ptr_autoinc = l1_ptrs->rd_grd_ptr_autoinc;
-    uint32_t total_readers = l1_ptrs->total_readers;
+    uint32_t rd_grd_ptr_autoinc = l1_ptrs->dram_to_l1.rd_grd_ptr_autoinc;
+    uint32_t total_readers = l1_ptrs->local.total_readers;
     bool has_multi_readers = total_readers > 1 && rd_grd_ptr_autoinc;
     bool is_ram_non_multi_read = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_RAM) != 0 && !has_multi_readers;
     bool is_dram_streaming_read = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0 && curr_dram_q_state->l1_dram_incoming_ptr_index;
-    bool is_dram_padding = l1_ptrs->dram_padding;
+    bool is_dram_padding = l1_ptrs->l1_to_dram.dram_padding;
     if (!is_dram_streaming_read && !is_ram_non_multi_read && !is_dram_padding) {
       uint32_t ptr_remote = curr_dram_q_state->dram_ptr_incoming_q_slots;
       uint32_t ptr_read_pending = ptr_remote & DRAM_PTR_UPDATE_PENDING_MASK;
@@ -974,9 +974,9 @@ void poll_dram_ptrs(void * pFunction, uint32_t &num_active_dram_queues, dram_q_s
       if (!ptr_read_pending && (curr_dram_q_state->dram_q_state_flags & DRAM_Q_PTRS_LOADED_FLAG) == 0 && (reads_flushed || check_packet_end_marker((uint32_t)(&(l1_ptr_addr[DRAM_HEADER_LAST]))))) {
         uint64_t dram_ptr_addr;
         if ((curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-          dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+          dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
         } else {
-          dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+          dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
         }
         if (check_ptrs_flushed && !addr_is_pcie(dram_ptr_addr))
           continue;
@@ -1232,7 +1232,7 @@ void risc_dram_stream_handler_init_l1(
         dram_q_state_t tt_l1_ptr * start_dram_q_state = curr_dram_q_state;
         dram_q_state_t tt_l1_ptr * prev_dram_q_state = curr_dram_q_state;
         for (uint32_t q = 0;  q < num_dram_io_qs; q++) {
-          uint32_t dram_buf_size_q_slots = l1_dram_io_state->dram_buf_size_q_slots;
+          uint32_t dram_buf_size_q_slots = l1_dram_io_state->local.dram_buf_size_q_slots;
 
           dram_q_state_t tt_l1_ptr * next_dram_q_state;
           if (num_active_dram_queues == MAX_L0_DRAM_Q_STATE_T-1) {
@@ -1241,7 +1241,7 @@ void risc_dram_stream_handler_init_l1(
             next_dram_q_state = curr_dram_q_state + 1;
           }
 
-          uint16_t reader_index = l1_dram_io_state->reader_index;
+          uint16_t reader_index = l1_dram_io_state->local.reader_index;
           curr_dram_q_state->temp0 = reader_index;
           curr_dram_q_state->dram_q_stream_id = stream_id;
           curr_dram_q_state->dram_ptr_issued_q_slots = 0; // temp, changed when loading dram pointers
@@ -1261,7 +1261,7 @@ void risc_dram_stream_handler_init_l1(
 #endif
           prev_dram_q_state = curr_dram_q_state;
           curr_dram_q_state = next_dram_q_state;
-          l1_dram_io_state = l1_dram_io_state->next;
+          l1_dram_io_state = l1_dram_io_state->local.next;
           num_active_dram_queues++;
         }
         prev_dram_q_state->next = start_dram_q_state;
@@ -1281,7 +1281,7 @@ void risc_dram_stream_handler_init_l1(
         volatile epoch_stream_info_t tt_l1_ptr * l1_stream_info = RISC_EPOCH_INFO_PTR->active_streams[i];
         volatile epoch_stream_dram_io_info_t tt_l1_ptr * l1_dram_io_info = l1_stream_info->dram_io_info;
         volatile dram_io_state_t tt_l1_ptr* l1_dram_io_state = l1_dram_io_info->dram_io_state;
-        uint32_t q_slot_size_tiles = l1_dram_io_state->dram_q_slot_size_tiles;
+        uint32_t q_slot_size_tiles = l1_dram_io_state->local.dram_q_slot_size_tiles;
         uint32_t q_slot_size_bytes = l1_dram_io_info->dram_q_slot_size_bytes;
         uint32_t epoch_q_slots_remaining = l1_dram_io_info->epoch_q_slots_remaining;
         uint32_t num_dram_io_qs = l1_stream_info->num_dram_io_bufs;
@@ -1344,7 +1344,7 @@ void risc_dram_stream_handler_init_l1(
         dram_q_state_t tt_l1_ptr * prev_dram_q_state = curr_dram_q_state;
         for (uint32_t q = 0;  q < num_dram_io_qs; q++) {
         
-          uint32_t dram_buf_size_q_slots = l1_dram_io_state->dram_buf_size_q_slots;
+          uint32_t dram_buf_size_q_slots = l1_dram_io_state->local.dram_buf_size_q_slots;
         
           dram_q_state_t tt_l1_ptr * next_dram_q_state;
           if (num_active_dram_queues == MAX_L0_DRAM_Q_STATE_T-1) {
@@ -1370,7 +1370,7 @@ void risc_dram_stream_handler_init_l1(
 #endif
           prev_dram_q_state = curr_dram_q_state;
           curr_dram_q_state = next_dram_q_state;
-          l1_dram_io_state = l1_dram_io_state->next;
+          l1_dram_io_state = l1_dram_io_state->local.next;
           num_active_dram_queues++;
         }
         prev_dram_q_state->next = start_dram_q_state;        
@@ -1433,24 +1433,24 @@ void risc_dram_stream_handler_init_l1(
           volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)l1_ptr_addr;
           RISC_POST_DEBUG((uint32_t)l1_ptr_addr);
           bool is_dram_streaming_read = curr_dram_q_state->l1_dram_incoming_ptr_index && (curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0;
-          bool is_dram_padding = l1_ptrs->dram_padding;
+          bool is_dram_padding = l1_ptrs->l1_to_dram.dram_padding;
           if (is_dram_streaming_read || is_dram_padding) {
-            uint32_t dram_ptr_issued_q_slots = l1_ptrs->rd_dram_rdptr;
-            uint32_t dram_ptr_incoming_q_slots = l1_ptrs->rd_dram_wrptr;
+            uint32_t dram_ptr_issued_q_slots = l1_ptrs->dram_to_l1.rd_dram_rdptr;
+            uint32_t dram_ptr_incoming_q_slots = l1_ptrs->dram_to_l1.rd_dram_wrptr;
             curr_dram_q_state->dram_ptr_issued_q_slots = dram_ptr_issued_q_slots;
             curr_dram_q_state->dram_ptr_incoming_q_slots = dram_ptr_incoming_q_slots;
             curr_dram_q_state->dram_ptr_flushed_q_slots = dram_ptr_issued_q_slots;
-            l1_ptrs->wr_dram_rdptr = l1_ptrs->rd_dram_rdptr;
+            l1_ptrs->l1_to_dram.wr_dram_rdptr = l1_ptrs->dram_to_l1.rd_dram_rdptr;
             if (is_dram_streaming_read)
-              l1_ptrs->dram_streaming_tag = DRAM_STREAMING_SYNC_NUMBER;
+              l1_ptrs->dram_to_l1.dram_streaming_tag = DRAM_STREAMING_SYNC_NUMBER;
             curr_dram_q_state->dram_q_state_flags |= DRAM_Q_PTRS_LOADED_FLAG;
           } else if (reads_flushed) {
             uint32_t input_noc = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_INPUT_NOC_FLAG) >> 1;
             uint64_t dram_ptr_addr;
             if ((curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-              dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+              dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
             } else {
-              dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+              dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
             }
             RISC_POST_DEBUG(dram_ptr_addr>>32);
             RISC_POST_DEBUG(dram_ptr_addr & 0xFFFFFFFF); 
@@ -1477,14 +1477,14 @@ void risc_dram_stream_handler_init_l1(
             volatile dram_io_state_t tt_l1_ptr * l1_dram_io_state = l1_dram_io_info->dram_io_state;
             uint32_t input_noc = l1_dram_io_info->input_noc;
             for (uint32_t q = 0;  q < num_dram_io_qs; q++) {
-              if (!l1_dram_io_state->dram_padding) {
+              if (!l1_dram_io_state->l1_to_dram.dram_padding) {
                 uint32_t tt_l1_ptr* l1_ptr_addr = (uint32_t tt_l1_ptr *)(l1_dram_io_state);
-                uint64_t dram_src_addr = tt_l1_load(&l1_dram_io_state->dram_buf_addr);
+                uint64_t dram_src_addr = tt_l1_load(&l1_dram_io_state->local.dram_buf_addr);
                 set_packet_end_marker((uint32_t)(&(l1_ptr_addr[DRAM_HEADER_LAST])));
                 while (!ncrisc_noc_fast_read_ok_l1(input_noc, NCRISC_SMALL_TXN_CMD_BUF));
                 ncrisc_noc_fast_read_l1(input_noc, NCRISC_SMALL_TXN_CMD_BUF, dram_src_addr, (uint32_t)l1_ptr_addr, DRAM_HEADER_SIZE, NCRISC_HEADER_RD_TRID);
               }
-              l1_dram_io_state = l1_dram_io_state->next;
+              l1_dram_io_state = l1_dram_io_state->local.next;
             }
           }
         }
@@ -1513,14 +1513,14 @@ void risc_dram_stream_handler_init_l1(
             volatile dram_io_state_t tt_l1_ptr * l1_dram_io_state = l1_dram_io_info->dram_io_state;
             for (uint32_t q = 0;  q < num_dram_io_qs; q++) {
               uint32_t tt_l1_ptr * l1_ptr_addr = (uint32_t tt_l1_ptr *)(l1_dram_io_state);
-              uint16_t rd_epoch_id_tag = l1_dram_io_state->rd_epoch_id_tag;
-              bool is_dram_padding = l1_dram_io_state->dram_padding;
+              uint16_t rd_epoch_id_tag = l1_dram_io_state->dram_to_l1.rd_epoch_id_tag;
+              bool is_dram_padding = l1_dram_io_state->l1_to_dram.dram_padding;
               if ((flags & STREAM_DRAM_INPUT) != 0 &&
                   (reads_flushed || check_packet_end_marker((uint32_t)(&(l1_ptr_addr[DRAM_HEADER_LAST])))) &&
                   (is_dram_padding ||
                    ((flags & STREAM_DRAM_RAM) != 0) || 
-                   (l1_dram_io_state->rd_flags & DRAM_Q_HEADER_ZERO_FLAG) != 0 ||
-                   !dram_io_local_empty(l1_dram_io_state->rd_dram_local_rdptr, l1_dram_io_state->rd_dram_rdptr, l1_dram_io_state->rd_dram_wrptr)) &&
+                   (l1_dram_io_state->dram_to_l1.rd_flags & DRAM_Q_HEADER_ZERO_FLAG) != 0 ||
+                   !dram_io_local_empty(l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr, l1_dram_io_state->dram_to_l1.rd_dram_rdptr, l1_dram_io_state->dram_to_l1.rd_dram_wrptr)) &&
                   (is_dram_padding || rd_epoch_id_tag == DRAM_QUEUE_NO_EPOCH_CHECK || rd_epoch_id_tag == l1_stream_info->producer_epoch_id)) {
                 if (q == num_dram_io_qs-1)
                   dram_prefetch_has_data[i] = true;
@@ -1532,7 +1532,7 @@ void risc_dram_stream_handler_init_l1(
                 all_dram_prefetch_have_data = false;
                 break;
               }
-              l1_dram_io_state = l1_dram_io_state->next;
+              l1_dram_io_state = l1_dram_io_state->local.next;
             }
           }
         }
@@ -1558,13 +1558,13 @@ void risc_dram_stream_handler_init_l1(
           bool dram_streaming_not_ready = false;
           bool is_dram_streaming_write = !curr_dram_q_state->l1_dram_incoming_ptr_index && (curr_dram_q_state->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0;
           if (is_dram_streaming_write) {
-            uint32_t dest_epoch_id = l1_ptrs->dram_streaming_epoch_id;
-            bool tag_match = l1_ptrs->dram_streaming_tag == DRAM_STREAMING_SYNC_NUMBER;
+            uint32_t dest_epoch_id = l1_ptrs->dram_to_l1.dram_streaming_epoch_id;
+            bool tag_match = l1_ptrs->dram_to_l1.dram_streaming_tag == DRAM_STREAMING_SYNC_NUMBER;
             uint32_t current_epoch_id = curr_dram_q_state->dram_num_partial_q_slot_issued_tiles;
             dram_streaming_not_ready = !tag_match || current_epoch_id != dest_epoch_id;
           }
 
-          if (dram_streaming_not_ready || l1_ptrs->rd_stride > curr_dram_q_state->temp0) {
+          if (dram_streaming_not_ready || l1_ptrs->dram_to_l1.rd_stride > curr_dram_q_state->temp0) {
             all_dram_io_ptrs_loaded = false;
             continue;
           }
@@ -1575,14 +1575,14 @@ void risc_dram_stream_handler_init_l1(
           uint32_t dram_ptr_incoming_q_slots;
           if (l1_dram_incoming_ptr_index) { // Read
             if ((curr_dram_q_state->dram_q_state_flags & DRAM_Q_RAM) != 0) {
-              dram_ptr_issued_q_slots = l1_ptrs->rd_dram_rdptr;
+              dram_ptr_issued_q_slots = l1_ptrs->dram_to_l1.rd_dram_rdptr;
             } else {
-              dram_ptr_issued_q_slots = l1_ptrs->rd_dram_local_rdptr;
+              dram_ptr_issued_q_slots = l1_ptrs->dram_to_l1.rd_dram_local_rdptr;
             }
-            dram_ptr_incoming_q_slots = l1_ptrs->rd_dram_wrptr;
+            dram_ptr_incoming_q_slots = l1_ptrs->dram_to_l1.rd_dram_wrptr;
           } else { // write
-            dram_ptr_issued_q_slots = l1_ptrs->rd_dram_wrptr;
-            dram_ptr_incoming_q_slots = l1_ptrs->rd_dram_rdptr;
+            dram_ptr_issued_q_slots = l1_ptrs->dram_to_l1.rd_dram_wrptr;
+            dram_ptr_incoming_q_slots = l1_ptrs->dram_to_l1.rd_dram_rdptr;
           }
 
           uint32_t total_strides = curr_dram_q_state->dram_ptr_flushed_q_slots;
@@ -1598,7 +1598,7 @@ void risc_dram_stream_handler_init_l1(
           }
 
           // we dont need dram_ptr_issued_q_slots % curr_dram_q_state->dram_buf_size_q_slots because buf_ptr_inc_wrap ensures start_bytes is within dram_data_buf_size_bytes
-          uint32_t dram_data_buf_size_bytes = l1_ptrs->dram_buf_size_bytes;
+          uint32_t dram_data_buf_size_bytes = l1_ptrs->local.dram_buf_size_bytes;
           start_bytes = buf_ptr_inc_wrap(start_bytes, mulsi3(dram_ptr_issued_q_slots,inc_size_bytes), dram_data_buf_size_bytes);
 
           curr_dram_q_state->dram_ptr_issued_q_slots = dram_ptr_issued_q_slots;
@@ -1606,12 +1606,12 @@ void risc_dram_stream_handler_init_l1(
           curr_dram_q_state->dram_ptr_flushed_q_slots = dram_ptr_issued_q_slots;
           curr_dram_q_state->dram_ptr_issued_byte = start_bytes;
           curr_dram_q_state->dram_num_partial_q_slot_issued_tiles = 0;
-          l1_ptrs->wr_dram_rdptr = l1_ptrs->rd_dram_rdptr;
+          l1_ptrs->l1_to_dram.wr_dram_rdptr = l1_ptrs->dram_to_l1.rd_dram_rdptr;
 
           if (is_dram_streaming_write) {
-            l1_ptrs->dram_streaming_tag = 0;
+            l1_ptrs->dram_to_l1.dram_streaming_tag = 0;
             uint32_t output_noc = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_INPUT_NOC_FLAG) >> 1;
-            uint64_t dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+            uint64_t dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
             // L1 and register reads, flushed by immediate use below
             while (!ncrisc_noc_fast_write_ok_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
             ncrisc_noc_fast_write_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF, l1_mem::address_map::ZEROS_BASE, dram_ptr_addr+DRAM_BUF_STREAMING_TAG_OFFSET, 4,
@@ -1619,17 +1619,17 @@ void risc_dram_stream_handler_init_l1(
           }
 #ifdef DRAM_DECOUPLE
           //Check whether its a decoupled stream.
-          if ((l1_ptrs->dram_decoupled & STREAM_DRAM_IO) != 0) {
+          if ((l1_ptrs->dram_to_l1.dram_decoupled & STREAM_DRAM_IO) != 0) {
             uint16_t stream_id = curr_dram_q_state->dram_q_stream_id;
 
-            if ((l1_ptrs->dram_decoupled & STREAM_DRAM_INPUT) != 0) {
-              if ((l1_ptrs->rd_flags & DRAM_Q_DECOUPLED_FLAG) != 0) {
+            if ((l1_ptrs->dram_to_l1.dram_decoupled & STREAM_DRAM_INPUT) != 0) {
+              if ((l1_ptrs->dram_to_l1.rd_flags & DRAM_Q_DECOUPLED_FLAG) != 0) {
                 risc_decoupled_stream_buffer_init_l1(stream_id);
               } else {
-                l1_ptrs->dram_decoupled = 0;
+                l1_ptrs->dram_to_l1.dram_decoupled = 0;
               }
-            } else if ((l1_ptrs->dram_decoupled & STREAM_DRAM_OUTPUT) != 0) {
-              if ((l1_ptrs->rd_flags & DRAM_Q_DECOUPLED_FLAG) != 0) {
+            } else if ((l1_ptrs->dram_to_l1.dram_decoupled & STREAM_DRAM_OUTPUT) != 0) {
+              if ((l1_ptrs->dram_to_l1.rd_flags & DRAM_Q_DECOUPLED_FLAG) != 0) {
                 uint32_t output_noc = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_INPUT_NOC_FLAG) >> 1;
                 for (uint32_t i = 0; i < num_active_streams; i++) {
                   volatile epoch_stream_info_t tt_l1_ptr * l1_stream_info = RISC_EPOCH_INFO_PTR->active_streams[i];
@@ -1639,10 +1639,10 @@ void risc_dram_stream_handler_init_l1(
                   }
                 }
               } else {
-                l1_ptrs->dram_decoupled = 0;
+                l1_ptrs->dram_to_l1.dram_decoupled = 0;
               }
             } else {
-              l1_ptrs->dram_decoupled = 0;
+              l1_ptrs->dram_to_l1.dram_decoupled = 0;
             }
           }
 #endif
@@ -1672,7 +1672,7 @@ void risc_dram_stream_handler_init_l1(
       uint32_t stream_buf_size_bytes = l1_stream_info->buf_full_size_bytes;
       uint32_t stream_buf_addr = l1_stream_info->buf_base_addr;
 
-      if ((l1_dram_io_state->rd_flags & DRAM_Q_HEADER_ZERO_FLAG) != 0) {
+      if ((l1_dram_io_state->dram_to_l1.rd_flags & DRAM_Q_HEADER_ZERO_FLAG) != 0) {
         uint64_t replicate_dest_addr = NOC_XY_ADDR(my_x[input_noc], my_y[input_noc], stream_buf_addr);
         replicate_l1(input_noc, l1_mem::address_map::ZEROS_BASE, replicate_dest_addr, ZERO_GRAD_CHUNK_SIZE_BYTES, stream_buf_size_bytes >> LOG_ZERO_GRAD_CHUNK_SIZE_BYTES, NCRISC_WR_LOCAL_TRID);
         uint32_t last_offset = ((stream_buf_size_bytes >> LOG_ZERO_GRAD_CHUNK_SIZE_BYTES) << LOG_ZERO_GRAD_CHUNK_SIZE_BYTES);
@@ -1688,12 +1688,12 @@ void risc_dram_stream_handler_init_l1(
           *((uint32_t *)(tile_header_ptr)) = tile_size_words;
         }
       } else {
-        dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_dram_io_state->dram_io_scatter_state;
+        dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_dram_io_state->local.dram_io_scatter_state;
         bool is_dram_io_scatter = dram_io_scatter_state != ((dram_io_scatter_state_t*)0);
         if (is_dram_io_scatter) {
-          uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->rd_dram_rdptr : l1_dram_io_state->rd_dram_local_rdptr;
+          uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->dram_to_l1.rd_dram_rdptr : l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr;
           uint32_t inc_size_bytes = l1_dram_io_info->dram_q_slot_size_bytes;
-          uint32_t dram_data_buf_size_bytes = l1_dram_io_state->dram_buf_size_bytes;
+          uint32_t dram_data_buf_size_bytes = l1_dram_io_state->local.dram_buf_size_bytes;
           uint32_t buf_offset = buf_ptr_inc_wrap(0, mulsi3(dram_ptr_issued_q_slots,inc_size_bytes), dram_data_buf_size_bytes);
 
           uint32_t dram_io_scatter_size = dram_io_scatter_state->scatter_offsets_size;
@@ -1710,12 +1710,12 @@ void risc_dram_stream_handler_init_l1(
             next_stream_buf_addr += dram_io_scatter_chunk_size_bytes;
           }
         } else {
-          bool is_dram_padding = l1_dram_io_state->dram_padding;
-          uint64_t dram_src_addr_w_offset = tt_l1_load(&l1_dram_io_state->dram_buf_addr);
+          bool is_dram_padding = l1_dram_io_state->l1_to_dram.dram_padding;
+          uint64_t dram_src_addr_w_offset = tt_l1_load(&l1_dram_io_state->local.dram_buf_addr);
           if (!is_dram_padding) {
-            uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->rd_dram_rdptr : l1_dram_io_state->rd_dram_local_rdptr;
+            uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->dram_to_l1.rd_dram_rdptr : l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr;
             uint32_t inc_size_bytes = l1_dram_io_info->dram_q_slot_size_bytes;
-            uint32_t dram_data_buf_size_bytes = l1_dram_io_state->dram_buf_size_bytes;
+            uint32_t dram_data_buf_size_bytes = l1_dram_io_state->local.dram_buf_size_bytes;
             uint32_t buf_offset = buf_ptr_inc_wrap(0, mulsi3(dram_ptr_issued_q_slots,inc_size_bytes), dram_data_buf_size_bytes);
             dram_src_addr_w_offset += (DRAM_BUF_DATA_OFFSET+buf_offset);
           }
@@ -1891,7 +1891,7 @@ void risc_dram_stream_handler_loop(
           RISC_POST_STATUS(0xD1000000 | stream_id);
 
           volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
-          uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+          uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
           bool can_do_read = can_do_another_read(curr_dram_input_stream_state->input_noc, data_rec_chunk_size_bytes, curr_dram_input_stream_state->prev_rd_data_word_recv);
 
           if (can_do_read) {
@@ -1941,13 +1941,13 @@ void risc_dram_stream_handler_loop(
 
           dram_q_state_t tt_l1_ptr * next_dram_q_in_flight = curr_dram_input_stream_state->next_dram_q_in_flight;
           volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_in_flight->l1_dram_ptrs;
-          dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->dram_io_scatter_state;
+          dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->local.dram_io_scatter_state;
           uint32_t input_noc = curr_dram_input_stream_state->input_noc;
           uint32_t stream_buf_addr_byte = curr_dram_input_stream_state->stream_buf_addr_byte;
           uint32_t stream_flushed_ptr_byte = curr_dram_input_stream_state->stream_flushed_ptr_byte;
-          uint32_t data_rec_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+          uint32_t data_rec_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
 #ifdef DRAM_DECOUPLE
-          uint32_t dram_decoupled = l1_ptrs->dram_decoupled;
+          uint32_t dram_decoupled = l1_ptrs->dram_to_l1.dram_decoupled;
 #else
           uint32_t dram_decoupled = 0;
 #endif
@@ -1989,8 +1989,8 @@ void risc_dram_stream_handler_loop(
             RISC_POST_STATUS(0xE1000000);
 
             uint32_t in_flight_data_rec_chunks = curr_dram_input_stream_state->in_flight_data_rec_chunks;
-            uint32_t data_rec_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-            uint32_t q_slot_size_tiles = l1_ptrs->dram_q_slot_size_tiles;
+            uint32_t data_rec_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+            uint32_t q_slot_size_tiles = l1_ptrs->local.dram_q_slot_size_tiles;
             uint32_t flushed_partial_q_slot_tiles = next_dram_q_in_flight->flushed_partial_q_slot_tiles;
             uint32_t stream_buf_size_bytes = stream_get_data_buf_size(stream_id) * MEM_WORD_WIDTH;
 
@@ -2141,15 +2141,15 @@ void risc_dram_stream_handler_epilogue_l1(
     uint8_t q_stream_id = curr_dram_q_state->dram_q_stream_id;
     uint32_t stream_vc = stream_get_output_unicast_vc(q_stream_id);
 
-    if (l1_ptrs->wr_stride == (DRAM_STRIDE_WRAP_BIT + 0)) {
+    if (l1_ptrs->l1_to_dram.wr_stride == (DRAM_STRIDE_WRAP_BIT + 0)) {
       uint32_t input_noc = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_INPUT_NOC_FLAG) >> 1;
-      uint64_t dram_buf_addr_plus_offset = tt_l1_load(&l1_ptrs->dram_buf_addr) + DRAM_BUF_STRIDE_OFFSET;
+      uint64_t dram_buf_addr_plus_offset = tt_l1_load(&l1_ptrs->local.dram_buf_addr) + DRAM_BUF_STRIDE_OFFSET;
       uint32_t l1_dram_incoming_ptr_index = curr_dram_q_state->l1_dram_incoming_ptr_index;
-      l1_ptrs->wr_stride = 0;
+      l1_ptrs->l1_to_dram.wr_stride = 0;
       uint32_t output_vc = l1_dram_incoming_ptr_index ? DRAM_PTR_UPDATE_VC : stream_vc;
       // Reg poll loop, flushed immediately
       while (!ncrisc_noc_fast_write_ok_l1(input_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write_l1(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_stride)), dram_buf_addr_plus_offset, 2,
+      ncrisc_noc_fast_write_l1(input_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_stride)), dram_buf_addr_plus_offset, 2,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
     }
   }
@@ -2165,36 +2165,36 @@ void risc_dram_stream_handler_epilogue_l1(
       uint32_t output_noc = stream_get_output_noc(stream_id);
       uint32_t output_vc = stream_get_output_unicast_vc(stream_id);
       volatile dram_io_state_t tt_l1_ptr * l1_dram_io_state = l1_dram_io_info->dram_io_state;
-      uint64_t dram_dest_addr = tt_l1_load(&l1_dram_io_state->dram_buf_addr);
-      //uint32_t gwr_ptr_autoinc = l1_dram_io_state->rd_gwr_ptr_autoinc;
+      uint64_t dram_dest_addr = tt_l1_load(&l1_dram_io_state->local.dram_buf_addr);
+      //uint32_t gwr_ptr_autoinc = l1_dram_io_state->dram_to_l1.rd_gwr_ptr_autoinc;
       uint32_t stream_buf_addr_byte = l1_stream_info->buf_base_addr;
       uint32_t stream_buf_size_bytes = l1_stream_info->buf_full_size_bytes;
       uint32_t inc_size_bytes = l1_dram_io_info->dram_q_slot_size_bytes;
-      uint32_t dram_data_buf_size_bytes = l1_dram_io_state->dram_buf_size_bytes;
-      uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->rd_dram_wrptr : l1_dram_io_state->rd_dram_local_rdptr;
+      uint32_t dram_data_buf_size_bytes = l1_dram_io_state->local.dram_buf_size_bytes;
+      uint32_t dram_ptr_issued_q_slots = ((flags & STREAM_DRAM_RAM) != 0) ? l1_dram_io_state->dram_to_l1.rd_dram_wrptr : l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr;
       uint32_t buf_offset = buf_ptr_inc_wrap(0, mulsi3(dram_ptr_issued_q_slots,inc_size_bytes), dram_data_buf_size_bytes);
       ncrisc_noc_fast_write_any_len_l1(output_noc, NCRISC_WR_CMD_BUF, stream_buf_addr_byte, dram_dest_addr+(DRAM_BUF_DATA_OFFSET+buf_offset), stream_buf_size_bytes, output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
       if ((flags & STREAM_DRAM_RAM) != 0) {
-        //l1_dram_io_state->wr_dram_wrptr = dram_ptr_issued_q_slots + gwr_ptr_autoinc;
-        l1_dram_io_state->wr_dram_wrptr = dram_ptr_issued_q_slots + 1;
+        //l1_dram_io_state->l1_to_dram.wr_dram_wrptr = dram_ptr_issued_q_slots + gwr_ptr_autoinc;
+        l1_dram_io_state->l1_to_dram.wr_dram_wrptr = dram_ptr_issued_q_slots + 1;
       } else {
-        //l1_dram_io_state->wr_dram_wrptr = dram_io_incr_ptr_l1(dram_ptr_issued_q_slots, dram_io_local_empty(l1_dram_io_state->rd_dram_local_rdptr, l1_dram_io_state->rd_dram_rdptr, dram_ptr_issued_q_slots) ? gwr_ptr_autoinc : 0, 1);
-        l1_dram_io_state->wr_dram_wrptr = dram_io_incr_ptr_l1(dram_ptr_issued_q_slots, dram_io_local_empty(l1_dram_io_state->rd_dram_local_rdptr, l1_dram_io_state->rd_dram_rdptr, dram_ptr_issued_q_slots) ? 1 : 0, 1);
+        //l1_dram_io_state->l1_to_dram.wr_dram_wrptr = dram_io_incr_ptr_l1(dram_ptr_issued_q_slots, dram_io_local_empty(l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr, l1_dram_io_state->dram_to_l1.rd_dram_rdptr, dram_ptr_issued_q_slots) ? gwr_ptr_autoinc : 0, 1);
+        l1_dram_io_state->l1_to_dram.wr_dram_wrptr = dram_io_incr_ptr_l1(dram_ptr_issued_q_slots, dram_io_local_empty(l1_dram_io_state->dram_to_l1.rd_dram_local_rdptr, l1_dram_io_state->dram_to_l1.rd_dram_rdptr, dram_ptr_issued_q_slots) ? 1 : 0, 1);
         while (!ncrisc_noc_fast_write_ok_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-        ncrisc_noc_fast_write_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_dram_io_state->wr_dram_wrptr)), dram_dest_addr+DRAM_BUF_WRPTR_OFFSET, 2,
+        ncrisc_noc_fast_write_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_dram_io_state->l1_to_dram.wr_dram_wrptr)), dram_dest_addr+DRAM_BUF_WRPTR_OFFSET, 2,
                               output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
       }
 #ifdef EPOCH_CHECK_ENABLED
-      if (l1_dram_io_state->rd_epoch_id_tag != DRAM_QUEUE_NO_EPOCH_CHECK)
-        l1_dram_io_state->wr_epoch_id_tag = DRAM_QUEUE_EPOCH_CHECK_EN | (RISC_EPOCH_INFO_PTR->epoch_id);
+      if (l1_dram_io_state->dram_to_l1.rd_epoch_id_tag != DRAM_QUEUE_NO_EPOCH_CHECK)
+        l1_dram_io_state->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_EPOCH_CHECK_EN | (RISC_EPOCH_INFO_PTR->epoch_id);
       else
-        l1_dram_io_state->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
+        l1_dram_io_state->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
 #else
       // No epoch check works around #928, however it will not support multiple epoch consumers that need to sync on the same queue
-      l1_dram_io_state->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
+      l1_dram_io_state->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
 #endif
       while (!ncrisc_noc_fast_write_ok_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_dram_io_state->wr_epoch_id_tag)), dram_dest_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
+      ncrisc_noc_fast_write_l1(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_dram_io_state->l1_to_dram.wr_epoch_id_tag)), dram_dest_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
     }
   }

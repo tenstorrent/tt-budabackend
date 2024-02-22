@@ -55,19 +55,19 @@
 
 #define READ_WORDS_THRESH    750
 
-const uint32_t DRAM_BUF_RDPTR_OFFSET = 0;
-const uint32_t DRAM_BUF_WRPTR_OFFSET = 4;
-const uint32_t DRAM_BUF_LOCAL_RDPTR_OFFSET = 8;
-const uint32_t DRAM_BUF_EPOCH_ID_TAG_OFFSET = 10;
-const uint32_t DRAM_BUF_STRIDE_OFFSET = 12;
-const uint32_t DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET = 20;
-const uint32_t DRAM_BUF_STREAMING_TAG_OFFSET = 28;
-const uint32_t DRAM_BUF_DATA_OFFSET = 32;
+const uint32_t DRAM_BUF_RDPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_rdptr);
+const uint32_t DRAM_BUF_WRPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_wrptr);
+const uint32_t DRAM_BUF_LOCAL_RDPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_local_rdptr);
+const uint32_t DRAM_BUF_EPOCH_ID_TAG_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_epoch_id_tag);
+const uint32_t DRAM_BUF_STRIDE_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_stride);
+const uint32_t DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_queue_update_stride);
+const uint32_t DRAM_BUF_STREAMING_TAG_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, dram_streaming_tag);
+const uint32_t DRAM_BUF_DATA_OFFSET = sizeof(dram_io_state_t::dram_to_l1_t);
 
 const uint32_t ZERO_GRAD_CHUNK_SIZE_BYTES = 512;
 const uint32_t LOG_ZERO_GRAD_CHUNK_SIZE_BYTES = 9;
 
-const uint32_t DRAM_HEADER_SIZE = 32;
+const uint32_t DRAM_HEADER_SIZE = 32; //  we are not utilizing eventual padded bytes [no need to copy these from/to dram]
 
 const uint32_t DRAM_PTR_UPDATE_PENDING_MASK = 0x8000;
 
@@ -350,8 +350,8 @@ void untilize_copy(dram_q_state_t tt_l1_ptr * next_dram_q_issue, uint64_t dram_b
 }
 
 inline bool stride_iter_matches(volatile dram_io_state_t tt_l1_ptr * l1_ptrs, uint32_t& rd_stride, uint32_t& curr_stride_wrap, uint32_t& next_stride_wrap) {
-  uint32_t vanilla_stride_wrap = l1_ptrs->stride_wrap;
-  rd_stride = l1_ptrs->rd_stride;
+  uint32_t vanilla_stride_wrap = l1_ptrs->local.stride_wrap;
+  rd_stride = l1_ptrs->dram_to_l1.rd_stride;
   curr_stride_wrap = rd_stride & DRAM_STRIDE_WRAP_BIT;
   uint32_t stride_wrap = vanilla_stride_wrap ? DRAM_STRIDE_WRAP_BIT : 0;
   bool stride_iter_matches_expr = !(stride_wrap ^ curr_stride_wrap);

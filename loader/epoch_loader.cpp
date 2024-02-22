@@ -163,7 +163,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_kernel_cache(int t6_cores_per_chan, i
     uint64_t top_of_epoch0_start_table = get_top_of_epoch0_start_table();
     uint64_t kernel_cache_size_bytes = dram_mem::address_map::TRISC_BINARY_SIZE * (uint64_t)dram_mem::address_map::KERNEL_CACHE_NUM_SLOTS();
     uint64_t top_of_kernel_cache = top_of_epoch0_start_table + kernel_cache_size_bytes;
-    log_assert((top_of_kernel_cache % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_kernel_cache: {} addr must be {}B aligned.", top_of_kernel_cache, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
+    log_assert((top_of_kernel_cache % NOC_ADDRESS_ALIGNMENT) == 0, "top_of_kernel_cache: {} addr must be {}B aligned.", top_of_kernel_cache, NOC_ADDRESS_ALIGNMENT);
     return top_of_kernel_cache;
 }
 
@@ -173,7 +173,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_binaries(int t6_cores_per_chan, int e
     uint64_t bin_size_q_slot = get_bin_size_q_slot(t6_cores_per_chan, eth_cores_per_chan);
     uint64_t bin_size_bytes = bin_size_q_slot * (uint64_t)epoch_queue::get_epoch_bin_num_slots();
     uint64_t top_of_binaries = top_of_kernel_cache + bin_size_bytes;
-    log_assert((top_of_binaries % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_binaries: {} addr must be {}B aligned.", top_of_binaries, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
+    log_assert((top_of_binaries % NOC_ADDRESS_ALIGNMENT) == 0, "top_of_binaries: {} addr must be {}B aligned.", top_of_binaries, NOC_ADDRESS_ALIGNMENT);
     return top_of_binaries;
 }
 
@@ -181,7 +181,7 @@ uint64_t tt_epoch_dram_manager::get_top_of_q_update_blobs(int t6_cores_per_chan,
     uint64_t top_of_binaries = get_top_of_binaries(t6_cores_per_chan, eth_cores_per_chan);
     uint64_t q_update_blob_size_bytes = (uint64_t)epoch_queue::get_queue_update_blob_size_bytes() * (uint64_t)epoch_queue::get_epoch_io_queue_update_num_slots() * (t6_cores_per_chan + eth_cores_per_chan);
     uint64_t top_of_q_update_blobs = top_of_binaries + q_update_blob_size_bytes;
-    log_assert((top_of_q_update_blobs % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT) == 0, "top_of_q_update_blobs: {} addr must be {}B aligned.", top_of_q_update_blobs, l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
+    log_assert((top_of_q_update_blobs % NOC_ADDRESS_ALIGNMENT) == 0, "top_of_q_update_blobs: {} addr must be {}B aligned.", top_of_q_update_blobs, NOC_ADDRESS_ALIGNMENT);
     return top_of_q_update_blobs;
 }
 
@@ -630,7 +630,7 @@ int tt_epoch_queue::size_bytes() {
 
     // Pad size by 32 bytes for pointers and other metadata
     int size = slots * slot_size + epoch_queue::EPOCH_Q_SLOTS_OFFSET;
-    log_assert(size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "Expected epoch queue size to be {}B aligned.", l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT);
+    log_assert(size % NOC_ADDRESS_ALIGNMENT == 0, "Expected epoch queue size to be {}B aligned.", NOC_ADDRESS_ALIGNMENT);
 
     return(size);
 }

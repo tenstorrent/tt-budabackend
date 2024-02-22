@@ -153,15 +153,6 @@ void run_epoch(
 void run_dram_queue_update(
     void * pFunction, volatile uint32_t *noc_read_scratch_buf, uint64_t& my_q_table_offset, uint32_t& my_q_rd_ptr, uint64_t& dram_next_epoch_ptr, uint8_t& loading_noc, bool &varinst_cmd, uint32_t &loop_iteration
 ) {
-    uint32_t epoch_info_struct_size = sizeof(epoch_t);
-    // Get NOC Address Aligned value for epoch_t size offset, since the struct size itself may not be correctly aligned and we allocate L1 buffers interfacing with DRAM based on this size
-    uint32_t skip_epoch_t = epoch_info_struct_size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT; // Get remainder wrt NOC alignment
-    skip_epoch_t = (skip_epoch_t == 0) ? epoch_info_struct_size : (epoch_info_struct_size + l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT - skip_epoch_t); // Align the offset based on remainder
-    // Get NOC Address Aligned value for dram_io_state_t size offset, since the struct size itself may not be correctly aligned and we allocate L1 buffers interfacing with DRAM based on this size
-    uint32_t dram_io_state_struct_size = sizeof(dram_io_state_t);
-    uint32_t skip_dram_io_t = dram_io_state_struct_size % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT; // Get remainder wrt NOC alignment
-    skip_dram_io_t = (skip_dram_io_t == 0) ? dram_io_state_struct_size : (dram_io_state_struct_size + l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT - skip_dram_io_t); // Align the offset based on remainder
-
     epoch_queue::EpochDramUpdateCmdInfo cmd;
 
     // Desire to re-use this code mostly as-is for existing EpochCmdIOQueueUpdate and new EpochCmdVarinst which are very similar in what they do.
@@ -216,17 +207,17 @@ void run_dram_queue_update(
         uint64_t queue_addr_ptr = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset);
         ncrisc_noc_fast_read_any_len_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, queue_addr_ptr, 
 #ifdef ERISC
-                                        eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t, 
+                                        eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t), 
 #else
-                                        l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t, 
+                                        l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t), 
 #endif
                                         cmd_info_num_buffers*8, NCRISC_HEADER_RD_TRID);
     }
 
 #ifdef ERISC
-    uint32_t header_addr = eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*skip_dram_io_t;
+    uint32_t header_addr = eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t) +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*sizeof(dram_io_state_t);
 #else
-    uint32_t header_addr = l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*skip_dram_io_t;
+    uint32_t header_addr = l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t) +  MAX_DRAM_QUEUES_TO_UPDATE*8 + MAX_DRAM_QUEUES_TO_UPDATE*sizeof(dram_io_state_t);
 #endif  
  
     volatile uint32_t tt_l1_ptr *header_addr_ptr = (volatile uint32_t tt_l1_ptr *)header_addr;
@@ -277,9 +268,9 @@ void run_dram_queue_update(
             }
 
     #ifdef ERISC
-            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(eth_l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t);
+            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(eth_l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t));
     #else
-            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(l1_mem::address_map::OVERLAY_BLOB_BASE + skip_epoch_t);
+            volatile uint64_t tt_l1_ptr * queue_addr_l1 = (volatile uint64_t tt_l1_ptr *)(l1_mem::address_map::OVERLAY_BLOB_BASE + sizeof(epoch_t));
     #endif
 
             bool has_multi_buffers = cmd_info_num_buffers > 1;
@@ -310,7 +301,7 @@ void run_dram_queue_update(
             }else{
                 queue_sync_ptr = queue_addr_ptr;
             }
-            uint32_t l1_ptr_addr = ((uint32_t)queue_addr_l1) + MAX_DRAM_QUEUES_TO_UPDATE*8 + k*skip_dram_io_t;
+            uint32_t l1_ptr_addr = ((uint32_t)queue_addr_l1) + MAX_DRAM_QUEUES_TO_UPDATE*8 + k*sizeof(dram_io_state_t);
             volatile dram_io_state_t tt_l1_ptr *l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)l1_ptr_addr;
 
             if (state[k] == 0 || state[k] == 2) {
@@ -336,7 +327,7 @@ void run_dram_queue_update(
                 uint32_t total_readers = cmd_info_num_readers;
                 bool has_multi_readers = total_readers > 1;
                 uint32_t reader_index = cmd_info_reader_index;
-                uint32_t rd_stride = l1_ptrs->rd_queue_update_stride; 
+                uint32_t rd_stride = l1_ptrs->dram_to_l1.rd_queue_update_stride; 
 
                 if (!has_multi_readers || reader_index == rd_stride) {
                     if (!has_multi_readers || reader_index == total_readers-1) {
@@ -380,15 +371,15 @@ void run_dram_queue_update(
 
                     if (has_multi_readers) {
                         if (reader_index == total_readers-1) {
-                            l1_ptrs->wr_queue_update_stride = DRAM_STRIDE_WRAP_BIT + 0;
-                            l1_ptrs->rd_queue_update_stride = DRAM_STRIDE_WRAP_BIT + 0;
+                            l1_ptrs->l1_to_dram.wr_queue_update_stride = DRAM_STRIDE_WRAP_BIT + 0;
+                            l1_ptrs->dram_to_l1.rd_queue_update_stride = DRAM_STRIDE_WRAP_BIT + 0;
                         } else {
-                            l1_ptrs->wr_queue_update_stride = reader_index + 1;
-                            l1_ptrs->rd_queue_update_stride = reader_index + 1;
+                            l1_ptrs->l1_to_dram.wr_queue_update_stride = reader_index + 1;
+                            l1_ptrs->dram_to_l1.rd_queue_update_stride = reader_index + 1;
                         }
                         // Reg poll loop, flushed immediately
                         while (!ncrisc_noc_fast_write_ok_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
-                        ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_queue_update_stride)), queue_sync_ptr+DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET, 2,
+                        ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_queue_update_stride)), queue_sync_ptr+DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET, 2,
                                               DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
                     }
 
@@ -404,20 +395,20 @@ void run_dram_queue_update(
                 uint32_t total_readers = cmd_info_num_readers;
                 bool has_multi_readers = total_readers > 1;
                 uint32_t reader_index = cmd_info_reader_index;
-                uint32_t rd_stride = l1_ptrs->rd_queue_update_stride;
+                uint32_t rd_stride = l1_ptrs->dram_to_l1.rd_queue_update_stride;
 
                 if (!has_multi_readers || (reader_index + DRAM_STRIDE_WRAP_BIT) == rd_stride) {
                     if (has_multi_readers) {
                         if (reader_index == total_readers-1) {
-                            l1_ptrs->wr_queue_update_stride = 0;
-                            l1_ptrs->rd_queue_update_stride = 0;
+                            l1_ptrs->l1_to_dram.wr_queue_update_stride = 0;
+                            l1_ptrs->dram_to_l1.rd_queue_update_stride = 0;
                         } else {
-                            l1_ptrs->wr_queue_update_stride = DRAM_STRIDE_WRAP_BIT + reader_index + 1;
-                            l1_ptrs->rd_queue_update_stride = DRAM_STRIDE_WRAP_BIT + reader_index + 1;
+                            l1_ptrs->l1_to_dram.wr_queue_update_stride = DRAM_STRIDE_WRAP_BIT + reader_index + 1;
+                            l1_ptrs->dram_to_l1.rd_queue_update_stride = DRAM_STRIDE_WRAP_BIT + reader_index + 1;
                         }
                         // Reg poll loop, flushed immediately
                         while (!ncrisc_noc_fast_write_ok_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF));
-                        ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_queue_update_stride)), queue_sync_ptr+DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET, 2,
+                        ncrisc_noc_fast_write_l1(loading_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_queue_update_stride)), queue_sync_ptr+DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET, 2,
                                               DRAM_PTR_UPDATE_VC, false, false, 1, NCRISC_WR_DEF_TRID);
                     }
 

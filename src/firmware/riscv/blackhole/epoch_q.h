@@ -118,11 +118,11 @@ namespace epoch_queue {
     #ifndef FW_COMPILE
     
     // Epoch command queue static asserts
-    static_assert(EPOCH_TABLE_DRAM_ADDR % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0);
-    static_assert(DRAM_EPOCH_METADATA_LIMIT % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0);
+    static_assert(EPOCH_TABLE_DRAM_ADDR % NOC_ADDRESS_ALIGNMENT == 0);
+    static_assert(DRAM_EPOCH_METADATA_LIMIT % NOC_ADDRESS_ALIGNMENT == 0);
     // Epoch alloc queue static asserts
     static_assert(EPOCH_ALLOC_QUEUE_SYNC_ADDR >= DRAM_EPOCH_METADATA_BASE);
-    static_assert(EPOCH_ALLOC_QUEUE_SYNC_ADDR % l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0);
+    static_assert(EPOCH_ALLOC_QUEUE_SYNC_ADDR % NOC_ADDRESS_ALIGNMENT == 0);
     static_assert(DRAM_EPOCH_METADATA_BASE ==  dram_mem::address_map::DRAM_EACH_BANK_CONST_BLOB_ADDR + dram_mem::address_map::DRAM_EACH_BANK_CONST_BLOB_SIZE);
     // If the number of slots used for external queue update blobs/allocate blobs is not specified, use the same num slots as epoch command queue
     static constexpr std::int32_t IO_QUEUE_UPDATE_NUM_SLOTS = EPOCH_Q_NUM_SLOTS;

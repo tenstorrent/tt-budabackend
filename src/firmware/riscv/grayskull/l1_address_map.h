@@ -5,12 +5,10 @@
 
 #include <cstdint>
 
-namespace l1_mem {
+// Aux variable used to align addresses to platform specific width. GS requires 32B alignment.
+#define NOC_ADDRESS_ALIGNMENT (32)
 
-namespace noc_mem_config {
-  // Aux variable used to align addresses to platform specific width. GS requires 32B alignment.
-  constexpr uint32_t NOC_ADDRESS_ALIGNMENT = 32;
-}
+namespace l1_mem {
 
 struct mailbox_type {
   constexpr static int TRISC0 = 0;
@@ -70,15 +68,15 @@ struct address_map {
   static constexpr std::int32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
   static constexpr std::int32_t DATA_BUFFER_SPACE_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
 
-  static_assert(FIRMWARE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(NCRISC_FIRMWARE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(TRISC0_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(TRISC1_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(TRISC2_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(EPOCH_RUNTIME_CONFIG_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(OVERLAY_BLOB_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(DATA_BUFFER_SPACE_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-  static_assert(L1_BARRIER_BASE % noc_mem_config::NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(DATA_BUFFER_SPACE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+  static_assert(L1_BARRIER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
 
   // Trisc Mailboxes
   static constexpr std::int32_t TRISC_L1_MAILBOX_OFFSET = 4;

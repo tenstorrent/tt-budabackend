@@ -308,9 +308,9 @@ void process_dram_write(
         if (write_stride == rd_stride) {
           uint64_t dram_ptr_addr;
           if ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-            dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+            dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
           } else {
-            dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+            dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
           }
           uint32_t output_vc = stream_get_output_unicast_vc(stream_id);
           bool is_ram = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0;
@@ -372,9 +372,9 @@ void process_dram_write(
 
       dram_q_state_t tt_l1_ptr * next_dram_q_issue = curr_dram_output_stream_state->next_dram_q_issue;
       volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
-      uint16_t data_send_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
+      uint16_t data_send_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
 #ifdef DRAM_DECOUPLE
-      uint32_t dram_decoupled = l1_ptrs->dram_decoupled;
+      uint32_t dram_decoupled = l1_ptrs->local.dram_decoupled;
 #else
       uint32_t dram_decoupled = 0;
 #endif
@@ -434,8 +434,8 @@ void process_dram_write(
           //set_dont_poll_immediately(); // Maybe needed in the future
           dram_ptr_update_cnt = dram_ptr_update_cnt | (DRAM_PTR_UPDATE_MASK + 1);
 
-          uint32_t data_send_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
-          uint32_t wr_ptr_autoinc = l1_ptrs->rd_gwr_ptr_autoinc;
+          uint32_t data_send_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
+          uint32_t wr_ptr_autoinc = l1_ptrs->dram_to_l1.rd_gwr_ptr_autoinc;
           uint32_t stream_rd_ptr_byte = stream_dram_write_should_reset_pointers(stream_id) ? 0 : curr_dram_output_stream_state->stream_rd_ptr_byte;
           wr_ptr_autoinc = wr_ptr_autoinc ? wr_ptr_autoinc : 1;
 
@@ -446,7 +446,7 @@ void process_dram_write(
           RISC_POST_DEBUG(0xF4100000 | output_noc);
           RISC_POST_DEBUG(0xF4200000 | output_vc);
 
-          dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->dram_io_scatter_state;
+          dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->local.dram_io_scatter_state;
           epoch_stream_dram_io_info_t tt_l1_ptr * dram_io_info = curr_dram_output_stream_state->stream_info->dram_io_info;
           volatile tt_uint64_t tt_l1_ptr * scatter_offsets;
           bool has_scatter_offsets;
@@ -463,8 +463,8 @@ void process_dram_write(
             RISC_POST_STATUS(0xF5000000);
 #endif
 
-            uint32_t dram_buf_size_bytes = l1_ptrs->dram_buf_size_bytes;
-            uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+            uint32_t dram_buf_size_bytes = l1_ptrs->local.dram_buf_size_bytes;
+            uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
             bool full_q_slot_sent = false;
 
             if (curr_dram_output_stream_state->moves_raw_data) {
@@ -621,9 +621,9 @@ void process_dram_write(
 
               uint64_t dram_ptr_addr;
               if ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-                dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+                dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
               } else {
-                dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+                dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
               }
               bool is_ram = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0;
 

@@ -305,19 +305,19 @@ void write_pending_dram_write_ptrs(uint32_t dram_stream, dram_output_stream_stat
     uint32_t output_vc = stream_get_output_unicast_vc(stream_id);
     uint64_t dram_ptr_addr;
     if ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-      dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+      dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
     } else {
-      dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+      dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
     }
     bool is_ram = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0;
 
     uint32_t dram_wrptr_q_slots = stream_dram_writes_read_scratch(dram_stream, PTR_UPDATE_REG_WR_PTR_UPDATE);
     if (dram_wrptr_q_slots) {
       dram_wrptr_q_slots = dram_wrptr_q_slots & ~PTR_UPDATE_TYPE_WR_PTR_UPDATE;
-      l1_ptrs->wr_dram_wrptr = dram_wrptr_q_slots;
+      l1_ptrs->l1_to_dram.wr_dram_wrptr = dram_wrptr_q_slots;
       if (!is_ram) {
         while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_dram_wrptr)), dram_ptr_addr+DRAM_BUF_WRPTR_OFFSET, 2,
+        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_dram_wrptr)), dram_ptr_addr+DRAM_BUF_WRPTR_OFFSET, 2,
                               output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
       }
       stream_dram_writes_write_scratch(dram_stream, PTR_UPDATE_REG_WR_PTR_UPDATE, 0);
@@ -332,20 +332,20 @@ void write_pending_dram_write_ptrs(uint32_t dram_stream, dram_output_stream_stat
         l1_ptrs->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
   #else
         // No epoch check works around #928, however it will not support multiple epoch consumers that need to sync on the same queue
-        l1_ptrs->wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
+        l1_ptrs->l1_to_dram.wr_epoch_id_tag = DRAM_QUEUE_NO_EPOCH_CHECK;
   #endif
       if (update_type == PTR_UPDATE_TYPE_EPOCH_W_STRIDE) {
         uint32_t stride_wrap = stream_dram_writes_read_scratch(dram_stream, PTR_UPDATE_REG_STRIDE_WRAP);
         uint32_t stride = stream_dram_writes_read_scratch(dram_stream, PTR_UPDATE_REG_STRIDE);
-        l1_ptrs->stride_wrap = stride_wrap;
-        l1_ptrs->wr_stride = stride;
-        l1_ptrs->rd_stride = stride;
+        l1_ptrs->local.stride_wrap = stride_wrap;
+        l1_ptrs->l1_to_dram.wr_stride = stride;
+        l1_ptrs->dram_to_l1.rd_stride = stride;
         while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_epoch_id_tag)), dram_ptr_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 4,
+        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_epoch_id_tag)), dram_ptr_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 4,
                               output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
       } else {
         while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_epoch_id_tag)), dram_ptr_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
+        ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_epoch_id_tag)), dram_ptr_addr+DRAM_BUF_EPOCH_ID_TAG_OFFSET, 2,
                               output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
       }
 
@@ -353,11 +353,11 @@ void write_pending_dram_write_ptrs(uint32_t dram_stream, dram_output_stream_stat
     } else if (update_type == PTR_UPDATE_TYPE_STRIDE) {
       uint32_t stride_wrap = stream_dram_writes_read_scratch(dram_stream, PTR_UPDATE_REG_STRIDE_WRAP);
       uint32_t stride = stream_dram_writes_read_scratch(dram_stream, PTR_UPDATE_REG_STRIDE);
-      l1_ptrs->stride_wrap = stride_wrap;
-      l1_ptrs->wr_stride = stride;
-      l1_ptrs->rd_stride = stride;
+      l1_ptrs->local.stride_wrap = stride_wrap;
+      l1_ptrs->l1_to_dram.wr_stride = stride;
+      l1_ptrs->dram_to_l1.rd_stride = stride;
       while (!ncrisc_noc_fast_write_ok(output_noc, NCRISC_SMALL_TXN_CMD_BUF));
-      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->wr_stride)), dram_ptr_addr+DRAM_BUF_STRIDE_OFFSET, 2,
+      ncrisc_noc_fast_write(output_noc, NCRISC_SMALL_TXN_CMD_BUF, (uint32_t)(&(l1_ptrs->l1_to_dram.wr_stride)), dram_ptr_addr+DRAM_BUF_STRIDE_OFFSET, 2,
                             output_vc, false, false, 1, NCRISC_WR_DEF_TRID);
 
       stream_dram_writes_write_scratch(dram_stream, PTR_UPDATE_REG_TYPE, 0);
@@ -429,8 +429,8 @@ void process_dram_write(
     // checks whether you can write data to DRAM, is there space available, is data available
     dram_q_state_t tt_l1_ptr * next_dram_q_issue = curr_dram_output_stream_state->next_dram_q_issue;
     volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)next_dram_q_issue->l1_dram_ptrs;
-    uint16_t data_send_chunk_size_tiles = l1_ptrs->data_chunk_size_tiles;
-    uint32_t data_send_chunk_size_bytes = l1_ptrs->data_chunk_size_bytes;
+    uint16_t data_send_chunk_size_tiles = l1_ptrs->l1_to_dram.data_chunk_size_tiles;
+    uint32_t data_send_chunk_size_bytes = l1_ptrs->l1_to_dram.data_chunk_size_bytes;
     uint32_t dram_writes_with_cmd_buf = curr_dram_output_stream_state->stream_info->dram_io_info->dram_writes_with_cmd_buf;
     uint32_t dram_output_no_push = curr_dram_output_stream_state->stream_info->dram_io_info->dram_output_no_push;
     uint32_t dram_stream = DRAM_STREAM_1;
@@ -498,9 +498,9 @@ void process_dram_write(
       if (write_stride == rd_stride) {
         uint64_t dram_ptr_addr;
         if ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-          dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+          dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
         } else {
-          dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+          dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
         }
         uint32_t output_vc = stream_get_output_unicast_vc(stream_id);
         bool is_ram = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0; 
@@ -600,7 +600,7 @@ void process_dram_write(
     RISC_POST_STATUS(0xF2000000);
 
 #ifdef DRAM_DECOUPLE
-    uint32_t dram_decoupled = l1_ptrs->dram_decoupled;
+    uint32_t dram_decoupled = l1_ptrs->local.dram_decoupled;
 #else
     uint32_t dram_decoupled = 0;
 #endif
@@ -660,7 +660,7 @@ void process_dram_write(
         //set_dont_poll_immediately(); // Maybe needed in the future
         dram_ptr_update_cnt = dram_ptr_update_cnt | (DRAM_PTR_UPDATE_MASK + 1);
 
-        uint32_t wr_ptr_autoinc = l1_ptrs->rd_gwr_ptr_autoinc;
+        uint32_t wr_ptr_autoinc = l1_ptrs->dram_to_l1.rd_gwr_ptr_autoinc;
         uint32_t stream_rd_ptr_byte = stream_dram_write_should_reset_pointers(stream_id) ? 0 : curr_dram_output_stream_state->stream_rd_ptr_byte;
         wr_ptr_autoinc = wr_ptr_autoinc ? wr_ptr_autoinc : 1;
 
@@ -670,7 +670,7 @@ void process_dram_write(
         RISC_POST_DEBUG(0xF4100000 | output_noc);
         RISC_POST_DEBUG(0xF4200000 | output_vc);
 
-        dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->dram_io_scatter_state;
+        dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state = l1_ptrs->local.dram_io_scatter_state;
         epoch_stream_dram_io_info_t tt_l1_ptr * dram_io_info = curr_dram_output_stream_state->stream_info->dram_io_info;
         volatile tt_uint64_t tt_l1_ptr * scatter_offsets;
         bool has_scatter_offsets;
@@ -687,8 +687,8 @@ void process_dram_write(
           RISC_POST_STATUS(0xF5000000);
 #endif
 
-          uint32_t dram_buf_size_bytes = l1_ptrs->dram_buf_size_bytes;
-          uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+          uint32_t dram_buf_size_bytes = l1_ptrs->local.dram_buf_size_bytes;
+          uint64_t dram_buf_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
           bool full_q_slot_sent = false;
 
           if (curr_dram_output_stream_state->moves_raw_data) {
@@ -764,9 +764,9 @@ void process_dram_write(
 
             uint64_t dram_ptr_addr;
             if ((next_dram_q_issue->dram_q_state_flags & DRAM_Q_STREAMING_FLAG) != 0) {
-              dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_streaming_header_addr);
+              dram_ptr_addr = tt_l1_load(&l1_ptrs->l1_to_dram.dram_streaming_header_addr);
             } else {
-              dram_ptr_addr = tt_l1_load(&l1_ptrs->dram_buf_addr);
+              dram_ptr_addr = tt_l1_load(&l1_ptrs->local.dram_buf_addr);
             }
             bool is_ram = (next_dram_q_issue->dram_q_state_flags & DRAM_Q_RAM) != 0;
 

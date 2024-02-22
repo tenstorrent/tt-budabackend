@@ -22,8 +22,8 @@ namespace tt {
 namespace io {
 // Extract NOC Address Alignment Value from l1_address_map and explictly define that as the
 // tile alignment and io_queue_header_size_bytes used in runtime IO 
-static constexpr uint32_t tile_alignment_bytes = l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT;
-static constexpr uint32_t io_queue_header_size_bytes = l1_mem::noc_mem_config::NOC_ADDRESS_ALIGNMENT;
+static constexpr uint32_t tile_alignment_bytes = NOC_ADDRESS_ALIGNMENT;
+static constexpr uint32_t io_queue_header_size_bytes = NOC_ADDRESS_ALIGNMENT;
 
 struct tt_io_info {
     std::string output_dir;

@@ -302,6 +302,9 @@ void run_blobgen(
     blobgen_cmd << " --chip_ids " + chip_ids_ss.str();
     blobgen_cmd << " --noc_x_logical_size " + logical_size_x_ss.str();
     blobgen_cmd << " --noc_y_logical_size " + logical_size_y_ss.str();
+    blobgen_cmd << " --data_buffer_space_base " + to_string(l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
+    blobgen_cmd << " --alignment " + to_string(NOC_ADDRESS_ALIGNMENT);
+    blobgen_cmd << " --verbose 1";
 
     stringstream blobgen_out;
     blobgen_out << "Run blobgen" << endl << blobgen_cmd.str();
