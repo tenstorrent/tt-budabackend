@@ -508,7 +508,8 @@ def PopulateEpochInfo(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_
   tile_header_buf_addr_dws = []
   if core_epoch_info[:overlay_valid] == 1
     msg_size_msg_info_buf = IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x] : $msg_size_msg_info_buf_map[chip_id]
-    msg_size_msg_info_buf.each do |tile_size, n_sizes|
+    # Output the info on tile size and respected tile header buffer addresses sorted by tile size
+    msg_size_msg_info_buf.sort_by { |tile_size, _| tile_size }.each do |tile_size, n_sizes|
       tile_sizes_dws << (tile_size / 16)
       tile_header_buf_addr_dws << GetMsgInfoBufAddr(IsEthernetYX(y,x), n_sizes)
     end
@@ -981,8 +982,8 @@ phase_info.each do |yx_label, streams|
           list.each do |key, val|
             msg_size_list.append(key)
           end
-          msg_size_list.sort
-          msg_size_list.each_with_index do |msg_size_elem, n_sizes|
+          # Assign addresses in order by increasing tile size.
+          msg_size_list.sort.each_with_index do |msg_size_elem, n_sizes|
             if IsEthernetYX(y,x)
               $msg_size_msg_info_buf_map_eth[chip_id][y][x][msg_size_elem] = n_sizes
             else
