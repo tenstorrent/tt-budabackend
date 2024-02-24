@@ -27,7 +27,8 @@ try:
     from tabulate import tabulate
     from prompt_toolkit import PromptSession
     from prompt_toolkit.completion import Completer, Completion
-    from prompt_toolkit.formatted_text import HTML
+    from prompt_toolkit.formatted_text import HTML, fragment_list_to_text, to_formatted_text
+    from prompt_toolkit.history import InMemoryHistory
     from docopt import DocoptExit, docopt
     from fastnumbers import try_int
 except ModuleNotFoundError as e:
@@ -403,6 +404,15 @@ class UIState:
     def current_device(self):
         return self.context.devices[self.current_device_id] if self.current_device_id is not None else None
 
+class SimplePromptSession:
+    def __init__(self):
+        self.history = InMemoryHistory()
+    def prompt(self, message):
+        print(fragment_list_to_text(to_formatted_text(message)))
+        s = input()
+        self.history.append_string(s)
+        return s
+
 def main_loop(args, context):
     """
     Main loop: read-eval-print
@@ -412,7 +422,7 @@ def main_loop(args, context):
     commands = import_commands()
 
     # Create prompt object.
-    context.prompt_session = PromptSession(completer=DebudaCompleter(commands, context))
+    context.prompt_session = PromptSession(completer=DebudaCompleter(commands, context)) if sys.stdin.isatty() else SimplePromptSession()
 
     # Initialize current UI state
     ui_state = UIState(context)
@@ -529,6 +539,8 @@ def main():
         util.VERBOSE = util.NULL_PRINT
 
     # Try to determine the output directory
+    runtime_data_yaml = None
+    runtime_data_yaml_filename = None
     if args["<output_dir>"] is None:  # Then try to find the most recent tt_build subdir
         most_recent_build_output_dir = locate_most_recent_build_output_dir()
         if most_recent_build_output_dir:
@@ -540,14 +552,15 @@ def main():
             util.WARN(
                 f"Output directory (output_dir) was not supplied and cannot be determined automatically. Continuing with limited functionality..."
             )
-
-    # Try to load the runtime data from the output directory
-    runtime_data_yaml = None
-    runtime_data_yaml_filename = None
-    if not args['<output_dir>'] is None:
-        runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
-        if os.path.exists(runtime_data_yaml_filename):
-            runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
+    else:
+        # Try to load the runtime data from the output directory
+        if not args['<output_dir>'] is None:
+            runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
+            if os.path.exists(runtime_data_yaml_filename):
+                runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
+            else:
+                runtime_data_yaml_filename = None
+                util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
 
     # Try to connect to the server. If it is not already running, it will be started.
     print(f"Connecting to Debuda server at {args['--debuda-server-address']}")

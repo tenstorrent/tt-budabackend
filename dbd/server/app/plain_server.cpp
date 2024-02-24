@@ -95,11 +95,7 @@ static std::filesystem::path find_binary_directory() {
 }
 
 static std::string create_temp_network_descriptor_file(tt::ARCH arch) {
-    if (arch == tt::ARCH::GRAYSKULL) {
-        // Grayskull doesn't support network connections
-        return {};
-    }
-    if (arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) {
+    if (arch == tt::ARCH::GRAYSKULL || arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) {
         // Check if create-ethernet-map exists
         std::string create_ethernet_map = find_binary_directory() / "debuda-create-ethernet-map-wormhole";
 
@@ -125,7 +121,8 @@ static std::string create_temp_network_descriptor_file(tt::ARCH arch) {
 }
 
 // Creates SOC descriptor files by serializing tt_SocDescroptor structure to yaml.
-// TODO: Current copied from runtime/runtime_utils.cpp: print_device_description. It should be moved to UMD and reused on both places.
+// TODO: Current copied from runtime/runtime_utils.cpp: print_device_description. It should be moved to UMD and reused
+// on both places.
 void plain_server::create_device_soc_descriptors() {
     tt_device *d = static_cast<tt_device *>(device.get());
 
@@ -174,7 +171,7 @@ void plain_server::create_device_soc_descriptors() {
         outfile << "dram:" << std::endl;
         outfile << "  [" << std::endl;
 
-        for (const auto& dram_cores : soc_descriptor->dram_cores) {
+        for (const auto &dram_cores : soc_descriptor->dram_cores) {
             // Insert the dram core if it's within the given grid
             std::vector<std::string> inserted = {};
             for (const auto &dram_core : dram_cores) {
@@ -287,7 +284,7 @@ bool plain_server::create_device() {
     // Try to read cluster descriptor
     std::set<chip_id_t> target_devices;
 
-    if (!cluster_descriptor_path.empty()) {
+    if (!cluster_descriptor_path.empty() && arch != tt::ARCH::GRAYSKULL) {
         cluster_descriptor = tt_ClusterDescriptor::create_from_yaml(cluster_descriptor_path);
 
         for (chip_id_t i : cluster_descriptor->get_all_chips()) {
@@ -296,7 +293,7 @@ bool plain_server::create_device() {
         }
     } else {
         // Fallback to use only local devices
-        for (chip_id_t i = 0; i < device_ids.size(); i++) {
+        for (chip_id_t i = 0; i < devices.size(); i++) {
             target_devices.insert(i);
             device_ids.push_back(i);
         }
@@ -310,7 +307,7 @@ bool plain_server::create_device() {
 
     device = std::make_unique<tt_SiliconDevice>(
         device_configuration_path,
-        cluster_descriptor_path,
+        arch != tt::ARCH::GRAYSKULL ? cluster_descriptor_path : std::string(),
         target_devices,
         num_host_mem_ch_per_mmio_device,
         dynamic_tlb_config);

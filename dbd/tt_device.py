@@ -58,6 +58,7 @@ def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
             preexec_fn=os.setsid,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
             env=os.environ.copy(),
         )
     except:
