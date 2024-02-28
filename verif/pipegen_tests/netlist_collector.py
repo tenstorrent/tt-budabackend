@@ -17,6 +17,8 @@ import time
 from pipegen_runner import DeviceArchs, run_net2pipe
 from pipegen_tests_utils import *
 
+from verif.common.test_utils import print_fail, print_success, print_warning
+
 MAX_NUM_THREADS = 8
 
 non_netlist_names = ["netlist_queues", "blob", "pipegen", "queue_to_consumer"]

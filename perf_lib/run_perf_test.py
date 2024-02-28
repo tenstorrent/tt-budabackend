@@ -18,7 +18,7 @@ from subprocess import Popen, PIPE, STDOUT, TimeoutExpired, CalledProcessError
 from signal import SIGTERM, SIGKILL, signal
 import traceback
 
-sys_add_path(f"{os.getcwd()}/ci")
+sys_add_path(f"{REPO_ROOT}/ci")
 from repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
 
 INDEX_NAME = "spatial-ci"

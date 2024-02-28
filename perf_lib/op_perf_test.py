@@ -24,6 +24,7 @@ from logger_utils import print_progress_bar
 from elasticsearch import Elasticsearch
 
 # Imports util from verif/template_netlist/
+sys_add_path(REPO_ROOT, True)
 sys_add_path(TEMPLATE_NETLIST_DIR, True)
 from util import (
     create_netlist_from_single_config,
@@ -33,7 +34,7 @@ from util import (
 )
 from generate_tests import generate_all_configs
 
-sys_add_path(f"{os.getcwd()}/ci", True)
+sys_add_path(f"{REPO_ROOT}/ci", True)
 from repo import ES_ENDPOINT, ES_USERNAME, ES_PASSWORD
 
 BBE_PERF_INDEX_NAME = "spatial-ci-perf"

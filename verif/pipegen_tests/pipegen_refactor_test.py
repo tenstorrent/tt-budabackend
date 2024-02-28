@@ -30,6 +30,8 @@ from pipegen_tests_utils import *
 from pipegen_yaml_filter import *
 from ruamel.yaml import YAML
 
+from verif.common.test_utils import print_warning
+
 logger = get_logger(__name__)
 
 NET2PIPE_OUT_DIR_NAME = "net2pipe_out"

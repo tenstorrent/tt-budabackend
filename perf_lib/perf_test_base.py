@@ -19,7 +19,8 @@ BFP4_TILE_SIZE = 32 * 16     + 32 + 4*16
 BFP2_TILE_SIZE = 32 * 8      + 32 + 4*16
 
 Exit_Failure = 1
-TEMPLATE_NETLIST_DIR=f"{os.getcwd()}/verif/template_netlist/"
+REPO_ROOT=f"{os.getcwd()}"
+TEMPLATE_NETLIST_DIR=f"{REPO_ROOT}/verif/template_netlist/"
 
 def sys_add_path(path, prioritize=False):
     if path in sys.path:
@@ -30,6 +31,7 @@ def sys_add_path(path, prioritize=False):
     else:
         sys.path.append(path)
             
+sys_add_path(REPO_ROOT, True)
 sys_add_path(TEMPLATE_NETLIST_DIR, True)
 sys_add_path(TEMPLATE_NETLIST_DIR + "/test_modules/", True)
 

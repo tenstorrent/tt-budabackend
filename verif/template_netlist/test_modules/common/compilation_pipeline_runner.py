@@ -14,6 +14,11 @@ import yaml
 from scripts.utility.generate_netlists_from_configs import generate_netlists_from_configs
 from util import get_git_root
 
+# TODO: to be removed
+# Used to prove that the import is working from another package
+# Future changes will have useful imports
+from verif.common.test_utils import print_success
+
 PROCESS_DUMP_FOLDER_PREFIX = "test_dir_config"
 
 NET2PIPE_BIN_PATH = "./build/bin/net2pipe"

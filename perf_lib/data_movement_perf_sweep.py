@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 from logger_utils import COLORS, logger, print_progress_bar
-from perf_test_base import TEMPLATE_NETLIST_DIR
+from perf_test_base import TEMPLATE_NETLIST_DIR, REPO_ROOT
 from perf_sweep import (
     run_single_test,
     check_test_pass,
@@ -19,8 +19,9 @@ from perf_sweep import (
     PerfResults,
 )
 
-sys.path.insert(1, TEMPLATE_NETLIST_DIR)
-sys.path.insert(2, TEMPLATE_NETLIST_DIR + "/test_modules/")
+sys.path.insert(1, REPO_ROOT)
+sys.path.insert(2, TEMPLATE_NETLIST_DIR)
+sys.path.insert(3, TEMPLATE_NETLIST_DIR + "/test_modules/")
 
 from generate_data_movement_perf_tests import (
     generate_data_movement_perf_tests,

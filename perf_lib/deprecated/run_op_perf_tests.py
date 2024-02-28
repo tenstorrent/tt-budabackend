@@ -32,6 +32,7 @@ Exit_Failure = 1
 ROOT = os.environ["ROOT"] if "ROOT" in os.environ else subprocess.getoutput("git rev-parse --show-toplevel")
 ROOT = str(Path(__file__).parent.absolute()) + "/../.."
 
+sys.path.append(f"{ROOT}")
 sys.path.append(f"{ROOT}/scripts")
 
 from util import make

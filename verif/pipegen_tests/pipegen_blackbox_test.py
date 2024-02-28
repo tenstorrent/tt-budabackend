@@ -25,6 +25,8 @@ import yaml
 from pipegen_runner import DeviceArchs, run_net2pipe, run_pipegen
 from pipegen_tests_utils import *
 
+from verif.common.test_utils import print_fail, print_success, print_warning
+
 CI_TEST_LISTS_DIR = "ci/test-lists"
 NETLISTS_DIR_NAME = "netlists"
 BASELINE_RESULTS_FILE_NAME = "baseline_results.txt"

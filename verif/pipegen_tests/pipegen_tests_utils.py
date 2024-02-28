@@ -72,25 +72,6 @@ def get_logger(name: str):
     return logging.getLogger(f"{LOGGER_NAME}.{name}")
 
 
-class ConsoleColors:
-    OK_GREEN = "\033[92m"
-    WARNING = "\033[95m"
-    FAIL = "\033[91m"
-    END = "\033[0m"
-
-
-def print_success(message: str):
-    print(f"{ConsoleColors.OK_GREEN}{message}{ConsoleColors.END}")
-
-
-def print_warning(message: str):
-    print(f"{ConsoleColors.WARNING}{message}{ConsoleColors.END}")
-
-
-def print_fail(message: str):
-    print(f"{ConsoleColors.FAIL}{message}{ConsoleColors.END}")
-
-
 def get_netlist_name(netlist_path: str) -> str:
     return os.path.basename(netlist_path)[:-5]
 

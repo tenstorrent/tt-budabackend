@@ -33,6 +33,7 @@ XLSX_FILE_NAME_SECOND_RUN = "perf_sweep_summary_compared_with_previous_run.xlsx"
 PERF_OUT_DIR_IDENTIFIER = "Perf output directory: "
 TEST_OUTPUT_DIR = "tt_build/last_test_output_dir"
 
+sys_add_path(REPO_ROOT, True)
 sys_add_path(TEMPLATE_NETLIST_DIR, True)
 sys_add_path(TEMPLATE_NETLIST_DIR + "/test_modules/", True)
 
