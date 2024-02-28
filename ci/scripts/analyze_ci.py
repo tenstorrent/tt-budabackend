@@ -202,21 +202,10 @@ def investigate_logs(test_group, build_info):
 
 def main():
     """
-    Call with arguments:
-    compare_nightly: try to find tests that didnt build or didnt dipatch by comparing the nightly test results with what is defined in test-list
+    Analyze the test-lists and compare with the elastic search
     """
     compare_nightly()
-
-    # TODO args
-    # parser = argparse.ArgumentParser(description='Analyze CI')
-    # parser.add_argument('action', help='Action to perform')
-    # args = parser.parse_args()
-
-    # if args.action == "compare_nightly":
-    #     compare_nightly()
-    # else:
-    #     print("Unknown action: " + args.action)
-    #     sys.exit(1)
+    # TODO add support for arguments: compare with specific nightly, compare push etc.
 
 if __name__ == "__main__":
     main()
