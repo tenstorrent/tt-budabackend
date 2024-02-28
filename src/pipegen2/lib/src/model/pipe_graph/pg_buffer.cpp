@@ -4,6 +4,7 @@
 #include "model/pipe_graph/pg_buffer.h"
 
 #include "device/operand_stream_map.h"
+#include "model/pipe_graph/pg_pipe.h"
 
 #include "pipegen2_constants.h"
 #include "pipegen2_utils.h"
@@ -132,6 +133,8 @@ PGBuffer::PGBuffer(const PGBuffer& other) :
 
 void PGBuffer::replace_output_pipe(PGPipe* old_pipe, PGPipe* new_pipe)
 {
+    log_assert(m_output_pipes.find(old_pipe) != m_output_pipes.end(), 
+               "The output pipe with id {} does not exist!", std::to_string(old_pipe->get_id()));
     m_output_pipes.erase(old_pipe);
     m_output_pipes.insert(new_pipe);
 }

@@ -228,7 +228,7 @@ namespace pipegen2
         {
             const PGBuffer* input_buffer = pipe_input.get_buffer();
 
-            return input_buffer->is_dram_input() && !input_buffer->is_dram_prefetch_pre_tm();
+            return input_buffer->is_non_prefetch_pre_tm_dram_input();
         });
     }
 

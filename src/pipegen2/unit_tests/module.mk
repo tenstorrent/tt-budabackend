@@ -6,6 +6,8 @@ PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/graph_creator/str
 PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/io/*.cpp)
 PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/mocks/device/*.cpp)
 PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/test_utils/*.cpp)
+PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/model/data_flow/*.cpp)
+PIPEGEN2_UNIT_TESTS_SRCS += $(wildcard src/pipegen2/unit_tests/model/pipe_graph/*.cpp)
 
 PIPEGEN2_UNIT_TESTS_BUILD_DIR = $(UTSDIR)/src/pipegen2
 PIPEGEN2_UNIT_TESTS_BIN_DIR   = $(PIPEGEN2_UNIT_TESTS_BUILD_DIR)/bin
