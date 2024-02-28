@@ -161,13 +161,12 @@ def compare_nightly():
 
     print("\nComparing local test-lists with elastic search\n")
     for key in local_test_list:
+        local_count = len(local_test_list[key])
         if key not in es_test_list:
             print_red(f"Test group {key} is missing in elastic search. Missing {local_count} tests [x]\n")
             continue
 
-        local_count = len(local_test_list[key])
         es_count = len(es_test_list[key])
-
         if local_count != es_count:
             print_yellow(f"Test group {key} has {local_count} tests in local test-lists and {es_count} tests in elastic search. Missing {local_count-es_count} tests [-]")
             local_set = set(local_test_list[key])
