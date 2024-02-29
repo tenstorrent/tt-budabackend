@@ -326,13 +326,19 @@ namespace pipegen2
             // Detach dest pipe from its inputs.
             dest_pipe->remove_all_inputs();
 
+            std::unordered_set<PGBuffer*> replaced_buffers;
+
             // Detach inputs to src_pipe from it and reconnect them as inputs to dest_pipe.
             for (PGPipe::Input& src_pipe_input : src_pipe->get_inputs())
             {
                 PGBuffer* src_pipe_input_buffer = src_pipe_input.get_buffer();
 
-                src_pipe_input_buffer->replace_output_pipe(src_pipe, dest_pipe);
-                dest_pipe->add_input_buffer_id(src_pipe_input_buffer->get_id());
+                if (replaced_buffers.find(src_pipe_input_buffer) == replaced_buffers.end())
+                {
+                    src_pipe_input_buffer->replace_output_pipe(src_pipe, dest_pipe);
+                    dest_pipe->add_input_buffer_id(src_pipe_input_buffer->get_id());
+                    replaced_buffers.insert(src_pipe_input_buffer);
+                }
                 dest_pipe->add_input_buffer(src_pipe_input_buffer, src_pipe_input.get_offset());
             }
 
