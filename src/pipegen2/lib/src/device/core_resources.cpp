@@ -37,6 +37,11 @@ CoreResources::~CoreResources() = default;
 
 void CoreResources::allocate_l1_extra_tile_headers_space(unsigned int num_extra_tile_headers)
 {
+    if (num_extra_tile_headers == 0)
+    {
+        return;
+    }
+
     m_l1_extra_tile_headers_space =
         num_extra_tile_headers * constants::tile_header_size_bytes * constants::general_max_num_tiles_per_phase;
 

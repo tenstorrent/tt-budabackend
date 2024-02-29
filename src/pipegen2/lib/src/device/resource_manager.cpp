@@ -138,24 +138,39 @@ void ResourceManager::allocate_l1_extra_tile_headers_space(
     // multicast streams.
     // TODO: Investigate if we can optimize worker core tile header buffer allocation to save some memory. This
     // could lead significant L1 memory savings as for each extra tile header we allocate 32KB of space today.
-    std::unordered_set<unsigned int> all_different_tile_headers;
+    std::unordered_map<decltype(tt_cxy_pair::chip), std::set<unsigned int>> worker_core_tile_headers_per_chip;
     for (const auto& it : core_to_msg_sizes)
     {
-        all_different_tile_headers.insert(it.second.begin(), it.second.end());
+        if (m_worker_cores_resources.find(it.first) == m_worker_cores_resources.end())
+        {
+            // Skip tile sizes present on ethernet cores.
+            continue;
+        }
+
+        worker_core_tile_headers_per_chip[it.first.chip].insert(it.second.begin(), it.second.end());
     }
 
     for (const auto& worker_it : m_worker_cores_resources)
     {
-        worker_it.second->allocate_l1_extra_tile_headers_space(all_different_tile_headers.size() - 1);
+        if (worker_core_tile_headers_per_chip.find(worker_it.first.chip) == worker_core_tile_headers_per_chip.end())
+        {
+            // Skip chips not present in worker_core_tile_headers_per_chip.
+            continue;
+        }
+
+        worker_it.second->allocate_l1_extra_tile_headers_space(worker_core_tile_headers_per_chip[worker_it.first.chip].size() - 1);
     }
 
     for (const auto& eth_it : m_ethernet_cores_resources)
     {
         const auto core_to_msg_sizes_it = core_to_msg_sizes.find(eth_it.first);
-        const unsigned int num_extra_tile_headers = core_to_msg_sizes_it != core_to_msg_sizes.end() ?
-            core_to_msg_sizes_it->second.size() - 1 : 0;
+        if (core_to_msg_sizes_it == core_to_msg_sizes.end())
+        {
+            // Skip ethernet cores that don't have any tile headers to allocate.
+            continue;
+        }
 
-        eth_it.second->allocate_l1_extra_tile_headers_space(num_extra_tile_headers);
+        eth_it.second->allocate_l1_extra_tile_headers_space(core_to_msg_sizes_it->second.size() - 1);
     }
 }
 
