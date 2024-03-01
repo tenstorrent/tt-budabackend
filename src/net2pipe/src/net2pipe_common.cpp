@@ -44,7 +44,17 @@ int op_num_intermediate_buf(const tt_op_info &op_info) {
     }
 }
 
-bool op_has_output_buf(const tt_op_info &op_info) { return !op_info.gradient_op; }
+bool op_has_output_buf(const tt_op_info &op_info) { 
+    if (op_info.gradient_op) {
+        return false;
+    }
+
+    if (netlist_utils::is_valid_drainer_op(op_info.type)) {
+        return false;
+    }
+    
+    return true;
+}
 
 bool op_is_fused(const tt_op_info &op_info) { return (get_op_class(op_info) == OpClass::FusedOp); }
 

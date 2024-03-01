@@ -85,6 +85,9 @@ TmOp get_valid_tm_op(string tm_op);
 TmOp get_tm_op(string tm_op);
 bool is_valid_ethernet_op(string op_type);
 bool is_non_tensix_op(string op_type);
+//! DrainerOp
+DrainerOp get_drainer_op(string drainer_op);
+bool is_valid_drainer_op(string drainer_op);
 
 //! Data conversion
 std::uint32_t conv_float_to_u16a(float in_f);

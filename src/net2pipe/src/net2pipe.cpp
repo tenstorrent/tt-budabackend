@@ -1149,6 +1149,10 @@ void Net2Pipe::collect_epoch_info( const std::vector<GraphExecVars> &graph_exec_
                     };
                 }
             }
+            if (epoch_context.op_queue_output_map.find(op_name) == epoch_context.op_queue_output_map.end()) {
+                log_assert(netlist_utils::is_valid_drainer_op(op_info.type), "Only drainer ops can have no outputs.");
+                continue;
+            }
             for (const auto & output_name : epoch_context.op_queue_output_map.at(op_name)) {
                 if (name_is_queue(output_name)) {
                     epoch_context.queue_setting_map[output_name] = {

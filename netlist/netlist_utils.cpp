@@ -20,6 +20,7 @@
 #include "ops/reduce_bare.hpp"
 #include "ops/unary_bare.hpp"
 #include "ops/topk.hpp"
+#include "ops/drainer.hpp"
 
 string netlist_utils::get_string(Dim dim) {
     switch (dim) {
@@ -557,6 +558,19 @@ bool netlist_utils::is_valid_fused_op(string fused_op) { return (fused_op == "fu
 bool netlist_utils::is_valid_ethernet_op(string op_type) { return (op_type == "ethernet_datacopy"); }
 
 bool netlist_utils::is_non_tensix_op(string op_type) { return is_valid_ethernet_op(op_type); }
+
+DrainerOp netlist_utils::get_drainer_op(string drainer_op) {
+    DrainerOp op = DrainerOp::Invalid;
+    if (drainer_op == "drainer") {
+        op = DrainerOp::Drainer;
+    }
+    return op;
+}
+
+bool netlist_utils::is_valid_drainer_op(string drainer_op) {
+    DrainerOp op = get_drainer_op(drainer_op);
+    return (op != DrainerOp::Invalid);
+}
 
 std::uint32_t netlist_utils::conv_float_to_u16a(float in_f) {
     union {
@@ -1167,6 +1181,39 @@ std::shared_ptr<tt_op> netlist_utils::create_op(
             grid_loc,                                   // tt_grid_shape grid_loc
             grid_transpose,                             // bool grid_transpose
             unary_op,                                   // UnaryOp
+            block_tile_dim,                             // std::uint32_t block_tile_dim
+            block_cnt,                                  // std::uint32_t block_cnt
+            batch_cnt,                                  // std::uint32_t batch_cnt
+            num_m_sub_blocks,                           // std::uint32_t num_m_sub_blocks
+            num_n_sub_blocks,                           // std::uint32_t num_n_sub_blocks
+            num_tiles_per_m_sub_block,                  // std::uint32_t num_tiles_per_m_sub_block
+            num_tiles_per_n_sub_block,                  // std::uint32_t num_tiles_per_n_sub_block
+            gradient_op,                                // std::uint32_t gradient_op
+            transpose,                                  // std::uint32_t transpose
+            op_info_ptr->untilize_output,               // bool untilize_output
+            op_info_ptr->math_fidelity,                 // MathFidelity math_fidelity
+            fp32_dest_acc_en,                           // bool fp32_dest_acc_en
+            relu_en,                                    // bool relu_en
+            relu_threshold,                             // std::uint32_t relu_threshold
+            relu_mode,                                  // ReluMode relu_mode
+            op_info_ptr->input_data_formats,            // in_data_formats
+            op_info_ptr->output_data_format,            // out_data_format
+            op_info_ptr->intermed_data_format,          // intermed_data_format
+            op_info_ptr->attributes.kernel_broadcast,   // kernel_broadcast,
+            input_tile_dims[0],                         // input tile dims (used for datacopy only atm)
+            out_tile_dims,                              // output tile dims (used for datacopy only atm)
+            op_info_ptr->attributes.stoch_rnd_mode
+        ));
+    } else if (is_valid_drainer_op(op_info_ptr->type)) {
+        log_assert(input_tile_dims.size() == 1, "Expected 1 input in input_tile_dims array on unary op, but got {}", input_tile_dims.size());
+
+        new_tt_op = std::static_pointer_cast<tt_op>(std::make_shared<tt_drainer_op>(
+            op_info_ptr->name,                          // string name
+            op_info_ptr->type,                          // string type
+            grid_shape,                                 // tt_grid_shape grid_shape
+            grid_loc,                                   // tt_grid_shape grid_loc
+            grid_transpose,                             // bool grid_transpose
+            DrainerOp::Drainer,                         // DrainerOp
             block_tile_dim,                             // std::uint32_t block_tile_dim
             block_cnt,                                  // std::uint32_t block_cnt
             batch_cnt,                                  // std::uint32_t batch_cnt

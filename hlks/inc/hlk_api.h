@@ -106,6 +106,12 @@ enum class UnaryOp : std::uint8_t
     Invalid,
 };
 
+enum class DrainerOp : std::uint8_t
+{
+    Drainer,
+    Invalid,
+};
+
 enum class EmbeddingOp : std::uint8_t
 {
     Embedding, // Encoded indices cause GW to pull from dram directly
