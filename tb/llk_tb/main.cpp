@@ -7,9 +7,9 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <thread>
-#include <filesystem>
 
 #include "tests.h"
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv, char **env) {
     std::string coverage_dir = ".";
     int seed = 0;
     int num_configs_to_randomize = 5;
-     //Give root default path, similar to buda compile #2293
+    // Give root default path, similar to buda compile #2293
     std::string gitroot = std::filesystem::current_path().string();
     if (root_env != NULL) {
         gitroot = root_env;
@@ -59,10 +59,10 @@ int main(int argc, char **argv, char **env) {
         );
         cmd.add(tests_arg);
         ValueArg<std::string> device_arg(
-            "d",                   // The one character flag that identifies this argument on the command line.
-            "device",  // A one word name for the argument. Can be used as a long flag on the command line.
+            "d",                 // The one character flag that identifies this argument on the command line.
+            "device",            // A one word name for the argument. Can be used as a long flag on the command line.
             "device to target",  // A description of what the argument is for or does.
-            false,                                 // Whether the argument is required on the command line.
+            false,               // Whether the argument is required on the command line.
             "",       // The default value assigned to this argument if it is not present on the command line.
             "string"  // A short, human readable description of the type that this object expects. This is used in the
                       // generation of the USAGE statement. The goal is to be helpful to the end user of the program.

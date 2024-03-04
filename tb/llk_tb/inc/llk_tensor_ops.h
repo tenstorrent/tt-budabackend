@@ -56,12 +56,7 @@ enum class unary_sfpi_op {
 extern std::unordered_map<std::string, unary_sfpi_op> UNARY_SFPI_OP_ENUM;
 unary_sfpi_op get_unary_sfpi_op_from_string(std::string op_string);
 
-enum class relu_op {
-    NONE,
-    ZERO,
-    MIN_THRESHOLD,
-    MAX_THRESHOLD
-};
+enum class relu_op { NONE, ZERO, MIN_THRESHOLD, MAX_THRESHOLD };
 extern std::unordered_map<std::string, relu_op> RELU_OP_ENUM;
 relu_op get_relu_op_from_string(std::string relu_op_string);
 

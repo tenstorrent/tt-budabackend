@@ -6,5 +6,4 @@
 #include <cmath>
 #include <numeric>
 
-namespace ttl {
-}  // namespace ttl
+namespace ttl {}  // namespace ttl

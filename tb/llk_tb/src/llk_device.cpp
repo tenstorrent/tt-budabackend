@@ -45,12 +45,12 @@ string llk::to_string(llk::ThreadType thread) {
     }
 }
 
-string llk::get_overlay_version(const ARCH arch_name){
-    if(arch_name == ARCH::GRAYSKULL){
+string llk::get_overlay_version(const ARCH arch_name) {
+    if (arch_name == ARCH::GRAYSKULL) {
         return "1";
-    }else if((arch_name == ARCH::WORMHOLE) || (arch_name == ARCH::WORMHOLE_B0)){
+    } else if ((arch_name == ARCH::WORMHOLE) || (arch_name == ARCH::WORMHOLE_B0)) {
         return "2";
-    }else{
+    } else {
         throw std::runtime_error("Invalid ARCH passed in");
     }
 }
@@ -74,15 +74,11 @@ void llk::Device::generate_overlay_blob(
         LOG(FATAL) << __FUNCTION__ << "::failed";
     }
 }
-void llk::Device::init(
-    std::string root,
-    std::string device_descriptor_filename
-) {
+void llk::Device::init(std::string root, std::string device_descriptor_filename) {
     VLOG(3) << __FUNCTION__ << "::Running ";
     const auto device_descriptor_dir = root + "/tb/llk_tb/device_descriptor/";
     VLOG(4) << __FUNCTION__ << "::load_soc_descriptor_from_yaml ";
     soc_descriptor = llk::load_soc_descriptor_from_yaml(device_descriptor_dir + device_descriptor_filename);
-
 }
 
 void llk::Device::start(

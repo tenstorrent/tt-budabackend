@@ -32,7 +32,7 @@ DataFormat llk::get_data_format(const std::string in_data_format) {
     DataFormat result;
     string data_format_string = in_data_format;
     transform(data_format_string.begin(), data_format_string.end(), data_format_string.begin(), ::toupper);
-    
+
     if (data_format_string.compare("BFP2") == 0) {
         result = DataFormat::Bfp2;
     } else if (data_format_string.compare("BFP2_B") == 0) {
@@ -53,7 +53,7 @@ DataFormat llk::get_data_format(const std::string in_data_format) {
         result = DataFormat::Float32;
     } else if (data_format_string.compare("TF32") == 0) {
         result = DataFormat::Tf32;
-    }else {
+    } else {
         std::cout << __FUNCTION__ << "::Unsupported: data_format_string=" << data_format_string << std::endl;
         throw;
     }

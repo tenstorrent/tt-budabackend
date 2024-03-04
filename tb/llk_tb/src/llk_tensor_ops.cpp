@@ -269,8 +269,7 @@ void llk::tensor_ops::unary_broadcast(
 
 void llk::tensor_ops::tile_ops::unary_sfpi(unary_sfpi_op op_type, c_tile &output, c_tile &src) {
     // Tile level operation
-    if (op_type >= unary_sfpi_op::TEST1 &&
-        op_type <= unary_sfpi_op::TEST14) {
+    if (op_type >= unary_sfpi_op::TEST1 && op_type <= unary_sfpi_op::TEST14) {
         output.copy_from_tile(src);
         output.iterate_xyzw([](c_tile *tile, int x, int y, int z, int w) {
             tile->value(x, y, z, w).f = std::sqrt(tile->value(x, y, z, w).f);
@@ -322,23 +321,20 @@ void llk::tensor_ops::tile_ops::relu(relu_op op_type, c_tile &output, c_tile &sr
         });
     } else if (op_type == relu_op::MIN_THRESHOLD) {
         output.iterate_xyzw([src, relu_threshold](c_tile *tile, int x, int y, int z, int w) {
-            tile->value(x, y, z, w).f = ((tile->value(x, y, z, w).f) < relu_threshold) ? 0.0 : (tile->value(x, y, z, w).f);
+            tile->value(x, y, z, w).f =
+                ((tile->value(x, y, z, w).f) < relu_threshold) ? 0.0 : (tile->value(x, y, z, w).f);
         });
     } else if (op_type == relu_op::MAX_THRESHOLD) {
         output.iterate_xyzw([src, relu_threshold](c_tile *tile, int x, int y, int z, int w) {
-            tile->value(x, y, z, w).f = ((tile->value(x, y, z, w).f) > relu_threshold) ? relu_threshold : (tile->value(x, y, z, w).f);
+            tile->value(x, y, z, w).f =
+                ((tile->value(x, y, z, w).f) > relu_threshold) ? relu_threshold : (tile->value(x, y, z, w).f);
         });
     } else {
         throw std::runtime_error("relu mode not supported");
     }
 }
 
-void llk::tensor_ops::relu(
-    relu_op op_type,
-    llk::Tensor &dst,
-    llk::Tensor &src,
-    float relu_threshold
-    ) {
+void llk::tensor_ops::relu(relu_op op_type, llk::Tensor &dst, llk::Tensor &src, float relu_threshold) {
     dst.set_dims(src.dims);
     for (auto w = 0; w < src.tile_tensor.size(); w++) {
         for (auto z = 0; z < src.tile_tensor[w].size(); z++) {
@@ -433,12 +429,12 @@ void llk::tensor_ops::matmul(llk::Tensor &dst, llk::Tensor &src1, llk::Tensor &s
 
                             c_tile src2_tile_final;
 
-                            if(transpose_xy_en){
+                            if (transpose_xy_en) {
                                 src2_tile_final.copy_from_tile(src2_tile);
-                                src2_tile_final.iterate_xyzw([&src2_tile](c_tile *tile, int x, int y, int z, int w)
-                                                         {tile->value(x, y, z, w).f = src2_tile.value(y, x, z, w).f;}
-                                                        );
-                            }else{
+                                src2_tile_final.iterate_xyzw([&src2_tile](c_tile *tile, int x, int y, int z, int w) {
+                                    tile->value(x, y, z, w).f = src2_tile.value(y, x, z, w).f;
+                                });
+                            } else {
                                 src2_tile_final = src2_tile;
                             }
 

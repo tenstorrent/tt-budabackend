@@ -4,10 +4,10 @@
 #pragma once
 
 #include <cstddef>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <ostream>
 
 #include "llk_xy_pair.h"
 #include "yaml-cpp/yaml.h"

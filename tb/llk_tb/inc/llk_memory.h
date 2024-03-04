@@ -28,7 +28,7 @@ class memory {
 
     typedef std::uint32_t address_t;
     typedef std::uint32_t word_t;
-    memory() : memory(0, 0){};
+    memory() : memory(0, 0) {};
     memory(address_t base, address_t size);
     memory(address_t base, const std::vector<word_t>& content);
     memory(address_t base, std::vector<word_t>&& content);

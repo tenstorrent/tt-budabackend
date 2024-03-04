@@ -6,13 +6,13 @@
 #include <glog/logging.h>
 #include <llk_addresses.h>
 
-#include <thread>
 #include <cstddef>
 #include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
 #include <sstream>
+#include <thread>
 
 #include "stdlib.h"
 
@@ -72,12 +72,11 @@ void llk::assemble_kernels::compile_kernels(
     std::stringstream make_cmd;
     std::stringstream make_gen_cmd;
     std::stringstream make_src_cmd;
-    std::string full_output_dir = std::experimental::filesystem::absolute(output_dir).string();  
+    std::string full_output_dir = std::experimental::filesystem::absolute(output_dir).string();
     std::size_t found = used_kernels.find_first_of(" ");
-    while (found!=std::string::npos)
-    {
+    while (found != std::string::npos) {
         used_kernels.erase(found, 1);
-        found=used_kernels.find_first_of(" ",found+1);
+        found = used_kernels.find_first_of(" ", found + 1);
     }
 
     // Build ckernels/src
@@ -142,7 +141,7 @@ void llk::assemble_kernels::build_kernel_memories(
     if (std::experimental::filesystem::exists(output_dir)) {
         std::experimental::filesystem::remove_all(output_dir);
     }
-    
+
     std::string make_src_args = "-C ";
     make_src_args += make_ckernels_compile_dir;
     make_src_args += hlkc_test ? " HLKC_KERNELS=1 " : " HLKC_KERNELS=0 ";
@@ -176,7 +175,8 @@ void llk::assemble_kernels::build_kernel_memories(
         ckernels_compile_output_dir << output_dir << "tensix_thread" << (uint)thread_id << "_blank";
         std::vector<std::string> used_kernels_vector;
         std::string blank_kernels_fwlog_string = "";
-        ths[thread_id] = std::thread(llk::assemble_kernels::compile_kernels,
+        ths[thread_id] = std::thread(
+            llk::assemble_kernels::compile_kernels,
             test_dir + test_name + "_params",
             ckernels_compile_output_dir.str(),
             make_src_args,
@@ -232,7 +232,8 @@ void llk::assemble_kernels::build_kernel_memories(
                 LOG(INFO) << "(" << coord.x << "," << coord.y << ") Thread #" << thread_id
                           << "Kernels: " << kernels_used_string;
 
-                ths[thread_id] = std::thread(llk::assemble_kernels::compile_kernels,
+                ths[thread_id] = std::thread(
+                    llk::assemble_kernels::compile_kernels,
                     test_dir + test_name + "_params",
                     ckernels_compile_output_dir.str(),
                     make_src_args,
@@ -266,7 +267,6 @@ void llk::assemble_kernels::build_kernel_memories(
                 std::stringstream fwlog_thread_stringstream;
                 fwlog_thread_stringstream << per_thread_fwlog_istream.rdbuf();
                 kernels_fwlog_string = fwlog_thread_stringstream.str();
-
 
                 merged_kernel_fwlog << kernels_fwlog_string;
                 llk::memory ckernel_memory = llk::memory::from_discontiguous_risc_hex(

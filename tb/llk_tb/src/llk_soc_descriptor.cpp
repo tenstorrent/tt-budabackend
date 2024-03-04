@@ -13,11 +13,11 @@ namespace fs = boost::filesystem;
 using namespace llk;
 
 std::string llk::get_arch_string(ARCH arch_name) {
-    if (arch_name == ARCH::JAWBRIDGE)  {
+    if (arch_name == ARCH::JAWBRIDGE) {
         return "jawbridge";
-    } else if (arch_name == ARCH::GRAYSKULL)  {
+    } else if (arch_name == ARCH::GRAYSKULL) {
         return "grayskull";
-    } else if (arch_name == ARCH::WORMHOLE)  {
+    } else if (arch_name == ARCH::WORMHOLE) {
         return "wormhole";
     } else if (arch_name == ARCH::WORMHOLE_B0) {
         return "wormhole_b0";
@@ -143,7 +143,6 @@ void llk::translate_soc_descriptor_to_ca_soc(CA::Soc &soc, const llk::SocDescrip
         soc.SetNodeProperties(node.noc_coord, node);
     }
 }
-
 
 std::ostream &operator<<(std::ostream &os, const llk::ARCH &arch) {
     switch (arch) {

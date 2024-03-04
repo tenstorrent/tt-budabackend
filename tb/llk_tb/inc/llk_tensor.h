@@ -51,7 +51,7 @@ class Tensor {
     //! Fill tensor with constant data
     void populate_with_constant_data(float constant);
     //! Fill tensor with a vector of supplied data
-    void populate_with_vector(const vector<float>& data_vector);
+    void populate_with_vector(const vector<float> &data_vector);
     //! Fill tensor with uniformly distributed data
     void populate_with_uniform_distribution_data(float min, float max, int seed);
     //! Fill tensor with normal distribution data

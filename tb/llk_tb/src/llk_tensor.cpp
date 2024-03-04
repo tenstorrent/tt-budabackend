@@ -5,9 +5,9 @@
 
 #include <boost/filesystem.hpp>
 #include <cassert>
+#include <numeric>
 #include <random>
 #include <string>
-#include <numeric>
 #include <unordered_map>
 
 #include "glog/logging.h"
@@ -146,22 +146,22 @@ void llk::Tensor::populate_with_constant_data(float constant) {
     return;
 }
 
-void llk::Tensor::populate_with_vector(const vector<float>& data_vector) {
+void llk::Tensor::populate_with_vector(const vector<float> &data_vector) {
     for (auto w = 0; w < tile_tensor.size(); w++) {
         for (auto z = 0; z < tile_tensor[w].size(); z++) {
             for (auto ct = 0; ct < tile_tensor[w][z].size(); ct++) {
                 for (auto rt = 0; rt < tile_tensor[w][z][ct].size(); rt++) {
                     auto &tile = tile_tensor[w][z][ct][rt];
-                    int cnt=0;
+                    int cnt = 0;
 
-                    for (int y=0; y<tile.get_y_tile_dim(); y++) {
-                       for (int x=0; x<tile.get_x_tile_dim(); x++) {
-                            if ((x>=llk::TensorDims::TILE_ROW_DIM/2) || (y>=llk::TensorDims::TILE_COL_DIM/2)) {
-                               tile.value(x, y, 0, 0).f = 0;
+                    for (int y = 0; y < tile.get_y_tile_dim(); y++) {
+                        for (int x = 0; x < tile.get_x_tile_dim(); x++) {
+                            if ((x >= llk::TensorDims::TILE_ROW_DIM / 2) || (y >= llk::TensorDims::TILE_COL_DIM / 2)) {
+                                tile.value(x, y, 0, 0).f = 0;
                             } else {
-                               tile.value(x, y, 0, 0).f = data_vector[cnt++];
+                                tile.value(x, y, 0, 0).f = data_vector[cnt++];
                             }
-                       }
+                        }
                     }
                 }
             }
