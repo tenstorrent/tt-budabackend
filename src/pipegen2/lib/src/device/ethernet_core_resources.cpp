@@ -155,4 +155,10 @@ unsigned int EthernetCoreResources::calculate_general_purpose_streams_count() co
     return extra_streams_count + additional_extra_streams;
 }
 
+unsigned int EthernetCoreResources::get_predefined_tile_header_buffer_addr() const
+{
+    return eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
+           core_resources_constants::tile_header_buffer_allocation_cushion_bytes -
+           TileHeaderBuffer::get_tile_header_buffer_size_bytes();
+}
 } // namespace pipegen2

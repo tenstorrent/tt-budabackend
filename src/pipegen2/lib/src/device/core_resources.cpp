@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "device/core_resources.h"
+
 #include "device/core_resources_constants.h"
 #include "device/l1_memory_allocation.h"
 #include "device/stream_buffer_allocation.h"
@@ -24,7 +25,6 @@ CoreResources::CoreResources(const tt_cxy_pair& core_physical_location,
     c_l1_data_buffers_space_start_address(l1_data_buffers_space_start_address),
     c_l1_data_buffers_space_end_address(l1_data_buffers_space_end_address),
     m_next_available_extra_stream_id(extra_streams_id_range_start),
-    m_l1_extra_tile_headers_space(0),
     m_l1_extra_overlay_blob_space(0),
     m_l1_current_data_buffers_space_address(l1_data_buffers_space_end_address -
                                             constants::unused_data_buffers_space_bytes),
@@ -35,18 +35,27 @@ CoreResources::CoreResources(const tt_cxy_pair& core_physical_location,
 
 CoreResources::~CoreResources() = default;
 
-void CoreResources::allocate_l1_extra_tile_headers_space(unsigned int num_extra_tile_headers)
+unsigned int CoreResources::allocate_tile_header_buffer(const unsigned int tile_size)
 {
-    if (num_extra_tile_headers == 0)
+    // If tile header buffer was already allocated for this tile_size, return it's address.
+    if (m_allocated_tile_header_buffers.find(tile_size) != m_allocated_tile_header_buffers.end())
     {
-        return;
+        return m_allocated_tile_header_buffers.at(tile_size).get_start_address();
     }
 
-    m_l1_extra_tile_headers_space =
-        num_extra_tile_headers * constants::tile_header_size_bytes * constants::general_max_num_tiles_per_phase;
+    // First tile header buffer is always allocated at the predefined address after TRISC2. All other tile header
+    // buffers are allocated at the end of L1 data buffers space.
+    unsigned int thb_address =
+        m_allocated_tile_header_buffers.empty() ?
+        get_predefined_tile_header_buffer_addr() :
+        allocate_l1_data_buffer(TileHeaderBuffer::get_tile_header_buffer_size_bytes());
 
-    // Move data buffer space address to make space for extra tile headers.
-    allocate_l1_data_buffer(m_l1_extra_tile_headers_space);
+    log_debug(tt::LogPipegen2,
+              "Core {}: Allocated tile header buffer at address {} for tile size {}", m_core_physical_location.str(),
+              thb_address, tile_size);
+
+    m_allocated_tile_header_buffers.emplace(tile_size, TileHeaderBuffer(thb_address, tile_size));
+    return thb_address;
 }
 
 void CoreResources::allocate_l1_extra_overlay_blob_space(unsigned int size_in_bytes)
@@ -185,4 +194,14 @@ std::string CoreResources::allocations_to_string() const
     return string_stream.str();
 }
 
+unsigned int CoreResources::get_tile_header_buffer_addr(const unsigned int tile_size)
+{
+    auto it = m_allocated_tile_header_buffers.find(tile_size);
+
+    log_assert(it != m_allocated_tile_header_buffers.end(),
+               "Core {}: Tile header buffer for tile size {} is missing", m_core_physical_location.str(),
+               tile_size);
+
+    return it->second.get_start_address();
+}
 } // namespace pipegen2

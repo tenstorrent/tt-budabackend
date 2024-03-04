@@ -145,6 +145,7 @@ namespace pipegen2
             ADD_FIELD_TO_MAP(remote_src_is_mcast)
             ADD_FIELD_TO_MAP(data_buf_no_flow_ctrl)
             ADD_FIELD_TO_MAP(dest_data_buf_no_flow_ctrl)
+            ADD_FIELD_TO_MAP(msg_info_buf_addr)
         }
 
 #undef ADD_FIELD_TO_MAP
@@ -368,6 +369,7 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(bool, remote_src_is_mcast)
         DEFINE_MEMBER_AND_ACCESSOR(bool, data_buf_no_flow_ctrl)
         DEFINE_MEMBER_AND_ACCESSOR(bool, dest_data_buf_no_flow_ctrl)
+        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, msg_info_buf_addr)
 #undef DEFINE_MEMBER_AND_ACCESSOR
     };
 } // namespace pipegen2

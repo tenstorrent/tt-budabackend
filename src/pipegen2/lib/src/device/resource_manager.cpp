@@ -20,30 +20,33 @@
 namespace pipegen2
 {
 
-ResourceManager::ResourceManager(std::unique_ptr<SoCInfo> soc_info) : m_soc_info(std::move(soc_info))
+ResourceManager::ResourceManager(std::unique_ptr<SoCInfo> soc_info) : 
+    m_soc_info(std::move(soc_info)),
+    // This is default allocation strategy. In future we can add more fine-grained strategies.
+    m_thb_allocation_strategy(std::make_unique<ChipWideTHBAllocationStrategy>(m_worker_cores_resources, m_ethernet_cores_resources))
+{
+    for (ChipId chip_id : m_soc_info->get_chip_ids())
     {
-        for (ChipId chip_id : m_soc_info->get_chip_ids())
+        for (const tt_cxy_pair& core_physical_location : m_soc_info->get_worker_cores_physical_locations(chip_id))
         {
-            for (const tt_cxy_pair& core_physical_location : m_soc_info->get_worker_cores_physical_locations(chip_id))
-            {
-                const tt_cxy_pair core_logical_location = 
-                    convert_physical_core_to_logical(core_physical_location, m_soc_info->get_soc_decriptors());
-                m_worker_cores_resources.emplace(
-                    core_physical_location,
-                    resource_manager_internal::create_worker_core_resources(m_soc_info->get_device_arch(), 
-                                                                            core_physical_location, 
-                                                                            core_logical_location));
-            }
+            const tt_cxy_pair core_logical_location = 
+                convert_physical_core_to_logical(core_physical_location, m_soc_info->get_soc_decriptors());
+            m_worker_cores_resources.emplace(
+                core_physical_location,
+                resource_manager_internal::create_worker_core_resources(m_soc_info->get_device_arch(), 
+                                                                        core_physical_location, 
+                                                                        core_logical_location));
+        }
 
-            for (const tt_cxy_pair& core_physical_location : m_soc_info->get_ethernet_cores_physical_locations(chip_id))
-            {
-                m_ethernet_cores_resources.emplace(
-                    core_physical_location,
-                    resource_manager_internal::create_ethernet_core_resources(m_soc_info->get_device_arch(), 
-                                                                              core_physical_location));
-            }
+        for (const tt_cxy_pair& core_physical_location : m_soc_info->get_ethernet_cores_physical_locations(chip_id))
+        {
+            m_ethernet_cores_resources.emplace(
+                core_physical_location,
+                resource_manager_internal::create_ethernet_core_resources(m_soc_info->get_device_arch(), 
+                                                                            core_physical_location));
         }
     }
+}
 
 ResourceManager::~ResourceManager() = default;
 
@@ -129,49 +132,9 @@ StreamId ResourceManager::allocate_ethernet_stream(const tt_cxy_pair& eth_core_p
     return get_ethernet_core_resources(eth_core_physical_location)->allocate_ethernet_stream();
 }
 
-void ResourceManager::allocate_l1_extra_tile_headers_space(
-    const std::unordered_map<tt_cxy_pair, std::unordered_set<unsigned int>>& core_to_msg_sizes)
+void ResourceManager::allocate_l1_extra_tile_headers_space(const THBAllocationInfo & thb_allocation_info)
 {
-    // Allocate extra space for tile headers on each core. For Ethernet cores, we allocate space in isolation for
-    // each core. However, for worker cores, we allocate same amount of space for all cores on a chip just to keep
-    // their L1 memory layout consistent. This is mostly to be able to allocate same destination addresses for
-    // multicast streams.
-    // TODO: Investigate if we can optimize worker core tile header buffer allocation to save some memory. This
-    // could lead significant L1 memory savings as for each extra tile header we allocate 32KB of space today.
-    std::unordered_map<decltype(tt_cxy_pair::chip), std::set<unsigned int>> worker_core_tile_headers_per_chip;
-    for (const auto& it : core_to_msg_sizes)
-    {
-        if (m_worker_cores_resources.find(it.first) == m_worker_cores_resources.end())
-        {
-            // Skip tile sizes present on ethernet cores.
-            continue;
-        }
-
-        worker_core_tile_headers_per_chip[it.first.chip].insert(it.second.begin(), it.second.end());
-    }
-
-    for (const auto& worker_it : m_worker_cores_resources)
-    {
-        if (worker_core_tile_headers_per_chip.find(worker_it.first.chip) == worker_core_tile_headers_per_chip.end())
-        {
-            // Skip chips not present in worker_core_tile_headers_per_chip.
-            continue;
-        }
-
-        worker_it.second->allocate_l1_extra_tile_headers_space(worker_core_tile_headers_per_chip[worker_it.first.chip].size() - 1);
-    }
-
-    for (const auto& eth_it : m_ethernet_cores_resources)
-    {
-        const auto core_to_msg_sizes_it = core_to_msg_sizes.find(eth_it.first);
-        if (core_to_msg_sizes_it == core_to_msg_sizes.end())
-        {
-            // Skip ethernet cores that don't have any tile headers to allocate.
-            continue;
-        }
-
-        eth_it.second->allocate_l1_extra_tile_headers_space(core_to_msg_sizes_it->second.size() - 1);
-    }
+    m_thb_allocation_strategy->allocate_tile_header_buffers(thb_allocation_info);
 }
 
 unsigned int ResourceManager::allocate_l1_extra_overlay_blob_space(
@@ -270,4 +233,9 @@ std::vector<const CoreResources*> ResourceManager::get_all_worker_core_resources
     return core_resources_vector;
 }
 
+unsigned int ResourceManager::get_tile_header_buffer_addr(const tt_cxy_pair& core_physical_location,
+                                                          const unsigned int tile_size) const
+{
+    return get_core_resources(core_physical_location)->get_tile_header_buffer_addr(tile_size);
+}
 } // namespace pipegen2

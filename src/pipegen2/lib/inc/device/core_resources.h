@@ -12,12 +12,37 @@
 #include "device/l1_memory_allocation.h"
 #include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
+#include "pipegen2_constants.h"
 
 namespace pipegen2
 {
 
 class L1MemoryAllocation;
 class StreamNode;
+
+class TileHeaderBuffer
+{
+public:
+    TileHeaderBuffer(unsigned int start_address, unsigned int tile_size)
+    {
+        m_start_address = start_address;
+        m_tile_size = tile_size;
+    }
+
+    static constexpr unsigned int get_tile_header_buffer_size_bytes()
+    {
+        return constants::tile_header_size_bytes * constants::general_max_num_tiles_per_phase;
+    }
+
+    unsigned int get_start_address() const { return m_start_address; }
+
+private:
+    // The start address of the tile header buffer in L1 memory.
+    unsigned int m_start_address;
+
+    // Size of the tile for which this buffer is allocated.
+    unsigned int m_tile_size;
+};
 
 class CoreResources
 {
@@ -34,10 +59,6 @@ public:
     // Allocates extra stream with general purpose capabilities and returns its ID.
     StreamId allocate_general_purpose_stream();
 
-    // Allocates extra space in L1 memory, reserved for message info buffer tile headers. Memory is allocated at the
-    // beginning of L1 data buffers space.
-    void allocate_l1_extra_tile_headers_space(unsigned int num_extra_tile_headers);
-
     // Allocates extra space in L1 memory, reserved for overlay blob. Memory is allocated at the beginning of L1
     // data buffers space.
     void allocate_l1_extra_overlay_blob_space(unsigned int size_in_bytes);
@@ -45,6 +66,9 @@ public:
     // Allocates memory for data buffer in L1 and returns the allocation address.
     // Memory is allocated from the end of L1 data buffers space towards beginning.
     unsigned int allocate_l1_data_buffer(unsigned int size_in_bytes);
+
+    // Allocates tile header buffer for the given tile size and returns its start address.
+    unsigned int allocate_tile_header_buffer(unsigned int tile_size);
 
     // Allocates kernel input and returns its index, which is index into `inputs` array field of epoch_t structure
     // not based on operand ID or stream ID, because those IDs are discontiguous and some streams do not even have
@@ -58,6 +82,10 @@ public:
 
     // Returns total number of multicast streams available.
     unsigned int get_multicast_streams_count() const;
+
+    // Returns tile header buffer address for a given tile size. Side effect is that it increments the number of
+    // streams using the buffer.
+    unsigned int get_tile_header_buffer_addr(unsigned int tile_size);
 
     // Returns streams that have been allocated on the core.
     const std::set<StreamId>& get_allocated_stream_ids() const { return m_allocated_stream_ids; }
@@ -106,6 +134,9 @@ protected:
     // Calculates total number of multicast streams available.
     virtual unsigned int calculate_multicast_streams_count() const = 0;
 
+    // Returns predefined tile header buffer address on this core.
+    virtual unsigned int get_predefined_tile_header_buffer_addr() const = 0;
+
     // Returns first valid extra stream ID.
     StreamId get_extra_streams_id_range_start() const { return c_extra_streams_id_range_start; }
 
@@ -138,9 +169,6 @@ private:
     // Ending address of the space in L1 memory reserved for data buffers.
     const int c_l1_data_buffers_space_end_address;
 
-    // Extra space in L1 memory in bytes, reserved for message info buffer tile headers
-    int m_l1_extra_tile_headers_space;
-
     // Extra space in L1 memory in bytes, reserved for overlay blob.
     int m_l1_extra_overlay_blob_space;
 
@@ -164,6 +192,9 @@ private:
 
     // Name of the op placed on the core. If such name does not exist, the string is empty.
     std::string m_op_name = "";
+
+    // Maps from tile size to it's corresponding tile header buffer.
+    std::map<unsigned int, TileHeaderBuffer> m_allocated_tile_header_buffers;
 };
 
 } // namespace pipegen2

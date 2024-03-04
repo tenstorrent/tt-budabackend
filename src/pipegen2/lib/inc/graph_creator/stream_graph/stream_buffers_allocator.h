@@ -38,6 +38,26 @@ namespace pipegen2
         std::unordered_map<unsigned int, std::unordered_map<std::uint64_t, unsigned int>> m_allocated_padding_buffers;
     };
 
+    // Implements Union Find Disjoint Set data structure for finding multicast groups. Each multicast destination core
+    // is a node in the graph. If two cores are in the same multicast group, then they are connected with an edge. If
+    // two cores from different multicast groups are connected, then the two groups are merged into one.
+    class MulticastGroupFinder
+    {
+    public:
+        // Returns a vector of all the merged multicast groups. Each multicast group is a set of cores.
+        std::vector<std::unordered_set<tt_cxy_pair>> find_grouped_cores();
+
+        // Unites two cores into the same multicast group.
+        void unite_cores(const tt_cxy_pair& core1, const tt_cxy_pair& core2);
+
+    private:
+        // Finds the parent core of a given core in the union find disjoint set.
+        tt_cxy_pair find_parent_core(const tt_cxy_pair& core);
+
+        // Mapping between a core and its parent core in the union find disjoint set.
+        std::unordered_map<tt_cxy_pair, tt_cxy_pair> m_core_to_parent_core;
+    };
+
     // Allocates a buffer for every streams which requires a buffer, configures the stream buf_addr field with the
     // address of the allocatead buffer and updates all the streams in the fork group to have the same buffer address.
     class StreamBuffersAllocator
@@ -52,8 +72,16 @@ namespace pipegen2
         void allocate_stream_buffers(const StreamGraphCollection* stream_graph_collection);
 
     private:
-        // Counts unique tile headers and allocates extra buffers for them.
+        // Allocates L1 memory for tile headers of all streams. Each unique tile header (based on its size) gets its own
+        // buffer. If two or more streams have the same tile header size, they will share the same buffer. Multicast
+        // destinations must have their tile headers in the same order.
         void allocate_extra_tile_header_buffers(const std::vector<StreamNode*>& all_streams);
+
+        // Assigns tile header buffer address to all streams.
+        void assign_tile_header_buffer_address(const std::vector<StreamNode*>& all_streams);
+
+        // Uses MulticastGroupFinder to return a set of all the multicast groups.
+        std::vector<std::unordered_set<tt_cxy_pair>> find_multicast_groups(const std::vector<StreamNode*>& all_streams);
 
         // Allocates L1 memory for given stream buffer.
         void allocate_stream_buffer(StreamNode* stream_node);

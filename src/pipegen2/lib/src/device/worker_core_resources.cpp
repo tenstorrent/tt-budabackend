@@ -7,6 +7,7 @@
 #include "noc/noc_overlay_parameters.h"
 #include "stream_io_map.h"
 
+#include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_utils.h"
@@ -151,4 +152,10 @@ StreamId WorkerCoreResources::get_next_available_general_purpose_stream_id()
     return stream_id;
 }
 
+unsigned int WorkerCoreResources::get_predefined_tile_header_buffer_addr() const
+{
+    return l1_mem::address_map::OVERLAY_BLOB_BASE -
+           core_resources_constants::tile_header_buffer_allocation_cushion_bytes -
+           TileHeaderBuffer::get_tile_header_buffer_size_bytes();
+}
 } // namespace pipegen2

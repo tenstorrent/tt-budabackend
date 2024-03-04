@@ -90,17 +90,45 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraTileHeadersSpace_AllocateUntilOutOfM
         (l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes) -
         l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
     int tile_header_buffer_size = constants::tile_header_size_bytes * constants::general_max_num_tiles_per_phase;
+
+    // Max number of tile header buffers that can be placed in l1 space for data buffers.
     unsigned int max_num_tile_header_buffers = l1_data_buffers_available_space / tile_header_buffer_size;
 
     const tt_cxy_pair core_physical_location{0, 0, 0};
     const tt_cxy_pair core_logical_location{0, 0, 0};
     WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
 
-    // Fill entire data buffers memory with tile headers, but don't overflow.
-    worker_core_resources.allocate_l1_extra_tile_headers_space(max_num_tile_header_buffers);
+    // The first allocated tile header buffer is allocated in predesignated space for a single tile header buffer.
+    unsigned int tile_header_addr = worker_core_resources.allocate_tile_header_buffer(0);
+    EXPECT_LT(tile_header_addr, l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
+
+    unsigned int tile_header_buff_prev_addr;
+    // All the following allocations will end up in l1 data buffer space.
+    for (unsigned int test_tile_size = 1; test_tile_size <= max_num_tile_header_buffers; test_tile_size++)
+    {
+        tile_header_buff_prev_addr = tile_header_addr;
+        tile_header_addr = worker_core_resources.allocate_tile_header_buffer(test_tile_size);
+        EXPECT_GT(tile_header_addr, l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
+        if (test_tile_size > 1)
+        {
+            // The allocations are happening from the end of the space towards the beginning.
+            EXPECT_LT(tile_header_addr, tile_header_buff_prev_addr);
+        }
+    }
+
+    // Verify we are not out of space.
+    EXPECT_NO_THROW(worker_core_resources.check_if_out_of_l1_data_buffers_memory());
+
+    // When we do another pass with the same values, nothing should changes since no allocations should happen.
+    for (unsigned int test_tile_size = 1; test_tile_size <= max_num_tile_header_buffers; test_tile_size++)
+    {
+        worker_core_resources.allocate_tile_header_buffer(test_tile_size);
+    }
+    EXPECT_NO_THROW(worker_core_resources.check_if_out_of_l1_data_buffers_memory());
 
     // Allocate one too many tile headers. This will overflow L1 space.
-    worker_core_resources.allocate_l1_extra_tile_headers_space(1);
+    // Note that we use max_num_tile_header_buffers + 1 as tile_size here. It's only important that it's a new value
+    worker_core_resources.allocate_tile_header_buffer(max_num_tile_header_buffers + 1);
 
     // Expect an error to be thrown when specifically checking if L1 is out of memory.
     verify_throws_proper_exception<OutOfCoreResourcesException>(

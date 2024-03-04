@@ -272,6 +272,7 @@ namespace pipegen2
         write_optionally("mblock_m", stream_config.get_mblock_m());
         write_optionally("mblock_n", stream_config.get_mblock_n());
         write_optionally("moves_raw_data", stream_config.get_moves_raw_data());
+        write_optionally("msg_info_buf_addr", stream_config.get_msg_info_buf_addr(), &BlobYamlWriter::get_hex_string);
         write_optionally("msg_size", stream_config.get_msg_size());
         write_optionally("ncrisc_clear", stream_config.get_ncrisc_clear());
         write_optionally("next_phase_dest_change", stream_config.get_next_phase_dest_change());

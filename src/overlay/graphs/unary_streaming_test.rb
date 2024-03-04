@@ -99,6 +99,7 @@ for p in 1..num_phases
     :num_msgs_in_block => output0_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
     :num_msgs => num_msgs_per_phase,
     :msg_size => output0_data_buf_msg_size,
+    :buf_base_addr => output0_data_base,
     :buf_full_size_bytes => num_microblocks_in_buf*buf_size,
     :source_endpoint => true,
     :receiver_endpoint => true,

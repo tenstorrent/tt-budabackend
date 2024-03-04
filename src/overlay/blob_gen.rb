@@ -179,8 +179,14 @@ def GetDramScatterOffsetsListPaddedSize(dram_scatter_offsets_length)
   return AlignStructSizeInBytes(dram_scatter_offsets_length * $dram_io_scatter_offsets_size)
 end
 
-$msg_size_msg_info_buf_map = {}
-$msg_size_msg_info_buf_map_eth = {}
+# These structs hold maps of tile_size to tile_header_buf_addr
+# For non ethernet cores, maps are generated per chip.
+# They will hold an entry for each tile size on all cores and all stream phases on this chip.
+$tile_size_tile_header_buf_addr_map_per_chip = {}
+# For ethernet cores, maps are generated per chip per core.
+# They will hold an entry for each tile size for all stream phases on this core.
+$tile_size_tile_header_buf_addr_map_eth_per_core = {}
+
 
 ETH_CORES = Set.new($PARAMS[:eth_cores].split(','))
 WORKER_CORE_OVERRIDE_ENABLED = $PARAMS[:worker_cores] != ""
@@ -496,21 +502,6 @@ def GraphFromYAML(filename)
 end
 
 
-def GetMsgInfoBufAddr(is_ethernet, num_sizes)
-  data_buffer_space_base_chip = $PARAMS[:chip] == "blackhole" ? (220 * 1024) : $PARAMS[:data_buffer_space_base]
-  data_buffer_space_base = is_ethernet ? $PARAMS[:data_buffer_space_base_eth] : data_buffer_space_base_chip
-  overlay_blob_size = is_ethernet ? $PARAMS[:overlay_blob_size_eth] : $PARAMS[:overlay_blob_size]
-  tensix_mem_size = is_ethernet ? $PARAMS[:tensix_mem_size_eth] : $PARAMS[:tensix_mem_size]
-  if num_sizes == 0
-    # return data_buffer_space_base - overlay_blob_size - 128 - $msg_info_buf_size
-    ncrisc_runtime_section_size = $PARAMS[:chip] == "blackhole" ? 16*1024 : 0
-    return data_buffer_space_base - ncrisc_runtime_section_size - overlay_blob_size - 128 - $msg_info_buf_size
-  else
-    return tensix_mem_size - $unused_buf_space_bytes - (num_sizes * $msg_info_buf_size)
-  end
-end
-
-
 def compile_pkernel(pkernel, graph_name, chip_id, y, x, out_name, params)
   if ($PARAMS[:root] == nil)
     return ""
@@ -570,15 +561,15 @@ def PopulateEpochTStruct(core_epoch_info, epoch_valid, yx_label, perf_blobs, epo
   epoch_t_dws << core_epoch_info[:stream_info].length
   epoch_t_dws << epoch_valid # {epoch_valid, all_streams_ready, all_streams_and_kernels_done, end_program}
 
-  num_tile_sizes = core_epoch_info[:overlay_valid] == 1? (IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x].size : $msg_size_msg_info_buf_map[chip_id].size) : 0
+  tile_size_tile_header_buf_addr_map = core_epoch_info[:overlay_valid] == 1? (IsEthernetYX(y,x) ? $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id][y][x] : $tile_size_tile_header_buf_addr_map_per_chip[chip_id]) : {}
+  num_tile_sizes = tile_size_tile_header_buf_addr_map.size
   tile_sizes_dws = []
   tile_header_buf_addr_dws = []
   if core_epoch_info[:overlay_valid] == 1
-    msg_size_msg_info_buf = IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x] : $msg_size_msg_info_buf_map[chip_id]
     # Output the info on tile size and respected tile header buffer addresses sorted by tile size
-    msg_size_msg_info_buf.sort_by { |tile_size, _| tile_size }.each do |tile_size, n_sizes|
+    tile_size_tile_header_buf_addr_map.sort_by { |tile_size, _| tile_size }.each do |tile_size, tile_header_buf_addr|
       tile_sizes_dws << (tile_size / 16)
-      tile_header_buf_addr_dws << GetMsgInfoBufAddr(IsEthernetYX(y,x), n_sizes)
+      tile_header_buf_addr_dws << tile_header_buf_addr
     end
   end
   t = ($epoch_max_num_tile_sizes - num_tile_sizes)
@@ -1032,18 +1023,18 @@ end
 phase_info.each do |yx_label, streams|
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
   if IsEthernetYX(y, x)
-    if not $msg_size_msg_info_buf_map_eth.key? chip_id
-      $msg_size_msg_info_buf_map_eth[chip_id] = {}
+    if not $tile_size_tile_header_buf_addr_map_eth_per_core.key? chip_id
+      $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id] = {}
     end
-    if not $msg_size_msg_info_buf_map_eth[chip_id].key? y
-      $msg_size_msg_info_buf_map_eth[chip_id][y] = {}
+    if not $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id].key? y
+      $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id][y] = {}
     end
-    if not $msg_size_msg_info_buf_map_eth[chip_id][y].key? x
-      $msg_size_msg_info_buf_map_eth[chip_id][y][x] = {}
+    if not $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id][y].key? x
+      $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id][y][x] = {}
     end
   else
-    if not $msg_size_msg_info_buf_map.key? chip_id
-      $msg_size_msg_info_buf_map[chip_id] = {}
+    if not $tile_size_tile_header_buf_addr_map_per_chip.key? chip_id
+      $tile_size_tile_header_buf_addr_map_per_chip[chip_id] = {}
     end
   end
   chip_ids.add(chip_id)
@@ -1065,14 +1056,10 @@ phase_info.each do |yx_label, streams|
 
         # Determine all msg info sizes per core
         msg_size = phases[phase][:msg_size]
-        if IsEthernetYX(y, x)
-          if not $msg_size_msg_info_buf_map_eth[chip_id][y][x].key? (msg_size)
-            $msg_size_msg_info_buf_map_eth[chip_id][y][x][msg_size] = false
-          end
-        else
-          if not $msg_size_msg_info_buf_map[chip_id].key? (msg_size)
-            $msg_size_msg_info_buf_map[chip_id][msg_size] = false
-          end
+        msg_info_buf_addr = phases[phase][:msg_info_buf_addr]
+        tile_size_tile_header_buf_addr_map = IsEthernetYX(y, x) ? $tile_size_tile_header_buf_addr_map_eth_per_core[chip_id][y][x] : $tile_size_tile_header_buf_addr_map_per_chip[chip_id]
+        if not tile_size_tile_header_buf_addr_map.key? (msg_size)
+          tile_size_tile_header_buf_addr_map[msg_size] = msg_info_buf_addr
         end
 		  end
 	  end
@@ -1088,26 +1075,6 @@ phase_info.each do |yx_label, streams|
     for p in 0..(num_phases-1) do
       phase = phase_nums[p]
 		  if (phases[phase])
-        # Set msg info buffer location
-        msg_size = phases[phase][:msg_size]
-        is_false = IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x][msg_size] == false : $msg_size_msg_info_buf_map[chip_id][msg_size] == false
-        if is_false
-          msg_size_list = []
-          list = IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x] : $msg_size_msg_info_buf_map[chip_id]
-          list.each do |key, val|
-            msg_size_list.append(key)
-          end
-          # Assign addresses in order by increasing tile size.
-          msg_size_list.sort.each_with_index do |msg_size_elem, n_sizes|
-            if IsEthernetYX(y,x)
-              $msg_size_msg_info_buf_map_eth[chip_id][y][x][msg_size_elem] = n_sizes
-            else
-              $msg_size_msg_info_buf_map[chip_id][msg_size_elem] = n_sizes
-            end          
-          end          
-        end
-        phases[phase][:msg_info_buf_addr] = GetMsgInfoBufAddr(IsEthernetYX(y,x), IsEthernetYX(y,x) ? $msg_size_msg_info_buf_map_eth[chip_id][y][x][msg_size] : $msg_size_msg_info_buf_map[chip_id][msg_size])
-
 		    # Set the remaining nocs that will be used
 		    if (phases[phase][:source_endpoint] && !phases[phase][:eth_receiver])
 			    if (!phases[phase][:incoming_data_noc])
@@ -1153,7 +1120,7 @@ end
 
 if $verbose == 1
   pp "Tile sizes found: "
-  pp $msg_size_msg_info_buf_map
+  pp $tile_size_tile_header_buf_addr_map_per_chip
 end
 
 

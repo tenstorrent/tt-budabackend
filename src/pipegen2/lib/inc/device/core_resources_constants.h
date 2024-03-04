@@ -42,6 +42,9 @@ constexpr unsigned int max_num_ncrisc_writing_streams = 8;
 // comes from limitations of 4KB L0 DATA RAM in NCRISC.
 constexpr unsigned int max_num_active_buffers_accessed = 40;
 
+// Cushion bytes used when allocating tile header buffer in the predefined space for a single tile header buffer.
+constexpr unsigned int tile_header_buffer_allocation_cushion_bytes = 128;
+
 } // namespace core_resources_constants
 
 namespace ethernet_core_resources_constants

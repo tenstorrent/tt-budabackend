@@ -12,6 +12,7 @@
 #include "device/soc_info.h"
 #include "model/rational_graph/rational_graph.h"
 #include "model/typedefs.h"
+#include "tile_header_buffers_allocation.h"
 
 namespace pipegen2
 {
@@ -60,8 +61,8 @@ public:
     // Memory is allocated at the beginning of L1 data buffers space. By default each core gets a segment in L1
     // memory for tile headers buffer, but if there are multiple different tile headers on a core, then we need to
     // allocate extra buffers for them. This function allocates extra space for all cores on all chips.
-    void allocate_l1_extra_tile_headers_space(
-        const std::unordered_map<tt_cxy_pair, std::unordered_set<unsigned int>>& core_to_msg_sizes);
+    // thb_allocation_info contains information about which cores need extra tile header buffers and how many.
+    void allocate_l1_extra_tile_headers_space(const THBAllocationInfo & thb_allocation_info);
 
     // If given blob size is greater than minimum blob size required for a given core, then allocates extra space
     // and returns the extra amount needed. Memory is allocated at the beginning of L1 data buffers space.
@@ -102,6 +103,11 @@ public:
     // Get all core worker core resources.
     std::vector<const CoreResources*> get_all_worker_core_resources() const;
 
+    // Returns tile header buffer address for a given core and tile size. Side effect is that it increments the
+    // number of streams using the buffer.
+    unsigned int get_tile_header_buffer_addr(const tt_cxy_pair& core_physical_location,
+                                             unsigned int tile_size) const;
+
 private:
     // Gets worker core resources for a given worker core location.
     WorkerCoreResources* get_worker_core_resources(const tt_cxy_pair& core_physical_location) const;
@@ -130,6 +136,9 @@ private:
 
     // Map of resources for each eth core on each chip, mapped by their physical coordinates.
     std::unordered_map<tt_cxy_pair, std::unique_ptr<EthernetCoreResources>> m_ethernet_cores_resources;
+
+    // Allocation strategy chosen in constructor for tile header buffer allocation.
+    std::unique_ptr<THBAllocationStrategy> m_thb_allocation_strategy;
 };
 
 } // namespace pipegen2
