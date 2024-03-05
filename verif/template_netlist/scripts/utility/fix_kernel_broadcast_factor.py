@@ -17,21 +17,21 @@ a given input index in pipegen.yaml) and thus won't be pushed to master.
 """
 
 import argparse
-from itertools import repeat
 import math
 import multiprocessing as mp
 import os
 import random
 import shutil
+from itertools import repeat
 from typing import Iterator, Optional
 
 import yaml
-
 from test_modules.common.compilation_pipeline_runner import (
     CompilationPipelineRunner,
     PipelineCompilationResult,
-    Net2PipeRunner,
 )
+
+from verif.common.runner_net2pipe import run_net2pipe
 
 
 def lcm(a, b):
@@ -210,7 +210,7 @@ def run_fix_kernel_broadcast_factor_worker(
     # Optimization: skip net2pipe run if possible.
     if not os.path.exists(netlist_out_path):
         os.makedirs(netlist_out_path)
-        Net2PipeRunner.run_net2pipe(netlist_path, netlist_out_path, arch)
+        run_net2pipe(netlist_path, netlist_out_path, arch)
 
     pipegen_yaml_path = os.path.join(
         netlist_out_path, "temporal_epoch_0", "overlay", "pipegen.yaml"

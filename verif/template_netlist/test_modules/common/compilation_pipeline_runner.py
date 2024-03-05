@@ -4,20 +4,19 @@
 import hashlib
 import os
 import shutil
-import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
-from typing import List, Optional, Dict, Tuple
-import yaml
+from typing import Dict, List, Tuple
 
-from scripts.utility.generate_netlists_from_configs import generate_netlists_from_configs
 from util import get_git_root
 
-# TODO: to be removed
-# Used to prove that the import is working from another package
-# Future changes will have useful imports
-from verif.common.test_utils import print_success
+from verif.common.runner_blobgen import BLOBGEN_RB_PATH, run_blobgen
+from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_pipegen import run_pipegen
+from verif.template_netlist.scripts.utility.generate_netlists_from_configs import (
+    generate_netlists_from_configs,
+)
 
 PROCESS_DUMP_FOLDER_PREFIX = "test_dir_config"
 
@@ -55,192 +54,6 @@ class PipelineCompilationResult:
 
     def __bool__(self):
         return self.passed
-
-
-@dataclass
-class DescriptorPaths:
-    """
-    Attributes
-    ----------
-    default_soc_path:
-        The default paths of .yaml files that describe the SoC architecture, in a form of a
-        dictionary mapping the paths to the corresponding specific architectures.
-    default_cluster_desc:
-        The default paths of .yaml files that describe the clusters, in a form of a
-        dictionary mapping the paths to the corresponding specific architectures.
-    """
-
-    default_soc_path = {
-        DeviceArchitecture.grayskull: "./soc_descriptors/grayskull_10x12.yaml",
-        DeviceArchitecture.wormhole: "./soc_descriptors/wormhole_8x10.yaml",
-        DeviceArchitecture.wormhole_b0: "./soc_descriptors/wormhole_b0_8x10.yaml",
-    }
-    default_cluster_desc = {
-        DeviceArchitecture.grayskull: "",
-        DeviceArchitecture.wormhole: "./wormhole_2chip_cluster.yaml",
-        DeviceArchitecture.wormhole_b0: "",
-    }
-
-
-class BlobgenRunner:
-    """Class providing a wrapper around calls to blobgen"""
-
-    @staticmethod
-    def __get_l1_size(arch_name) -> int:
-        device_architecture = DeviceArchitecture[arch_name]
-        soc_path = DescriptorPaths.default_soc_path[device_architecture]
-        with open(soc_path, "r") as yaml_file:
-            soc_descriptor = yaml.safe_load(yaml_file)
-            return soc_descriptor["worker_l1_size"]
-
-    @staticmethod
-    def __get_noc_translation_id_enabled(arch_name) -> bool:
-        device_architecture = DeviceArchitecture[arch_name]
-        soc_path = DescriptorPaths.default_soc_path[device_architecture]
-        with open(soc_path, "r") as yaml_file:
-            soc_descriptor = yaml.safe_load(yaml_file)
-            if (
-                "noc" in soc_descriptor["features"]
-                and "translation_id_enabled" in soc_descriptor["features"]["noc"]
-            ):
-                return soc_descriptor["features"]["noc"]["translation_id_enabled"] == "True"
-            else:
-                return False
-
-    @staticmethod
-    def __get_physical_noc_size(arch_name) -> Tuple[int, int]:
-        device_architecture = DeviceArchitecture[arch_name]
-        soc_path = DescriptorPaths.default_soc_path[device_architecture]
-        with open(soc_path, "r") as yaml_file:
-            soc_descriptor = yaml.safe_load(yaml_file)
-            return (soc_descriptor["grid"]["x_size"], soc_descriptor["grid"]["y_size"])
-
-    @staticmethod
-    def __get_overlay_version(arch_name) -> int:
-        device_architecture = DeviceArchitecture[arch_name]
-        soc_path = DescriptorPaths.default_soc_path[device_architecture]
-        with open(soc_path, "r") as yaml_file:
-            soc_descriptor = yaml.safe_load(yaml_file)
-            return soc_descriptor["features"]["overlay"]["version"]
-
-    @staticmethod
-    def __get_blobgen_command(build_graph_dir, netlist_folder, arch_name) -> str:
-        blobgen_cmd = "ruby " + os.path.join(get_git_root(), BLOBGEN_BIN_PATH)
-        blobgen_cmd += " --blob_out_dir " + build_graph_dir
-        blobgen_cmd += " --graph_yaml 1"
-        blobgen_cmd += " --graph_input_file " + os.path.join(build_graph_dir, "blob.yaml")
-        blobgen_cmd += " --graph_name pipegen_epoch0"
-        blobgen_cmd += " --noc_x_size " + str(BlobgenRunner.__get_physical_noc_size(arch_name)[0])
-        blobgen_cmd += " --noc_y_size " + str(BlobgenRunner.__get_physical_noc_size(arch_name)[1])
-        blobgen_cmd += " --chip " + arch_name
-        blobgen_cmd += " --noc_version " + str(BlobgenRunner.__get_overlay_version(arch_name))
-        blobgen_cmd += " --tensix_mem_size " + str(BlobgenRunner.__get_l1_size(arch_name))
-        blobgen_cmd += " --noc_translation_id_enabled " + (
-            "1" if BlobgenRunner.__get_noc_translation_id_enabled(arch_name) else "0"
-        )
-        # Only works for single chip tests
-        # TODO: make it work for multichip tests
-        blobgen_cmd += " --chip-ids " + "0"
-        blobgen_cmd += " --noc_x_logical_size " + str(
-            BlobgenRunner.__get_physical_noc_size(arch_name)[0]
-        )
-        blobgen_cmd += " --noc_y_logical_size " + str(
-            BlobgenRunner.__get_physical_noc_size(arch_name)[1]
-        )
-        return blobgen_cmd
-
-    @staticmethod
-    # TODO: make this function work for all temporal epochs
-    def run_blobgen(netlist_folder, arch_name) -> subprocess.CompletedProcess:
-        build_graph_dir = os.path.join(netlist_folder, "temporal_epoch_0/overlay")
-        blobgen_cmd = BlobgenRunner.__get_blobgen_command(
-            build_graph_dir, netlist_folder, arch_name
-        )
-        result = subprocess.run(
-            blobgen_cmd,
-            capture_output=True,
-            shell=True,
-            env={"ARCH_NAME": arch_name},
-        )
-        return result
-
-
-class Net2PipeRunner:
-    @staticmethod
-    def __get_net2pipe_command(
-        netlist_path: str,
-        out_dir: str,
-        arch: str,
-        global_epoch_start: Optional[int],
-        soc_path: Optional[str],
-        cluster_desc: Optional[str],
-    ) -> str:
-        device_architecture = DeviceArchitecture[arch]
-        soc_path = soc_path or DescriptorPaths.default_soc_path[device_architecture]
-        cluster_desc = cluster_desc or DescriptorPaths.default_cluster_desc[device_architecture]
-        return " ".join(
-            [
-                NET2PIPE_BIN_PATH,
-                netlist_path,
-                out_dir,
-                str(global_epoch_start),
-                soc_path,
-                cluster_desc,
-            ]
-        )
-
-    @staticmethod
-    def run_net2pipe(
-        netlist_path: str,
-        out_dir: str,
-        arch: str,
-        global_epoch_start: Optional[int] = 0,
-        soc_path: Optional[str] = None,
-        cluster_desc: Optional[str] = None,
-    ) -> subprocess.CompletedProcess:
-        command = Net2PipeRunner.__get_net2pipe_command(
-            netlist_path, out_dir, arch, global_epoch_start, soc_path, cluster_desc
-        )
-        result = subprocess.run(command, capture_output=True, shell=True, env={"ARCH_NAME": arch})
-        return result
-
-
-class PipegenRunner:
-    @staticmethod
-    def __get_pipegen_command(
-        pipegen_yaml_path: str,
-        output_blob_yaml_path: str,
-        arch: str,
-        soc_path: Optional[str],
-        epoch: int,
-    ) -> str:
-        device_architecture = DeviceArchitecture[arch]
-        soc_path = soc_path or DescriptorPaths.default_soc_path[device_architecture]
-
-        return " ".join(
-            [
-                PIPEGEN_BIN_PATH,
-                pipegen_yaml_path,
-                soc_path,
-                output_blob_yaml_path,
-                str(epoch),
-                "0",
-            ]
-        )
-
-    @staticmethod
-    def run_pipegen(
-        pipegen_yaml_path: str,
-        output_blob_yaml_path: str,
-        arch: str,
-        soc_path: Optional[str] = None,
-        epoch: int = 0,
-    ) -> subprocess.CompletedProcess:
-        command = PipegenRunner.__get_pipegen_command(
-            pipegen_yaml_path, output_blob_yaml_path, arch, soc_path, epoch
-        )
-        result = subprocess.run(command, capture_output=True, shell=True, env={"ARCH_NAME": arch})
-        return result
 
 
 class CompilationPipelineRunner:
@@ -334,53 +147,55 @@ class CompilationPipelineRunner:
         if not test_result.passed:
             return test_result
 
-        # Run blobgen on the results
-        netlist_folder = os.path.join(out_dir, f"netlist_{test_id}")
-        blobgen_result = BlobgenRunner.run_blobgen(netlist_folder, arch)
-        if blobgen_result.returncode:
-            return PipelineCompilationResult.failed(
-                "pipegen failed: \n" + blobgen_result.stderr.decode("utf-8")
+        try:
+            # Run blobgen on the results
+            netlist_folder = os.path.join(out_dir, f"netlist_{test_id}")
+            build_graph_dir = os.path.join(netlist_folder, "temporal_epoch_0/overlay")
+            run_blobgen(
+                BLOBGEN_RB_PATH,
+                build_graph_dir,
+                os.path.join(build_graph_dir, "blob.yaml"),
+                0,
+                arch,
+                throw_if_error=True,
             )
-        else:
             return PipelineCompilationResult.passed()
+        except RuntimeError as e:
+            return PipelineCompilationResult.failed(str(e))
 
     @staticmethod
     def run_net2pipe_pipegen_single_test(
         test_dir: str, netlist_dir: str, out_dir: str, arch: str
     ) -> PipelineCompilationResult:
-        netlist_id = netlist_dir.split("_")[1]
-        netlist_path = os.path.join(test_dir, netlist_dir, f"netlist_{netlist_id}.yaml")
-        netlist_out_dir = os.path.join(out_dir, f"netlist_{netlist_id}")
-        os.makedirs(netlist_out_dir, exist_ok=True)
-        # Run net2pipe.
-        result = Net2PipeRunner.run_net2pipe(
-            netlist_path=netlist_path, out_dir=netlist_out_dir, arch=arch
-        )
-        if result.returncode:
-            return PipelineCompilationResult.failed(
-                "net2pipe failed: \n" + result.stderr.decode("utf-8")
+        try:
+            netlist_id = netlist_dir.split("_")[1]
+            netlist_path = os.path.join(test_dir, netlist_dir, f"netlist_{netlist_id}.yaml")
+            netlist_out_dir = os.path.join(out_dir, f"netlist_{netlist_id}")
+            os.makedirs(netlist_out_dir, exist_ok=True)
+
+            run_net2pipe(
+                netlist_path=netlist_path, out_dir=netlist_out_dir, arch=arch, throw_if_error=True
             )
 
-        # Run pipegen.
-        result = PipegenRunner.run_pipegen(
-            pipegen_yaml_path=os.path.join(
-                netlist_out_dir, "temporal_epoch_0", "overlay", "pipegen.yaml"
-            ),
-            output_blob_yaml_path=os.path.join(
-                netlist_out_dir, "temporal_epoch_0", "overlay", "blob.yaml"
-            ),
-            arch=arch,
-        )
-        shutil.copy2(
-            netlist_path,
-            os.path.join(netlist_out_dir, "temporal_epoch_0", "overlay", "netlist.yaml"),
-        )
-        if result.returncode:
-            return PipelineCompilationResult.failed(
-                "pipegen failed: \n" + result.stderr.decode("utf-8")
+            run_pipegen(
+                pipegen_yaml_path=os.path.join(
+                    netlist_out_dir, "temporal_epoch_0", "overlay", "pipegen.yaml"
+                ),
+                blob_yaml_path=os.path.join(
+                    netlist_out_dir, "temporal_epoch_0", "overlay", "blob.yaml"
+                ),
+                arch=arch,
+                epoch_id="0",
+                throw_if_error=True
+            )
+            shutil.copy2(
+                netlist_path,
+                os.path.join(netlist_out_dir, "temporal_epoch_0", "overlay", "netlist.yaml"),
             )
 
-        return PipelineCompilationResult.passed()
+            return PipelineCompilationResult.passed()
+        except RuntimeError as e:
+            return PipelineCompilationResult.failed(str(e))
 
     @staticmethod
     def run_compilation(

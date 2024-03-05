@@ -2,20 +2,32 @@
 
 # SPDX-License-Identifier: Apache-2.0
 import argparse
-import fnmatch
 import os
 from typing import Dict, List, Tuple
 
 from blob_comparator import BlobComparator
-from pipegen_runner import *
-from pipegen_tests_utils import (
+from ruamel.yaml import YAML
+
+from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_pipegen import (
+    PIPEGEN_MASTER_BIN_NAME,
+    PerfDumpLevel,
+    PerfDumpMode,
+    run_pipegen,
+)
+from verif.common.runner_utils import (
+    DEFAULT_GRAYSKULL_SOC,
+    DEFAULT_HARVESTED_WORMHOLE_B0_SOC,
+    DEFAULT_WORMHOLE_B0_SOC,
+    DeviceArchs,
+)
+from verif.common.test_utils import (
     create_or_clean_dir,
     get_epoch_dir,
     get_logger,
     get_netlist_arch,
     setup_logger,
 )
-from ruamel.yaml import YAML
 
 # This netlists supports both GS and WH_B0 architectures and will produce only one epoch.
 DEFAULT_NETLIST_PATH = "verif/graph_tests/netlists/netlist_softmax_single_tile.yaml"
@@ -103,65 +115,6 @@ def validate_arch_and_netlist(arch: str, netlist: str) -> str:
         )
 
 
-def exec_net2pipe(netlist: str, out_dir: str, arch: str) -> None:
-    """Convenience wrapper to catch retcode from net2pipe run."""
-    retcode, _ = run_net2pipe(netlist, out_dir, arch)
-
-    if retcode != 0:
-        raise RuntimeError(f"Running net2pipe on {netlist} failed!")
-
-
-def exec_pipegen2_master(
-    pipegen_yaml_path: str,
-    blob_path: str,
-    arch: str,
-    perf_mode: int,
-    perf_level: int,
-    soc_descriptor: str,
-) -> None:
-    """Convenience wrapper to catch retcode from pipegen run."""
-    retcode, command = run_pipegen(
-        pipegen_yaml_path,
-        blob_path,
-        arch,
-        EPOCH_ID,
-        perf_mode,
-        perf_level,
-        soc_descriptor,
-        pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
-    )
-
-    if retcode != 0:
-        raise RuntimeError(
-            f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!"
-        )
-
-
-def exec_pipegen2(
-    pipegen_yaml_path: str,
-    blob_path: str,
-    arch: str,
-    perf_mode: int,
-    perf_level: int,
-    soc_descriptor: str,
-) -> None:
-    """Convenience wrapper to catch retcode from pipegen run."""
-    retcode, command = run_pipegen(
-        pipegen_yaml_path,
-        blob_path,
-        arch,
-        EPOCH_ID,
-        perf_mode,
-        perf_level,
-        soc_descriptor,
-    )
-
-    if retcode != 0:
-        raise RuntimeError(
-            f"Running {command} on {pipegen_yaml_path} failed with retcode {retcode}!"
-        )
-
-
 def setup_logging(out_dir: str) -> str:
     """Setup logger and return log path."""
     comparison_log_path = os.path.join(out_dir, "blob_comparison.log")
@@ -178,7 +131,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
 
     log_path = setup_logging(out_dir)
 
-    exec_net2pipe(netlist, out_dir, arch)
+    run_net2pipe(netlist, out_dir, arch, throw_if_error=True)
 
     pipegen_yaml_path = os.path.join(get_epoch_dir(out_dir, EPOCH_ID), "pipegen.yaml")
 
@@ -196,21 +149,26 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                 blob1_path = os.path.join(out_dir, f"{blob_prefix}_blob1.yaml")
                 blob2_path = os.path.join(out_dir, f"{blob_prefix}_blob2.yaml")
 
-                exec_pipegen2_master(
+                run_pipegen(
                     pipegen_yaml_path,
                     blob1_path,
                     arch,
+                    EPOCH_ID,
                     perf_mode.value,
                     perf_level.value,
                     soc_descr,
+                    pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
+                    throw_if_error=True,
                 )
-                exec_pipegen2(
+                run_pipegen(
                     pipegen_yaml_path,
                     blob2_path,
                     arch,
+                    EPOCH_ID,
                     perf_mode.value,
                     perf_level.value,
                     soc_descr,
+                    throw_if_error=True,
                 )
 
                 compare_blob_yamls_perf_info_section(

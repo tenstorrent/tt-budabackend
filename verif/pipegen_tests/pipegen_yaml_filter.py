@@ -7,8 +7,6 @@ Filters pipegen yaml for specific type of pipes and buffers.
 """
 from __future__ import annotations
 
-import copy
-
 from pipegen_yaml_filter_utils import *
 
 

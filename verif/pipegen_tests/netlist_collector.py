@@ -14,10 +14,16 @@ import random
 import threading
 import time
 
-from pipegen_runner import DeviceArchs, run_net2pipe
-from pipegen_tests_utils import *
-
-from verif.common.test_utils import print_fail, print_success, print_warning
+from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.test_utils import (
+    DeviceArchs,
+    get_netlist_arch,
+    get_netlist_name,
+    print_fail,
+    print_success,
+    print_thread_info,
+    print_warning,
+)
 
 MAX_NUM_THREADS = 8
 

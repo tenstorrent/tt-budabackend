@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import math
 import multiprocessing as mp
 import os
 import shutil
@@ -22,10 +21,18 @@ from enum import IntEnum
 from itertools import repeat
 
 import yaml
-from pipegen_runner import DeviceArchs, run_net2pipe, run_pipegen
-from pipegen_tests_utils import *
 
-from verif.common.test_utils import print_fail, print_success, print_warning
+from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_pipegen import run_pipegen
+from verif.common.test_utils import (
+    DeviceArchs,
+    create_dir_if_not_exist,
+    create_or_clean_dir,
+    get_epoch_dir,
+    print_fail,
+    print_success,
+    print_warning,
+)
 
 CI_TEST_LISTS_DIR = "ci/test-lists"
 NETLISTS_DIR_NAME = "netlists"
@@ -316,22 +323,16 @@ def get_overlay_output_hash(netlist_path: str, temp_dir: str, arch_name: str) ->
         Netlist overlay result hash.
     """
     # Running net2pipe
-    net2pipe_retcode, net2pipe_cmd = run_net2pipe(netlist_path, temp_dir, arch_name)
-    if net2pipe_retcode:
-        raise Exception(
-            f"Net2pipe failed with error code: {net2pipe_retcode}. Command: {net2pipe_cmd}"
-        )
+    run_net2pipe(netlist_path, temp_dir, arch_name, throw_if_error=True)
     # Running pipegen
     epoch_id = 0
     epoch_dir = get_epoch_dir(temp_dir, epoch_id)
     while os.path.isdir(epoch_dir):
         pipegen_yaml_path = f"{epoch_dir}/pipegen.yaml"
         blob_yaml_path = f"{epoch_dir}/blob.yaml"
-        pipegen_retcode, _ = run_pipegen(
-            pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id
+        run_pipegen(
+            pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id, throw_if_error=True
         )
-        if pipegen_retcode:
-            raise Exception(f"Pipegen failed with error code: {pipegen_retcode}")
         epoch_id = epoch_id + 1
         epoch_dir = get_epoch_dir(temp_dir, epoch_id)
     # Hashing results

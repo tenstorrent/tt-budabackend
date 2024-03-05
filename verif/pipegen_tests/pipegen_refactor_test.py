@@ -18,19 +18,22 @@ from itertools import repeat
 from typing import Optional
 
 from blob_comparator import BlobComparator, StreamGraphComparisonStrategy
-from pipegen_runner import (
-    DEFAULT_BIN_DIR,
-    DEFAULT_TOP_LEVEL_BUILD_DIR,
-    PIPEGEN_MASTER_BIN_NAME,
-    DeviceArchs,
-    run_net2pipe,
-    run_pipegen,
-)
-from pipegen_tests_utils import *
 from pipegen_yaml_filter import *
 from ruamel.yaml import YAML
 
-from verif.common.test_utils import print_warning
+from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_pipegen import PIPEGEN_MASTER_BIN_NAME, run_pipegen
+from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
+from verif.common.test_utils import (
+    DeviceArchs,
+    create_or_clean_dir,
+    get_epoch_dir,
+    get_logger,
+    get_netlist_arch,
+    get_netlist_name,
+    print_warning,
+    setup_logger,
+)
 
 logger = get_logger(__name__)
 

@@ -4,7 +4,6 @@
 import argparse
 import os
 
-import pipegen_runner
 from pipegen_refactor_test import (
     DEFAULT_SG_COMPARISON_STRATEGY,
     FILTERED_YAMLS_OUT_DIR_NAME,
@@ -13,6 +12,8 @@ from pipegen_refactor_test import (
     filter_yamls,
 )
 from pipegen_yaml_filter import FilterType
+
+from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -35,17 +36,17 @@ if __name__ == "__main__":
         "--builds-dir",
         type=str,
         required=False,
-        default=pipegen_runner.DEFAULT_TOP_LEVEL_BUILD_DIR,
+        default=DEFAULT_TOP_LEVEL_BUILD_DIR,
         help=f"Top level 'build' folder which contains subfolders for different architectures "
-        f"(f.e. 'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {pipegen_runner.DEFAULT_TOP_LEVEL_BUILD_DIR}",
+        f"(f.e. 'grayskull/bin' or 'wormhole_b0/bin'). DEFAULT: {DEFAULT_TOP_LEVEL_BUILD_DIR}",
     )
     parser.add_argument(
         "--pipegens-bin-dir",
         type=str,
         required=False,
-        default=pipegen_runner.DEFAULT_BIN_DIR,
+        default=DEFAULT_BIN_DIR,
         help=f"Folder containing pipegen binaries (for example 'build/bin' or 'build/grayskull/bin'). "
-        f"DEFAULT: {pipegen_runner.DEFAULT_BIN_DIR}",
+        f"DEFAULT: {DEFAULT_BIN_DIR}",
     )
     parser.add_argument(
         "--arch",

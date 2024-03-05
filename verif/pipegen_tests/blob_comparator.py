@@ -9,7 +9,7 @@ from collections import deque
 from enum import Enum
 from logging import Logger
 
-from pipegen_tests_utils import get_process_shared_logger
+from verif.common.test_utils import get_process_shared_logger
 
 
 class StreamGraphComparisonStrategy(Enum):

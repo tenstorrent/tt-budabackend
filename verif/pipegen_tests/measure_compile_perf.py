@@ -13,13 +13,13 @@ import os
 import time
 from datetime import datetime
 
-from pipegen_runner import (
+from verif.common.runner_pipegen import (
     PIPEGEN_BIN_NAME,
     PIPEGEN_MASTER_BIN_NAME,
-    DeviceArchs,
     run_pipegen,
 )
-from pipegen_tests_utils import *
+from verif.common.runner_utils import DeviceArchs
+from verif.common.test_utils import get_epoch_dir, get_logger, setup_logger
 
 logger = get_logger(__name__)
 
@@ -64,8 +64,6 @@ def measure_pipegen_time(
         timeout=PIPEGEN_TIMEOUT,
     )
     if retcode != 0:
-        if os.path.exists(blob_yaml_path):
-            os.remove(blob_yaml_path)
         return -1
     pipegen_end_time = time.perf_counter()
     pipegen_time = pipegen_end_time - pipegen_start_time
