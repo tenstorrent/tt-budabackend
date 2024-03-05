@@ -8,11 +8,13 @@
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <system_error>
 
+#include "device/blackhole_implementation.h"
+#include "device/grayskull_implementation.h"
+#include "device/tt_arch_types.h"
 #include "device/tt_cluster_descriptor.h"
 #include "device/tt_device.h"
-#include "device_data.hpp"
+#include "device/wormhole_implementation.h"
 #include "utils/logger.hpp"
 
 // Include automatically generated files that we embed in source to avoid managing their deployment
@@ -285,7 +287,7 @@ bool plain_server::create_device() {
     std::set<chip_id_t> target_devices;
 
     if (!cluster_descriptor_path.empty() && arch != tt::ARCH::GRAYSKULL) {
-        cluster_descriptor = tt_ClusterDescriptor::create_from_yaml(cluster_descriptor_path);
+        auto cluster_descriptor = tt_ClusterDescriptor::create_from_yaml(cluster_descriptor_path);
 
         for (chip_id_t i : cluster_descriptor->get_all_chips()) {
             target_devices.insert(i);
@@ -299,21 +301,73 @@ bool plain_server::create_device() {
         }
     }
 
-    uint32_t num_host_mem_ch_per_mmio_device = arch == tt::ARCH::GRAYSKULL ? 1 : 4;
-    std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
-    static constexpr unsigned int MEM_SMALL_READ_WRITE_TLB = DEVICE_DATA.TLB_BASE_INDEX_2M + 1;
-    dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = MEM_SMALL_READ_WRITE_TLB;
-    dynamic_tlb_config["REG_TLB"] = DEVICE_DATA.REG_TLB;
+    switch (arch) {
+        case tt::ARCH::GRAYSKULL:
+            device = create_grayskull_device(device_configuration_path, std::string(), target_devices);
+            break;
+        case tt::ARCH::WORMHOLE:
+        case tt::ARCH::WORMHOLE_B0:
+            device = create_wormhole_device(device_configuration_path, cluster_descriptor_path, target_devices);
+            break;
+        default:
+            log_custom(tt::Logger::Level::Error, tt::LogDebuda, "Unsupported architecture {}.", get_arch_str(arch));
+            return false;
+    }
 
-    device = std::make_unique<tt_SiliconDevice>(
-        device_configuration_path,
-        arch != tt::ARCH::GRAYSKULL ? cluster_descriptor_path : std::string(),
-        target_devices,
-        num_host_mem_ch_per_mmio_device,
-        dynamic_tlb_config);
     set_device(device.get());
     create_device_soc_descriptors();
     return true;
+}
+
+std::unique_ptr<tt_SiliconDevice> plain_server::create_grayskull_device(
+    const std::string &device_configuration_path,
+    const std::string &cluster_descriptor_path,
+    const std::set<chip_id_t> &target_devices) {
+    uint32_t num_host_mem_ch_per_mmio_device = 1;
+    std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
+    dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::grayskull::MEM_SMALL_READ_WRITE_TLB;
+    dynamic_tlb_config["REG_TLB"] = tt::umd::grayskull::REG_TLB;
+
+    return std::make_unique<tt_SiliconDevice>(
+        device_configuration_path,
+        cluster_descriptor_path,
+        target_devices,
+        num_host_mem_ch_per_mmio_device,
+        dynamic_tlb_config);
+}
+
+std::unique_ptr<tt_SiliconDevice> plain_server::create_wormhole_device(
+    const std::string &device_configuration_path,
+    const std::string &cluster_descriptor_path,
+    const std::set<chip_id_t> &target_devices) {
+    uint32_t num_host_mem_ch_per_mmio_device = 4;
+    std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
+    dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::wormhole::MEM_SMALL_READ_WRITE_TLB;
+    dynamic_tlb_config["REG_TLB"] = tt::umd::wormhole::REG_TLB;
+
+    return std::make_unique<tt_SiliconDevice>(
+        device_configuration_path,
+        cluster_descriptor_path,
+        target_devices,
+        num_host_mem_ch_per_mmio_device,
+        dynamic_tlb_config);
+}
+
+std::unique_ptr<tt_SiliconDevice> plain_server::create_blackhole_device(
+    const std::string &device_configuration_path,
+    const std::string &cluster_descriptor_path,
+    const std::set<chip_id_t> &target_devices) {
+    uint32_t num_host_mem_ch_per_mmio_device = 4;
+    std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
+    dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::blackhole::TLB_BASE_INDEX_2M + 1;
+    dynamic_tlb_config["REG_TLB"] = tt::umd::blackhole::REG_TLB;
+
+    return std::make_unique<tt_SiliconDevice>(
+        device_configuration_path,
+        cluster_descriptor_path,
+        target_devices,
+        num_host_mem_ch_per_mmio_device,
+        dynamic_tlb_config);
 }
 
 bool plain_server::start(int port) {

@@ -2,14 +2,7 @@
 
 LOADER_LIB = $(LIBDIR)/libloader.a
 LOADER_DEFINES = -DGIT_HASH=$(shell git rev-parse HEAD)
-LOADER_INCLUDES = $(COMMON_INCLUDES) $(MODEL_INCLUDES) $(NETLIST_INCLUDES) -I$(BUDA_HOME)/loader -I$(BUDA_HOME)/runtime -I$(BUDA_HOME)/.
-
-LOADER_INCLUDES += -I$(BUDA_HOME)/umd
-ifeq ("$(ARCH_NAME)", "wormhole_b0")
-  LOADER_INCLUDES += -I$(BUDA_HOME)/umd/device/wormhole/
-else
-  LOADER_INCLUDES += -I$(BUDA_HOME)/umd/device/$(ARCH_NAME)/
-endif
+LOADER_INCLUDES = $(COMMON_INCLUDES) $(MODEL_INCLUDES) $(NETLIST_INCLUDES) -I$(BUDA_HOME)/loader -I$(BUDA_HOME)/runtime -I$(BUDA_HOME)/. -I$(BUDA_HOME)/umd
 LOADER_LDFLAGS = -L$(BUDA_HOME) -lcommon -lhwloc -lnetlist
 LOADER_CFLAGS = $(CFLAGS) -Werror -Wno-int-to-pointer-cast -Wno-abi
 

@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
     ARCH arch = get_arch_from_string(arch_name);
     DEVICE backend_type = get_device_from_string(runtime_data["backend_type"].as<std::string>());
     auto cluster_descriptor_path = runtime_data["cluster_descriptor_path"].as<std::string>();
+    auto soc_descriptor_path = fs::path(argv[2]).parent_path().string() + "/device_desc.yaml";
 
     log_info(
         tt::LogDebuda,
@@ -110,6 +111,7 @@ int main(int argc, char** argv) {
         .type = backend_type,
         .arch = arch,
         .output_dir = DBD_SERVER_TMP_DIR,  // Hacky: backend will create this directory, which will not be used really.
+        .soc_descriptor_path = soc_descriptor_path,
         .cluster_descriptor_path = cluster_descriptor_path};
     log_info(tt::LogDebuda, "Setting temporary directory to: {}", DBD_SERVER_TMP_DIR);
 

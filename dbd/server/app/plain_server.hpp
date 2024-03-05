@@ -4,9 +4,11 @@
 #pragma once
 
 #include <dbdserver/umd_server.h>
+#include <device/tt_cluster_descriptor_types.h>
 
 #include <map>
 #include <memory>
+#include <set>
 
 class tt_SiliconDevice;
 class tt_ClusterDescriptor;
@@ -17,13 +19,19 @@ class plain_server : private tt::dbd::umd_server {
     std::unique_ptr<tt_SiliconDevice> device;
     std::string device_configuration_path;
     std::string cluster_descriptor_path;
-    std::unique_ptr<tt_ClusterDescriptor> cluster_descriptor;
     std::vector<uint8_t> device_ids;
     std::map<uint8_t, std::string> device_soc_descriptors;
 
     bool create_device();
     bool is_chip_mmio_capable(uint8_t chip_id);
     void create_device_soc_descriptors();
+
+    static std::unique_ptr<tt_SiliconDevice> create_grayskull_device(
+        const std::string &device_configuration_path, const std::string &cluster_descriptor_path, const std::set<chip_id_t> &target_devices);
+    static std::unique_ptr<tt_SiliconDevice> create_wormhole_device(
+        const std::string &device_configuration_path, const std::string &cluster_descriptor_path, const std::set<chip_id_t> &target_devices);
+    static std::unique_ptr<tt_SiliconDevice> create_blackhole_device(
+        const std::string &device_configuration_path, const std::string &cluster_descriptor_path, const std::set<chip_id_t> &target_devices);
 
    protected:
     std::optional<std::string> pci_read_tile(

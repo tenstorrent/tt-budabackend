@@ -3,9 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "dbdserver/umd_server.h"
 
-#include "device/tt_cluster_descriptor.h"
 #include "device/tt_device.h"
-#include "device_data.hpp"
 
 static std::string REG_TLB_STR = "REG_TLB";
 static std::string SMALL_READ_WRITE_TLB_STR = "SMALL_READ_WRITE_TLB";

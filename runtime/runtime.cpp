@@ -21,7 +21,6 @@
 #include "common/model/tt_core.hpp"
 #include "perf_lib/perf_base.hpp"
 
-// #include "device_data.hpp" // For DEVICE_DATA.DRAM_CHANNEL_0_PEER2PEER_REGION_START
 namespace fs = std::experimental::filesystem; // see comment above
 
 // ---------------------------------------------------------------------------

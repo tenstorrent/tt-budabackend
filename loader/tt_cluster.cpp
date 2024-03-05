@@ -242,7 +242,7 @@ void tt_cluster::open_device(
 
         // For silicon driver, filter mmio devices to use only mmio chips required by netlist workload, to allow sharing
         // of resource (reservation/virtualization) like GS where cluster desc only contains netlist workload devices.
-        device = std::make_shared<tt_SiliconDevice>(sdesc_path, ndesc_path, target_devices, num_host_mem_ch_per_mmio_device, tt::tlb_config::get_dynamic_tlb_config(), skip_driver_allocs, clean_system_resources, perform_harvesting, harvesting_masks);
+        device = std::make_shared<tt_SiliconDevice>(sdesc_path, ndesc_path, target_devices, num_host_mem_ch_per_mmio_device, tt::tlb_config::get_dynamic_tlb_config(arch), skip_driver_allocs, clean_system_resources, perform_harvesting, harvesting_masks);
         device -> set_driver_host_address_params(host_address_params);
         device -> set_driver_eth_interface_params(eth_interface_params);
     }
@@ -309,7 +309,7 @@ void tt_cluster::start_device(const tt_device_params &device_params) {
 
     if(type == TargetDevice::Silicon && device_params.init_device) {
         for(auto& device_id : device -> get_target_mmio_device_ids()) {
-            tt::tlb_config::configure_static_tlbs(device_id, get_soc_desc(device_id), device);
+            tt::tlb_config::configure_static_tlbs(cluster_arch, device_id, get_soc_desc(device_id), device);
         }
     }
     device -> start_device(device_params);

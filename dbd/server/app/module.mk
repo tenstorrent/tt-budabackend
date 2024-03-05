@@ -25,12 +25,12 @@ DEBUDA_SERVER_LIB_DEPS = -ldbdserver -ltt -ldevice
 DEBUDA_SERVER_OBJS = $(addprefix $(OBJDIR)/, $(DEBUDA_SERVER_SRCS:.cpp=.o))
 DEBUDA_SERVER_DEPS = $(addprefix $(OBJDIR)/, $(DEBUDA_SERVER_SRCS:.cpp=.d))
 
-DEBUDA_SERVER_INCLUDES = $(RUNTIME_INCLUDES) -I$(BUDA_HOME)/umd
-ifeq ("$(ARCH_NAME)", "wormhole_b0")
-  DEBUDA_SERVER_INCLUDES += -I$(BUDA_HOME)/umd/device/wormhole/
-else
-  DEBUDA_SERVER_INCLUDES += -I$(BUDA_HOME)/umd/device/$(ARCH_NAME)/
-endif
+DEBUDA_SERVER_INCLUDES = \
+	$(BASE_INCLUDES) \
+	-I$(BUDA_HOME)/umd \
+	-Idbd/server/lib/inc \
+	-I$(BUDA_HOME)/runtime \
+	-I$(BUDA_HOME)/netlist \
 
 DEBUDA_SERVER_LDFLAGS = $(DEBUDA_SERVER_LIB_DEPS) -lyaml-cpp -lzmq -Wl,-rpath,\$$ORIGIN/../lib:\$$ORIGIN -pthread
 
@@ -38,7 +38,11 @@ DEBUDA_SERVER_LDFLAGS = $(DEBUDA_SERVER_LIB_DEPS) -lyaml-cpp -lzmq -Wl,-rpath,\$
 
 dbd/server/app: $(DEBUDA_SERVER) $(CREATE_ETHERNET_MAP_WORMHOLE_DBD)
 
-$(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/wormhole/create-ethernet-map
+ifeq ("$(HOST_ARCH)", "aarch64")
+$(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/aarch64/create-ethernet-map
+else
+$(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/x86/create-ethernet-map
+endif
 	@mkdir -p $(@D)
 	ln -s $^ $@
 	chmod +x $@

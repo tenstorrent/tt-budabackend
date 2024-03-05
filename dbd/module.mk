@@ -95,6 +95,10 @@ dbd/test-elf-parser:
 	python3 dbd/test_parse_elf.py
 	python3 dbd/test_firmware.py
 
+.PHONY: dbd/wheel
+dbd/wheel:
+	python3 dbd/wheel/setup.py bdist_wheel -d build/debuda_wheel
+
 $(DBD_LIB): $(DBD_OBJS) $(BACKEND_LIB)
 	$(PRINT_TARGET)
 	@mkdir -p $(@D)
