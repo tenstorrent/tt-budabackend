@@ -100,6 +100,6 @@ def ASSERT(condition, message=""):
     if condition:
         return
     else:
-        reset_all_handlers()
         logger.critical(message)
+        reset_all_handlers()
         raise Exception("Failed")

@@ -1,0 +1,23 @@
+perf_infra_wormhole_b0_2chip_push:
+  build_on_runner: true
+  num_eth_chips: 2
+  tag:
+  -   push
+  -   perf
+  owner: [jnie]
+  arch_name: wormhole_b0
+  harvested_rows_supported: 2
+  device_runner: Silicon
+  build_cmd:
+    - make -j8 build_hw
+    - make -j8 verif/netlist_tests
+  build_timeout: '1200'
+  timeout: '600'
+  run_on_same_runner: true
+
+  # Test analyzer handling fork paths across multiple chips
+  perf_infra_multichip_fork_analyzer_sanity:
+      envs: {TT_BACKEND_PERF_ANALYZER: 1}
+      test_flow: ./build/test/verif/netlist_tests/test_inference
+      command:
+      -   --netlist perf_lib/multichip_tests/wormhole_b0/bert_encoder_remote_fork_path.yaml  --inputs input_1,attention_mask --outputs bert_encoder.output_layernorm_635 --seed 0 --skip-check

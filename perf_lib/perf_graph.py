@@ -222,8 +222,6 @@ class Graph:
             for output_op in op.output_ops:
                 if output_op not in self.ops:
                     self.ops[op_name].ethernet_output.append(output_op)
-        
-        self.populate_all_fork_join_paths()
     
     def get_input_operands_for_op(self, op_name: str):
         ASSERT(op_name in self.ops, f"op with name {op_name} does not exist in graph {self.name}")
@@ -288,7 +286,7 @@ class Graph:
                 return True
         return False
 
-    def find_all_paths(self, current_op_name: str, join_op_name: str, path: List[str], visited: Set[str]):        
+    def find_all_paths(self, all_ops_all_graphs: Dict[str, Op], current_op_name: str, join_op_name: str, path: List[str], visited: Set[str]):        
         if current_op_name == join_op_name:
             path_copy = deepcopy(path)
             return [path_copy]
@@ -297,17 +295,17 @@ class Graph:
         visited.add(current_op_name)
         
         paths = []
-        current_op = self.ops[current_op_name]
+        current_op = all_ops_all_graphs[current_op_name]
         for next_op in current_op.output_ops:
             if next_op not in visited:
-                new_paths = self.find_all_paths(next_op, join_op_name, path, visited)
+                new_paths = self.find_all_paths(all_ops_all_graphs, next_op, join_op_name, path, visited)
                 for new_path in new_paths:
                     paths.append(new_path)
         
         path.pop()
         return paths
     
-    def populate_all_fork_join_paths(self):
+    def populate_all_fork_join_paths(self, all_ops_all_graphs: Dict[str, Op]):
         for fork_op_name, fork_op in self.ops.items():
             if not self.does_op_fork_to_unique_ops(fork_op):
                 continue
@@ -319,12 +317,12 @@ class Graph:
                 # If there are multiple output ops that have a path to the join op, then we have a fork.
                 paths_from_each_output = []
                 # Iterate unique output ops. Should skip in case on op feeds another op twice
-                visited = set()
+                visited: set[str] = set()
                 for op_after_fork_name in set(fork_op.output_ops):
                     if op_after_fork_name in visited:
                         continue
                     # print(f"HERE-4-Starting analysis for fork {fork_op_name}, join {join_op_name}, output op {op_after_fork_name}")
-                    paths = self.find_all_paths(op_after_fork_name, join_op_name, [], visited)
+                    paths = self.find_all_paths(all_ops_all_graphs, op_after_fork_name, join_op_name, [], visited)
                     # print(f"HERE-6-result path analysis for fork {fork_op_name}, join {join_op_name}, output op {op_after_fork_name} = {paths}")
                     paths_from_each_output.append(paths)
                 if len(paths_from_each_output) > 1:
@@ -421,6 +419,19 @@ class AllGraphs:
                         aiclk = aiclk
                     )
                     self.all_graphs[graph_name] = new_graph
+
+        all_ops = self.get_all_ops()
+        for graph in self.all_graphs.values():
+            graph.populate_all_fork_join_paths(all_ops)
+
+    def get_all_ops(self):
+        all_ops: Dict[str, Op] = {}
+        for graph in self.all_graphs.values():
+            for op_name, op in graph.ops.items():
+                ASSERT(op_name not in all_ops, f"Duplicate op {op_name}")
+                all_ops[op_name] = op
+                
+        return all_ops
     
     def get_all_fork_joins(self) -> List[ForkNode]:
         all_forks = []
