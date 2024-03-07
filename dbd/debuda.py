@@ -531,7 +531,6 @@ def main_loop(args, context):
             if args["--test"]:  # Always raise in test mode
                 raise
 
-
 def main():
     args = docopt(__doc__)
 
@@ -552,15 +551,15 @@ def main():
             util.WARN(
                 f"Output directory (output_dir) was not supplied and cannot be determined automatically. Continuing with limited functionality..."
             )
-    else:
-        # Try to load the runtime data from the output directory
-        if not args['<output_dir>'] is None:
-            runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
-            if os.path.exists(runtime_data_yaml_filename):
-                runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
-            else:
-                runtime_data_yaml_filename = None
-                util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
+
+    # Try to load the runtime data from the output directory
+    if not args['<output_dir>'] is None:
+        runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
+        if os.path.exists(runtime_data_yaml_filename):
+            runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
+        else:
+            runtime_data_yaml_filename = None
+            util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
 
     # Try to connect to the server. If it is not already running, it will be started.
     print(f"Connecting to Debuda server at {args['--debuda-server-address']}")

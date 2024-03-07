@@ -5,6 +5,7 @@
 // to it.
 #include <chrono>
 #include <ctime>
+#include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -45,6 +46,10 @@ int run_plain_server(int port) {
         return 1;
     }
 }
+
+// This variable is used in tt_cluster.cpp to cache cluster descriptor path. We set it here to bypass generating it when
+// we have it.
+extern std::string cluster_desc_path;
 
 int main(int argc, char** argv) {
     if (argc < 2 || argc > 3) {
@@ -87,6 +92,11 @@ int main(int argc, char** argv) {
     DEVICE backend_type = get_device_from_string(runtime_data["backend_type"].as<std::string>());
     auto cluster_descriptor_path = runtime_data["cluster_descriptor_path"].as<std::string>();
     auto soc_descriptor_path = fs::path(argv[2]).parent_path().string() + "/device_desc.yaml";
+
+    cluster_desc_path = fs::path(argv[2]).parent_path().string() + "/cluster_desc.yaml";
+    if (!fs::exists(cluster_desc_path)) {
+        cluster_desc_path = "";
+    }
 
     log_info(
         tt::LogDebuda,

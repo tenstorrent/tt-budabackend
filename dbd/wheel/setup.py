@@ -45,12 +45,14 @@ debuda_files = {
     "libtt.so": {
         "path": "build/lib",
         "files": [ "libtt.so", "libdevice.so" ],
-        "output": "build/lib"
+        "output": "build/lib",
+        "strip": True
     },
     "debuda-server-standalone": {
         "path": "build/bin" ,
         "files": [ "debuda-server-standalone", "debuda-create-ethernet-map-wormhole" ],
-        "output": "build/bin"
+        "output": "build/bin",
+        "strip": True
     }
 }
 
@@ -81,6 +83,7 @@ class MyBuild(build_ext):
         subprocess.check_call([f"cd $BUDA_HOME && make -j{nproc} dbd"], env=env, shell=True)
 
     def _copy_files(self, target_path):
+        strip_symbols = os.environ.get("STRIP_SYMBOLS", "0") == "1"
         for t, d in debuda_files.items():
             path = target_path + "/" + d["output"]
             os.makedirs(path, exist_ok=True)
@@ -91,6 +94,9 @@ class MyBuild(build_ext):
             else:
                 for f in d["files"]:
                     self.copy_file(src_path + "/" + f, path + "/" + f)
+                    if d.get("strip", False) and strip_symbols:
+                        print(f"Stripping symbols from {path}/{f}")
+                        subprocess.check_call(["strip", path + "/" + f])
 
 # Fake debuda extension
 debuda_fake_extension = TTExtension("debuda.fake_extension")

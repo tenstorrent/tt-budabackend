@@ -15,17 +15,40 @@ class DbdOutputVerifier:
 
     def verify_start(self, runner: "DbdTestRunner", tester: unittest.TestCase):
         lines, prompt = runner.read_until_prompt()
-        # TODO: Verify that startup was successful
+        self.verify_startup(lines, prompt, tester)
         pass
 
     @abstractmethod
     def is_prompt_line(self, line: str) -> str:
         pass
 
+    @abstractmethod
+    def verify_startup(self, lines: list, prompt: str, tester: unittest.TestCase):
+        pass
+
 class UmdDbdOutputVerifier(DbdOutputVerifier):
     prompt_regex = r"^Current epoch:None\(None\) device:\d > $"
+    cluster_desc_regex = r"Loading yaml file: '(\/tmp\/debuda_server_\w+\/)cluster_desc\.yaml'"
+
+    def __init__(self):
+        self.server_temp_path = ""
+
     def is_prompt_line(self, line: str) -> str:
         return re.match(self.prompt_regex, line)
+
+    def verify_startup(self, lines: list, prompt: str, tester: unittest.TestCase):
+        tester.assertGreater(len(lines), 7)
+        tester.assertRegex(lines[0], r"Output directory \(output_dir\) does not represent buda run output directory. Continuing with limited functionality...")
+        tester.assertRegex(lines[1], r"Connecting to Debuda server at localhost:5555")
+        tester.assertRegex(lines[2], r"Spawning debuda-server\.\.\.")
+        tester.assertRegex(lines[3], r"Waiting for debuda-server to start for up to 5.0 seconds\.\.\.")
+        tester.assertRegex(lines[4], r"Connecting to debuda-server at tcp://localhost:5555\.\.\.")
+        tester.assertRegex(lines[5], r"Connected to debuda-server\.")
+        tester.assertRegex(lines[6], r"Loading yaml file: '\/tmp\/debuda_server_\w+\/cluster_desc\.yaml'")
+        tester.assertRegex(lines[7], r"Opened device: id=\d+, arch=\w+, has_mmio=\w+, harvesting=")
+        self.server_temp_path = re.search(self.cluster_desc_regex, lines[6]).group(1)
+        tester.assertTrue(self.server_temp_path.startswith("/tmp/debuda_server_") and self.server_temp_path.endswith("/"))
+        return True
 
 class DbdTestRunner:
     def __init__(self, verifier: DbdOutputVerifier):
@@ -45,7 +68,7 @@ class DbdTestRunner:
         return self.process.returncode
 
     def invoke(self, args = None):
-        program_args = [self.interpreter_path, self.debuda_py_path]
+        program_args = [self.interpreter_path, '-u', self.debuda_py_path]
         if not args is None:
             if not type(args) == list:
                 args = [args]
@@ -73,6 +96,7 @@ class DbdTestRunner:
             line = line[:-1]
         elif not line:
             return None
+        print(line)
         return line
 
     def writeline(self, line):
@@ -112,12 +136,10 @@ class DbdTestRunner:
 class TestUmdDebuda(unittest.TestCase):
     def test_startup_and_exit_just_return_code(self):
         runner = DbdTestRunner(UmdDbdOutputVerifier())
-        stdout, stderr = runner.execute("I-don't-exist-$%^", "x")
-        if runner.returncode != 0:
-            print(f"stdout:\n{chr(10).join(stdout)}")
-            print(f"stderr:\n{chr(10).join(stderr)}")
+        runner.start(self, "I-don't-exist-$%^")
+        runner.writeline("x")
+        runner.wait()
         self.assertEqual(runner.returncode, 0)
-        self.assertTrue(any(map(lambda line: runner.verifier.is_prompt_line(line), stdout)))
 
 if __name__ == "__main__":
     unittest.main()

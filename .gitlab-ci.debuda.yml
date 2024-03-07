@@ -17,12 +17,14 @@
 
 .debuda-wheel-test:
   extends: .debuda-base
-  timeout: 30m
+  timeout: 5m
   stage: unit_tests
   variables:
     GIT_STRATEGY: none
+    SIMPLE_DEBUDA_COMMANDS: 'h;brxy 1-1 0 64;x'
+    COMPLEX_DEBUDA_COMMANDS: 'op-map;d;d 0 netlist nocTr;q;q input0;q input0 16 16;eq;eq 1;dq;p 130000000000;brxy 1-1 0x0 32 --format i8;cdr;cdr 1-1;srs 0;srs 1;srs 2;ddb 0 32;ddb 0 16 hex8 1-1 0;ddb 0 16 hex16 2-2 0;pcir 0;wxy 1-1 0 0xabcd;full-dump;ha;s 1-1 4;t 1;t 1 --raw;x'
   needs:
-    - debuda-wheel
+    - debuda-build-wheel
   before_script:
     ### Make venv and activate it
     - python3 -m venv venv
@@ -33,7 +35,42 @@
 
   script:
     ### Run some debuda commands
-    - debuda --test --commands "h;brxy 1-1 0 64;x"
+    - debuda --test --commands "$SIMPLE_DEBUDA_COMMANDS"
+
+.debuda-build-tests-base:
+  extends: .debuda-with-git
+  timeout: 30m
+  stage: build
+  tags:
+    - 8-core
+  needs:
+    - debuda-lint
+  script:
+    ### Strip some symbols
+    - strip umd/device/bin/silicon/x86/create-ethernet-map
+    ### Build
+    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1
+  artifacts:
+    when: always
+    paths:
+      - build_output.txt
+      - build/bin/debuda-create-ethernet-map-wormhole
+      - build/bin/debuda-server-standalone
+      - build/bin/net2pipe
+      - build/test/verif/op_tests/test_op
+      - build/lib/libtt.so
+      - build/lib/libdevice.so
+      - build/src/**/*
+      - dbd/**/*
+      - device/*.yaml
+      - hlks/**/*
+      - infra/**/*
+      - src/**/*
+      - third_party/tt_llk_grayskull/**/*
+      - third_party/tt_llk_wormhole_b0/**/*
+      - third_party/sfpi/**/*
+      - umd/device/bin/silicon/x86/create-ethernet-map
+      - verif/op_tests/netlists/netlist_matmul_op_with_fd.yaml
 
 debuda-lint:
   extends: .debuda-base
@@ -45,7 +82,7 @@ debuda-lint:
   script:
     - echo "Linting debuda"
 
-debuda-wheel:
+debuda-build-wheel:
   extends: .debuda-with-git
   timeout: 30m
   stage: build
@@ -64,7 +101,7 @@ debuda-wheel:
     - pip3 install wheel
 
     ### Make wheel
-    - make dbd/wheel
+    - make dbd/wheel_release
 
   artifacts:
     when: always
@@ -86,6 +123,11 @@ debuda-wheel:
     ### Warm reset card
     - /home/software/syseng/gs/tt-smi -tr 0
 
+debuda-build-tests-grayskull:
+  extends: .debuda-build-tests-base
+  variables:
+    ARCH_NAME: grayskull
+
 debuda-wheel-test-grayskull:
   extends: .debuda-wheel-test
   tags: !reference [.debuda-grayskull, tags]
@@ -98,69 +140,76 @@ debuda-wheel-test-grayskull:
 debuda-wheel-test-with-test-run-grayskull:
   extends: .debuda-wheel-test
   tags: !reference [.debuda-grayskull, tags]
+  needs:
+    - debuda-build-wheel
+    - debuda-build-tests-grayskull
   variables:
-    GIT_STRATEGY: fetch
-    GIT_DEPTH: 1
-    TEST_RUN_TIMEOUT: 30
+    TEST_RUN_TIMEOUT: 5
     NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
     ARCH_NAME: grayskull
-  before_script:
-    - !reference [.debuda-wheel-test, before_script]
-    - !reference [.debuda-with-git, before_script]
   script:
     ### Initialize grayskull
     - !reference [.debuda-grayskull, script]
-    ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1 >build_output.txt
     ### Run sample test on card
     - ./build/test/verif/op_tests/test_op --outdir debuda_test --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
     ### Clean up everything so we don't have references to the build directory
-    - make clean
+    - rm -rf build
     ### Run some debuda commands
-    - debuda --test --commands "h;brxy 1-1 0 64;x" debuda_test
-  artifacts:
-    when: always
-    paths:
-      - build_output.txt
+    - debuda --test --commands "$COMPLEX_DEBUDA_COMMANDS" debuda_test
 
-debuda-smoke-test-grayskull:
-  extends: .debuda-with-git
-  timeout: 30m
-  stage: unit_tests
+debuda-wheel-test-with-test-run-default-grayskull:
+  extends: .debuda-wheel-test
   tags: !reference [.debuda-grayskull, tags]
   needs:
-    - debuda-lint
+    - debuda-build-wheel
+    - debuda-build-tests-grayskull
   variables:
-    ARCH_NAME: grayskull
-  script:
-    ### Initialize grayskull
-    - !reference [.debuda-grayskull, script]
-    ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1 >build_output.txt
-    ### Run test
-    - ./dbd/test/test-debuda-py.sh >smoke_test_run.txt
-  artifacts:
-    when: always
-    paths:
-      - build_output.txt
-      - smoke_test_run.txt
-
-debuda-unit-tests-grayskull:
-  extends: .debuda-with-git
-  timeout: 30m
-  stage: unit_tests
-  tags: !reference [.debuda-grayskull, tags]
-  needs:
-    - debuda-lint
-  variables:
-    TEST_RUN_TIMEOUT: 30
+    TEST_RUN_TIMEOUT: 5
     NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
     ARCH_NAME: grayskull
   script:
     ### Initialize grayskull
     - !reference [.debuda-grayskull, script]
-    ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1 >build_output.txt
+    ### Run sample test on card
+    - ./build/test/verif/op_tests/test_op --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
+    ### Clean up everything so we don't have references to the build directory
+    - rm -rf build
+    ### Run some debuda commands
+    - debuda --test --commands "$COMPLEX_DEBUDA_COMMANDS"
+
+debuda-smoke-test-grayskull:
+  extends: .debuda-wheel-test
+  timeout: 5m
+  stage: unit_tests
+  tags: !reference [.debuda-grayskull, tags]
+  needs:
+    - debuda-build-tests-grayskull
+  variables:
+    ARCH_NAME: grayskull
+  before_script:
+    ### Do nothing
+  script:
+    ### Initialize grayskull
+    - !reference [.debuda-grayskull, script]
+    ### Run test
+    - ./dbd/test/test-debuda-py.sh skip-build
+
+debuda-unit-tests-grayskull:
+  extends: .debuda-wheel-test
+  timeout: 5m
+  stage: unit_tests
+  tags: !reference [.debuda-grayskull, tags]
+  needs:
+    - debuda-build-tests-grayskull
+  variables:
+    TEST_RUN_TIMEOUT: 5
+    NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
+    ARCH_NAME: grayskull
+  before_script:
+    ### Do nothing
+  script:
+    ### Initialize grayskull
+    - !reference [.debuda-grayskull, script]
     ### Run sample test on card
     - ./build/test/verif/op_tests/test_op --outdir debuda_test --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
     ### Install missing python modules
@@ -174,8 +223,6 @@ debuda-unit-tests-grayskull:
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     when: always
-    paths:
-      - build_output.txt
     reports:
       junit:
         - $TEST_RESULTS_DIR/*.xml
@@ -198,6 +245,11 @@ debuda-unit-tests-grayskull:
     ### Warm reset card
     - /home/software/syseng/wh/tt-smi -lr all wait -er
 
+debuda-build-tests-wormhole-b0:
+  extends: .debuda-build-tests-base
+  variables:
+    ARCH_NAME: wormhole_b0
+
 debuda-wheel-test-wormhole-b0:
   extends: .debuda-wheel-test
   tags: !reference [.debuda-wormhole-b0, tags]
@@ -207,44 +259,79 @@ debuda-wheel-test-wormhole-b0:
     ### Run wheel test
     - !reference [.debuda-wheel-test, script]
 
-debuda-smoke-test-wormhole-b0:
-  extends: .debuda-with-git
-  timeout: 30m
-  stage: unit_tests
+debuda-wheel-test-with-test-run-wormhole-b0:
+  extends: .debuda-wheel-test
   tags: !reference [.debuda-wormhole-b0, tags]
   needs:
-    - debuda-lint
+    - debuda-build-wheel
+    - debuda-build-tests-wormhole-b0
   variables:
-    ARCH_NAME: wormhole_b0
-  script:
-    ### Initialize wormhole-b0
-    - !reference [.debuda-wormhole-b0, script]
-    ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1 >build_output.txt
-    ### Run test
-    - ./dbd/test/test-debuda-py.sh >smoke_test_run.txt
-  artifacts:
-    when: always
-    paths:
-      - build_output.txt
-      - smoke_test_run.txt
-
-debuda-unit-tests-wormhole-b0:
-  extends: .debuda-with-git
-  timeout: 30m
-  stage: unit_tests
-  tags: !reference [.debuda-wormhole-b0, tags]
-  needs:
-    - debuda-lint
-  variables:
-    TEST_RUN_TIMEOUT: 30
+    TEST_RUN_TIMEOUT: 5
     NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
     ARCH_NAME: wormhole_b0
   script:
     ### Initialize wormhole-b0
     - !reference [.debuda-wormhole-b0, script]
-    ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1 >build_output.txt
+    ### Run sample test on card
+    - ./build/test/verif/op_tests/test_op --outdir debuda_test --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
+    ### Clean up everything so we don't have references to the build directory
+    - rm -rf build
+    ### Run some debuda commands
+    - debuda --test --commands "$COMPLEX_DEBUDA_COMMANDS" debuda_test
+
+debuda-wheel-test-with-test-run-default-wormhole-b0:
+  extends: .debuda-wheel-test
+  tags: !reference [.debuda-wormhole-b0, tags]
+  needs:
+    - debuda-build-wheel
+    - debuda-build-tests-wormhole-b0
+  variables:
+    TEST_RUN_TIMEOUT: 5
+    NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
+    ARCH_NAME: wormhole_b0
+  script:
+    ### Initialize wormhole-b0
+    - !reference [.debuda-wormhole-b0, script]
+    ### Run sample test on card
+    - ./build/test/verif/op_tests/test_op --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
+    ### Clean up everything so we don't have references to the build directory
+    - rm -rf build
+    ### Run some debuda commands
+    - debuda --test --commands "$COMPLEX_DEBUDA_COMMANDS"
+
+debuda-smoke-test-wormhole-b0:
+  extends: .debuda-wheel-test
+  timeout: 5m
+  stage: unit_tests
+  tags: !reference [.debuda-wormhole-b0, tags]
+  needs:
+    - debuda-build-tests-wormhole-b0
+  variables:
+    ARCH_NAME: wormhole_b0
+  before_script:
+    ### Do nothing
+  script:
+    ### Initialize wormhole-b0
+    - !reference [.debuda-wormhole-b0, script]
+    ### Run test
+    - ./dbd/test/test-debuda-py.sh
+
+debuda-unit-tests-wormhole-b0:
+  extends: .debuda-wheel-test
+  timeout: 5m
+  stage: unit_tests
+  tags: !reference [.debuda-wormhole-b0, tags]
+  needs:
+    - debuda-build-tests-wormhole-b0
+  variables:
+    TEST_RUN_TIMEOUT: 5
+    NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
+    ARCH_NAME: wormhole_b0
+  before_script:
+    ### Do nothing
+  script:
+    ### Initialize wormhole-b0
+    - !reference [.debuda-wormhole-b0, script]
     ### Run sample test on card
     - ./build/test/verif/op_tests/test_op --outdir debuda_test --netlist $NETLIST_FILE --seed 0 --silicon --timeout $TEST_RUN_TIMEOUT
     ### Install missing python modules
@@ -258,8 +345,6 @@ debuda-unit-tests-wormhole-b0:
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     when: always
-    paths:
-      - build_output.txt
     reports:
       junit:
         - $TEST_RESULTS_DIR/*.xml
