@@ -34,11 +34,6 @@ void generate_all_fw(
     string build_dir_path) {
     PROFILE_SCOPE_MS();
 
-    char* env_arch_name_str = std::getenv("ARCH_NAME");
-    tt::ARCH env_arch = get_arch_name(env_arch_name_str ? env_arch_name_str : "grayskull");
-    // Compilation of kernels will fail if device_name doesn't match the ARCH_NAME env variable.
-    log_assert(env_arch == get_arch_name(device_name), "Env ARCH_NAME={} doesn't match device_name={}", env_arch, device_name);
-
     int num_threads = tt::cpuset::get_allowed_num_threads();
 
     log_debug(tt::LogCompileTrisc, "generate_all_fw() -- num_threads: {}", num_threads);
