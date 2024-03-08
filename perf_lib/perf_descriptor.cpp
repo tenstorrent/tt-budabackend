@@ -40,21 +40,31 @@ std::unordered_map<std::string, std::unordered_set<perf::PerfTriscDecoupleMode>>
         std::vector<std::string> each_decoupling_str;
         unordered_set<perf::PerfTriscDecoupleMode> each_decoupling;
         tt::args::split_string_into_vector(each_decoupling_str, all_decouplings, "-");
-        for (auto &decoupling : each_decoupling_str) {
+        for (const auto &decoupling : each_decoupling_str) {
             each_decoupling.insert(perf::StringtoPerfTriscDecoupleMode(decoupling));
         }
-        op_to_decouplings.insert({op_name, each_decoupling});
+        if (op_to_decouplings.find(op_name) == op_to_decouplings.end()) {
+            op_to_decouplings.insert({op_name, each_decoupling});
+        }
+        else {
+            op_to_decouplings.at(op_name).merge(each_decoupling);
+        }
     }
 
-    log_info(tt::LogRuntime, "Performance decouplings:");
     std::stringstream ss;
-    for (auto &op_decouple : op_to_decouplings) {
-        ss << op_decouple.first << ": ";
-        for (const auto& decoupling : op_decouple.second) {
+    for (auto &[op_name, decouplings] : op_to_decouplings) {
+        // If perf::PerfTriscDecoupleMode::None is set for an op, ignore all other decouplings
+        if (decouplings.find(perf::PerfTriscDecoupleMode::None) != decouplings.end()) {
+            decouplings.clear();
+            decouplings.insert(perf::PerfTriscDecoupleMode::None);
+        }
+        ss << op_name << ": ";
+        for (const auto& decoupling : decouplings) {
             ss << perf::PerfTriscDecoupleModetoString(decoupling) << " ";
         }
     }
-    log_info(tt::LogRuntime, "{}", ss.str());
+
+    log_info(tt::LogRuntime, "Performance decouplings: {}", ss.str());
 
     return op_to_decouplings;
 }

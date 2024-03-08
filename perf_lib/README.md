@@ -22,6 +22,7 @@ To enable the performance trace, following command-line arguments can be used:
 - **`--perf-op-mode`**:
   - Any op in the graph can be configured in different decoupling modes.
     - The format of the input config: **`--perf-op-mode <op_name_0>:<decouple_0>-<decouple_1>,<op_name_1>:<decouple_0>`**
+      - Also valid with the same effect: **`--perf-op-mode <op_name_0>:<decouple_0>,<op_name_0>:<decouple_1>,<op_name_1>:<decouple_0>`**
     - e.g.: `--perf-op-mode unary_feeder:MathPack,unary_drainer:UnpMath` (This config is an example of how to run an op in `triplet-mode`. More on this in the following sections).
     - UnpMath decoupling:
       - Unpacker will do nops.
