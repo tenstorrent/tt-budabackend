@@ -12,63 +12,65 @@ void tt::dbd::server::process(const tt::dbd::request& base_request) {
 
         case tt::dbd::request_type::pci_read4: {
             auto& request = static_cast<const tt::dbd::pci_read4_request&>(base_request);
-            respond(pci_read4(request.chip_id, request.noc_x, request.noc_y, request.address));
+            respond(implementation->pci_read4(request.chip_id, request.noc_x, request.noc_y, request.address));
             break;
         }
         case tt::dbd::request_type::pci_write4: {
             auto& request = static_cast<const tt::dbd::pci_write4_request&>(base_request);
-            respond(pci_write4(request.chip_id, request.noc_x, request.noc_y, request.address, request.data));
+            respond(implementation->pci_write4(
+                request.chip_id, request.noc_x, request.noc_y, request.address, request.data));
             break;
         }
         case tt::dbd::request_type::pci_read: {
             auto& request = static_cast<const tt::dbd::pci_read_request&>(base_request);
-            respond(pci_read(request.chip_id, request.noc_x, request.noc_y, request.address, request.size));
+            respond(
+                implementation->pci_read(request.chip_id, request.noc_x, request.noc_y, request.address, request.size));
             break;
         }
         case tt::dbd::request_type::pci_write: {
             auto& request = static_cast<const tt::dbd::pci_write_request&>(base_request);
-            respond(
-                pci_write(request.chip_id, request.noc_x, request.noc_y, request.address, request.data, request.size));
+            respond(implementation->pci_write(
+                request.chip_id, request.noc_x, request.noc_y, request.address, request.data, request.size));
             break;
         }
         case tt::dbd::request_type::pci_read4_raw: {
             auto& request = static_cast<const tt::dbd::pci_read4_raw_request&>(base_request);
-            respond(pci_read4_raw(request.chip_id, request.address));
+            respond(implementation->pci_read4_raw(request.chip_id, request.address));
             break;
         }
         case tt::dbd::request_type::pci_write4_raw: {
             auto& request = static_cast<const tt::dbd::pci_write4_raw_request&>(base_request);
-            respond(pci_write4_raw(request.chip_id, request.address, request.data));
+            respond(implementation->pci_write4_raw(request.chip_id, request.address, request.data));
             break;
         }
         case tt::dbd::request_type::dma_buffer_read4: {
             auto& request = static_cast<const tt::dbd::dma_buffer_read4_request&>(base_request);
-            respond(dma_buffer_read4(request.chip_id, request.address, request.channel));
+            respond(implementation->dma_buffer_read4(request.chip_id, request.address, request.channel));
             break;
         }
 
         case tt::dbd::request_type::pci_read_tile: {
             auto& request = static_cast<const tt::dbd::pci_read_tile_request&>(base_request);
-            respond(pci_read_tile(
+            respond(implementation->pci_read_tile(
                 request.chip_id, request.noc_x, request.noc_y, request.address, request.size, request.data_format));
             break;
         }
-        case tt::dbd::request_type::get_runtime_data: respond(get_runtime_data()); break;
-        case tt::dbd::request_type::get_cluster_description: respond(get_cluster_description()); break;
+        case tt::dbd::request_type::get_runtime_data: respond(implementation->get_runtime_data()); break;
+        case tt::dbd::request_type::get_cluster_description: respond(implementation->get_cluster_description()); break;
         case tt::dbd::request_type::get_harvester_coordinate_translation: {
             auto& request = static_cast<const tt::dbd::get_harvester_coordinate_translation_request&>(base_request);
-            respond(get_harvester_coordinate_translation(request.chip_id));
+            respond(implementation->get_harvester_coordinate_translation(request.chip_id));
             break;
         }
-        case tt::dbd::request_type::get_device_ids: respond(get_device_ids()); break;
+        case tt::dbd::request_type::get_device_ids: respond(implementation->get_device_ids()); break;
         case tt::dbd::request_type::get_device_arch: {
             auto& request = static_cast<const tt::dbd::get_device_arch_request&>(base_request);
-            respond(get_device_arch(request.chip_id));
+            respond(implementation->get_device_arch(request.chip_id));
             break;
         }
         case tt::dbd::request_type::get_device_soc_description: {
             auto& request = static_cast<const tt::dbd::get_device_soc_description_request&>(base_request);
-            respond(get_device_soc_description(request.chip_id));
+            respond(implementation->get_device_soc_description(request.chip_id));
             break;
         }
     }

@@ -2,8 +2,10 @@
 
 # SPDX-License-Identifier: Apache-2.0
 from enum import Enum
+import sys
 import struct
 import zmq
+import tt_util as util
 
 
 class debuda_server_request_type(Enum):
@@ -325,3 +327,73 @@ class debuda_server:
         return self.parse_string(
             self._communication.get_device_soc_description(chip_id)
         )
+
+
+tt_dbd_pybind_path = util.application_path() + "/../build/lib"
+binary_path = util.application_path() + "/../build/bin"
+sys.path.append(tt_dbd_pybind_path)
+
+import tt_dbd_pybind
+
+class debuda_pybind:
+    def __init__(self):
+        if not tt_dbd_pybind.open_device(binary_path):
+            raise Exception("Failed to open device using pybind library")
+        print("Device opened")
+
+    def _check_result(self, result):
+        if result is None:
+            raise debuda_server_not_supported()
+        return result
+
+    def pci_read4(self, chip_id: int, noc_x: int, noc_y: int, address: int):
+        return self._check_result(tt_dbd_pybind.pci_read4(chip_id, noc_x, noc_y, address))
+
+    def pci_write4(self, chip_id: int, noc_x: int, noc_y: int, address: int, data: int):
+        return self._check_result(tt_dbd_pybind.pci_write4(chip_id, noc_x, noc_y, address, data))
+
+    def pci_read(self, chip_id: int, noc_x: int, noc_y: int, address: int, size: int):
+        return self._check_result(tt_dbd_pybind.pci_read(chip_id, noc_x, noc_y, address, size))
+
+    def pci_write(
+        self, chip_id: int, noc_x: int, noc_y: int, address: int, data: bytes
+    ):
+        return self._check_result(tt_dbd_pybind.pci_write(chip_id, noc_x, noc_y, address, data))
+
+    def pci_read4_raw(self, chip_id: int, address: int):
+        return self._check_result(tt_dbd_pybind.pci_read4_raw(chip_id, address))
+
+    def pci_write4_raw(self, chip_id: int, address: int, data: int):
+        return self._check_result(tt_dbd_pybind.pci_write4_raw(chip_id, address, data))
+
+    def dma_buffer_read4(self, chip_id: int, address: int, channel: int):
+        return self._check_result(tt_dbd_pybind.dma_buffer_read4(chip_id, address, channel))
+
+    def pci_read_tile(
+        self,
+        chip_id: int,
+        noc_x: int,
+        noc_y: int,
+        address: int,
+        size: int,
+        data_format: int,
+    ):
+        return self._check_result(tt_dbd_pybind.pci_read_tile(chip_id, noc_x, noc_y, address, size, data_format))
+
+    def get_runtime_data(self):
+        return self._check_result(tt_dbd_pybind.get_runtime_data())
+
+    def get_cluster_description(self):
+        return self._check_result(tt_dbd_pybind.get_cluster_description())
+
+    def get_harvester_coordinate_translation(self, chip_id: int):
+        return self._check_result(tt_dbd_pybind.get_harvester_coordinate_translation(chip_id))
+
+    def get_device_ids(self):
+        return self._check_result(tt_dbd_pybind.get_device_ids())
+
+    def get_device_arch(self, chip_id: int):
+        return self._check_result(tt_dbd_pybind.get_device_arch(chip_id))
+    
+    def get_device_soc_description(self, chip_id: int):
+        return self._check_result(tt_dbd_pybind.get_device_soc_description(chip_id))

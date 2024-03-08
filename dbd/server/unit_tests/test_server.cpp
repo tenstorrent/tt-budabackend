@@ -1,18 +1,21 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+#include <dbdserver/debuda_implementation.h>
 #include <dbdserver/server.h>
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <zmq.hpp>
 
 constexpr int DEFAULT_TEST_SERVER_PORT = 6668;
 
-namespace tt {
-namespace dbd {
-class yaml_not_implemented_server : public tt::dbd::server {
+namespace tt::dbd {
+
+class yaml_not_implemented_server : public server {
    private:
     bool enable_yaml;
+    friend class yaml_not_implemented_implementation;
 
     void send_yaml(const std::string &yaml_response) {
         if (enable_yaml) {
@@ -21,8 +24,113 @@ class yaml_not_implemented_server : public tt::dbd::server {
             // not allowed in REP/REQ pattern in ZMQ, we receive one more message from the test and ignore it.
             communication::respond(yaml_response);
             zmq::message_t ignored_message;
-            auto receive_result = communication::zmq_socket.recv(ignored_message);
+            auto receive_result = zmq_socket.recv(ignored_message);
         }
+    }
+
+   public:
+    yaml_not_implemented_server(bool enable_yaml);
+
+    bool is_yaml_enabled() const { return enable_yaml; }
+};
+
+class yaml_not_implemented_implementation : public debuda_implementation {
+   private:
+    yaml_not_implemented_server *server;
+
+   public:
+    yaml_not_implemented_implementation(yaml_not_implemented_server *server) : server(server) {}
+
+    std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_read4)) +
+            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
+            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address));
+        return {};
+    }
+    std::optional<uint32_t> pci_write4(
+        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_write4)) + "\n  chip_id: " +
+            std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) + "\n  noc_y: " + std::to_string(noc_y) +
+            "\n  address: " + std::to_string(address) + "\n  data: " + std::to_string(data));
+        return {};
+    }
+    std::optional<std::vector<uint8_t>> pci_read(
+        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_read)) + "\n  chip_id: " +
+            std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) + "\n  noc_y: " + std::to_string(noc_y) +
+            "\n  address: " + std::to_string(address) + "\n  size: " + std::to_string(size));
+        return {};
+    }
+    std::optional<uint32_t> pci_write(
+        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t *data, uint32_t size) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_write)) +
+            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
+            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address) +
+            "\n  size: " + std::to_string(size) + "\n  data: " + serialize_bytes(data, size));
+        return {};
+    }
+    std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_read4_raw)) +
+            "\n  chip_id: " + std::to_string(chip_id) + "\n  address: " + std::to_string(address));
+        return {};
+    }
+    std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_write4_raw)) + "\n  chip_id: " +
+            std::to_string(chip_id) + "\n  address: " + std::to_string(address) + "\n  data: " + std::to_string(data));
+        return {};
+    }
+    std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::dma_buffer_read4)) +
+            "\n  chip_id: " + std::to_string(chip_id) + "\n  address: " + std::to_string(address) +
+            "\n  channel: " + std::to_string(channel));
+        return {};
+    }
+
+    std::optional<std::string> pci_read_tile(
+        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::pci_read_tile)) +
+            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
+            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address) +
+            "\n  size: " + std::to_string(size) + "\n  data_format: " + std::to_string(data_format));
+        return {};
+    }
+    std::optional<std::string> get_runtime_data() override {
+        server->send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_runtime_data)));
+        return {};
+    }
+    std::optional<std::string> get_cluster_description() override {
+        server->send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_cluster_description)));
+        return {};
+    }
+    std::optional<std::string> get_harvester_coordinate_translation(uint8_t chip_id) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::get_harvester_coordinate_translation)) +
+            "\n  chip_id: " + std::to_string(chip_id));
+        return {};
+    }
+    std::optional<std::vector<uint8_t>> get_device_ids() override {
+        server->send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_device_ids)));
+        return {};
+    }
+    std::optional<std::string> get_device_arch(uint8_t chip_id) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::get_device_arch)) +
+            "\n  chip_id: " + std::to_string(chip_id));
+        return {};
+    }
+    std::optional<std::string> get_device_soc_description(uint8_t chip_id) override {
+        server->send_yaml(
+            "- type: " + std::to_string(static_cast<int>(request_type::get_device_soc_description)) +
+            "\n  chip_id: " + std::to_string(chip_id));
+        return {};
     }
 
     static std::string serialize_bytes(const uint8_t *data, size_t size) {
@@ -36,108 +144,12 @@ class yaml_not_implemented_server : public tt::dbd::server {
         }
         return "[" + bytes + "]";
     }
-
-   protected:
-    std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_read4)) +
-            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
-            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address));
-        return {};
-    }
-    std::optional<uint32_t> pci_write4(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_write4)) + "\n  chip_id: " +
-            std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) + "\n  noc_y: " + std::to_string(noc_y) +
-            "\n  address: " + std::to_string(address) + "\n  data: " + std::to_string(data));
-        return {};
-    }
-    std::optional<std::vector<uint8_t>> pci_read(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_read)) + "\n  chip_id: " +
-            std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) + "\n  noc_y: " + std::to_string(noc_y) +
-            "\n  address: " + std::to_string(address) + "\n  size: " + std::to_string(size));
-        return {};
-    }
-    std::optional<uint32_t> pci_write(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t *data, uint32_t size) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_write)) +
-            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
-            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address) +
-            "\n  size: " + std::to_string(size) + "\n  data: " + serialize_bytes(data, size));
-        return {};
-    }
-    std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_read4_raw)) +
-            "\n  chip_id: " + std::to_string(chip_id) + "\n  address: " + std::to_string(address));
-        return {};
-    }
-    std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_write4_raw)) + "\n  chip_id: " +
-            std::to_string(chip_id) + "\n  address: " + std::to_string(address) + "\n  data: " + std::to_string(data));
-        return {};
-    }
-    std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::dma_buffer_read4)) +
-            "\n  chip_id: " + std::to_string(chip_id) + "\n  address: " + std::to_string(address) +
-            "\n  channel: " + std::to_string(channel));
-        return {};
-    }
-
-    std::optional<std::string> pci_read_tile(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::pci_read_tile)) +
-            "\n  chip_id: " + std::to_string(chip_id) + "\n  noc_x: " + std::to_string(noc_x) +
-            "\n  noc_y: " + std::to_string(noc_y) + "\n  address: " + std::to_string(address) +
-            "\n  size: " + std::to_string(size) + "\n  data_format: " + std::to_string(data_format));
-        return {};
-    }
-    std::optional<std::string> get_runtime_data() override {
-        send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_runtime_data)));
-        return {};
-    }
-    std::optional<std::string> get_cluster_description() override {
-        send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_cluster_description)));
-        return {};
-    }
-    std::optional<std::string> get_harvester_coordinate_translation(uint8_t chip_id) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::get_harvester_coordinate_translation)) +
-            "\n  chip_id: " + std::to_string(chip_id));
-        return {};
-    }
-    std::optional<std::vector<uint8_t>> get_device_ids() override {
-        send_yaml("- type: " + std::to_string(static_cast<int>(request_type::get_device_ids)));
-        return {};
-    }
-    std::optional<std::string> get_device_arch(uint8_t chip_id) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::get_device_arch)) +
-            "\n  chip_id: " + std::to_string(chip_id));
-        return {};
-    }
-    std::optional<std::string> get_device_soc_description(uint8_t chip_id) override {
-        send_yaml(
-            "- type: " + std::to_string(static_cast<int>(request_type::get_device_soc_description)) +
-            "\n  chip_id: " + std::to_string(chip_id));
-        return {};
-    }
-
-   public:
-    yaml_not_implemented_server(bool enable_yaml) : enable_yaml(enable_yaml) {}
-
-    bool is_yaml_enabled() const { return enable_yaml; }
 };
 
-}  // namespace dbd
-}  // namespace tt
+yaml_not_implemented_server::yaml_not_implemented_server(bool enable_yaml) :
+    server(std::make_unique<yaml_not_implemented_implementation>(this)), enable_yaml(enable_yaml) {}
+
+}  // namespace tt::dbd
 
 zmq::message_t send_message(zmq::const_buffer buffer, int port = DEFAULT_TEST_SERVER_PORT);
 
@@ -251,15 +263,12 @@ TEST(debuda_server, get_harvester_coordinate_translation) {
 
 TEST(debuda_server, get_device_arch) {
     test_not_implemented_request(
-        tt::dbd::get_device_arch_request{
-            tt::dbd::request_type::get_device_arch, 1},
-        "- type: 105\n  chip_id: 1");
+        tt::dbd::get_device_arch_request{tt::dbd::request_type::get_device_arch, 1}, "- type: 105\n  chip_id: 1");
 }
 
 TEST(debuda_server, get_device_soc_description) {
     test_not_implemented_request(
-        tt::dbd::get_device_soc_description_request{
-            tt::dbd::request_type::get_device_soc_description, 1},
+        tt::dbd::get_device_soc_description_request{tt::dbd::request_type::get_device_soc_description, 1},
         "- type: 106\n  chip_id: 1");
 }
 

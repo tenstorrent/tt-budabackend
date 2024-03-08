@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-#include "dbdserver/umd_server.h"
+#include "dbdserver/umd_implementation.h"
 
 #include "device/tt_device.h"
 
@@ -10,10 +10,11 @@ static std::string SMALL_READ_WRITE_TLB_STR = "SMALL_READ_WRITE_TLB";
 static std::string LARGE_READ_TLB_STR = "LARGE_READ_TLB";
 static std::string LARGE_WRITE_TLB_STR = "LARGE_WRITE_TLB";
 
-void tt::dbd::umd_server::set_device(tt_SiliconDevice* device) { this->device = device; }
+namespace tt::dbd {
 
-std::optional<uint32_t> tt::dbd::umd_server::pci_read4(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) {
+umd_implementation::umd_implementation(tt_SiliconDevice* device) { this->device = device; }
+
+std::optional<uint32_t> umd_implementation::pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) {
     if (!device) {
         return {};
     }
@@ -25,7 +26,7 @@ std::optional<uint32_t> tt::dbd::umd_server::pci_read4(
     return result;
 }
 
-std::optional<uint32_t> tt::dbd::umd_server::pci_write4(
+std::optional<uint32_t> umd_implementation::pci_write4(
     uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) {
     if (!device) {
         return {};
@@ -37,7 +38,7 @@ std::optional<uint32_t> tt::dbd::umd_server::pci_write4(
     return 4;
 }
 
-std::optional<std::vector<uint8_t>> tt::dbd::umd_server::pci_read(
+std::optional<std::vector<uint8_t>> umd_implementation::pci_read(
     uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) {
     if (!device) {
         return {};
@@ -50,7 +51,7 @@ std::optional<std::vector<uint8_t>> tt::dbd::umd_server::pci_read(
     return result;
 }
 
-std::optional<uint32_t> tt::dbd::umd_server::pci_write(
+std::optional<uint32_t> umd_implementation::pci_write(
     uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t* data, uint32_t size) {
     if (!device) {
         return {};
@@ -62,7 +63,7 @@ std::optional<uint32_t> tt::dbd::umd_server::pci_write(
     return size;
 }
 
-bool tt::dbd::umd_server::is_chip_mmio_capable(uint8_t chip_id) {
+bool umd_implementation::is_chip_mmio_capable(uint8_t chip_id) {
     if (!device) {
         return false;
     }
@@ -72,7 +73,7 @@ bool tt::dbd::umd_server::is_chip_mmio_capable(uint8_t chip_id) {
     return mmio_targets.find(chip_id) != mmio_targets.end();
 }
 
-std::optional<uint32_t> tt::dbd::umd_server::pci_read4_raw(uint8_t chip_id, uint64_t address) {
+std::optional<uint32_t> umd_implementation::pci_read4_raw(uint8_t chip_id, uint64_t address) {
     if (!device) {
         return {};
     }
@@ -85,7 +86,7 @@ std::optional<uint32_t> tt::dbd::umd_server::pci_read4_raw(uint8_t chip_id, uint
     }
 }
 
-std::optional<uint32_t> tt::dbd::umd_server::pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) {
+std::optional<uint32_t> umd_implementation::pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) {
     if (!device) {
         return {};
     }
@@ -99,7 +100,7 @@ std::optional<uint32_t> tt::dbd::umd_server::pci_write4_raw(uint8_t chip_id, uin
     }
 }
 
-std::optional<uint32_t> tt::dbd::umd_server::dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) {
+std::optional<uint32_t> umd_implementation::dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) {
     if (!device) {
         return {};
     }
@@ -110,7 +111,7 @@ std::optional<uint32_t> tt::dbd::umd_server::dma_buffer_read4(uint8_t chip_id, u
     return result;
 }
 
-std::optional<std::string> tt::dbd::umd_server::get_harvester_coordinate_translation(uint8_t chip_id) {
+std::optional<std::string> umd_implementation::get_harvester_coordinate_translation(uint8_t chip_id) {
     if (!device) {
         return {};
     }
@@ -125,7 +126,7 @@ std::optional<std::string> tt::dbd::umd_server::get_harvester_coordinate_transla
     return ret + " }";
 }
 
-std::optional<std::string> tt::dbd::umd_server::get_device_arch(uint8_t chip_id) {
+std::optional<std::string> umd_implementation::get_device_arch(uint8_t chip_id) {
     tt_device* d = static_cast<tt_device*>(device);
 
     try {
@@ -134,3 +135,5 @@ std::optional<std::string> tt::dbd::umd_server::get_device_arch(uint8_t chip_id)
         return {};
     }
 }
+
+}  // namespace tt::dbd

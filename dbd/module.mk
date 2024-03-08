@@ -3,7 +3,7 @@ include $(BUDA_HOME)/infra/common.mk
 DBD_OUT?=$(OUT)/dbd
 
 # Main target: it builds the standalone server executable
-dbd: dbd/server
+dbd: dbd/server dbd/pybind
 	$(PRINT_TARGET)
 	$(PRINT_OK)
 
@@ -121,4 +121,5 @@ $(OBJDIR)/dbd/%.o: dbd/%.cpp
 	$(CXX) $(DBD_CFLAGS) $(CXXFLAGS) $(STATIC_LIB_FLAGS) $(DBD_INCLUDES) $(DBD_DEFINES) -c -o $@ $<
 	$(PRINT_OK)
 
+include $(BUDA_HOME)/dbd/pybind/module.mk
 include $(BUDA_HOME)/dbd/server/module.mk

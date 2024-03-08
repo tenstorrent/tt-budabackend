@@ -7,7 +7,7 @@ from typing import Sequence
 from socket import timeout
 from tabulate import tabulate
 from debuda import Context
-from tt_debuda_server import debuda_server
+from tt_debuda_server import debuda_server, debuda_pybind
 from tt_object import TTObject
 import tt_util as util
 from tt_coordinate import OnChipCoordinate, CoordinateTranslationError
@@ -29,14 +29,10 @@ DEBUDA_STUB_PROCESS = (
 def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
     print("Spawning debuda-server...")
 
-    # Check if we are executing from pybuda wheel and update paths accordingly
-    from debuda import EXECUTING_FROM_PYBUDA_WHEEL
-
     debuda_server_standalone = "/debuda-server-standalone"
-    if EXECUTING_FROM_PYBUDA_WHEEL:
-        if "BUDA_HOME" not in os.environ:
-            os.environ["BUDA_HOME"] = os.path.abspath(util.application_path() + "/../")
-        debuda_server_standalone = f"/../build/bin{debuda_server_standalone}"
+    if "BUDA_HOME" not in os.environ:
+        os.environ["BUDA_HOME"] = os.path.abspath(util.application_path() + "/../")
+    debuda_server_standalone = f"/../build/bin{debuda_server_standalone}"
 
     debuda_stub_path = os.path.abspath(
         util.application_path() + debuda_server_standalone
@@ -1578,19 +1574,23 @@ def init_server_communication(server_cache, address, runtime_data_yaml_filename)
     SERVER_IFC.spawning_debuda_stub = False
     if DEBUDA_SERVER_SOCKET_IFC.enabled:
         (ip, port) = address.split(":")
-        spawning_debuda_stub = ip == "localhost" and util.is_port_available(int(port))
-
-        if spawning_debuda_stub:
-            success = spawn_standalone_debuda_stub(port, runtime_data_yaml_filename)
-            if not success:
-                raise Exception("Could not connect to debuda-server")
-            SERVER_IFC.spawning_debuda_stub = True
+        if ip == "localhost" and port == "0":
+            global DEBUDA_SERVER
+            DEBUDA_SERVER = debuda_pybind()
         else:
-            util.WARN(
-                f"Port {port} is not available, assuming debuda-server is already running and we are connecting to it."
-            )
+            spawning_debuda_stub = ip == "localhost" and util.is_port_available(int(port))
 
-        connect_to_server(ip=ip, port=port, spawning_debuda_stub=spawning_debuda_stub)
+            if spawning_debuda_stub:
+                success = spawn_standalone_debuda_stub(port, runtime_data_yaml_filename)
+                if not success:
+                    raise Exception("Could not connect to debuda-server")
+                SERVER_IFC.spawning_debuda_stub = True
+            else:
+                util.WARN(
+                    f"Port {port} is not available, assuming debuda-server is already running and we are connecting to it."
+                )
+
+            connect_to_server(ip=ip, port=port, spawning_debuda_stub=spawning_debuda_stub)
 
     return SERVER_IFC
 

@@ -3,11 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <cstdint>
-#include <optional>
-#include <string>
+#include <memory>
 
 #include "communication.h"
+#include "debuda_implementation.h"
 
 namespace tt::dbd {
 
@@ -16,31 +15,10 @@ namespace tt::dbd {
 // which means that command is not supported by the server.
 class server : public communication {
    public:
-    server() = default;
+    server(std::unique_ptr<debuda_implementation> implementation) : implementation(std::move(implementation)) {}
 
    protected:
     void process(const request &request) override;
-
-    // List of functions that should be implemented for debuda server interface.
-    virtual std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) = 0;
-    virtual std::optional<uint32_t> pci_write4(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) = 0;
-    virtual std::optional<std::vector<uint8_t>> pci_read(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) = 0;
-    virtual std::optional<uint32_t> pci_write(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t *data, uint32_t size) = 0;
-    virtual std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address) = 0;
-    virtual std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) = 0;
-    virtual std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) = 0;
-
-    virtual std::optional<std::string> pci_read_tile(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) = 0;
-    virtual std::optional<std::string> get_runtime_data() = 0;
-    virtual std::optional<std::string> get_cluster_description() = 0;
-    virtual std::optional<std::string> get_harvester_coordinate_translation(uint8_t chip_id) = 0;
-    virtual std::optional<std::vector<uint8_t>> get_device_ids() = 0;
-    virtual std::optional<std::string> get_device_arch(uint8_t chip_id) = 0;
-    virtual std::optional<std::string> get_device_soc_description(uint8_t chip_id) = 0;
 
    private:
     // Helper functions that wrap optional into tt::dbd::communication::respond function calls.
@@ -48,6 +26,8 @@ class server : public communication {
     void respond(std::optional<uint32_t> response);
     void respond(std::optional<std::vector<uint8_t>> response);
     void respond_not_supported();
+
+    std::unique_ptr<debuda_implementation> implementation;
 };
 
 }  // namespace tt::dbd

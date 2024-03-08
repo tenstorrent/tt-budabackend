@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <zmq.h>
 
+#include <memory>
 #include <stdexcept>
 
 #include "loader/tt_cluster.hpp"
@@ -103,8 +104,9 @@ tt_debuda_server::tt_debuda_server(tt_runtime* runtime) : runtime(runtime) {
                 log_info(tt::LogDebuda, "Debug server starting on {}...", connection_address);
 
                 try {
-                    set_device(DebudaIFC(runtime->cluster.get()).get_casted_device());
-                    start(port);
+                    server =
+                        std::make_unique<tt::dbd::server>(std::make_unique<tt_debuda_server_implementation>(runtime));
+                    server->start(port);
                     log_info(tt::LogDebuda, "Debug server started on {}.", connection_address);
                 } catch (...) {
                     log_info(
@@ -121,7 +123,21 @@ tt_debuda_server::tt_debuda_server(tt_runtime* runtime) : runtime(runtime) {
 
 tt_debuda_server::~tt_debuda_server() { log_info(tt::LogDebuda, "Debug server ended on {}", connection_address); }
 
-std::optional<std::string> tt_debuda_server::pci_read_tile(
+void tt_debuda_server::wait_terminate() {
+    // If connection_address is an empty string, we did not start a server, so we do not need to wait
+    if (connection_address.empty()) {
+        return;
+    }
+    log_info(tt::LogDebuda, "The debug server is running. Press ENTER to resume execution...");
+    std::cin.get();
+
+    server->stop();
+}
+
+tt_debuda_server_implementation::tt_debuda_server_implementation(tt_runtime* runtime) :
+    tt::dbd::umd_implementation(DebudaIFC(runtime->cluster.get()).get_casted_device()), runtime(runtime) {}
+
+std::optional<std::string> tt_debuda_server_implementation::pci_read_tile(
     uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) {
     tt::DataFormat df = to_data_format(data_format);
     std::vector<std::uint32_t> mem_vector;
@@ -138,11 +154,15 @@ std::optional<std::string> tt_debuda_server::pci_read_tile(
     }
 }
 
-std::optional<std::string> tt_debuda_server::get_runtime_data() { return get_runtime_data_yaml(runtime); }
+std::optional<std::string> tt_debuda_server_implementation::get_runtime_data() {
+    return get_runtime_data_yaml(runtime);
+}
 
-std::optional<std::string> tt_debuda_server::get_cluster_description() { return get_cluster_desc_path(runtime); }
+std::optional<std::string> tt_debuda_server_implementation::get_cluster_description() {
+    return get_cluster_desc_path(runtime);
+}
 
-std::optional<std::vector<uint8_t>> tt_debuda_server::get_device_ids() {
+std::optional<std::vector<uint8_t>> tt_debuda_server_implementation::get_device_ids() {
     std::vector<uint8_t> device_ids;
 
     for (auto i : DebudaIFC(runtime->cluster.get()).get_target_device_ids()) {
@@ -151,14 +171,4 @@ std::optional<std::vector<uint8_t>> tt_debuda_server::get_device_ids() {
     return device_ids;
 }
 
-std::optional<std::string> tt_debuda_server::get_device_soc_description(uint8_t chip_id) { return {}; }
-
-void tt_debuda_server::wait_terminate() {
-    // iF m_connection_addr is an empty string, we did not start a server, so we do not need to wait
-    if (connection_address.empty()) {
-        return;
-    }
-    log_info(tt::LogDebuda, "The debug server is running. Press ENTER to resume execution...");
-    std::string user_input;
-    std::cin >> user_input;
-}
+std::optional<std::string> tt_debuda_server_implementation::get_device_soc_description(uint8_t chip_id) { return {}; }

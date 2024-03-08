@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include <dbdserver/server.h>
+#include <dbdserver/debuda_implementation.h>
 #include <gtest/gtest.h>
 
 #include <map>
@@ -13,7 +14,7 @@ constexpr int DEFAULT_TEST_SERVER_PORT = 6669;
 
 // Simple implementation of tt::dbd::server that simulates real server.
 // For every write combination, read of the same communication will return that result.
-class simulation_server : public tt::dbd::server {
+class simulation_implementation : public tt::dbd::debuda_implementation {
    private:
     std::map<std::tuple<uint8_t, uint8_t, uint8_t, uint64_t>, uint32_t> read_write_4;
     std::map<std::tuple<uint8_t, uint8_t, uint8_t, uint64_t, uint32_t>, std::vector<uint8_t>> read_write;
@@ -103,7 +104,7 @@ static void call_python_empty_server(const std::string& python_args, int port = 
 }
 
 static void call_python_server(const std::string& python_args, int port = DEFAULT_TEST_SERVER_PORT) {
-    simulation_server server;
+    tt::dbd::server server(std::make_unique<simulation_implementation>());
     server.start(port);
     ASSERT_TRUE(server.is_connected());
     std::string python_tests_path = "dbd/server/unit_tests/test_server.py";

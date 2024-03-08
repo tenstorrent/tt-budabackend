@@ -14,6 +14,7 @@ Options:
   --verbose                       Print verbose output.
   --test                          Exits with non-zero exit code on any exception.
   --debuda-server-address=<addr>  IP address of debuda server. [default: localhost:5555]
+  --local                         Use pybind library instead of debuda server. This argument overwrites --debuda-server-address with localhost:0. Note that this option does not support dumping tiles and always opens ALL available devices.
 
 Description:
     Debuda parses the build output files and reads the device state to provide a debugging interface for the user.
@@ -35,7 +36,6 @@ except ModuleNotFoundError as e:
     traceback.print_exc()
     print(f"Try:\033[31m pip install -r dbd/requirements.txt; make dbd \033[0m")
     exit(1)
-
 
 # Add the current directory to the path. This is so that dynamically-loaded debuda_commands can import the files in
 # the application directory.
@@ -562,7 +562,11 @@ def main():
             util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
 
     # Try to connect to the server. If it is not already running, it will be started.
-    print(f"Connecting to Debuda server at {args['--debuda-server-address']}")
+    if args["--local"]:
+        print(f"Using pybin library instead of debuda server.")
+        args["--debuda-server-address"] = "localhost:0"
+    else:
+        print(f"Connecting to Debuda server at {args['--debuda-server-address']}")
     server_ifc = tt_device.init_server_communication(
         args["--server-cache"],
         args["--debuda-server-address"],
@@ -606,8 +610,5 @@ def main():
     sys.exit(exit_code)
 
 
-EXECUTING_FROM_PYBUDA_WHEEL = True
-
 if __name__ == "__main__":
-    EXECUTING_FROM_PYBUDA_WHEEL = False
     main()
