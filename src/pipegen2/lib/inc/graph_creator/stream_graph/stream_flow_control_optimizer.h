@@ -28,10 +28,5 @@ private:
     // depending on whether `dest_buffer_size_bytes` is large enough to receive all the data.
     // Also sets the `dest_data_buf_no_flow_ctrl` flag on the destination stream node.
     void set_no_flow_control(StreamNode* source_stream, PhaseId start_phase_id, bool no_flow_control);
-
-    // Finds phase config with given phase id in the given vector of phase configs. Asserts if given phase_id was
-    // found in the list of phase configs.
-    static std::vector<PhaseConfig>::iterator find_phase_config_by_phase_id(
-        std::vector<PhaseConfig>& phase_configs, PhaseId phase_id);
 };
 } // namespace pipegen2

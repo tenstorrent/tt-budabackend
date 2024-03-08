@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "graph_creator/stream_graph/stream_flow_control_optimizer.h"
 
+#include "graph_creator/stream_graph/stream_graph_creator.h"
+
 namespace pipegen2
 {
 void StreamFlowControlOptimizer::optimize_stream_graph_flow_control(StreamGraph* stream_graph)
@@ -80,28 +82,8 @@ void StreamFlowControlOptimizer::set_no_flow_control(StreamNode* source_stream,
         // Find the phase config in the dest stream node that corresponds to the start_phase_id. Set
         // data_buf_no_flow_ctrl to given value for all phase configs up to the phase where next_phase_dest_change is
         // set to true.
-        auto dest_phase_iter = find_phase_config_by_phase_id(dest->get_phase_configs(), source_phase_config.phase_id);
+        auto dest_phase_iter = StreamGraphCreator::find_phase_config_by_phase_id(dest->get_phase_configs(), source_phase_config.phase_id);
         dest_phase_iter->config.set_data_buf_no_flow_ctrl(no_flow_control);
     }
-}
-
-std::vector<PhaseConfig>::iterator StreamFlowControlOptimizer::find_phase_config_by_phase_id(
-    std::vector<PhaseConfig>& phase_configs,
-    PhaseId phase_id)
-{
-    // The below functionality is the same as content of binary_search as stated in the C++ standard.
-    // The binary_search function sadly doesn't return the iterator to the found element.
-    // Bellow code should be faster than std::find for larger vectors.
-    auto equal_or_higher = std::lower_bound(phase_configs.begin(),
-                                            phase_configs.end(),
-                                            phase_id,
-                                            [](const PhaseConfig& phase_config, PhaseId phase_id)
-                                            {
-                                                return phase_config.phase_id < phase_id;
-                                            });
-    log_assert(equal_or_higher != phase_configs.end() && equal_or_higher->phase_id == phase_id,
-               "Expected to find at least one phase config with phase_id equal to {}", phase_id);
-
-    return equal_or_higher;
 }
 } // namespace pipegen2

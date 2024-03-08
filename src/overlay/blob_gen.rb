@@ -1127,30 +1127,6 @@ end
 ######
 
 FileUtils.mkdir_p "#{$PARAMS[:blob_out_dir]}"
-  
-sender_dummy_phase_num_dest = {}
-phase_info.each do |yx_label, streams|
-  chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d\d*)__x_(\d\d*)/).last.map {|str| str.to_i }
-  streams.each do |stream_id, phases|
-    yx_stream_label = (yx_label.to_s + "__stream_id_" + stream_id.to_s).to_sym
-    phase_nums = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id]
-    num_phases = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id].length
-    sender_dummy_phase_num_dest[yx_stream_label] = {}
-    for p in 0..(num_phases-1) do
-      phase = phases[phase_nums[p]]
-      next_phase = (p == (num_phases-1)) ? nil : phases[phase_nums[p+1]]
-      prev_phase = (p == 0) ? nil : phases[phase_nums[p-1]]
-
-      if (phase[:remote_receiver])
-        if !sender_dummy_phase_num_dest[yx_stream_label].key?(phase[:dest])
-          sender_dummy_phase_num_dest[yx_stream_label][phase[:dest]] = 1
-        else
-          sender_dummy_phase_num_dest[yx_stream_label][phase[:dest]] = sender_dummy_phase_num_dest[yx_stream_label][phase[:dest]] + 1
-        end
-      end
-    end
-  end
-end
 
 # *** epoch_info dict definition and init ***
 # Example
@@ -1244,8 +1220,6 @@ phase_info.each do |yx_label, streams|
     phase_nums = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id]
     num_phases = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id].length
     last_phase = phases[phase_nums[num_phases-1]]
-    sender_has_dummy_phase = Set[]
-    receiver_has_dummy_phase = Set[]
     curr_blob_start_offset = curr_blob_relative_offset
     scatter_prev_phase = {}
 
@@ -1488,19 +1462,12 @@ phase_info.each do |yx_label, streams|
 
       is_pipe_scatter = phase[:is_scatter_pack] && phase[:scatter_order_size] && phase[:scatter_order_size] > 1
 
-      has_dummy_phase_sender = sender_dummy_phase_num_dest[yx_stream_label].key?(phase[:dest]) && 
-                               sender_dummy_phase_num_dest[yx_stream_label][phase[:dest]] == 1 && sender_dummy_phase_num_dest[yx_stream_label].size() == 1 &&
-                               !sender_has_dummy_phase.include?(phase[:dest])
-      if (has_dummy_phase_sender)
-        sender_has_dummy_phase.add(phase[:dest])
-      end
-      has_dummy_phase_receiver = sender_dummy_phase_num_dest.key?(phase[:src][0]) && 
-                                 sender_dummy_phase_num_dest[phase[:src][0]].size() == 1 && sender_dummy_phase_num_dest[phase[:src][0]].values[0] == 1 &&
-                                 !receiver_has_dummy_phase.include?(phase[:src])
-      if (has_dummy_phase_receiver)
-        receiver_has_dummy_phase.add(phase[:src])
-      end
+      has_dummy_phase_sender = phase[:follow_by_sender_dummy_phase]
+      has_dummy_phase_receiver = phase[:follow_by_receiver_dummy_phase]
       has_dummy_phase = has_dummy_phase_sender || has_dummy_phase_receiver
+      if $verbose == 1 && has_dummy_phase
+        pp ("#{yx_stream_label}, phase #{phase_nums[p]} has dummy phase")
+      end
 
       num_mblock_buffering = phase[:num_mblock_buffering] ? phase[:num_mblock_buffering] : 1
       mblock_base_addr = phase[:buf_base_addr]

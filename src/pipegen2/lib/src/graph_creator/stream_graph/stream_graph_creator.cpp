@@ -80,6 +80,8 @@ namespace pipegen2
             optimize_stream_graph_flow_control(stream_graph.get());
         }
 
+        insert_dummy_phases(stream_graph_collection.get());
+
         StreamResourcesAllocator stream_resources_allocator(resource_manager);
         stream_resources_allocator.allocate_resources(stream_graph_collection.get());
 
@@ -92,6 +94,26 @@ namespace pipegen2
         add_epoch_offset_to_stream_phases(stream_graph_collection.get(), epoch_num);
 
         return stream_graph_collection;
+    }
+
+    std::vector<PhaseConfig>::iterator StreamGraphCreator::find_phase_config_by_phase_id(
+        std::vector<PhaseConfig>& phase_configs,
+        const PhaseId phase_id)
+    {
+        // The below functionality is the same as content of binary_search as stated in the C++ standard.
+        // The binary_search function sadly doesn't return the iterator to the found element.
+        // Bellow code should be faster than std::find for larger vectors.
+        auto equal_or_higher = std::lower_bound(phase_configs.begin(),
+                                                phase_configs.end(),
+                                                phase_id,
+                                                [](const PhaseConfig& phase_config, PhaseId phase_id)
+                                                {
+                                                    return phase_config.phase_id < phase_id;
+                                                });
+        log_assert(equal_or_higher != phase_configs.end() && equal_or_higher->phase_id == phase_id,
+                   "Expected to find at least one phase config with phase_id equal to {}", phase_id);
+
+        return equal_or_higher;
     }
 
     std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>
@@ -383,6 +405,59 @@ namespace pipegen2
     {
         StreamFlowControlOptimizer stream_flow_control_optimizer;
         stream_flow_control_optimizer.optimize_stream_graph_flow_control(stream_graph);
+    }
+
+    void StreamGraphCreator::insert_dummy_phases(StreamGraphCollection* stream_graph_collection)
+    {
+        // Insert dummy phases (indication for dummy phase, blobgen will insert the binary blob for the dummy phase) on
+        // source streams when they are connected to a remote receiver stream and the source stream has only one phase.
+        // Additionally, insert dummy phase on the destination streams of the source stream.
+        //
+        // TODO: When we have single phase but flow control is enabled we will insert dummy phases. However this looks
+        // unnecessary. Try to remove this logic and see if it breaks anything. To do that, we need to make sure to have
+        // race condition reproducible.
+        for (const std::unique_ptr<StreamGraph>& stream_graph : stream_graph_collection->get_stream_graphs())
+        {
+            for (const std::unique_ptr<StreamNode>& stream_node : stream_graph->get_streams())
+            {
+                if (!stream_node->get_base_config().get_remote_receiver().value_or(false))
+                {
+                    // Stream has not a remote receiver, so we don't need to insert dummy phase.
+                    continue;
+                }
+
+                std::vector<PhaseConfig>& phase_configs = stream_node->get_phase_configs();
+                if (phase_configs.size() > 1)
+                {
+                    // Stream has more than one phase, so we don't need to insert dummy phase.
+                    continue;
+                }
+
+                StreamConfig& phase_config = phase_configs[0].config;
+                phase_config.set_follow_by_sender_dummy_phase(true);
+
+                log_assert(phase_config.get_dest().has_value(),
+                           "Expected to find dest in phase config when remote receiver is set");
+
+                // Set dummy phase on the destination streams.
+                for (StreamNode* dest_stream : phase_config.get_dest().value())
+                {
+                    auto phase_iter = find_phase_config_by_phase_id(dest_stream->get_phase_configs(),
+                                                                    phase_configs[0].phase_id);
+                    phase_iter->config.set_follow_by_receiver_dummy_phase(true);
+
+                    // Set the flag on the next phase to false, so that we don't insert more dummy phases.
+                    // Set it only if the next phase exists.
+                    // Set it only if next phase was not already set (by some previous sender).
+                    ++phase_iter;
+                    if (phase_iter != dest_stream->get_phase_configs().end() &&
+                        !phase_iter->config.get_follow_by_receiver_dummy_phase().has_value())
+                    {
+                        phase_iter->config.set_follow_by_receiver_dummy_phase(false);
+                    }
+                }
+            }
+        }
     }
     
     void StreamGraphCreator::unroll_stream_graph(StreamGraph* stream_graph, const unsigned int max_unroll_factor)

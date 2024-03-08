@@ -30,6 +30,12 @@ namespace pipegen2
             ResourceManager* resource_manager,
             const int epoch_num);
 
+        // Finds phase config with given phase id in the given vector of phase configs. Throws exception if
+        // given phase_id was not found in the list of phase configs.
+        static std::vector<PhaseConfig>::iterator find_phase_config_by_phase_id(
+            std::vector<PhaseConfig>& phase_configs,
+            const PhaseId phase_id);
+
     private:
         // Creates streams for each pipe in a rational graph.
         std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>
@@ -90,6 +96,16 @@ namespace pipegen2
         
         // Calls flow control optimizer for this stream graph.
         void optimize_stream_graph_flow_control(StreamGraph* stream_graph);
+
+        // Inserts indicators for dummy phases at appropriate places in the stream graph. Dummy phase may be used on
+        // sender or receiver side of the stream. It is used to mitigate possible race condition.
+        // Explanation: Streams exchange AreYouReady (sent by sender) and DestReady (sent by receiver) messages to make
+        // sure that both sides are ready to start the transfer. In cases when flow control is OFF or when phase
+        // consists of a single tile, stream will not flush all those messages. It is possible that sender starts a new
+        // FW iteration and sees an old DestReady message from the previous iteration. This should be prevented. To work
+        // around this issue, we insert dummy phases on both sides which will send flow control messages and thus flush
+        // all the messages on the communication channel.
+        static void insert_dummy_phases(StreamGraphCollection* stream_graph_collection);
 
         // Unrolls data transfer iterations for each stream in the stream graph as much as possible.
         void unroll_stream_graph(StreamGraph* stream_graph, unsigned int max_unroll_factor);

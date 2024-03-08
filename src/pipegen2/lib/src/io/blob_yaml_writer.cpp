@@ -255,6 +255,8 @@ namespace pipegen2
         write_optionally("dram_writes_with_cmd_buf", stream_config.get_dram_writes_with_cmd_buf());
         write_optionally("eth_sender", stream_config.get_eth_sender());
         write_optionally("eth_receiver", stream_config.get_eth_receiver());
+        write_optionally("follow_by_receiver_dummy_phase", stream_config.get_follow_by_receiver_dummy_phase());
+        write_optionally("follow_by_sender_dummy_phase", stream_config.get_follow_by_sender_dummy_phase());
         write_optionally("fork_stream_ids", stream_config.get_fork_streams(), &BlobYamlWriter::get_stream_ids_string);
         write_optionally("has_packer_mcast_opt", stream_config.get_has_packer_mcast_opt());
         write_optionally("hw_tilize", stream_config.get_hw_tilize());
