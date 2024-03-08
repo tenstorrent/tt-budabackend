@@ -4,6 +4,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """
 Testing between pipegen2 from master and pipegen2 with your changes.
+
+Example commands (from repo root):
+    mkdir -p out/netlists
+    cp verif/graph_tests/netlists/netlist_softmax_single_tile.yaml out/netlists/
+    verif/pipegen_tests/build_all_archs.sh
+    cp build_archs/wormhole_b0/bin/pipegen2 build_archs/wormhole_b0/bin/pipegen2_master
+    verif/pipegen_tests/create_env.sh
+    source verif/pipegen_tests/env/bin/activate
+    python3 verif/pipegen_tests/pipegen_refactor_test.py --command filter \
+        --out out --netlists out/netlists \
+        --arch wormhole_b0 --builds-dir build_archs
+    python3 verif/pipegen_tests/pipegen_refactor_test.py --command test \
+        --yamls out/filtered_yamls --out out/pipegen_refactor_test_output \
+        --arch wormhole_b0 --builds-dir build_archs --pipegens-bin-dir build_archs/wormhole_b0/bin
 """
 from __future__ import annotations
 
@@ -21,7 +35,7 @@ from blob_comparator import BlobComparator, StreamGraphComparisonStrategy
 from pipegen_yaml_filter import *
 from ruamel.yaml import YAML
 
-from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_net2pipe import generate_net2pipe_outputs
 from verif.common.runner_pipegen import PIPEGEN_MASTER_BIN_NAME, run_pipegen
 from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
 from verif.common.test_utils import (
@@ -29,9 +43,6 @@ from verif.common.test_utils import (
     create_or_clean_dir,
     get_epoch_dir,
     get_logger,
-    get_netlist_arch,
-    get_netlist_name,
-    print_warning,
     setup_logger,
 )
 
@@ -73,26 +84,12 @@ def init_run_pipegens_sync_var(pipegen_count: mp.Value):
     pipegen_run_count = pipegen_count
 
 
-def init_run_net2pipes_sync_var(net2pipe_count: mp.Value):
-    global net2pipe_run_count
-    net2pipe_run_count = net2pipe_count
-
-
 def init_global_sync_vars(
     netlist_count: dict[DeviceArchs, mp.Value], pipegen_yamls_value: mp.Value
 ):
     global filtered_netlists_count_sync, filtered_pipegen_yamls_count_sync
     filtered_netlists_count_sync = netlist_count
     filtered_pipegen_yamls_count_sync = pipegen_yamls_value
-
-
-def write_cmd_logs(log_path: str, commands: list[str], retcodes: list[int]):
-    with open(log_path, "a+") as log_file:
-        for idx, command in enumerate(commands):
-            log_file.write(f"{command}\n")
-            retcode = retcodes[idx]
-            if retcode:
-                log_file.write(f"Command failed with error code: {retcode}\n")
 
 
 # TODO remove the old func when filtering switches to logger too.
@@ -116,78 +113,6 @@ def write_cmd_logs_v2(pipegen_run_results: list[PipegenRunResult]):
                 f"Command {pipegen_run_result.pipegen_command} failed with error"
                 f" code: {pipegen_run_result.pipegen_retcode}"
             )
-
-
-def _run_net2pipe_worker(
-    netlist_path: str, net2pipe_out_dir: str, builds_dir: str, total_netlist_count: int
-) -> Tuple[int, str]:
-    netlist_path = netlist_path
-    archs = get_netlist_arch(netlist_path)
-
-    for arch in archs:
-        if not DeviceArchs.is_valid_arch(arch):
-            continue
-
-        # Expecting to find subfolders for different architectures inside builds_dir.
-        bin_dir = f"{builds_dir}/{arch}/bin"
-        assert os.path.exists(bin_dir)
-
-        netlist_out_dir = f"{net2pipe_out_dir}/{arch}/{get_netlist_name(netlist_path)}"
-
-        retcode, net2pipe_cmd = run_net2pipe(
-            netlist_path, netlist_out_dir, arch, bin_dir
-        )
-
-    with net2pipe_run_count.get_lock():
-        net2pipe_run_count.value += 1
-        local_net2pipe_run_count = net2pipe_run_count.value
-
-    if local_net2pipe_run_count > 0 and local_net2pipe_run_count % 100 == 0:
-        print(
-            f"Finished running net2pipe on {local_net2pipe_run_count} / {total_netlist_count} netlists"
-        )
-
-    if retcode != 0:
-        os.system(f"rm -rf {netlist_out_dir}")
-
-    return retcode, net2pipe_cmd
-
-
-def generate_net2pipe_outputs(
-    netlists_dir: str, net2pipe_out_dir: str, builds_dir: str
-):
-    netlist_paths = [
-        f"{netlists_dir}/{netlist_name}" for netlist_name in os.listdir(netlists_dir)
-    ]
-    total_netlist_count = len(netlist_paths)
-    net2pipe_run_sync_var = mp.Value("i", 0)
-
-    with mp.Pool(
-        initializer=init_run_net2pipes_sync_var, initargs=(net2pipe_run_sync_var,)
-    ) as pool:
-        net2pipe_run_results = pool.starmap(
-            _run_net2pipe_worker,
-            zip(
-                netlist_paths,
-                repeat(net2pipe_out_dir),
-                repeat(builds_dir),
-                repeat(total_netlist_count),
-            ),
-        )
-
-    netlist_retcodes = [
-        net2pipe_run_res[0] for net2pipe_run_res in net2pipe_run_results
-    ]
-    netlist_commands = [
-        net2pipe_run_res[1] for net2pipe_run_res in net2pipe_run_results
-    ]
-
-    if any(retcode > 0 for retcode in netlist_retcodes):
-        print_warning("Some of the netlists failed on net2pipe, see log!")
-
-    write_cmd_logs(
-        f"{net2pipe_out_dir}/net2pipe.log", netlist_commands, netlist_retcodes
-    )
 
 
 def filter_netlist_yamls(
@@ -365,16 +290,7 @@ def filter_yamls(
     num_samples: int,
 ):
     net2pipe_out_dir = os.path.join(out_dir, NET2PIPE_OUT_DIR_NAME)
-    if not os.path.exists(net2pipe_out_dir):
-        # Optimization to reuse generated net2pipe outputs.
-        # Delete the folder manually if you want net2pipe outputs regenerated.
-
-        # Create subdir for each supported arch.
-        for arch in DeviceArchs.get_all_archs():
-            os.makedirs(f"{net2pipe_out_dir}/{arch}")
-
-        generate_net2pipe_outputs(netlists_dir, net2pipe_out_dir, builds_dir)
-        print(f"Net2pipe outputs generated.\n")
+    generate_net2pipe_outputs(netlists_dir, net2pipe_out_dir, builds_dir)
 
     filtered_yamls_dir_per_arch = {}
     for arch in DeviceArchs.get_all_archs():

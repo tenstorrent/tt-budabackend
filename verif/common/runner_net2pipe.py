@@ -6,15 +6,179 @@
 Functions for running net2pipe commands.
 """
 import os
+import random
+from dataclasses import dataclass
 
 from verif.common.runner_utils import (
     DEFAULT_BIN_DIR,
+    WorkerResult,
+    execute_in_parallel,
+    get_arch_bin_dir,
     get_cluster_descriptors,
     get_soc_file,
     run_cmd,
+    verify_builds_dir,
+)
+from verif.common.test_utils import (
+    DeviceArchs,
+    find_all_files_in_dir,
+    get_netlist_arch,
+    get_netlist_name,
 )
 
 NET2PIPE_BIN_NAME = "net2pipe"
+
+
+def generate_net2pipe_outputs(
+    netlists_dir: str,
+    net2pipe_out_dir: str,
+    builds_all_archs_dir: str,
+    num_samples: int = -1,
+    netlists_to_skip: list = [],
+    overwrite: bool = False,
+):
+    """Runs net2pipe in parallel on all netlists in netlists_dir.
+
+    Parameters
+    ----------
+    netlists_dir: str
+        Directory with netlists to run net2pipe on.
+    net2pipe_out_dir: str
+        Output directory.
+    builds_all_archs_dir: str
+        Directory with built binaries per arch.
+    num_samples: int
+        Number of netlists to process.
+        -1 will process all netlist.
+        The sample is randomized, so for a given num_samples, the netlists chosen will be different.
+    netlists_to_skip: list
+        List of netlist names to skip explicitly.
+    overwrite: bool
+        Overwrite existing net2pipe outputs, even if the output folder exists.
+
+    Example of expected input and directory structures
+    --------------------------------------------------
+    .
+    |-- netlists_dir
+    |   |-- 1xlink.yaml
+    |   `-- netlist_programs1_nested_parallel_loops_single_epoch.yaml
+    `-- net2pipe_out_dir
+        |-- grayskull
+        |   |-- 1xlink
+        |   |   |-- netlist_queues.yaml
+        |   |   |-- padding_table.yaml
+        |   |   |-- reports
+        |   |   |   `-- op_to_pipe_map_temporal_epoch_0.yaml
+        |   |   `-- temporal_epoch_0
+        |   |       `-- overlay
+        |   |           |-- pipegen.yaml
+        |   |           |-- queue_to_consumer.yaml
+        |   |           `-- queue_to_producer.yaml
+        |   `-- netlist_programs1_nested_parallel_loops_single_epoch
+        |       |-- netlist_queues.yaml
+        |       |-- padding_table.yaml
+        |       |-- reports
+        |       |   |-- op_to_pipe_map_temporal_epoch_0.yaml
+        |       |   `-- op_to_pipe_map_temporal_epoch_1.yaml
+        |       |-- temporal_epoch_0
+        |       |   `-- overlay
+        |       |       |-- pipegen.yaml
+        |       |       |-- queue_to_consumer.yaml
+        |       |       `-- queue_to_producer.yaml
+        |       `-- temporal_epoch_1
+        |           `-- overlay
+        |               |-- pipegen.yaml
+        |               |-- queue_to_consumer.yaml
+        |               `-- queue_to_producer.yaml
+        |-- net2pipe.log
+        `-- wormhole_b0
+            `-- netlist_programs1_nested_parallel_loops_single_epoch
+                |-- netlist_queues.yaml
+                |-- padding_table.yaml
+                |-- reports
+                |   |-- op_to_pipe_map_temporal_epoch_0.yaml
+                |   `-- op_to_pipe_map_temporal_epoch_1.yaml
+                |-- temporal_epoch_0
+                |   `-- overlay
+                |       |-- pipegen.yaml
+                |       |-- queue_to_consumer.yaml
+                |       `-- queue_to_producer.yaml
+                `-- temporal_epoch_1
+                    `-- overlay
+                        |-- pipegen.yaml
+                        |-- queue_to_consumer.yaml
+                        `-- queue_to_producer.yaml
+    """
+
+    if os.path.exists(net2pipe_out_dir) and not overwrite:
+        # Optimization to reuse generated net2pipe outputs.
+        print(f"Skipping net2pipe workers, outputs already exist at {net2pipe_out_dir}")
+        return
+    print("Running net2pipe workers")
+
+    verify_builds_dir(builds_all_archs_dir)
+
+    all_worker_args = []
+
+    all_files = find_all_files_in_dir(netlists_dir, "*.yaml")
+    for netlist_path in all_files:
+        if get_netlist_name(netlist_path) in netlists_to_skip:
+            continue
+        # This runner adds another level of subdirectories to net2pipe_out_dir, related to arch.
+        for arch in DeviceArchs.get_all_archs():
+            netlist_relative_base_dir = os.path.dirname(netlist_path)
+            arch_dir = os.path.join(net2pipe_out_dir, arch)
+            os.makedirs(arch_dir, exist_ok=True)
+            output_dir = os.path.join(
+                arch_dir,
+                netlist_relative_base_dir,
+                get_netlist_name(netlist_path),
+            )
+
+            all_worker_args.append(
+                Net2PipeWorkerConfig(
+                    netlist_path=os.path.join(netlists_dir, netlist_path),
+                    net2pipe_out_dir=output_dir,
+                    arch=arch,
+                    builds_dir=get_arch_bin_dir(builds_all_archs_dir, arch),
+                )
+            )
+
+    if num_samples >= 0:
+        random.shuffle(all_worker_args)
+        all_worker_args = all_worker_args[:num_samples]
+        print(f"Choosing randomized {num_samples} netlists to run net2pipe on.")
+
+    execute_in_parallel(
+        _run_net2pipe_worker,
+        all_worker_args,
+        log_file=f"{net2pipe_out_dir}/net2pipe.log",
+    )
+
+
+@dataclass
+class Net2PipeWorkerConfig:
+    netlist_path: str
+    net2pipe_out_dir: str
+    arch: DeviceArchs
+    builds_dir: str
+
+
+def _run_net2pipe_worker(worker_config: Net2PipeWorkerConfig):
+    archs = get_netlist_arch(worker_config.netlist_path)
+    if worker_config.arch not in archs:
+        return WorkerResult(
+            f"Skipped {worker_config.netlist_path} as not compatible with {worker_config.arch}.",
+            0,
+        )
+
+    err, cmd = run_net2pipe(
+        worker_config.netlist_path,
+        worker_config.net2pipe_out_dir,
+        worker_config.arch,
+        worker_config.builds_dir,
+    )
+    return WorkerResult(cmd, err)
 
 
 def run_net2pipe(

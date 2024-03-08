@@ -6,6 +6,7 @@ Utility methods.
 """
 from __future__ import annotations
 
+import fnmatch
 import logging
 import os
 import threading
@@ -147,7 +148,7 @@ def get_netlist_arch(netlist_path: str) -> list[str]:
                 or devices_key not in yaml_dict
                 or arch_key not in yaml_dict[devices_key]
             ):
-                return None
+                return []
             arch = yaml_dict[devices_key][arch_key]
             if not type(arch) is list:
                 arch = [arch]
@@ -156,7 +157,7 @@ def get_netlist_arch(netlist_path: str) -> list[str]:
 
             return arch
     except:
-        return None
+        return []
 
 
 def extract_chip_ids_from_blob_yaml(blob_yaml_path: str) -> list[int]:
@@ -166,3 +167,30 @@ def extract_chip_ids_from_blob_yaml(blob_yaml_path: str) -> list[int]:
             if line.startswith("  chip_"):
                 chip_ids.add(line.split("_")[1])
     return list(chip_ids)
+
+
+def find_all_files_in_dir(root_path: str, file_filter: str) -> list[str]:
+    """
+    Traversed all files in given directory and its subdirectories and returns list of files which match given filter.
+
+    Parameters
+    ----------
+    root_path: str
+        Root path to start searching for files.
+    file_filter: str
+        File filter to match files using fnmatch module.
+
+    Return
+    ------
+    list[str]
+        Files passing the filter.
+        The files are returned with relative path from the root_path passed.
+    """
+    matches = []
+    for path, _, filenames in os.walk(root_path):
+        relative_path = os.path.relpath(path, root_path)
+        relative_filenames = [
+            os.path.join(relative_path, filename) for filename in filenames
+        ]
+        matches.extend(fnmatch.filter(relative_filenames, file_filter))
+    return matches
