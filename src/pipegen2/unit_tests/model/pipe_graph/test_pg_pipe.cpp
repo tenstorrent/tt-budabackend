@@ -449,58 +449,40 @@ TEST(Pipegen2_PGPipe, IsJoinIntermediatePipe_IsNotJoinIntermediatePipe)
 }
 
 /**********************************************************************************************************************
-    Tests for function: PGPipe::is_scatter_prefetch_post_tm
+    Tests for function: PGPipe::is_dram_prefetch_post_tm
 **********************************************************************************************************************/
 
 TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_IsScatterPrefetchPostTm)
 {
     PGPipe pg_pipe;
     PGBuffer input_buffer;
-    PGBuffer output_buffer;
     input_buffer.set_dram_buf_flag(true);
     input_buffer.set_dram_buf_streaming(false);
     input_buffer.set_operand_id(23); 
     input_buffer.set_prefetch_type(PrefetchType::POST_TM);
-    input_buffer.set_is_scatter(true);
-    output_buffer.set_dram_buf_flag(false);
     pg_pipe.add_input_buffer(&input_buffer);
-    pg_pipe.add_output_buffer(&output_buffer, 0);
-    EXPECT_TRUE(pg_pipe.is_scatter_prefetch_post_tm());
+    EXPECT_TRUE(pg_pipe.is_dram_prefetch_post_tm());
 }
 
 TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_IsNotScatterPrefetchPostTm)
 {
     PGPipe pg_pipe;
     PGBuffer input_buffer;
-    PGBuffer output_buffer;
     input_buffer.set_dram_buf_flag(false);
-    output_buffer.set_dram_buf_flag(false);
     pg_pipe.add_input_buffer(&input_buffer);
-    pg_pipe.add_output_buffer(&output_buffer, 0);
-    EXPECT_FALSE(pg_pipe.is_scatter_prefetch_post_tm());
+    EXPECT_FALSE(pg_pipe.is_dram_prefetch_post_tm());
 }
 
-TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_InputAndOutputAreScatterPostTm)
+TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_IsScatterPrefetchPreTm)
 {
     PGPipe pg_pipe;
-    PGBuffer input_buffer1;
-    PGBuffer input_buffer2;
-    input_buffer1.set_dram_buf_flag(true);
-    input_buffer1.set_dram_buf_streaming(false);
-    input_buffer1.set_operand_id(23); 
-    input_buffer1.set_prefetch_type(PrefetchType::POST_TM);
-    input_buffer1.set_is_scatter(true);
-    input_buffer2.set_dram_buf_flag(true);
-    input_buffer2.set_dram_buf_streaming(false);
-    input_buffer2.set_operand_id(23); 
-    input_buffer2.set_prefetch_type(PrefetchType::POST_TM);
-    input_buffer2.set_is_scatter(false);
-    pg_pipe.add_input_buffer(&input_buffer1);
-    pg_pipe.add_input_buffer(&input_buffer2);
-    verify_log_assert([&]()
-    {
-        pg_pipe.is_scatter_prefetch_post_tm();
-    }, "^Pipe can not mix scatter prefetch post-TM inputs with other types of inputs!.*");
+    PGBuffer input_buffer;
+    input_buffer.set_dram_buf_flag(true);
+    input_buffer.set_dram_buf_streaming(false);
+    input_buffer.set_operand_id(23); 
+    input_buffer.set_prefetch_type(PrefetchType::PRE_TM);
+    pg_pipe.add_input_buffer(&input_buffer);
+    EXPECT_FALSE(pg_pipe.is_dram_prefetch_post_tm());
 }
 
 /**********************************************************************************************************************

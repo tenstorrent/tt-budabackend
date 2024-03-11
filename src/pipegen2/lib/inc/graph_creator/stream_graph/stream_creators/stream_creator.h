@@ -32,12 +32,20 @@ namespace pipegen2
 
         // Configures stream that receives data from dram input and relays it to other streams.
         void configure_dram_relay_stream(const RGBasePipe* rg_pipe,
+                                         const DataFlowInfo& data_flow_info,
                                          const NcriscConfig& base_ncrisc_config,
-                                         const bool is_dram_prefetch,
+                                         const bool is_dram_prefetch_post_tm,
                                          StreamNode* stream);
 
         // Configures stream that receives data over NOC to the unpacker.
         void configure_noc_to_unpacker_stream(const UnpackerOutputNode* unpacker_node, StreamNode* stream);
+
+         // Configures unpacker stream that receives data from dram, if it is post TM prefetch.
+        void configure_dram_to_unpacker_prefetch_post_tm_stream(const RGBasePipe* rg_pipe,
+                                                                const DataFlowInfo& data_flow_info,
+                                                                const NcriscConfig& base_ncrisc_config,
+                                                                const UnpackerOutputNode* unpacker_node,
+                                                                StreamNode* stream);
 
         // Returns true if it is possible to configure single stream to handle given transfer from dram to unpacker,
         // false otherwise.
@@ -49,7 +57,6 @@ namespace pipegen2
         // Configures unpacker stream that receives data from dram.
         void configure_dram_to_unpacker_stream(const RGBasePipe* rg_pipe,
                                                const NcriscConfig& base_ncrisc_config,
-                                               const bool is_dram_prefetch,
                                                const UnpackerOutputNode* unpacker_node,
                                                StreamNode* stream);
 
@@ -235,6 +242,12 @@ namespace pipegen2
 
         // Returns true if the packer is sending data to pipe's outgoing noc.
         bool is_packer_stream_sending_to_pipe_output_noc(const RGBasePipe* rg_pipe, const PackerInputNode* packer_node);
+
+        // Gets the size of the buffer for a prefetch pipe.
+        unsigned int get_prefetch_post_tm_dram_buffer_size_bytes( 
+            const RGBasePipe* pipe,
+            const DataFlowInfo& data_flow_info,
+            const NcriscConfig& ncrisc_config) const;
 
         // Minimum number of tiles a gather relay streams receives per input on worker cores.
         static constexpr unsigned int c_worker_gather_streamed_read_input_buffer_num_tiles = 4;

@@ -22,17 +22,16 @@
 namespace pipegen2
 {
     void StreamCreator::configure_dram_relay_stream(const RGBasePipe* rg_pipe,
+                                                    const DataFlowInfo& data_flow_info,
                                                     const NcriscConfig& base_ncrisc_config,
-                                                    const bool is_dram_prefetch,
+                                                    const bool is_dram_prefetch_post_tm,
                                                     StreamNode* stream)
     {
         StreamConfig& base_stream_config = stream->get_base_config();
 
         log_assert(base_ncrisc_config.dram_buf_read_chunk_size_tiles.has_value(),
                    "NCRISC config was not properly configured");
-
-        base_stream_config.set_buffer_size(base_ncrisc_config.dram_buf_read_chunk_size_tiles.value() *
-                                           base_ncrisc_config.msg_size);
+        
         base_stream_config.set_data_auto_send(true);
         base_stream_config.set_dram_buf_noc_addr(base_ncrisc_config.dram_buf_noc_addr);
         base_stream_config.set_dram_input(true);
@@ -58,9 +57,18 @@ namespace pipegen2
         // This field will be computed later in StreamGraphCreator.
         base_stream_config.set_ptrs_not_zero(false);
         base_stream_config.set_remote_receiver(true);
-        base_stream_config.set_resend(is_dram_prefetch);
+        base_stream_config.set_resend(is_dram_prefetch_post_tm);
         base_stream_config.set_source_endpoint(true);
         base_stream_config.set_vc(rg_pipe->get_outgoing_noc_vc());
+
+        const unsigned int dram_buffer_size_bytes = is_dram_prefetch_post_tm ? 
+                                                    get_prefetch_post_tm_dram_buffer_size_bytes(rg_pipe, 
+                                                                                                data_flow_info,
+                                                                                                base_ncrisc_config) :
+                                                    base_ncrisc_config.dram_buf_read_chunk_size_tiles.value() *
+                                                    base_ncrisc_config.msg_size;
+
+        base_stream_config.set_buffer_size(dram_buffer_size_bytes);
     }
 
     void StreamCreator::configure_noc_to_unpacker_stream(const UnpackerOutputNode* unpacker_node, StreamNode* stream)
@@ -165,9 +173,23 @@ namespace pipegen2
             constants::eth_pipe_reduce_mem_usage_threshold_bytes : constants::pipe_reduce_mem_usage_threshold_bytes;
     }
 
+    void StreamCreator::configure_dram_to_unpacker_prefetch_post_tm_stream(const RGBasePipe* rg_pipe,
+                                                                           const DataFlowInfo& data_flow_info,
+                                                                           const NcriscConfig& base_ncrisc_config,
+                                                                           const UnpackerOutputNode* unpacker_node,
+                                                                           StreamNode* stream)
+    {
+        configure_dram_to_unpacker_stream(rg_pipe, base_ncrisc_config, unpacker_node, stream);
+        StreamConfig& base_stream_config = stream->get_base_config();
+        const unsigned int dram_buffer_size_bytes = get_prefetch_post_tm_dram_buffer_size_bytes(rg_pipe, 
+                                                                                                data_flow_info,
+                                                                                                base_ncrisc_config);
+        base_stream_config.set_buffer_size(dram_buffer_size_bytes);
+        base_stream_config.set_resend(true);
+    }
+
     void StreamCreator::configure_dram_to_unpacker_stream(const RGBasePipe* rg_pipe,
                                                           const NcriscConfig& base_ncrisc_config,
-                                                          const bool is_dram_prefetch,
                                                           const UnpackerOutputNode* unpacker_node,
                                                           StreamNode* stream)
     {
@@ -187,7 +209,8 @@ namespace pipegen2
         base_stream_config.set_pipe_scatter_output_loop_count(1);
         // This field will be computed later in StreamGraphCreator.
         base_stream_config.set_ptrs_not_zero(false);
-        base_stream_config.set_resend(is_dram_prefetch);
+        // This field will be updated if it is prefetch, as needed.
+        base_stream_config.set_resend(false);
         base_stream_config.set_source_endpoint(true);
         base_stream_config.set_tile_clear_granularity(unpacker_node->get_transfer_granularity());
         base_stream_config.set_overlay_blob_extra_size(unpacker_node->get_overlay_blob_extra_size());
@@ -1025,5 +1048,15 @@ namespace pipegen2
         base_config.opt_set_local_receiver(std::nullopt);
         base_config.opt_set_local_receiver_tile_clearing(std::nullopt);
         base_config.opt_set_dram_input_no_push(std::nullopt);
+    }
+
+    unsigned int StreamCreator::get_prefetch_post_tm_dram_buffer_size_bytes( 
+    const RGBasePipe* pipe,
+    const DataFlowInfo& data_flow_info,
+    const NcriscConfig& ncrisc_config) const
+    {
+        const unsigned int total_num_msgs = data_flow_info.get_tiles_to_send(pipe->get_first_dram_input_node()) *
+                                            ncrisc_config.dram_scatter_offsets_full_size.value();
+        return total_num_msgs * ncrisc_config.msg_size;
     }
 }

@@ -250,25 +250,13 @@ namespace pipegen2
                  m_inputs[1].get_buffer()->is_intermediate_operand()));
     }
 
-    bool PGPipe::is_scatter_prefetch_post_tm() const
+    bool PGPipe::is_dram_prefetch_post_tm() const
     {
-        bool pipe_has_scatter_prefetch_post_tm_inputs = std::any_of(
+        return std::any_of(
             m_inputs.begin(), m_inputs.end(), [](const PGPipe::Input& pipe_input)
             {
-                return pipe_input.get_buffer()->is_scatter_prefetch_post_tm();
+                return pipe_input.get_buffer()->is_dram_prefetch_post_tm();
             });
-
-        bool pipe_has_non_scatter_prefetch_post_tm_inputs = std::any_of(
-            m_inputs.begin(), m_inputs.end(), [](const PGPipe::Input& pipe_input)
-            {
-                return !pipe_input.get_buffer()->is_scatter_prefetch_post_tm();
-            });
-
-        log_assert(pipe_has_scatter_prefetch_post_tm_inputs != pipe_has_non_scatter_prefetch_post_tm_inputs,
-                   "Pipe can not mix scatter prefetch post-TM inputs with other types of inputs!");
-
-        // If pipe has some scatter prefetch post TM inputs, they all are such, due to the assert above.
-        return pipe_has_scatter_prefetch_post_tm_inputs;
     }
 
 }

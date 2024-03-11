@@ -384,9 +384,6 @@ namespace pipegen2
         // Returns true if buffer is a DRAM prefetch Pre-TM buffer.
         bool is_dram_prefetch_pre_tm() const;
 
-        // Returns true if buffer is scatter DRAM prefetch Post-TM buffer.
-        bool is_scatter_prefetch_post_tm() const;
-
         // Returns true if buffer is input from DRAM.
         bool is_dram_input() const;
 

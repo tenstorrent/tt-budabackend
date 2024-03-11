@@ -6,6 +6,8 @@
 #include <numeric>
 #include <unordered_set>
 
+#include "model/rational_graph/nodes/dram_input_node.h"
+
 #include "pipegen2_utils.h"
 
 namespace pipegen2
@@ -88,6 +90,15 @@ namespace pipegen2
         log_assert(input_nodes.size() == 1, "Expecting only a single unique node at the pipe input");
 
         return input_nodes[0];
+    }
+
+    const DramInputNode* RGBasePipe::get_first_dram_input_node() const
+    {
+        const DramInputNode* dram_input_node = dynamic_cast<const DramInputNode*>(
+            get_inputs()[0].get_non_virtual_node());
+        log_assert(dram_input_node != nullptr, "Expecting DRAM input node at the pipe input");
+
+        return dram_input_node;
     }
 
     const RGBaseNode* RGBasePipe::get_output_node() const

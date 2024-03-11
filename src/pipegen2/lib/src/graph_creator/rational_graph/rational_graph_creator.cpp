@@ -27,6 +27,7 @@
 #include "model/rational_graph/nodes/virtual_node.h"
 #include "model/rational_graph/nodes/shared_packer_intermed_node.h"
 #include "model/rational_graph/pipes/direct/dram_output_intermed_pipe.h"
+#include "model/rational_graph/pipes/direct/dram_prefetch_post_tm_unicast_pipe.h"
 #include "model/rational_graph/pipes/direct/dram_tilizer_pipe.h"
 #include "model/rational_graph/pipes/direct/dram_unicast_pipe.h"
 #include "model/rational_graph/pipes/direct/ethernet_fw_relay_pipe.h"
@@ -39,6 +40,7 @@
 #include "model/rational_graph/pipes/direct/unicast_to_pcie_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_parallel_fork_pipe.h"
+#include "model/rational_graph/pipes/fork/dram_prefetch_post_tm_multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_prefetch_pre_tm_parallel_fork_pipe.h"
 #include "model/rational_graph/pipes/fork/multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/padding_serial_fork_pipe.h"
@@ -48,6 +50,7 @@
 #include "model/rational_graph/pipes/join/dormant_relay_pipe.h"
 #include "model/rational_graph/pipes/join/dram_embedding_pipe.h"
 #include "model/rational_graph/pipes/join/dram_gather_pipe.h"
+#include "model/rational_graph/pipes/join/dram_prefetch_post_tm_gather_pipe.h"
 #include "model/rational_graph/pipes/join/gather_pipe.h"
 #include "model/rational_graph/pipes/join/gather_to_dram_pipe.h"
 #include "model/rational_graph/pipes/join/gather_to_pcie_pipe.h"
@@ -581,6 +584,14 @@ namespace pipegen2
                                                             pipe_physical_location,
                                                             pg_pipe_output->get_tilize_row_col_offset());
         }
+        else if (subgraph_pipe->is_dram_prefetch_post_tm())
+        {
+            direct_pipe = std::make_unique<DramPrefetchPostTMUnicastPipe>(std::move(rg_pipe_properties),
+                                                            subgraph_pipe->get_dram_pipe_total_readers(),
+                                                            subgraph_pipe->get_dram_pipe_reader_index(),
+                                                            subgraph_pipe->get_op_input_dram_io_buf_size_tiles(),
+                                                            pipe_physical_location);
+        }
         else if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
         {
             direct_pipe = std::make_unique<DramUnicastPipe>(std::move(rg_pipe_properties),
@@ -681,7 +692,16 @@ namespace pipegen2
         const std::vector<PGBuffer*>& pg_pipe_outputs = subgraph_pipe->get_output_buffers()[scatter_index];
         RGPipeProperties rg_pipe_properties = create_rg_pipe_properties_from_pg_pipe(subgraph_pipe);
 
-        if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
+        if (subgraph_pipe->is_dram_prefetch_post_tm())
+        {
+            fork_pipe = std::make_unique<DramPrefetchPostTMMulticastPipe>(
+                std::move(rg_pipe_properties),
+                subgraph_pipe->get_dram_pipe_total_readers(),
+                subgraph_pipe->get_dram_pipe_reader_index(),
+                subgraph_pipe->get_op_input_dram_io_buf_size_tiles(),
+                pipe_physical_location);
+        }
+        else if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
         {
             fork_pipe = std::make_unique<DramMulticastPipe>(
                 std::move(rg_pipe_properties),
@@ -736,6 +756,14 @@ namespace pipegen2
         else if (subgraph_pipe->is_join_intermediate_pipe())
         {
             join_pipe = std::make_unique<SharedPackerIntermedPipe>(subgraph_pipe->get_id());
+        }
+        else if (subgraph_pipe->is_dram_prefetch_post_tm())
+        {
+            join_pipe = std::make_unique<DramPrefetchPostTMGatherPipe>(std::move(rg_pipe_properties),
+                                                            subgraph_pipe->get_dram_pipe_total_readers(),
+                                                            subgraph_pipe->get_dram_pipe_reader_index(),
+                                                            subgraph_pipe->get_op_input_dram_io_buf_size_tiles(),
+                                                            pipe_physical_location);
         }
         else if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
         {

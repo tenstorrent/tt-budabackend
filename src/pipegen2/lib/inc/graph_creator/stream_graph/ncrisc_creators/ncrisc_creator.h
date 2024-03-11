@@ -7,6 +7,7 @@
 
 #include "device/soc_info.h"
 #include "model/data_flow/data_flow_info.h"
+#include "model/rational_graph/nodes/dram_input_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
 #include "model/stream_graph/ncrisc_config.h"
 
@@ -35,15 +36,25 @@ namespace pipegen2
                                                                const unsigned int max_dram_input_buffer_size_tiles,
                                                                const SoCInfo* soc_info);
 
+        // Create a list of NCRISC configs used to read data from DRAM in post TM prefetch mode. Each unique input of 
+        // the given pipe is assigned with a unique config.
+        std::vector<NcriscConfig> configure_prefetch_post_tm_dram_ncrisc_reader(
+                                                                    const DataFlowInfo& data_flow_info,
+                                                                    const RGBasePipe* rg_pipe,
+                                                                    const std::vector<int>& input_total_readers,
+                                                                    const std::vector<int>& input_reader_index,
+                                                                    const unsigned int max_dram_input_buffer_size_tiles,
+                                                                    const SoCInfo* soc_info);
+
         // Creates list of NCRISC configs used to read data from DRAM for tilizer op. Each unique input of the given
         // pipe is assigned with a unique config.
         std::vector<NcriscConfig> configure_dram_tilizer_ncrisc_reader(
-            const DataFlowInfo& data_flow_info,
-            const RGBasePipe* rg_pipe,
-            const std::vector<int>& input_total_readers,
-            const std::vector<int>& input_reader_index,
-            const unsigned int max_dram_input_buffer_size_tiles,
-            const SoCInfo* soc_info);
+                                                                    const DataFlowInfo& data_flow_info,
+                                                                    const RGBasePipe* rg_pipe,
+                                                                    const std::vector<int>& input_total_readers,
+                                                                    const std::vector<int>& input_reader_index,
+                                                                    const unsigned int max_dram_input_buffer_size_tiles,
+                                                                    const SoCInfo* soc_info);
 
         // Creates NCRISC config used to read data from PCIe.
         NcriscConfig configure_pcie_ncrisc_reader(const DataFlowInfo& data_flow_info,
@@ -80,13 +91,15 @@ namespace pipegen2
     private:
         // Creates list of NCRISC configs used to read data from DRAM. Each unique input of the given pipe is assigned
         // with a unique config.
-        std::vector<NcriscConfig> configure_dram_ncrisc_reader(const DataFlowInfo& data_flow_info,
-                                                               const RGBasePipe* rg_pipe,
-                                                               const std::vector<int>& input_total_readers,
-                                                               const std::vector<int>& input_reader_index,
-                                                               const SoCInfo* soc_info,
-                                                               const unsigned int max_dram_input_buffer_size_tiles,
-                                                               const bool prepare_offsets_for_tilizer);
+        std::vector<NcriscConfig> configure_dram_io_or_prefetch_post_tm_ncrisc_reader(
+                                                                const DataFlowInfo& data_flow_info,
+                                                                const RGBasePipe* rg_pipe,
+                                                                const std::vector<int>& input_total_readers,
+                                                                const std::vector<int>& input_reader_index,
+                                                                const SoCInfo* soc_info,
+                                                                const unsigned int max_dram_input_buffer_size_tiles,
+                                                                const bool prepare_offsets_for_tilizer,
+                                                                const bool is_prefetch_post_tm);
 
         // Computes dram scatter offsets for all inputs of a given pipe. Scatter offsets for all inputs are placed into
         // first NCRISC config, because that's how blobgen expects to read them.
@@ -149,7 +162,9 @@ namespace pipegen2
                                                     const RGBasePipe* rg_pipe,
                                                     const SoCInfo* soc_info,
                                                     const unsigned int dram_buf_read_chunk_size_tiles,
-                                                    const unsigned int dram_scatter_chunk_size_tiles);
+                                                    const unsigned int dram_scatter_chunk_size_tiles,
+                                                    const bool is_prefetch_post_tm,
+                                                    const unsigned int dram_buf_size_factor);
 
         // Creates NCRISC config for reading.
         NcriscConfig create_ncrisc_read_config(const unsigned int num_msgs,
@@ -206,6 +221,10 @@ namespace pipegen2
         // Returns appropriate dram buffer NOC address depending whether buffer is remote_io or not.
         static std::uint64_t get_dram_buffer_noc_address(const DramNodeInterface* dram_node, ChipId chip_id,
                                                          const SoCInfo* soc_info);
+
+        // Return the appropriate buf size factor for the prefetch post TM case.
+        const unsigned int get_dram_buf_size_factor(const DramInputNode* first_dram_input_node, 
+                                                    bool is_prefetch_post_tm) const;
 
         // Flag indicating that a given dram scatter offset is read from the padding buffer.
         constexpr static std::uint64_t c_is_offset_padding_address_flag = 0x4000000000000000ULL;

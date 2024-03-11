@@ -65,7 +65,7 @@ void PostTMPipeHandler::handle(PipeGraph& pipe_graph)
 bool PostTMPipeHandler::can_do_post_tm_connections_optimization(const PGPipe* src_pipe)
 {
     // First pipe in connection has to have a single output and scatter DRAM prefetch post TM inputs.
-    if (!src_pipe->has_single_output() || !src_pipe->is_scatter_prefetch_post_tm())
+    if (!src_pipe->has_single_output() || !src_pipe->is_dram_prefetch_post_tm())
     {
         return false;
     }

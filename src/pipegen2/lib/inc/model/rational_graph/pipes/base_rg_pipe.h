@@ -16,6 +16,7 @@ namespace pipegen2
 {
     class RGBaseNode;
     class UnpackerOutputNode;
+    class DramInputNode;
 
     // Enumerates different types of rational graph pipes.
     // Warning: Don't use this type in your logic to check for certain pipe type if that could lead to your logic not
@@ -30,9 +31,11 @@ namespace pipegen2
         DramOutputIntermed,
         SharedPackerIntermed,
         DramMulticast,
+        DramPrefetchPostTMMulticast,
         Multicast,
         DramParallelFork,
         DramPrefetchPreTMParallelFork,
+        DramPrefetchPostTMUnicast,
         ParallelFork,
         SerialFork,
         PaddingSerialFork,
@@ -40,6 +43,7 @@ namespace pipegen2
         DramEmbedding,
         Gather,
         GatherToDram,
+        DramPrefetchPostTMGather,
         Relay,
         PCIeUnicast,
         UnicastToPCIe,
@@ -288,6 +292,9 @@ namespace pipegen2
 
         // Returns total number of tiles to transfer that is accumulated from all inputs.
         virtual int get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const;
+
+        // Gets the first dram input node of a RG pipe.
+        const DramInputNode* get_first_dram_input_node() const;
 
     protected:
         RGBasePipe(RGPipeType pipe_type,

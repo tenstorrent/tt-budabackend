@@ -190,11 +190,6 @@ bool PGBuffer::is_dram_prefetch_pre_tm() const
     return is_dram_prefetch() && m_prefetch_type == PrefetchType::PRE_TM;
 }
 
-bool PGBuffer::is_scatter_prefetch_post_tm() const
-{
-    return m_is_scatter && is_dram_prefetch_post_tm();
-}
-
 bool PGBuffer::is_dram_output() const
 {
     return is_dram();

@@ -18,21 +18,53 @@
 
 namespace pipegen2
 {
+
+    std::vector<std::unique_ptr<StreamNode>> DramReadCommonStreamsCreator::create_dram_prefetch_post_tm_input_stream(
+        const RGBasePipe* pipe,
+        const DataFlowInfo& data_flow_info,
+        const unsigned int max_dram_input_buffer_size_tiles,
+        std::vector<NcriscConfig>&& ncrisc_configs)
+    {
+        const UnpackerOutputNode* unpacker_node = get_unpacker_output_node(pipe);
+        std::vector<std::unique_ptr<StreamNode>> created_streams;
+        
+        if (unpacker_node)
+        {
+            created_streams.push_back(create_dram_prefetch_post_tm_to_unpacker_stream(pipe, 
+                                                                                      unpacker_node, 
+                                                                                      data_flow_info, 
+                                                                                      std::move(ncrisc_configs)));
+        }
+        else
+        {
+            created_streams.push_back(create_dram_relay_stream(pipe, 
+                                                               data_flow_info, 
+                                                               ncrisc_configs[0], 
+                                                               true /* is_dram_prefetch_post_tm */));
+        }
+
+        const DramInputNode* dram_input_node = pipe->get_first_dram_input_node();
+        unsigned int max_num_tiles_per_phase = data_flow_info.get_max_num_tiles_per_phase(pipe->get_output_node());
+        configure_dram_receiving_stream(
+            created_streams[0].get(), std::move(ncrisc_configs), pipe, dram_input_node, data_flow_info,
+            false /* should_scale_up_stream */, max_dram_input_buffer_size_tiles, max_num_tiles_per_phase);
+        
+        return created_streams;
+    }
+
     std::vector<std::unique_ptr<StreamNode>> DramReadCommonStreamsCreator::create_dram_input_streams(
         const RGBasePipe* pipe,
         const DataFlowInfo& data_flow_info,
         const unsigned int max_dram_input_buffer_size_tiles,
         std::vector<NcriscConfig>&& ncrisc_configs)
     {
-        const DramInputNode* dram_input_node = dynamic_cast<const DramInputNode*>(
-            pipe->get_inputs()[0].get_non_virtual_node());
-        log_assert(dram_input_node != nullptr, "Expecting DRAM input node at the pipe input");
+        const DramInputNode* dram_input_node = pipe->get_first_dram_input_node();
 
         const UnpackerOutputNode* unpacker_node = get_unpacker_output_node(pipe);
 
         std::vector<std::unique_ptr<StreamNode>> created_streams = create_dram_or_pcie_to_unpacker_streams(
-            pipe, ncrisc_configs[0], dram_input_node->is_dram_prefetch(), max_dram_input_buffer_size_tiles,
-            unpacker_node);
+            pipe, ncrisc_configs[0], dram_input_node->is_dram_prefetch_post_tm(), max_dram_input_buffer_size_tiles,
+            unpacker_node, data_flow_info);
 
         // Whether we can use single stream to transfer data from DRAM to unpacker.
         const bool can_use_single_unpacker_stream = created_streams.size() == 1 && unpacker_node;
@@ -117,7 +149,8 @@ namespace pipegen2
         log_assert(unpacker_node != nullptr, "Expecting unpacker node at the PCIe pipe output");
 
         std::vector<std::unique_ptr<StreamNode>> created_streams = create_dram_or_pcie_to_unpacker_streams(
-            pipe, ncrisc_config, false /* is_dram_prefetch */, 0 /* max_dram_input_buffer_size_tiles */, unpacker_node);
+            pipe, ncrisc_config, false /* is_dram_prefetch_post_tm */, 0 /* max_dram_input_buffer_size_tiles */, unpacker_node,
+            data_flow_info);
 
         const bool can_use_single_unpacker_stream = created_streams.size() == 1;
         const bool should_scale_up_stream = !can_use_single_unpacker_stream;
@@ -145,12 +178,10 @@ namespace pipegen2
         std::vector<NcriscConfig>&& ncrisc_configs,
         unsigned int& max_num_tiles_per_phase)
     {
-        const DramInputNode* dram_input_node = dynamic_cast<const DramInputNode*>(
-            pipe->get_inputs()[0].get_non_virtual_node());
-        log_assert(dram_input_node != nullptr, "Expecting DRAM input node at the pipe input");
+        const DramInputNode* dram_input_node = pipe->get_first_dram_input_node();
 
         std::unique_ptr<StreamNode> multicast_stream =
-            create_dram_or_pcie_multicast_stream(pipe, ncrisc_configs[0], dram_input_node->is_dram_prefetch());
+            create_dram_or_pcie_multicast_stream(pipe, ncrisc_configs[0], dram_input_node->is_dram_prefetch_post_tm());
 
         max_num_tiles_per_phase = data_flow_info.get_max_num_tiles_per_phase(pipe->get_output_nodes()[0]);
 
@@ -173,7 +204,7 @@ namespace pipegen2
         log_assert(pcie_streaming_node, "Expecting a PCIe streaming node at the pipe input");
 
         std::unique_ptr<StreamNode> multicast_stream =
-            create_dram_or_pcie_multicast_stream(pipe, ncrisc_config, false /* is_dram_prefetch */);
+            create_dram_or_pcie_multicast_stream(pipe, ncrisc_config, false /* is_dram_prefetch_post_tm */);
 
         max_num_tiles_per_phase = data_flow_info.get_max_num_tiles_per_phase(pipe->get_output_nodes()[0]);
 
@@ -256,9 +287,10 @@ namespace pipegen2
     std::vector<std::unique_ptr<StreamNode>> DramReadCommonStreamsCreator::create_dram_or_pcie_to_unpacker_streams(
         const RGBasePipe* pipe,
         const NcriscConfig& base_ncrisc_config,
-        const bool is_dram_prefetch,
+        const bool is_dram_prefetch_post_tm,
         const unsigned int max_dram_input_buffer_size_tiles,
-        const UnpackerOutputNode* unpacker_node)
+        const UnpackerOutputNode* unpacker_node,
+        const DataFlowInfo& data_flow_info)
     {
         std::vector<std::unique_ptr<StreamNode>> created_streams;
 
@@ -269,16 +301,16 @@ namespace pipegen2
         if (can_use_single_unpacker_stream)
         {
             created_streams.push_back(
-                create_single_dram_to_unpacker_stream(pipe, base_ncrisc_config, is_dram_prefetch, unpacker_node));
+                create_single_dram_to_unpacker_stream(pipe, base_ncrisc_config, is_dram_prefetch_post_tm, unpacker_node));
         }
         else if (!unpacker_node)
         {
-            created_streams.push_back(create_dram_relay_stream(pipe, base_ncrisc_config, is_dram_prefetch));
+            created_streams.push_back(create_dram_relay_stream(pipe, data_flow_info, base_ncrisc_config, is_dram_prefetch_post_tm));
         }
         else
         {
             create_dram_to_unpacker_streams_with_relay(
-                pipe, base_ncrisc_config, is_dram_prefetch, unpacker_node, created_streams);
+                pipe, data_flow_info, base_ncrisc_config, is_dram_prefetch_post_tm, unpacker_node, created_streams);
         }
 
         return created_streams;
@@ -287,7 +319,7 @@ namespace pipegen2
     std::unique_ptr<StreamNode> DramReadCommonStreamsCreator::create_dram_or_pcie_multicast_stream(
         const RGBasePipe* pipe,
         const NcriscConfig& base_ncrisc_config,
-        const bool is_dram_prefetch)
+        const bool is_dram_prefetch_post_tm)
     {
         std::unique_ptr<StreamNode> multicast_stream = std::make_unique<StreamNode>(
             StreamType::Multicast,
@@ -295,7 +327,7 @@ namespace pipegen2
 
         // TODO: Can we use configure dram relay stream?
         m_stream_creator->configure_dram_multicast_stream(
-            pipe, is_dram_prefetch, base_ncrisc_config, multicast_stream.get());
+            pipe, is_dram_prefetch_post_tm, base_ncrisc_config, multicast_stream.get());
 
         return multicast_stream;
     }
@@ -303,7 +335,7 @@ namespace pipegen2
     std::unique_ptr<StreamNode> DramReadCommonStreamsCreator::create_single_dram_to_unpacker_stream(
         const RGBasePipe* pipe,
         const NcriscConfig& base_ncrisc_config,
-        const bool is_dram_prefetch,
+        const bool is_dram_prefetch_post_tm,
         const UnpackerOutputNode* unpacker_node)
     {
         std::unique_ptr<StreamNode> dram_to_unpacker_stream = std::make_unique<StreamNode>(
@@ -312,20 +344,21 @@ namespace pipegen2
             unpacker_node->get_operand_id());
 
         m_stream_creator->configure_dram_to_unpacker_stream(
-            pipe, base_ncrisc_config, is_dram_prefetch, unpacker_node, dram_to_unpacker_stream.get());
+            pipe, base_ncrisc_config, unpacker_node, dram_to_unpacker_stream.get());
 
         return dram_to_unpacker_stream;
     }
 
     void DramReadCommonStreamsCreator::create_dram_to_unpacker_streams_with_relay(
         const RGBasePipe* pipe,
+        const DataFlowInfo& data_flow_info,
         const NcriscConfig& base_ncrisc_config,
-        const bool is_dram_prefetch,
+        const bool is_dram_prefetch_post_tm,
         const UnpackerOutputNode* unpacker_node,
         std::vector<std::unique_ptr<StreamNode>>& created_streams)
     {
         std::unique_ptr<StreamNode> dram_relay_stream = create_dram_relay_stream(
-            pipe, base_ncrisc_config, is_dram_prefetch);
+            pipe, data_flow_info, base_ncrisc_config, is_dram_prefetch_post_tm);
         std::unique_ptr<StreamNode> relay_to_unpacker_stream = create_relay_to_unpacker_stream(pipe, unpacker_node);
 
         created_streams.push_back(std::move(dram_relay_stream));
@@ -334,17 +367,35 @@ namespace pipegen2
 
     std::unique_ptr<StreamNode> DramReadCommonStreamsCreator::create_dram_relay_stream(
         const RGBasePipe* pipe,
-        const NcriscConfig& base_ncrisc_config,
-        const bool is_dram_prefetch)
+        const DataFlowInfo& data_flow_info,
+        const NcriscConfig& ncrisc_config,
+        const bool is_dram_prefetch_post_tm)
     {
         std::unique_ptr<StreamNode> dram_relay_stream = std::make_unique<StreamNode>(
             StreamType::Relay,
             pipe->get_physical_location());
 
         m_stream_creator->configure_dram_relay_stream(
-            pipe, base_ncrisc_config, is_dram_prefetch, dram_relay_stream.get());
+            pipe, data_flow_info, ncrisc_config, is_dram_prefetch_post_tm, dram_relay_stream.get());
 
         return dram_relay_stream;
+    }
+
+    std::unique_ptr<StreamNode> DramReadCommonStreamsCreator::create_dram_prefetch_post_tm_to_unpacker_stream(
+                                                                            const RGBasePipe* pipe,
+                                                                            const UnpackerOutputNode* unpacker_node,
+                                                                            const DataFlowInfo& data_flow_info,
+                                                                            std::vector<NcriscConfig>&& ncrisc_configs)
+    {
+        std::unique_ptr<StreamNode> unpacker_stream = std::make_unique<StreamNode>(
+                                                                                StreamType::Unpacker,
+                                                                                unpacker_node->get_physical_location(),
+                                                                                unpacker_node->get_operand_id());
+
+        m_stream_creator->configure_dram_to_unpacker_prefetch_post_tm_stream(
+            pipe, data_flow_info, ncrisc_configs[0], unpacker_node, unpacker_stream.get());
+
+        return unpacker_stream;
     }
 
     std::unique_ptr<StreamNode> DramReadCommonStreamsCreator::create_relay_to_unpacker_stream(
@@ -411,11 +462,6 @@ namespace pipegen2
         configure_dram_or_pcie_receiving_stream(
             dram_receiving_stream, std::move(ncrisc_configs), pipe, dram_input_node, data_flow_info,
             max_num_tiles_per_phase);
-
-        if (dram_input_node->is_dram_prefetch_post_tm())
-        {
-            recalculate_prefetch_post_tm_buffer_size(dram_input_node, data_flow_info, dram_receiving_stream);
-        }
     }
 
     void DramReadCommonStreamsCreator::configure_pcie_receiving_stream(
@@ -588,35 +634,6 @@ namespace pipegen2
         return recalculated_max_num_tiles_per_phase;
     }
 
-    void DramReadCommonStreamsCreator::recalculate_prefetch_post_tm_buffer_size(
-        const DramInputNode* dram_input_node,
-        const DataFlowInfo& data_flow_info,
-        StreamNode* dram_stream)
-    {
-        StreamConfig& base_stream_config = dram_stream->get_base_config();
-        const NcriscConfig& base_ncrisc_config = dram_stream->get_base_ncrisc_config();
-
-        // Size of the dram receiving stream's buffer needs to be large enough so that the entire input tensor can fit,
-        // after all the TMs are applied. We can't simply accumulate all the dram input buffers' size in tiles, since
-        // we can have broadcast TMs which increase the number of tiles. To account for that, the total buffer size
-        // is computed as the product of one chunk of tiles which the input node sends (one scatter chunk), and the
-        // total number of those chunks (across all the inputs buffers). If there is a broadcast TM, the number of
-        // scatter chunks will be larger, and therefore the total buffer size will increase.
-        const unsigned int total_num_msgs = data_flow_info.get_tiles_to_send(dram_input_node) *
-                                            base_ncrisc_config.dram_scatter_offsets_full_size.value();
-        const unsigned int dram_buffer_size = total_num_msgs * base_ncrisc_config.msg_size;
-
-        base_stream_config.set_buffer_size(dram_buffer_size);
-        for (NcriscConfig& ncrisc_config: dram_stream->get_ncrisc_configs())
-        {
-            ncrisc_config.dram_buf_size_bytes *= dram_input_node->get_num_scatter_chunks();
-            ncrisc_config.dram_buf_size_tiles *= dram_input_node->get_num_scatter_chunks();
-            // TODO: Remove this later as the value of this field is not important, we set it to dram_buf_size_tiles
-            // to be the same as in pipegen v1.
-            ncrisc_config.dram_buf_read_chunk_size_tiles = ncrisc_config.dram_buf_size_tiles;
-        }
-    }
-
     std::vector<PhaseInfo> DramReadCommonStreamsCreator::get_flattened_input_phases(
         const RGBasePipe* pipe,
         const DataFlowInfo& data_flow_info)
@@ -691,4 +708,5 @@ namespace pipegen2
 
         return unpacker_stream;
     }
+
 }

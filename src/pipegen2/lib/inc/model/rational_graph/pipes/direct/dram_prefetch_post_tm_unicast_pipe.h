@@ -5,22 +5,21 @@
 
 #include <vector>
 
-#include "fork_pipe.h"
+#include "direct_pipe.h"
 #include "model/rational_graph/pipes/ncrisc_reader_pipe_interface.h"
 
 namespace pipegen2
 {
 
-class DramMulticastPipe : public ForkPipe, public INcriscReaderPipe
+class DramPrefetchPostTMUnicastPipe : public DirectPipe, public INcriscReaderPipe
 {
 public:
-    DramMulticastPipe(RGPipeProperties&& rg_pipe_properties,
-                        const std::vector<int>& dram_input_total_readers,
-                        const std::vector<int>& dram_input_reader_index,
-                        const unsigned int max_dram_input_buffer_size_tiles,
-                        const tt_cxy_pair& physical_location) :
-        ForkPipe(RGPipeType::DramMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties),
-                    physical_location),
+    DramPrefetchPostTMUnicastPipe(RGPipeProperties&& rg_pipe_properties,
+                    const std::vector<int>& dram_input_total_readers,
+                    const std::vector<int>& dram_input_reader_index,
+                    const unsigned int max_dram_input_buffer_size_tiles,
+                    const tt_cxy_pair& physical_location) :
+        DirectPipe(RGPipeType::DramPrefetchPostTMUnicast, std::move(rg_pipe_properties), physical_location),
         m_dram_input_total_readers(dram_input_total_readers),
         m_dram_input_reader_index(dram_input_reader_index),
         m_max_dram_input_buffer_size_tiles(max_dram_input_buffer_size_tiles)
@@ -35,9 +34,8 @@ public:
 
     std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
     {
-        // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
-        // to other cores.
-        return { get_physical_location() };
+        // One stream and one NCRISC config will be allocated at unpacker's location.
+        return { get_output_node()->get_physical_location() };
     }
 
 private:

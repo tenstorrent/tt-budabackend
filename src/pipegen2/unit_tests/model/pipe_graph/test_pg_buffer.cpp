@@ -163,7 +163,7 @@ TEST(Pipegen2_PGBuffer, IsDramInput_IsDramInputIsTrue)
 }
 
 /**********************************************************************************************************************
-    Tests for function: PGBuffer::is_scatter_prefetch_post_tm
+    Tests for function: PGBuffer::is_dram_prefetch_post_tm
 **********************************************************************************************************************/
 
 TEST(Pipegen2_PGBuffer, IsScatterPrefetchPostTm_IsScatterPrefetchPostTmIsFalse)
@@ -173,8 +173,7 @@ TEST(Pipegen2_PGBuffer, IsScatterPrefetchPostTm_IsScatterPrefetchPostTmIsFalse)
     pg_buffer.set_dram_buf_streaming(false);
     pg_buffer.set_operand_id(23); // Intermediate operands start at 24
     pg_buffer.set_prefetch_type(PrefetchType::POST_TM);
-    pg_buffer.set_is_scatter(false);
-    EXPECT_FALSE(pg_buffer.is_scatter_prefetch_post_tm());
+    EXPECT_TRUE(pg_buffer.is_dram_prefetch_post_tm());
 }
 
 TEST(Pipegen2_PGBuffer, IsScatterPrefetchPostTm_IsScatterPrefetchPostTmIsTrue)
@@ -183,9 +182,8 @@ TEST(Pipegen2_PGBuffer, IsScatterPrefetchPostTm_IsScatterPrefetchPostTmIsTrue)
     pg_buffer.set_dram_buf_flag(true);
     pg_buffer.set_dram_buf_streaming(false);
     pg_buffer.set_operand_id(23); // Intermediate operands start at 24
-    pg_buffer.set_prefetch_type(PrefetchType::POST_TM);
-    pg_buffer.set_is_scatter(true);
-    EXPECT_TRUE(pg_buffer.is_scatter_prefetch_post_tm());
+    pg_buffer.set_prefetch_type(PrefetchType::PRE_TM);
+    EXPECT_FALSE(pg_buffer.is_dram_prefetch_post_tm());
 }
 
 /**********************************************************************************************************************

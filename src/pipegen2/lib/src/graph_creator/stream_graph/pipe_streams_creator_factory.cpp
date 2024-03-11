@@ -9,6 +9,9 @@
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_multicast_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_output_intermed_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_parallel_fork_streams_creator.h"
+#include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_multicast_streams_creator.h"
+#include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_gather_streams_creator.h"
+#include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_unicast_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_pre_tm_parallel_fork_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_tilizer_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_unicast_streams_creator.h"
@@ -132,6 +135,11 @@ namespace pipegen2
             return create_generic_pipe_streams_creator<DramMulticastStreamsCreator>(
                 resource_manager, virt_node_to_stream_node);
         }
+        else if (pipe_type == RGPipeType::DramPrefetchPostTMMulticast)
+        {
+            return create_generic_pipe_streams_creator<DramPrefetchPostTMMulticastStreamsCreator>(
+                resource_manager, virt_node_to_stream_node);
+        }
         else if (pipe_type == RGPipeType::Multicast)
         {
             return create_generic_pipe_streams_creator<MulticastStreamsCreator>(
@@ -145,6 +153,11 @@ namespace pipegen2
         else if (pipe_type == RGPipeType::DramPrefetchPreTMParallelFork)
         {
             return create_generic_pipe_streams_creator<DramPrefetchPreTMParallelForkStreamsCreator>(
+                resource_manager, virt_node_to_stream_node);
+        }
+        else if (pipe_type == RGPipeType::DramPrefetchPostTMUnicast)
+        {
+            return create_generic_pipe_streams_creator<DramPrefetchPostTMUnicastStreamsCreator>(
                 resource_manager, virt_node_to_stream_node);
         }
         else if (pipe_type == RGPipeType::ParallelFork)
@@ -165,6 +178,11 @@ namespace pipegen2
         else if (pipe_type == RGPipeType::DramGather)
         {
             return create_generic_pipe_streams_creator<DramGatherStreamsCreator>(
+                resource_manager, virt_node_to_stream_node);
+        }
+        else if (pipe_type == RGPipeType::DramPrefetchPostTMGather)
+        {
+            return create_generic_pipe_streams_creator<DramPrefetchPostTMGatherStreamsCreator>(
                 resource_manager, virt_node_to_stream_node);
         }
         else if (pipe_type == RGPipeType::DramEmbedding)

@@ -277,7 +277,7 @@ namespace pipegen2
         bool is_join_intermediate_pipe() const;
 
         // Returns true if pipe only has scatter DRAM prefetch post TM inputs.
-        bool is_scatter_prefetch_post_tm() const;
+        bool is_dram_prefetch_post_tm() const;
 
     private:
         // Pipe id.

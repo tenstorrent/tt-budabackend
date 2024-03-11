@@ -32,8 +32,11 @@ namespace pipegen2
         const unsigned int max_dram_input_buffer_size_tiles,
         const SoCInfo* soc_info)
     {
-        return configure_dram_ncrisc_reader(data_flow_info, rg_pipe, input_total_readers, input_reader_index, soc_info,
-                                            max_dram_input_buffer_size_tiles, false /* prepare_offsets_for_tilizer */);
+        return configure_dram_io_or_prefetch_post_tm_ncrisc_reader(data_flow_info, rg_pipe, input_total_readers, 
+                                                                   input_reader_index, soc_info,
+                                                                   max_dram_input_buffer_size_tiles, 
+                                                                   false /* prepare_offsets_for_tilizer */,
+                                                                   false /* is_prefetch_post_tm */);
     }
 
     std::vector<NcriscConfig> NcriscCreator::configure_dram_tilizer_ncrisc_reader(
@@ -44,18 +47,37 @@ namespace pipegen2
         const unsigned int max_dram_input_buffer_size_tiles,
         const SoCInfo* soc_info)
     {
-        return configure_dram_ncrisc_reader(data_flow_info, rg_pipe, input_total_readers, input_reader_index, soc_info,
-                                            max_dram_input_buffer_size_tiles, true /* prepare_offsets_for_tilizer */);
+        return configure_dram_io_or_prefetch_post_tm_ncrisc_reader(data_flow_info, rg_pipe, input_total_readers, 
+                                                                   input_reader_index, soc_info,
+                                                                   max_dram_input_buffer_size_tiles, 
+                                                                   true /* prepare_offsets_for_tilizer */,
+                                                                   false /* is_prefetch_post_tm */);
     }
 
-    std::vector<NcriscConfig> NcriscCreator::configure_dram_ncrisc_reader(
+    std::vector<NcriscConfig> NcriscCreator::configure_prefetch_post_tm_dram_ncrisc_reader(
+        const DataFlowInfo& data_flow_info,
+        const RGBasePipe* rg_pipe,
+        const std::vector<int>& input_total_readers,
+        const std::vector<int>& input_reader_index,
+        const unsigned int max_dram_input_buffer_size_tiles,
+        const SoCInfo* soc_info)
+    {
+        return configure_dram_io_or_prefetch_post_tm_ncrisc_reader(data_flow_info, rg_pipe, input_total_readers, 
+                                                                   input_reader_index, soc_info,
+                                                                   max_dram_input_buffer_size_tiles, 
+                                                                   false /* prepare_offsets_for_tilizer */,
+                                                                   true /* is_prefetch_post_tm */);
+    }
+
+    std::vector<NcriscConfig> NcriscCreator::configure_dram_io_or_prefetch_post_tm_ncrisc_reader(
         const DataFlowInfo& data_flow_info,
         const RGBasePipe* rg_pipe,
         const std::vector<int>& input_total_readers,
         const std::vector<int>& input_reader_index,
         const SoCInfo* soc_info,
         const unsigned int max_dram_input_buffer_size_tiles,
-        const bool prepare_offsets_for_tilizer)
+        const bool prepare_offsets_for_tilizer,
+        const bool is_prefetch_post_tm)
     {
         std::vector<NcriscConfig> ncrisc_configs;
 
@@ -68,10 +90,16 @@ namespace pipegen2
         const unsigned int dram_scatter_chunk_size_tiles =
             calculate_dram_pipe_scatter_chunk_size(data_flow_info, rg_pipe);
 
+        const DramInputNode* first_dram_input_node =
+            dynamic_cast<const DramInputNode*>(rg_pipe->get_inputs()[0].get_non_virtual_node());
+        log_assert(first_dram_input_node, "Expected dram input node as input to the pipe");
+
         for (const RGBaseNode* input_node : unique_input_dram_nodes)
         {
             ncrisc_configs.emplace_back(create_dram_ncrisc_read_config(
-                input_node, rg_pipe, soc_info, dram_buf_read_chunk_size_tiles, dram_scatter_chunk_size_tiles));
+                input_node, rg_pipe, soc_info, dram_buf_read_chunk_size_tiles, 
+                dram_scatter_chunk_size_tiles, is_prefetch_post_tm, 
+                get_dram_buf_size_factor(first_dram_input_node, is_prefetch_post_tm)));
         }
 
         // Mapping from input node to the corresponding ncrisc config.
@@ -544,7 +572,9 @@ namespace pipegen2
                                                                const RGBasePipe* rg_pipe,
                                                                const SoCInfo* soc_info,
                                                                const unsigned int dram_buf_read_chunk_size_tiles,
-                                                               const unsigned int dram_scatter_chunk_size_tiles)
+                                                               const unsigned int dram_scatter_chunk_size_tiles,
+                                                               const bool is_prefetch_post_tm,
+                                                               const unsigned int dram_buf_size_factor)
     {
         const DramInputNode* dram_input_node =
             dynamic_cast<const DramInputNode*>(VirtualNode::get_non_virtual_node(input_node));
@@ -556,8 +586,8 @@ namespace pipegen2
         const unsigned int msg_size = dram_input_node->get_tile_size();
         const std::uint64_t dram_buf_noc_addr =
             get_dram_buffer_noc_address(dram_input_node, dram_input_node->get_physical_location().chip, soc_info);
-        const unsigned int dram_buf_size_tiles =
-            dram_input_node->get_size_tiles() * dram_input_node->get_num_queue_slots();
+        const unsigned int dram_buf_size_tiles = dram_input_node->get_size_tiles() * 
+            dram_input_node->get_num_queue_slots() * dram_buf_size_factor;
         const unsigned int dram_buf_size_bytes = dram_buf_size_tiles * msg_size;
 
         NcriscConfig ncrisc_config = create_ncrisc_read_config(
@@ -570,13 +600,20 @@ namespace pipegen2
             dram_buf_read_chunk_size_tiles,
             dram_input_node->get_is_ram(),
             dram_input_node->is_padding());
+        
+        // Update dram_buf_read_chunk_size_tiles if it is post TM.
+        // TODO: Remove this later as the value of this field is not important, but first check its impact. 
+        if (is_prefetch_post_tm)
+        {
+            ncrisc_config.dram_buf_read_chunk_size_tiles = ncrisc_config.dram_buf_size_tiles;
+        }
 
         ncrisc_config.dram_scatter_chunk_size_tiles = dram_scatter_chunk_size_tiles;
         if (dram_input_node->is_dram_io())
         {
             ncrisc_config.dram_io = true;
         }
-        if (dram_input_node->is_dram_prefetch_post_tm())
+        if (is_prefetch_post_tm)
         {
             ncrisc_config.prefetch_type = PrefetchType::POST_TM;
         }
@@ -787,5 +824,11 @@ namespace pipegen2
             soc_info->get_buffer_noc_address_through_pcie(dram_node->get_dram_address(), chip_id) :
             soc_info->get_dram_buffer_noc_address(dram_node->get_dram_address(), chip_id, dram_node->get_dram_channel(),
                                                   dram_node->get_dram_subchannel());
+    }
+
+    const unsigned int NcriscCreator::get_dram_buf_size_factor(const DramInputNode* first_dram_input_node, 
+                                                               bool is_prefetch_post_tm) const
+    {
+        return is_prefetch_post_tm ? first_dram_input_node->get_num_scatter_chunks() : 1;
     }
 }

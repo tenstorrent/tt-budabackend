@@ -26,6 +26,12 @@ namespace pipegen2
         {
         }
 
+        std::vector<std::unique_ptr<StreamNode>> create_dram_prefetch_post_tm_input_stream(
+            const RGBasePipe* pipe,
+            const DataFlowInfo& data_flow_info,
+            const unsigned int max_dram_input_buffer_size_tiles,
+            std::vector<NcriscConfig>&& ncrisc_configs);
+
         // Creates streams necessary to handle transfer from DRAM to Unpacker.
         std::vector<std::unique_ptr<StreamNode>> create_dram_input_streams(
             const RGBasePipe* pipe,
@@ -96,7 +102,8 @@ namespace pipegen2
             const NcriscConfig& base_ncrisc_config,
             const bool is_dram_prefetch,
             const unsigned int max_dram_input_buffer_size_tiles,
-            const UnpackerOutputNode* unpacker_node);
+            const UnpackerOutputNode* unpacker_node,
+            const DataFlowInfo& data_flow_info);
 
         // Creates stream which handles transfer from DRAM or PCIe to multiple Unpackers.
         std::unique_ptr<StreamNode> create_dram_or_pcie_multicast_stream(
@@ -114,6 +121,7 @@ namespace pipegen2
         // Creates combination of dram relay + unpacker streams to handle transfer from DRAM to Unpacker.
         void create_dram_to_unpacker_streams_with_relay(
             const RGBasePipe* pipe,
+            const DataFlowInfo& data_flow_info,
             const NcriscConfig& base_ncrisc_config,
             const bool is_dram_prefetch,
             const UnpackerOutputNode* unpacker_node,
@@ -122,7 +130,8 @@ namespace pipegen2
         // Creates relay stream to receive data from DRAM.
         std::unique_ptr<StreamNode> create_dram_relay_stream(
             const RGBasePipe* pipe,
-            const NcriscConfig& base_ncrisc_config,
+            const DataFlowInfo& data_flow_info,
+            const NcriscConfig& ncrisc_config,
             const bool is_dram_prefetch);
 
         // Creates unpacker stream to receive data from relay stream.
@@ -187,15 +196,6 @@ namespace pipegen2
                                                          unsigned int buffer_size_tiles,
                                                          unsigned int num_iters_in_epoch);
 
-        // Recalculate buffers size for dram receiving stream for the case of dram prefetch Post-TM to be the total
-        // number of messages that the stream receives. Also, update appropriate fields in ncrisc configs.
-        // TODO: Try to remove this after we are able to test perf on silicon. In the pipegen v1, for the case of
-        // prefetch post tm, stream merging is done the same way as for dram io case, but the values which are saved
-        // in the output blob yaml are different, so we need to recompute them here.
-        void recalculate_prefetch_post_tm_buffer_size(const DramInputNode* dram_input_node,
-                                                      const DataFlowInfo& data_flow_info,
-                                                      StreamNode* dram_stream);
-
         // Flattens phases from all the source buffers into a single vector in ascending order by phase offset.
         std::vector<PhaseInfo> get_flattened_input_phases(const RGBasePipe* pipe, const DataFlowInfo& data_flow_info);
 
@@ -219,6 +219,13 @@ namespace pipegen2
             const UnpackerOutputNode* unpacker_node,
             const DataFlowInfo& data_flow_info,
             const unsigned int max_num_tiles_per_phase);
+
+        // Configures unpacker stream receiving data from dram, in case of prefetch post TM.
+        std::unique_ptr<StreamNode> create_dram_prefetch_post_tm_to_unpacker_stream(
+            const RGBasePipe* pipe,
+            const UnpackerOutputNode* unpacker_node,
+            const DataFlowInfo& data_flow_info,
+            std::vector<NcriscConfig>&& ncrisc_configs);
 
         // Stream creator to use for creating streams.
         StreamCreator* m_stream_creator;

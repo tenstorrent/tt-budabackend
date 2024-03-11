@@ -3,24 +3,21 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <vector>
-
-#include "fork_pipe.h"
+#include "join_pipe.h"
 #include "model/rational_graph/pipes/ncrisc_reader_pipe_interface.h"
 
 namespace pipegen2
 {
 
-class DramMulticastPipe : public ForkPipe, public INcriscReaderPipe
+class DramPrefetchPostTMGatherPipe : public JoinPipe, public INcriscReaderPipe
 {
 public:
-    DramMulticastPipe(RGPipeProperties&& rg_pipe_properties,
-                        const std::vector<int>& dram_input_total_readers,
-                        const std::vector<int>& dram_input_reader_index,
-                        const unsigned int max_dram_input_buffer_size_tiles,
-                        const tt_cxy_pair& physical_location) :
-        ForkPipe(RGPipeType::DramMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties),
-                    physical_location),
+    DramPrefetchPostTMGatherPipe(RGPipeProperties&& rg_pipe_properties,
+                    const std::vector<int>& dram_input_total_readers,
+                    const std::vector<int>& dram_input_reader_index,
+                    const unsigned int max_dram_input_buffer_size_tiles,
+                    const tt_cxy_pair& physical_location) :
+        JoinPipe(RGPipeType::DramPrefetchPostTMGather, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location),
         m_dram_input_total_readers(dram_input_total_readers),
         m_dram_input_reader_index(dram_input_reader_index),
         m_max_dram_input_buffer_size_tiles(max_dram_input_buffer_size_tiles)
@@ -35,8 +32,8 @@ public:
 
     std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
     {
-        // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
-        // to other cores.
+        // One stream with multiple NCRISC configs (one for each DramInputNode stream reads) will be created at
+        // pipe's location.
         return { get_physical_location() };
     }
 
