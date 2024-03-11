@@ -296,17 +296,14 @@ unordered_map<string, core_descriptor> populate_cores_to_ops_for_graph(const tt_
                 int logical_x = grid_loc_x + x;
                 int logical_y = grid_loc_y + y;
 
-                core_descriptor core_desc;
                 int physical_x = soc_descriptor.worker_log_to_routing_x.at(logical_x);
                 int physical_y = soc_descriptor.worker_log_to_routing_y.at(logical_y);
                 
-                core_desc.physical_core_id = to_string(physical_x) + "-" + to_string(physical_y);
-                core_desc.op_name = op_name;
-                core_desc.op_type = op_info.type;
-                
-                string logical_core_str = to_string(logical_y) + "-" + to_string(logical_x);
-                core_desc.logical_core_id = logical_core_str;
-                core_to_op.insert(pair<string, core_descriptor>(core_desc.physical_core_id, core_desc));
+                tt_xy_pair physical_core(physical_x, physical_y);
+                tt_xy_pair logical_core(logical_x, logical_y);
+
+                core_descriptor core_desc(op_name, op_info.type, physical_core, logical_core);
+                core_to_op.insert({core_desc.get_core_str(CoordType::Physical), core_desc});
             }
         }
     }
@@ -319,8 +316,8 @@ json get_core_config_json(const unordered_map<string, core_descriptor> &core_to_
         json single_core_config;
         single_core_config["op-name"] = core_it.second.op_name;
         single_core_config["op-type"] = core_it.second.op_type;
-        single_core_config["logical-core-id"] = core_it.second.logical_core_id;
-        all_cores_config[core_it.second.physical_core_id] = single_core_config;
+        single_core_config["logical-core-id"] = core_it.second.get_core_str(CoordType::Logical, false);
+        all_cores_config[core_it.second.get_core_str(CoordType::Physical)] = single_core_config;
     }
     return all_cores_config;
 }

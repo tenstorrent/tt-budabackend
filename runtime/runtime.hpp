@@ -17,6 +17,10 @@ class tt_debuda_server;
 class tt_cluster;
 class netlist_program;
 
+namespace perf {
+    class MemoryProfiler;
+}
+
 /**
  * Buda runtime
  *
@@ -90,7 +94,7 @@ class tt_runtime : public tt_backend
     void create_graph_program(const tt_graph_info &graph_info);
     tt_compile_result create_graph_overlay_binaries();
     void update_graph_overlay_binaries();
-    std::unordered_map<chip_id_t, buda_soc_description> load_soc_descriptors_per_chip();
+    std::unordered_map<chip_id_t, buda_soc_description> load_soc_descriptors_per_chip(bool runtime_descriptor = false) const;
     void create_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip, tt_compile_result& compile_result);
     void update_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip);
     void load_parameter_and_constant_queues();
@@ -128,6 +132,12 @@ class tt_runtime : public tt_backend
     void perf_overlay_decouplings_update_epoch_command_start(uint device_id);
     void drain_perf_dram_buffers(bool last_drain);
     void finish_performance_trace();
+    void initialize_memory_profiler();
+    void add_graphs_to_memory_profiler();
+    void profile_reserved_l1_binary_buffers();
+    void profile_actual_l1_binary_buffers();
+    void finish_l1_profiling_for_graphs();
+    void create_memory_profiler_reports();
     void stop_debuda_server();
     void stop_log_server();
     void close_device();
@@ -144,6 +154,7 @@ class tt_runtime : public tt_backend
     tt_runtime_config config;
     std::vector<std::string> program_queue;
     std::unique_ptr<tt_debuda_server> debuda_server;
+    std::unique_ptr<perf::MemoryProfiler> memory_profiler;
 
     std::unique_ptr<postprocess::PerfHostScratchBuffer> perf_host_scratch_buffer;
     std::unique_ptr<postprocess::PerfHostPostprocessQueue> perf_postprocess_queue;

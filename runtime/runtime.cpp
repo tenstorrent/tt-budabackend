@@ -20,6 +20,7 @@
 #include "device/cpuset_lib.hpp"
 #include "common/model/tt_core.hpp"
 #include "perf_lib/perf_base.hpp"
+#include "perf_lib/memory_profiler.hpp"
 
 namespace fs = std::experimental::filesystem; // see comment above
 
@@ -211,6 +212,12 @@ tt_runtime::tt_runtime(const tt_runtime_config &config_in, const std::set<chip_i
         log_warning(tt::LogRuntime, "Setting backend optimization_level to 0, since performance_analyzer/overlay_decouplings is enabled");
         config.optimization_level = 0;
     }
+    if (config.l1_profiler_en) {
+        log_info(tt::LogPerfInfra, "Memory profiler is enabled");
+    }
+    else {
+        log_info(tt::LogPerfInfra, "Memory profiler is disabled");
+    }
     tt::io::info.output_dir = config.output_dir;
     std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     log_debug(tt::LogRuntime, "{} - Created tt_runtime on pid: {}", strtok(std::ctime(&time), "\n"), getpid());
@@ -267,6 +274,11 @@ tt_runtime::tt_runtime(const tt_runtime_config &config_in, const std::set<chip_i
     if (config.do_run()) {
         initialize_perf_state();
     }
+
+    if (config.l1_profiler_en) {
+        initialize_memory_profiler();
+    }
+    
 }
 
 tt_runtime::tt_runtime(const std::string &netlist_path, const tt_runtime_config &config) :
@@ -325,6 +337,10 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         // Static checks on netlist and graphs
         check_runtime_data();
         check_netlist_constraints();
+        // Handle eager runtime, check for new graphs and add them to the profiler on the fly
+
+        add_graphs_to_memory_profiler();
+        profile_reserved_l1_binary_buffers();
 
         backend_profiler.record_loader_event("COMPILE");
         if(config.do_compile() or config.perf_desc.always_compile() or need_overlay_recompile_during_run or need_risc_recompile_during_run) {
@@ -438,6 +454,12 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         if (cluster && config.do_run() && config.perf_desc.enabled()) {
             initialize_device_perf();
         }
+
+        profile_actual_l1_binary_buffers();
+
+        // At this point, all buffers for all graphs should have been added to the l1 profiler
+        finish_l1_profiling_for_graphs();
+
         export_runtime_data_to_yaml();
         return tt::DEVICE_STATUS_CODE::Success;
     }  catch (const std::exception &e) {
@@ -712,11 +734,11 @@ void tt_runtime::update_graph_overlay_binaries() {
     }, num_threads);
 }
 
-std::unordered_map<chip_id_t, buda_soc_description> tt_runtime::load_soc_descriptors_per_chip()
+std::unordered_map<chip_id_t, buda_soc_description> tt_runtime::load_soc_descriptors_per_chip(bool runtime_descriptor) const
 {
     std::unordered_map<chip_id_t, buda_soc_description> sdesc_per_chip;
-    for(auto &chip : workload_target_device_ids) {
-        sdesc_per_chip.insert({chip, *load_soc_descriptor_from_yaml(get_soc_desc_path(chip))});
+    for (const auto &chip : workload_target_device_ids) {
+        sdesc_per_chip.insert({chip, *load_soc_descriptor_from_yaml(get_soc_desc_path(chip, runtime_descriptor))});
     }
 
     return sdesc_per_chip;
@@ -731,7 +753,6 @@ void tt_runtime::create_temporal_epoch_overlay_binaries(
     int global_epoch_id = compiled_epochs + temporal_epoch;
 
     const std::unordered_set<std::string> &graph_names = workload.get_graphs_of_temporal_graph(temporal_epoch);
-
     std::vector<chip_id_t> chip_ids;
     for (const string &graph_name : graph_names) {
         chip_id_t chip_id = this->workload.get_graph_chip(graph_name);
@@ -749,7 +770,7 @@ void tt_runtime::create_temporal_epoch_overlay_binaries(
                          soc_descriptor_path;
 
     run_pipegen(config.output_dir, *(graph_names.begin()), global_epoch_id, chip_ids, config.perf_desc,
-                file_to_use, sdesc_per_chip, compile_result);
+                file_to_use, sdesc_per_chip, compile_result, memory_profiler.get());
 }
 
 void tt_runtime::update_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip) {
@@ -1140,6 +1161,7 @@ void tt_runtime::stop_log_server() {
     }
 }
 
+
 // Read the dram performance buffers from all chips and run the postprocessor
 void tt_runtime::finish_performance_trace() {
 
@@ -1169,6 +1191,234 @@ void tt_runtime::run_performance_check() {
     }
     if (config.do_run() && config.perf_desc.enabled()) {
         log_assert(cluster->perf_state.get_perf_check(), "Performance check failed for one or more instructions. Check for errors in test log for more detail");
+    }
+}
+
+void tt_runtime::initialize_memory_profiler() {
+    if (config.l1_profiler_en) {
+        memory_profiler = std::make_unique<perf::MemoryProfiler>(load_soc_descriptors_per_chip(true), config.l1_profiler_en);
+    }
+}
+
+void tt_runtime::add_graphs_to_memory_profiler() {
+    if (config.l1_profiler_en and memory_profiler) {
+        const unordered_map<chip_id_t, buda_soc_description> sdesc_per_chip = load_soc_descriptors_per_chip(true);
+        for (uint temporal_epoch_id = 0; temporal_epoch_id < workload.get_number_of_temporal_graphs(); temporal_epoch_id++) {
+            uint global_epoch_id = compiled_epochs + temporal_epoch_id;
+            for (const string &graph_name : workload.get_graphs_of_temporal_graph(temporal_epoch_id)) {
+                log_assert(workload.graphs.find(graph_name) != workload.graphs.end(), "{}: Unexpected non-existant graph {} in workload", __FUNCTION__, graph_name);
+                const tt_digraph &graph = workload.graphs.at(graph_name);
+                const chip_id_t target_device = graph.my_graph_info.target_device;
+                log_assert(sdesc_per_chip.find(target_device) != sdesc_per_chip.end(), "{}: Unexpected non-existant soc descriptor for graph {} device {}", __FUNCTION__, graph_name, target_device);
+                memory_profiler->add_graph(sdesc_per_chip.at(target_device), graph, global_epoch_id);
+            }
+        }
+        memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::Initialized);
+    }
+}
+
+void tt_runtime::profile_reserved_l1_binary_buffers() {
+    if (config.l1_profiler_en and memory_profiler) {
+        // we don't know the actual consumed size of the binaries yet
+        int placeholder_consumed_size = -1;
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "NCRISC_FW",
+            l1_mem::address_map::NCRISC_FIRMWARE_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::NCRISC_FIRMWARE_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+    
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "BRISC_FW",
+            l1_mem::address_map::FIRMWARE_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::BRISC_FIRMWARE_SIZE + l1_mem::address_map::ZEROS_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "TRISC0",
+            l1_mem::address_map::TRISC0_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::TRISC0_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "TRISC1",
+            l1_mem::address_map::TRISC1_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::TRISC1_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "TRISC2",
+            l1_mem::address_map::TRISC2_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::TRISC2_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "RUNTIME_CONFIG",
+            l1_mem::address_map::EPOCH_RUNTIME_CONFIG_BASE,
+            placeholder_consumed_size,
+            l1_mem::address_map::EPOCH_RUNTIME_CONFIG_SIZE,
+            perf::L1ProfileStage::ReservedBinaries
+        );
+
+        memory_profiler->broadcast_add_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "OVERLAY_BLOB",
+            l1_mem::address_map::OVERLAY_BLOB_BASE,
+            placeholder_consumed_size,
+            // account for extra overlay blob memory reservation
+            dram_mem::address_map::OVERLAY_FULL_BLOB_SIZE(),
+            perf::L1ProfileStage::ReservedBinaries
+        );
+        memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::ReservedBinaries);
+    }
+}
+
+void tt_runtime::profile_actual_l1_binary_buffers() {
+    if (config.l1_profiler_en and loader and memory_profiler) {
+        // All hexes have physical coordinates
+        perf::CoordType coord_type = perf::CoordType::Physical;
+        
+        // All binaries have the same FW
+        // epoch_loader:send_static_binaries
+        const tt_epoch_program_info &first_info = loader->graph_to_epoch_map.begin()->second;
+        const std::shared_ptr<tt_epoch_binary> first_binary = first_info.binary;
+        memory_profiler->broadcast_update_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "NCRISC_FW",
+            l1_mem::address_map::NCRISC_FIRMWARE_BASE,
+            l1_mem::address_map::NCRISC_FIRMWARE_BASE,
+            first_binary->ncrisc_vec.size() * sizeof(uint32_t),
+            l1_mem::address_map::NCRISC_FIRMWARE_SIZE,
+            perf::L1ProfileStage::ActualBinaries
+        );
+
+        // BRISC hex contains zeros, compare against l1_mem::address_map::BRISC_FIRMWARE_SIZE + l1_mem::address_map::ZEROS_SIZE
+        memory_profiler->broadcast_update_buffer_l1(
+            perf::L1BufferType::BinaryBuffer,
+            "BRISC_FW",
+            l1_mem::address_map::FIRMWARE_BASE,
+            l1_mem::address_map::FIRMWARE_BASE,
+            first_binary->brisc_vec.size() * sizeof(uint32_t),
+            l1_mem::address_map::BRISC_FIRMWARE_SIZE + l1_mem::address_map::ZEROS_SIZE,
+            perf::L1ProfileStage::ActualBinaries
+        );
+
+        for (const string &graph_name : workload.graph_order) {
+            tt_hex *hex;
+            chip_id_t target_device = workload.get_graph_chip(graph_name);
+            log_assert(loader->graph_to_epoch_map.find(graph_name) != loader->graph_to_epoch_map.end(), "{}: loader->graph_to_epoch_map does not have graph {}", __FUNCTION__, graph_name);
+            const tt_epoch_program_info &info = loader->graph_to_epoch_map.at(graph_name);
+            const std::shared_ptr<tt_epoch_binary> bin = info.binary;
+            for (int hex_id = 0; hex_id < bin->number_of_tensix_hex_images(); hex_id++) {
+                hex = &(bin->trisc0_bin_vec[hex_id]);
+                // Part of trisc binaries get written into trisc local mem region
+                // thus directly compare trisc binary size against reserved region
+                memory_profiler->update_buffer_of_graph_l1(
+                    graph_name, 
+                    tt_cxy_pair(target_device, hex->associated_routing_core),
+                    perf::L1BufferType::BinaryBuffer,
+                    "TRISC0",
+                    l1_mem::address_map::TRISC0_BASE,
+                    l1_mem::address_map::TRISC0_BASE,
+                    hex->hex_vec.size() * sizeof(uint32_t),
+                    l1_mem::address_map::TRISC0_SIZE,
+                    coord_type,
+                    perf::L1ProfileStage::ActualBinaries
+                );
+
+                hex = &(bin->trisc1_bin_vec[hex_id]);
+                memory_profiler->update_buffer_of_graph_l1(
+                    graph_name, 
+                    tt_cxy_pair(target_device, hex->associated_routing_core),
+                    perf::L1BufferType::BinaryBuffer,
+                    "TRISC1",
+                    l1_mem::address_map::TRISC1_BASE,
+                    l1_mem::address_map::TRISC1_BASE,
+                    hex->hex_vec.size() * sizeof(uint32_t),
+                    l1_mem::address_map::TRISC1_SIZE,
+                    coord_type,
+                    perf::L1ProfileStage::ActualBinaries
+                );
+
+                hex = &(bin->trisc2_bin_vec[hex_id]);
+                memory_profiler->update_buffer_of_graph_l1(
+                    graph_name, 
+                    tt_cxy_pair(target_device, hex->associated_routing_core),
+                    perf::L1BufferType::BinaryBuffer,
+                    "TRISC2",
+                    l1_mem::address_map::TRISC2_BASE,
+                    l1_mem::address_map::TRISC2_BASE,
+                    hex->hex_vec.size() * sizeof(uint32_t),
+                    l1_mem::address_map::TRISC2_SIZE,
+                    coord_type,
+                    perf::L1ProfileStage::ActualBinaries
+                );
+
+                hex = &(bin->runtime_config_vec[hex_id]);
+                memory_profiler->update_buffer_of_graph_l1(
+                    graph_name, 
+                    tt_cxy_pair(target_device, hex->associated_routing_core),
+                    perf::L1BufferType::BinaryBuffer,
+                    "RUNTIME_CONFIG",
+                    l1_mem::address_map::EPOCH_RUNTIME_CONFIG_BASE,
+                    l1_mem::address_map::EPOCH_RUNTIME_CONFIG_BASE,
+                    hex->hex_vec.size() * sizeof(uint32_t),
+                    l1_mem::address_map::EPOCH_RUNTIME_CONFIG_SIZE,
+                    coord_type,
+                    perf::L1ProfileStage::ActualBinaries
+                );
+
+                hex = &(bin->blob_bin_vec[hex_id]);
+                memory_profiler->update_buffer_of_graph_l1(
+                    graph_name, 
+                    tt_cxy_pair(target_device, hex->associated_routing_core),
+                    perf::L1BufferType::BinaryBuffer,
+                    "OVERLAY_BLOB",
+                    l1_mem::address_map::OVERLAY_BLOB_BASE,
+                    l1_mem::address_map::OVERLAY_BLOB_BASE,
+                    hex->hex_vec.size() * sizeof(uint32_t),
+                    // account for extra overlay blob memory reservation
+                    dram_mem::address_map::OVERLAY_FULL_BLOB_SIZE(),
+                    coord_type,
+                    perf::L1ProfileStage::ActualBinaries
+                );
+            }
+            memory_profiler->update_graph_profile_stage_l1(graph_name, perf::L1ProfileStage::ActualBinaries);
+        }
+    }
+}
+
+void tt_runtime::finish_l1_profiling_for_graphs() {
+    if (config.l1_profiler_en and memory_profiler) {
+        memory_profiler->sort_all_graph_buffers_and_check_overlap_l1();
+        memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::Done);
+    }
+}
+
+void tt_runtime::create_memory_profiler_reports() {
+    if (config.l1_profiler_en and memory_profiler) {
+        const string l1_profile_out_dir = config.output_dir + "/" + "l1_profile";
+        log_info(LogPerfPostProcess, "Writing l1 profiler report to {}", l1_profile_out_dir);
+        if (fs::exists(l1_profile_out_dir)) {
+            fs::remove_all(l1_profile_out_dir);
+        }
+        fs::create_directory(l1_profile_out_dir);
+        memory_profiler->create_reports_l1(l1_profile_out_dir);
     }
 }
 
@@ -1202,6 +1452,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::run_program(const string &program_name, const
             cluster->perf_state.initialize_for_program(
                     program ,cluster->get_sdesc_for_all_devices(),
                     workload.graphs, workload.op_to_outputs, workload.queues);
+            
         }
 
         // Main program execution loop
@@ -1290,6 +1541,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::finish() {
             loader->dump_epoch_binary_cache_report(config.output_dir);
         }
         close_device();
+        create_memory_profiler_reports();
         run_performance_check();
         if (!config.skip_device_shutdown) {
             set_runtime_state(tt_runtime_state::Uninitialized);
@@ -1590,6 +1842,7 @@ void tt_runtime::run_execute_instrn(netlist_program &program, tt_instruction_inf
     // }
 
     loader->send_epoch_program(graph_name, false);
+
     if (loader->graph_name_to_queue_decouplings.find(graph_name) != loader->graph_name_to_queue_decouplings.end()) {
         update_queue_header_dram_decouplings(graph_name, true);
     }

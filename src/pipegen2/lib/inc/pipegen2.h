@@ -8,10 +8,9 @@
 #include <vector>
 
 #include "model/stream_graph/stream_graph_collection.h"
-
+#include "device/l1_memory_allocation.h"
 namespace pipegen2
 {
-    class L1MemoryAllocation;
     class PipeGraph;
     class RationalGraph;
     class ResourceManager;
@@ -49,6 +48,9 @@ namespace pipegen2
 
         // Outputs analysis of L1 memory allocations by stream buffers.
         void output_memory_allocations(const std::string& log_path, const int temporal_epoch);
+
+        // Outputs all L1 memory allocations per worker core
+        std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> get_all_worker_l1_allocations() const;
 
     private:
         // Creates pipe graph from the input net2pipe pipegen yaml.

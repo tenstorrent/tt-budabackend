@@ -24,6 +24,9 @@ public:
     // Destructor, necessary for forward declarations of classes in smart pointer members.
     virtual ~StreamBufferAllocation();
 
+    // Returns the name of the stream buffer allocation.
+    std::string allocation_name() const override;
+
     // Returns a string representation of the stream buffer allocation.
     std::string allocation_info() const override;
 

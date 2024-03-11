@@ -11,6 +11,8 @@
 #include "pipegen2_exceptions.h"
 #include "pipegen2_location_utils.h"
 #include "utils/scoped_timer.hpp"
+#include "perf_lib/memory_profiler.hpp"
+
 
 namespace tt {
 
@@ -97,7 +99,8 @@ void run_pipegen(
     const perf::PerfDesc &perf_desc,
     const string &desc_name,
     const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-    tt_compile_result &compile_result) {
+    tt_compile_result &compile_result,
+    perf::MemoryProfiler* memory_profiler) {
 
     string root = buda_home();
     string build_graph_dir = get_overlay_output_dir(build_dir_path, temporal_epoch);
@@ -112,7 +115,7 @@ void run_pipegen(
 
     // Pipegen2 can be run as a library or as a command line tool. The library is used by default.
     run_pipegen2(desc_name, pipegen_yaml_path, graph_name, temporal_epoch, blob_yaml_path, perf_dump_info,
-                 sdesc_per_chip, compile_result);
+                 sdesc_per_chip, compile_result, memory_profiler);
 
     // Blobgen should be ran only if pipegen was run successfully.
     if (compile_result.success) {
@@ -127,7 +130,8 @@ void run_pipegen2(const string &desc_name,
                   const string &blob_yaml_path,
                   const uint32_t perf_dump_info,
                   const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-                  tt_compile_result &compile_result) {
+                  tt_compile_result &compile_result,
+                  perf::MemoryProfiler* memory_profiler) {
 
     try {
         pipegen2::Pipegen2 pipegen(desc_name);
@@ -153,6 +157,10 @@ void run_pipegen2(const string &desc_name,
         {
             pipegen.output_memory_allocations(log_memory_allocations_dir, temporal_epoch);
         }
+        if (memory_profiler and memory_profiler->profile_l1()) {
+            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> all_worker_l1_allocations = pipegen.get_all_worker_l1_allocations();
+            profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
+        }
     } catch (const pipegen2::BasePipegen2CompileException &ex) {
         handle_pipegen2_compile_exception(ex, graph_name, temporal_epoch, sdesc_per_chip, compile_result);
     } catch (const pipegen2::BasePipegen2IOException &ex) {
@@ -160,6 +168,22 @@ void run_pipegen2(const string &desc_name,
     } catch (const std::exception &ex) {
         handle_pipegen2_internal_error(ex, graph_name, temporal_epoch, compile_result);
     }
+}
+
+void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
+    for (const auto &[core_logical_loc, l1_allocations] : all_worker_l1_allocations) {
+        if (memory_profiler->get_graph_profile_stage_l1(temporal_epoch_id, core_logical_loc.chip) >= perf::L1ProfileStage::Pipegen) {
+            log_fatal("Unexpected graph being profiled more than once for pipegen!");
+        }
+        for (const pipegen2::L1MemoryAllocation* l1_allocation : l1_allocations) {
+            uint32_t start_addr = l1_allocation->get_address();
+            uint32_t buffer_size = l1_allocation->get_size();
+            const string buffer_name = l1_allocation->allocation_name();
+            memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, buffer_name, 
+                start_addr, buffer_size, buffer_size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);
+        }
+    }
+    memory_profiler->update_temporal_epoch_profile_stage_l1(temporal_epoch_id, perf::L1ProfileStage::Pipegen);
 }
 
 void handle_pipegen2_compile_exception(

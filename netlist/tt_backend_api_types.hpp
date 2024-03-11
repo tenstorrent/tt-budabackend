@@ -308,6 +308,8 @@ struct tt_backend_config {
     The values are a vector, specifying the physical rows harvested per chip. */
     std::unordered_map<int, std::vector<uint32_t>> harvested_rows = {};
 
+    //! (Optional) Toggle enable l1 profiler
+    bool l1_profiler_en = true;
 };
 
 /**

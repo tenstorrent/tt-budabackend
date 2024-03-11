@@ -9,17 +9,22 @@ namespace pipegen2
 
 StreamBufferAllocation::~StreamBufferAllocation() = default;
 
-std::string StreamBufferAllocation::allocation_info() const 
+std::string StreamBufferAllocation::allocation_name() const 
 {
     std::stringstream string_stream;
-    string_stream << "\t\tbuffer_";
+    string_stream << "buffer_";
     string_stream << stream_type_to_string(m_stream_node);
     if (m_stream_node->get_stream_type() == StreamType::Unpacker)
     {
         string_stream << "_" << m_stream_node->get_operand_id();
     }
-    string_stream << ":\n";
-    
+    return string_stream.str();
+}
+
+std::string StreamBufferAllocation::allocation_info() const 
+{
+    std::stringstream string_stream;
+    string_stream << "\t\t" << allocation_name() << ":\n";
     if (m_stream_node->is_ncrisc_reader_or_writer())
     {
         const NcriscConfig& ncrisc_config = m_stream_node->get_ncrisc_configs()[0];

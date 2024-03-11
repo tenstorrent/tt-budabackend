@@ -104,6 +104,7 @@ inline tt_runtime_config::tt_runtime_config(vector<string> &cmdline_args) {
     
     bool run_silicon;
     bool run_only;
+    bool disable_l1_profiler;
     std::string vcd_dump_cores = "";
     std::tie(output_dir, cmdline_args) =
         verif_args::get_command_option_and_remaining_args(cmdline_args, "--outdir", "");
@@ -119,6 +120,8 @@ inline tt_runtime_config::tt_runtime_config(vector<string> &cmdline_args) {
     std::tie(vcd_dump_cores,            cmdline_args) = verif_args::get_command_option_and_remaining_args(cmdline_args, "--vcd-dump-cores", "");
     std::tie(soc_descriptor_path,       cmdline_args) = verif_args::get_command_option_and_remaining_args(cmdline_args, "--soc-desc", "");
     std::tie(cluster_descriptor_path,   cmdline_args) = verif_args::get_command_option_and_remaining_args(cmdline_args, "--cluster_desc", "");
+    std::tie(disable_l1_profiler,       cmdline_args) = verif_args::has_command_option_and_remaining_args(cmdline_args, "--disable-l1-profiler");
+    l1_profiler_en = !disable_l1_profiler;
 
     if (run_only) {
         mode = DEVICE_MODE::RunOnly;

@@ -518,6 +518,7 @@ void tt_cluster::dump_perf_counters(std::string output_dir) {
     perf_state.update_perf_check(perf_check_passed);
 }
 
+
 vector<tt::EpochPerfInfo> tt_cluster::get_perf_info_all_epochs() {
     if (perf_state.is_postprocessor_executed()) {
         return perf_state.get_all_epochs_perf_info();

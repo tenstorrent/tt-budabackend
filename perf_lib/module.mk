@@ -14,7 +14,8 @@ PERF_LIB_SRCS = \
 	perf_lib/perf_descriptor.cpp \
 	perf_lib/perf_state.cpp \
 	perf_lib/perf_base.cpp \
-	perf_lib/analyse.cpp
+	perf_lib/analyse.cpp \
+	perf_lib/memory_profiler.cpp
 
 PERF_LIB_OBJS = $(addprefix $(OBJDIR)/, $(PERF_LIB_SRCS:.cpp=.o))
 PERF_LIB_DEPS = $(addprefix $(OBJDIR)/, $(PERF_LIB_SRCS:.cpp=.d))

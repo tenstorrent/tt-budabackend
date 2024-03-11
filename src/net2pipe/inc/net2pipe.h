@@ -68,6 +68,7 @@ struct dram_fork_pipe_metadata {
   int num_forks;
   int fork_index;
 };
+
 struct temporal_epoch_context {
   int input_count;
   std::map<std::string, std::vector<std::string>> op_queue_output_map; // need to make sure output list of each queue/op is always traversed in the same order

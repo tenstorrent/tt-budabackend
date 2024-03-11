@@ -9,6 +9,7 @@
 #include "device/perf_info_manager.h"
 #include "device/resource_manager.h"
 #include "device/soc_info.h"
+#include "device/core_resources.h"
 #include "graph_creator/pipe_graph/pipe_graph_creator.h"
 #include "graph_creator/rational_graph/rational_graph_creator.h"
 #include "graph_creator/stream_graph/stream_graph_creator.h"
@@ -18,7 +19,6 @@
 #include "model/stream_graph/stream_graph.h"
 #include "model/stream_graph/stream_node.h"
 #include "pipegen2_exceptions.h"
-#include "device/core_resources.h"
 
 namespace pipegen2
 {
@@ -165,5 +165,26 @@ namespace pipegen2
                 }
             }
         }
+    }
+
+    std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> Pipegen2::get_all_worker_l1_allocations() const 
+    {
+        std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> memory_allocations;
+        for (const CoreResources* core_resources :  m_resource_manager->get_all_worker_core_resources())
+        {
+            if (core_resources->get_all_memory_allocations().size() > 0)
+            {
+                const tt_cxy_pair &core_coord = core_resources->get_logical_location();
+                for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation : core_resources->get_all_memory_allocations())
+                {
+                    if (memory_allocations.find(core_coord) == memory_allocations.end()) 
+                    {
+                        memory_allocations.emplace(core_coord, std::vector<const L1MemoryAllocation*>());
+                    }
+                    memory_allocations.at(core_coord).push_back(memory_allocation.get());
+                }
+            }
+        }
+        return memory_allocations;
     }
 }

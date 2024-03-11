@@ -126,6 +126,11 @@ enum class PerfTraceMode {
     Verbose = 2,
 };
 
+enum class CoordType {
+    Physical = 0,
+    Logical  = 1,
+};
+
 const unordered_set<uint> single_value_events = {
     uint(EventType::UNPACK_FIRST_INSTRUCTION),
     uint(EventType::NUM_TILES_UNPACK),
@@ -274,8 +279,31 @@ struct event {
 struct core_descriptor {
     string op_name;
     string op_type;
-    string physical_core_id;
-    string logical_core_id;
+    tt_xy_pair physical_core;
+    tt_xy_pair logical_core;
+
+    core_descriptor() {}
+    core_descriptor(const string &op_name, const string &op_type, const tt_xy_pair &physical_core, const tt_xy_pair &logical_core)
+        : op_name(op_name), op_type(op_type), physical_core(physical_core), logical_core(logical_core)
+    {
+    }
+
+    inline string get_core_str(CoordType coord_type, bool x_y = true) const {
+        tt_xy_pair core;
+        if (coord_type == CoordType::Physical) {
+            core = physical_core;
+        }
+        else if (coord_type == CoordType::Logical) {
+            core = logical_core;
+        }
+        else {
+            log_fatal("Invalid core type.");
+        }
+
+        string core_str = x_y ? to_string(core.x) + "-" + to_string(core.y) : to_string(core.y) + "-" + to_string(core.x);
+        return core_str;
+    }
+
 };
 
 struct thread_events {

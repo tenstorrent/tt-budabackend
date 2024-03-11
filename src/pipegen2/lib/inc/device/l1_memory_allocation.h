@@ -21,6 +21,9 @@ public:
     // Destructor, necessary for forward declarations of classes in smart pointer members.
     virtual ~L1MemoryAllocation() = default;
 
+    // Returns the name describing the allocation.
+    virtual std::string allocation_name() const = 0;
+
     // Returns a string with formatted allocation info.
     virtual std::string allocation_info() const = 0;
 
