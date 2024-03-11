@@ -49,7 +49,7 @@ output3_park_buf_size = num_output3_park_buf_msgs*output3_park_buf_msg_size
 data_buffer_space_base = $PARAMS[:data_buffer_space_base] + $extra_tile_header_buffer_size
 input0_data_base = $PARAMS[:input0_data_base] ? $PARAMS[:input0_data_base] : data_buffer_space_base;
 test_data_offset = $PARAMS[:test_data_offset] ? $PARAMS[:test_data_offset] : (64 * 1024)
-output0_data_base = $PARAMS[:output0_data_base] ? $PARAMS[:output0_data_base] : (data_buffer_space_base + (256 * 1024));
+output0_data_base = $PARAMS[:output0_data_base] ? $PARAMS[:output0_data_base] : (data_buffer_space_base + (512 * 1024));
 output1_data_base = $PARAMS[:output1_data_base] ? $PARAMS[:output1_data_base] : (output0_data_base + (128 * 1024));
 output2_data_base = $PARAMS[:output2_data_base] ? $PARAMS[:output2_data_base] : (output1_data_base + (128 * 1024));
 output3_data_base = $PARAMS[:output3_data_base] ? $PARAMS[:output3_data_base] : (output2_data_base + (128 * 1024));
@@ -104,6 +104,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => input0_data_buf_size,
+    :buf_base_addr => input0_data_base,
     :msg_info_buf_addr => buf_addr + input0_data_buf_size,
     :dest => [],
     :src => [input0_park_stream],
@@ -122,6 +123,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => input0_park_buf_size,
+    :buf_base_addr => input0_data_base + test_data_offset,
     :msg_info_buf_addr => buf_addr + input0_park_buf_size,
     :source_endpoint => true,   
     :remote_receiver => true,
@@ -143,6 +145,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output0_data_buf_size,
+    :buf_base_addr => output0_data_base,
     :msg_info_buf_addr => buf_addr + output0_data_buf_size,
     :vc => 0,
     :dest => [output0_park_stream],
@@ -163,6 +166,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output0_park_buf_size,
+    :buf_base_addr => output0_data_base + test_data_offset,
     :msg_info_buf_addr => buf_addr + output0_park_buf_size,
     :dest => [],
     :src => [output0_stream],
@@ -181,6 +185,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output1_data_buf_size,
+    :buf_base_addr => output1_data_base,
     :msg_info_buf_addr => buf_addr + output1_data_buf_size,
     :vc => 0,
     :dest => [output1_park_stream],
@@ -201,6 +206,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output1_park_buf_size,
+    :buf_base_addr => output1_data_base + test_data_offset,
     :msg_info_buf_addr => buf_addr + output1_park_buf_size,
     :dest => [],
     :src => [output1_stream],
@@ -213,12 +219,13 @@ for p in 1..num_phases
   }
 
   buf_addr = output2_data_base
-
+  
   $unary_multi_out_test_graph[phase][output2_stream] = {
     :output_index => 2,
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output2_data_buf_size,
+    :buf_base_addr => output2_data_base,
     :msg_info_buf_addr => buf_addr + output2_data_buf_size,
     :vc => 0,
     :dest => [output2_park_stream],
@@ -239,6 +246,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output2_park_buf_size,
+    :buf_base_addr => output2_data_base + test_data_offset,
     :msg_info_buf_addr => buf_addr + output2_park_buf_size,
     :dest => [],
     :src => [output2_stream],
@@ -257,6 +265,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output3_data_buf_size,
+    :buf_base_addr => output3_data_base,
     :msg_info_buf_addr => buf_addr + output3_data_buf_size,
     :vc => 0,
     :dest => [output3_park_stream],
@@ -277,6 +286,7 @@ for p in 1..num_phases
     :auto_run => true,
     :buf_addr => buf_addr,
     :buf_size => output3_park_buf_size,
+    :buf_base_addr => output3_data_base + test_data_offset,
     :msg_info_buf_addr => buf_addr + output3_park_buf_size,
     :dest => [],
     :src => [output3_stream],

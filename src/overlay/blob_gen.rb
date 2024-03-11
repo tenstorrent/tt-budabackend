@@ -199,6 +199,19 @@ grid_sizes_y = Array.new(String($PARAMS[:noc_y_logical_size]).split(','))
 chip_ids_to_grid_size_x = Hash.new
 chip_ids_to_grid_size_y = Hash.new
 
+def SegmentsOverlap(segment1_start, segment1_end, segment2_start, segment2_end) 
+  if (segment1_end - segment1_start == 0) or (segment2_end - segment2_start == 0)
+    # If size of any segment is 0, overlaping doesn't make sense.
+    return false
+  end
+  
+  if (segment1_end > segment2_start) and (segment2_end > segment1_start)
+    return true
+  else
+    return false
+  end
+end
+
 def ValidateDataAndTileHeaderBuffersAreNonOverlapping(phase_info)
   phase_info.each do |yx_label, streams|
     chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
@@ -230,7 +243,7 @@ def ValidateDataAndTileHeaderBuffersAreNonOverlapping(phase_info)
           data_buf_start_addr = phase_info[:buf_base_addr]
           data_buf_end_addr = data_buf_start_addr + phase_info[:buf_full_size_bytes]
           
-          if ((msg_info_buf_start <= data_buf_start_addr and data_buf_start_addr < msg_info_buf_end) or ((msg_info_buf_start < data_buf_end_addr and data_buf_end_addr < msg_info_buf_end)))
+          if SegmentsOverlap(msg_info_buf_start, msg_info_buf_end, data_buf_start_addr, data_buf_end_addr)
             abort("Error! Data buffer and tile header buffer overlap! chip_id=#{chip_id}, y=#{y}, x=#{x}, stream_id=#{stream_id}, phase=#{phase}, address(start)=#{data_buf_start_addr}, address(end)=#{data_buf_end_addr} overlaps with a tile header buffer address(start)=#{msg_info_buf_start}, address(end)=#{msg_info_buf_end}. This likely indicates the number of tiles sizes for the core was miscounted in pipegen.\n")
           end
 
