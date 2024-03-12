@@ -150,7 +150,8 @@ string get_perf_out_directory(const string& test_output_dir, const string& overr
 string get_device_perf_out_directory(const string& test_output_dir, const PerfDesc& perf_desc, bool clean) {
 
     string perf_lib_dir = get_perf_out_directory(test_output_dir, perf_desc.override_perf_output_dir, false);
-    string decouple_str = get_decouple_mode_name(perf_desc);
+    string trisc_decouple_str = get_decouple_mode_name(perf_desc);
+    string overlay_decouple_str = get_overlay_decouple_string(perf_desc);
     string device_perf_dir = perf_lib_dir + "device/";
     if (clean) {
         if (fs::exists(device_perf_dir)) {
@@ -161,11 +162,18 @@ string get_device_perf_out_directory(const string& test_output_dir, const PerfDe
     if (!fs::exists(device_perf_dir)) {
         fs::create_directories(device_perf_dir);
     }
-    string decouple_file_path = device_perf_dir + "decouple_info.txt";
+    string decouple_file_path = device_perf_dir + decouple_info_file_name;
     if (!fs::exists(decouple_file_path)) {
         // Create file that records decouplings
         ofstream decouple_info(decouple_file_path);
-        decouple_info << "decouplings/triplets performed: \n" << (decouple_str == "device" ? "none" : decouple_str) << endl;
+        // Record trisc decouplings
+        decouple_info << "trisc decouplings/triplets: " << "\n";
+        decouple_info <<  (trisc_decouple_str == "device" ? "none" : trisc_decouple_str) << "\n\n";
+
+        // Record overlay decouplings
+        decouple_info << "overlay decouplings: " << "\n";
+        decouple_info << (overlay_decouple_str.empty() ? "none" : overlay_decouple_str) << std::endl;
+
         decouple_info.flush();
         decouple_info.close();
     }

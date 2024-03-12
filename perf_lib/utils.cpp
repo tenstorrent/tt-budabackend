@@ -67,7 +67,7 @@ bool is_normal_perf_mode(const PerfDesc &perf_desc) {
     return true;
 }
 
-string get_decouple_mode_name(const PerfDesc& perf_desc) {
+string get_decouple_mode_name(const PerfDesc &perf_desc) {
     string decouple_str;
     uint op_id = 0;
     if (is_normal_perf_mode(perf_desc)) {
@@ -100,6 +100,15 @@ string get_decouple_mode_name(const PerfDesc& perf_desc) {
         }
     }
     return decouple_str;
+}
+
+string get_overlay_decouple_string(const PerfDesc &perf_desc) {
+    std::stringstream ss;
+    for(const auto &[op_name, overlay_decouple_config] : perf_desc.overlay_decouplings) {
+        ss << op_name << ": ";
+        ss << overlay_decouple_config << "\n";
+    }
+    return ss.str();
 }
 
 string get_perf_lib_directory() {

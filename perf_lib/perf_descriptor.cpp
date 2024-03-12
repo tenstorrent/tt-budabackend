@@ -74,7 +74,7 @@ std::unordered_map<std::string, std::unordered_set<perf::PerfTriscDecoupleMode>>
 // <OP_NAME_0>:<DECOUPLINGS>
 // <OP_NAME_1>:<DECOUPLINGS>
 // ...
-string gert_overlay_decouple_desc_from_file(const string &overlay_decoupling_desc_path) {
+string get_overlay_decouple_desc_from_file(const string &overlay_decoupling_desc_path) {
     log_assert(fs::exists(overlay_decoupling_desc_path), "Overlay-decouple descriptor file path does not exist under {}", overlay_decoupling_desc_path);
     std::ifstream desc_file(overlay_decoupling_desc_path);
     string overlay_decouple_config;
@@ -543,7 +543,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     log_assert(overlay_decoupling_desc_config.empty() || overlay_decoupling_desc_path.empty(), "Both decouple-overlay config and decouple-overlay descriptor path are set");
     if (!overlay_decoupling_desc_path.empty()) {
         log_assert(overlay_decoupling_desc_config.empty(), "When overlay decouple descriptor path is provided to the test, the --decoule-overlay config should be empty");
-        overlay_decoupling_desc_config = gert_overlay_decouple_desc_from_file(overlay_decoupling_desc_path);
+        overlay_decoupling_desc_config = get_overlay_decouple_desc_from_file(overlay_decoupling_desc_path);
     }
     overlay_decouplings = set_overlay_perf_decouplings(overlay_decoupling_desc_config);
     

@@ -23,6 +23,7 @@ inline string epoch_type_str(EpochType epoch_type) {
 uint32_t get_tile_size(tt::DataFormat data_format);
 bool is_normal_perf_mode(const perf::PerfDesc& perf_desc);
 string get_decouple_mode_name(const perf::PerfDesc& perf_Desc);
+string get_overlay_decouple_string(const perf::PerfDesc &perf_desc);
 string get_perf_lib_directory();
 void skip_lines(ifstream &input_file, int max_num_lines);
 uint read_hex_number(ifstream &input_file);

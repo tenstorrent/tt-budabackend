@@ -76,6 +76,7 @@ const string perf_info_all_epochs_yaml_name = "perf_info_all_epochs.yaml";
 const string postprocess_original_json_name = "perf_postprocess_original.json";
 const string host_summary_json_name = "host_summary_report.json";
 const string perf_model_log = "perf_model.log";
+const string decouple_info_file_name = "decouple_info.txt";
 
 /////////////////////////////////////////////////////////////////////////
 //////////////// Enums and maps
@@ -113,9 +114,12 @@ inline ostream& operator<<(ostream& ss, const PerfOverlayDecoupleMode& t) {
 
     ss << "all_inputs  =  " << t.all_inputs << " ";
     ss << "Output = " << t.output << " ";
-    ss << "Input operand idx = ";
+    string input_operand_decouplings_str = "";
     for (auto input_idx: t.input_operand_decouple) {
-        ss << input_idx << " ";
+        input_operand_decouplings_str += to_string(input_idx) + " ";
+    }
+    if (!input_operand_decouplings_str.empty()) {
+        ss << "Input operand ids = " + input_operand_decouplings_str;
     }
     return ss;
 }
