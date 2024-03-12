@@ -115,16 +115,17 @@ def find_ci_netlists(arch_name: str, test_tag: str) -> list[str]:
         List of unique netlist paths found.
     """
     netlist_paths = set()
-    for test_list_name in os.listdir(CI_TEST_LISTS_DIR):
-        if (
-            not test_list_name.endswith(".yaml") and not test_list_name.endswith(".yml")
-        ) or test_list_name in BLACKBOX_CI_TEST_LISTS:
-            continue
-        test_list_path = os.path.join(CI_TEST_LISTS_DIR, test_list_name)
-        print(f"  {test_list_path}")
-        with open(test_list_path) as yaml_file_handler:
-            test_list_dict = yaml.safe_load(yaml_file_handler.read())
-        add_netlists_from_test_list(test_list_dict, arch_name, test_tag, netlist_paths)
+    for root, _, files in os.walk(CI_TEST_LISTS_DIR):
+        for test_list_name in files:
+            if (
+                not test_list_name.endswith(".yaml") and not test_list_name.endswith(".yml")
+            ) or test_list_name in BLACKBOX_CI_TEST_LISTS:
+                continue
+            test_list_path = os.path.join(root, test_list_name)
+            print(f"  {test_list_path}")
+            with open(test_list_path) as yaml_file_handler:
+                test_list_dict = yaml.safe_load(yaml_file_handler.read())
+            add_netlists_from_test_list(test_list_dict, arch_name, test_tag, netlist_paths)
     return list(netlist_paths)
 
 
