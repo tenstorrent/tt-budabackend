@@ -74,6 +74,11 @@ bbe_files = {
             "grayskull_10x12.yaml",
         ]
     },
+    "architecture_headers": {
+        "path": "umd/device",
+        "files": ["architecture.h", "xy_pair.h"],
+        "target_path": "build/include/device"
+    },
     "params": {
         "path": "perf_lib/op_model/params",
         "files": "*"
