@@ -5324,11 +5324,16 @@ template<> struct std::hash<std::vector<uint64_t>> {
 };
 
 namespace {
-std::set<uint64_t> get_unique_queues(const std::vector<uint64_t>& pipe_inputs) {
-    std::set<uint64_t> result;
+std::vector<uint64_t> get_unique_queues(const std::vector<uint64_t>& pipe_inputs) {
+    std::vector<uint64_t> result;
+    std::unordered_set<uint64_t> unique_ids_set;
     for(auto b_id : pipe_inputs) {
         uint64_t id = b_id / 100000;
-        result.insert(id);
+        if (unique_ids_set.find(id)==unique_ids_set.end())
+        {
+            unique_ids_set.insert(id);
+            result.push_back(id);
+        }
     }
     return result;
 }
@@ -5393,10 +5398,10 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
     }
 
     // sort pipes into fork groups and designate first pipe in the list as the dram_reader
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::vector<uint64_t>, std::vector<uint64_t>>>> dram_group_pipes_by_forks;
+    std::map<std::string, std::map<std::string, std::map<std::vector<uint64_t>, std::vector<uint64_t>>>> dram_group_pipes_by_forks;
     for (auto &[input_queue_name, op_readers] : dram_group_pipes) {
         for (auto &[op_reader_name, pipe_ids] : op_readers) {
-            std::unordered_map<std::vector<uint64_t>, std::vector<uint64_t>> unique_input_pipes;
+            std::map<std::vector<uint64_t>, std::vector<uint64_t>> unique_input_pipes;
             for (auto & pipe_id : pipe_ids) {
                 //if(unique_input_pipes.find(p.input_buffer_ids) == unique_input_pipes.end())
                 const auto& p = epoch_context.pipes.at(pipe_id);
