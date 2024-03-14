@@ -391,6 +391,11 @@ void parse_node(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_grap
 
 void parse_graph(PipeGraph& pipe_graph, std::istream& input_stream)
 {
+    if (input_stream.fail()) 
+    {
+        throw_parsing_error("No such file");
+    }
+
     std::vector<std::string> yaml_lines;
     std::string current_line;
 
@@ -432,7 +437,7 @@ void parse_graph(PipeGraph& pipe_graph, std::istream& input_stream)
 
 void throw_parsing_error(const std::string& error_msg)
 {
-    throw InvalidPipegenYamlFormatException(c_parsing_error_msg_prefix + error_msg);
+    throw InvalidPipegenYamlException(error_msg);
 }
 
 void parse_attribute(const std::string& yaml_line, std::string& attr_name, std::string& attr_value)

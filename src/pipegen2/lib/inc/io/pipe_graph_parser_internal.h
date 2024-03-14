@@ -34,9 +34,6 @@ const std::string s_comment_prefix = "#";
 // Graph name prefix
 const std::string s_graph_name_prefix = "graph_name:";
 
-// Parsing error message prefix.
-const std::string c_parsing_error_msg_prefix = "Error parsing pipegen graph yaml: ";
-
 // Parses the definition of pipe in pipegen.yaml and adds the corresponding pipe to the pipe_graph.
 void parse_pipe(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_graph);
 

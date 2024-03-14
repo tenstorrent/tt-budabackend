@@ -208,10 +208,10 @@ public:
 };
 
 // Exception type used for pipegen yaml parsing exceptions.
-class InvalidPipegenYamlFormatException : public BasePipegen2IOException
+class InvalidPipegenYamlException : public BasePipegen2IOException
 {
 public:
-    InvalidPipegenYamlFormatException(const std::string& error_message) :
+    InvalidPipegenYamlException(const std::string& error_message) :
         BasePipegen2IOException(error_message)
     {
     }

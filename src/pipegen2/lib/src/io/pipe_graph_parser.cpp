@@ -18,7 +18,7 @@ void PipeGraphParser::parse_graph(PipeGraph& pipe_graph, const std::string& pipe
     }
     catch(const std::exception& e)
     {
-        throw InvalidPipegenYamlFormatException("Can't open pipegen yaml file: " + std::string(e.what()));
+        throw InvalidPipegenYamlException("Can't parse pipegen yaml file " + pipegen_yaml_path +  " : " + std::string(e.what()));
     }
 }
 

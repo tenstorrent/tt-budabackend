@@ -4,7 +4,9 @@
 #include "io/pipe_graph_parser_internal.h"
 
 #include <cstdint>
+#include <fstream>
 #include <gtest/gtest.h>
+#include <ios>
 #include <string>
 #include <vector>
 
@@ -29,8 +31,8 @@ using namespace pipegen2::unit_test_utils;
 TEST(Pipegen2_PipeGraphParserInternal, ParseAttribute_InvalidYamlLine)
 {
     std::string attr_name, attr_value;
-    EXPECT_THROW(parse_attribute("", attr_name, attr_value), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_attribute("no delimiter", attr_name, attr_value), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_attribute("", attr_name, attr_value), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_attribute("no delimiter", attr_name, attr_value), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseAttribute_NormalYamlLine)
@@ -63,10 +65,10 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseAttribute_MultiDelimiter)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseIntAttributeValue_InvalidAttrValue)
 {
-    EXPECT_THROW(parse_int_attribute_value(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_int_attribute_value(","), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_int_attribute_value("."), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_int_attribute_value("str"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_int_attribute_value(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_int_attribute_value(","), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_int_attribute_value("."), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_int_attribute_value("str"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseIntAttributeValue_NormalAttrValue)
@@ -82,10 +84,10 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseIntAttributeValue_NormalAttrValue)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseUintAttributeValue_InvalidAttrValue)
 {
-    EXPECT_THROW(parse_uint_attribute_value(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_uint_attribute_value(","), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_uint_attribute_value("."), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_uint_attribute_value("str"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_uint_attribute_value(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_uint_attribute_value(","), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_uint_attribute_value("."), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_uint_attribute_value("str"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseUintAttributeValue_NormalAttrValue)
@@ -100,10 +102,10 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseUintAttributeValue_NormalAttrValue)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseUlongAttributeValue_InvalidAttrValue)
 {
-    EXPECT_THROW(parse_ulong_attribute_value(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_ulong_attribute_value(","), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_ulong_attribute_value("."), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_ulong_attribute_value("str"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_ulong_attribute_value(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_ulong_attribute_value(","), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_ulong_attribute_value("."), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_ulong_attribute_value("str"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseUlongAttributeValue_NormalAttrValue)
@@ -119,8 +121,8 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseUlongAttributeValue_NormalAttrValue)
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferOperandId_InvalidAttrValue)
 {
     PGBuffer buffer;
-    EXPECT_THROW(parse_buffer_operand_id(&buffer, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_operand_id(&buffer, "-1"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_buffer_operand_id(&buffer, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_operand_id(&buffer, "-1"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferOperandId_NormalAttrValue)
@@ -139,9 +141,9 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBufferOperandId_NormalAttrValue)
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferChipId_InvalidAttrValue)
 {
     PGBuffer buffer;
-    EXPECT_THROW(parse_buffer_chip_id(&buffer, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_chip_id(&buffer, "[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_chip_id(&buffer, "[1, 2]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_buffer_chip_id(&buffer, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_chip_id(&buffer, "[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_chip_id(&buffer, "[1, 2]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferChipId_NormalAttrValue)
@@ -159,10 +161,10 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBufferChipId_NormalAttrValue)
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferLocation_InvalidAttrValue)
 {
     PGBuffer buffer;
-    EXPECT_THROW(parse_buffer_location(&buffer, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_location(&buffer, "[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_location(&buffer, "[1]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_buffer_location(&buffer, "[1, 2, 3]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_buffer_location(&buffer, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_location(&buffer, "[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_location(&buffer, "[1]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_buffer_location(&buffer, "[1, 2, 3]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseBufferLocation_NormalAttrValue)
@@ -180,12 +182,12 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBufferLocation_NormalAttrValue)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeMcastLocations_InvalidAttrValue)
 {
     PGPipe pipe;
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[1, 2]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[1, 2]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[1, 2, 3], [4, 5]]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[1, 2]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[1, 2]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_mcast_locations(&pipe, "[[1, 2, 3], [4, 5]]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeMcastLocations_OneDimList)
@@ -225,11 +227,11 @@ TEST(Pipegen2_PipeGraphParserInternal, ParsePipeMcastLocations_TwoDimList)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeInputs_InvalidListString)
 {
     PGPipe pipe;
-    EXPECT_THROW(parse_pipe_inputs(&pipe, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_inputs(&pipe, "[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_inputs(&pipe, "[,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_inputs(&pipe, "[,,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_inputs(&pipe, "1,2,3"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_pipe_inputs(&pipe, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_inputs(&pipe, "[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_inputs(&pipe, "[,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_inputs(&pipe, "[,,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_inputs(&pipe, "1,2,3"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeInputs_OneElement)
@@ -257,11 +259,11 @@ TEST(Pipegen2_PipeGraphParserInternal, ParsePipeInputs_MultipleElements)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeOutputs_InvalidListString)
 {
     PGPipe pipe;
-    EXPECT_THROW(parse_pipe_outputs(&pipe, ""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_outputs(&pipe, "[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_outputs(&pipe, "[[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_outputs(&pipe, "[[],[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_pipe_outputs(&pipe, "1,2,3"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_pipe_outputs(&pipe, ""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_outputs(&pipe, "[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_outputs(&pipe, "[[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_outputs(&pipe, "[[],[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_pipe_outputs(&pipe, "1,2,3"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipeOutputs_OneDimList)
@@ -304,15 +306,15 @@ TEST(Pipegen2_PipeGraphParserInternal, ParsePipeOutputs_TwoDimList)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfInts_InvalidListString)
 {
-    EXPECT_THROW(parse_vector_of_ints(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("["), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("[,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("[,,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("[1,2,3"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ints("1,2,3"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_vector_of_ints(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("["), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("[,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("[,,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("[1,2,3"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ints("1,2,3"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfInts_OneElement)
@@ -343,17 +345,17 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfInts_MultipleElements)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfInts_InvalidListString)
 {
-    EXPECT_THROW(parse_two_dim_vector_of_ints(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[,]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[],]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[,[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[],[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[,],[,]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[1,2]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[[1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ints("[1,2,3]]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[,]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[],]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[,[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[],[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[,],[,]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[1,2]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[[1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ints("[1,2,3]]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfInts_OneElement)
@@ -416,15 +418,15 @@ TEST(Pipegen2_PipeGraphParserInternal, ConvertStringsToInts_NormalStringValues)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfUlongs_InvalidListString)
 {
-    EXPECT_THROW(parse_vector_of_ulongs(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("["), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("[,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("[,,]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("[1,2,3"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_ulongs("1,2,3"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_vector_of_ulongs(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("["), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("[,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("[,,]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("[1,2,3"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_ulongs("1,2,3"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfUlongs_OneElement)
@@ -455,17 +457,17 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfUlongs_MultipleElements)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfUlongs_InvalidListString)
 {
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[,]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[],]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[,[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[],[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[,],[,]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[1,2]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[1,2,3]]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[,]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[],]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[,[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[],[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[,],[,]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[1,2]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[[1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_ulongs("[1,2,3]]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfUlongs_OneElement)
@@ -528,12 +530,12 @@ TEST(Pipegen2_PipeGraphParserInternal, ConvertStringsToUlongs_NormalStringValues
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfStrings_InvalidListString)
 {
-    EXPECT_THROW(parse_vector_of_strings(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_strings("["), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_strings("]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_strings("[1,2,3"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_strings("1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_vector_of_strings("1,2,3"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_vector_of_strings(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_strings("["), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_strings("]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_strings("[1,2,3"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_strings("1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_vector_of_strings("1,2,3"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfStrings_NoElements)
@@ -585,13 +587,13 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseVectorOfStrings_EmptyElements)
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfStrings_InvalidListString)
 {
-    EXPECT_THROW(parse_two_dim_vector_of_strings(""), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[[],]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[,[]]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[1,2]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[[1,2,3]"), InvalidPipegenYamlFormatException);
-    EXPECT_THROW(parse_two_dim_vector_of_strings("[1,2,3]]"), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings(""), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[[],]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[,[]]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[1,2]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[[1,2,3]"), InvalidPipegenYamlException);
+    EXPECT_THROW(parse_two_dim_vector_of_strings("[1,2,3]]"), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseTwoDimVectorOfStrings_NoElements)
@@ -990,7 +992,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseNode_InvalidName)
         "node_"+ std::to_string(uniqid) + ":",
     };
     PipeGraph pipe_graph;
-    EXPECT_THROW(parse_node(yaml_lines, pipe_graph), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_node(yaml_lines, pipe_graph), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseNode_ParseBuffer)
@@ -1095,7 +1097,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_WrongBufferFormat)
 
     std::stringstream string_stream(graph_data);
     PipeGraph pipe_graph;
-    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_WrongPipegenYamlFormat)
@@ -1113,7 +1115,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_WrongPipegenYamlFormat)
 
     std::stringstream string_stream(graph_data);
     PipeGraph pipe_graph;
-    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_NonStandardLinesAtEnd)
@@ -1131,7 +1133,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_NonStandardLinesAtEnd)
 
     std::stringstream string_stream(graph_data);
     PipeGraph pipe_graph;
-    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlFormatException);
+    EXPECT_THROW(parse_graph(pipe_graph, string_stream), InvalidPipegenYamlException);
 }
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_EmptyGraph)
@@ -1142,4 +1144,13 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_EmptyGraph)
     parse_graph(pipe_graph, string_stream);
     EXPECT_EQ(pipe_graph.get_pipes().size(), 0);
     EXPECT_EQ(pipe_graph.get_buffers().size(), 0);
+}
+
+TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_InputStreamFail)
+{
+    PipeGraph pipe_graph;
+    std::ifstream input_stream("");
+    input_stream.setstate(std::ios::failbit);
+    verify_throws_exception_with_message<InvalidPipegenYamlException>([&]() { parse_graph(pipe_graph, input_stream); },
+                                                                      "No such file.*");
 }
