@@ -2,6 +2,7 @@
 #include "llk_param_structs.h"
 #include "ctest_db_pack_matmul_params.h"
 #include "llk_pack_api.h"
+#include "llk_io_pack.h"
 
 namespace NAMESPACE {
 //    uint kernel_main(const void* hlk_args=nullptr, const void* llk_args=nullptr, const uint loop_count=0)

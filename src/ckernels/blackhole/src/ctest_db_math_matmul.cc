@@ -1,7 +1,7 @@
 #include "hlks/inc/hlk_api.h"
 #include "llk_param_structs.h"
 #include "ctest_db_math_matmul_params.h"
-#include "llk_math_matmul.h"
+#include "llk_math_api.h"
 
 #ifndef HF
 #define HF 0
