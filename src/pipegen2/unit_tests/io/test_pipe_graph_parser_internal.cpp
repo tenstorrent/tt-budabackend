@@ -980,6 +980,48 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_NoBufferInformation)
     EXPECT_EQ(pipe_graph.get_buffers().size(), 0);
 }
 
+TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitDRAMNoException)
+{
+    constexpr std::uint64_t uniqid = 111000000000;
+    constexpr std::uint64_t size_tiles = constants::general_max_num_tiles_per_phase + 1;
+    PipeGraph pipe_graph;
+    std::vector<std::string> yaml_lines = {
+        "uniqid: " + std::to_string(uniqid),
+        "buffer_type: dram_io",
+        "size_tiles: " + std::to_string(size_tiles),
+        "dram_io_flag: 1",
+        "q_slots: 1"
+    };
+    EXPECT_NO_THROW(parse_buffer(yaml_lines, pipe_graph));
+}
+
+TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitUnpackerNoException)
+{
+    constexpr std::uint64_t uniqid = 111000000000;
+    constexpr std::uint64_t size_tiles = constants::general_max_num_tiles_per_phase + 1;
+    PipeGraph pipe_graph;
+    std::vector<std::string> yaml_lines = {
+        "uniqid: " + std::to_string(uniqid),
+        "buffer_type: unpacker",
+        "size_tiles: " + std::to_string(size_tiles),
+        "dram_io_flag: 0"
+    };
+    EXPECT_NO_THROW(parse_buffer(yaml_lines, pipe_graph));
+}
+
+TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitPackerException)
+{
+    constexpr std::uint64_t uniqid = 111000000000;
+    constexpr std::uint64_t size_tiles = constants::general_max_num_tiles_per_phase + 1;
+    PipeGraph pipe_graph;
+    std::vector<std::string> yaml_lines = {
+        "uniqid: " + std::to_string(uniqid),
+        "buffer_type: packer",
+        "size_tiles: " + std::to_string(size_tiles),
+        "dram_io_flag: 0"
+    };
+    EXPECT_THROW(parse_buffer(yaml_lines, pipe_graph), InvalidPipeGraphSpecificationException);
+}
 
 /**********************************************************************************************************************
     Tests for function: parse_node

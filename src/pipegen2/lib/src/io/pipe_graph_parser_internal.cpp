@@ -7,6 +7,7 @@
 
 #include "device/tt_xy_pair.h"
 #include "model/typedefs.h"
+#include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
 
 namespace pipegen2
@@ -369,7 +370,8 @@ void parse_buffer(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_gr
             buffer->set_is_post_tm_relay_buf(bool(parse_int_attribute_value(attr_value)));
         }
     }
-
+    
+    check_buffer_constraints(buffer.get());
     pipe_graph.add_buffer(std::move(buffer));
 }
 
@@ -814,6 +816,25 @@ BufferType parse_buffer_type_string(const std::string& s)
     else
     {
         return BufferType::kUnknown;
+    }
+}
+
+void check_buffer_constraints(const PGBuffer* pg_buffer)
+{
+    check_buffer_maximum_size_tiles_constraint(pg_buffer);
+}
+
+void check_buffer_maximum_size_tiles_constraint(const PGBuffer* pg_buffer)
+{
+    unsigned int size_tiles = pg_buffer->get_size_tiles();
+    if (pg_buffer->is_packer() && size_tiles > constants::general_max_num_tiles_per_phase)
+    {
+        throw InvalidPipeGraphSpecificationException("Packer buffer " +
+                                                     std::to_string(pg_buffer->get_id()) + " has scatter chunk size" +
+                                                     " (size_tiles) " + std::to_string(size_tiles) +
+                                                     ", which is larger than max tiles per phase (" +
+                                                     std::to_string(constants::general_max_num_tiles_per_phase) + ")",
+                                                    pg_buffer->get_logical_location());
     }
 }
 

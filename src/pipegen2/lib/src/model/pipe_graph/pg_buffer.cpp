@@ -7,6 +7,7 @@
 #include "model/pipe_graph/pg_pipe.h"
 
 #include "pipegen2_constants.h"
+#include "pipegen2_exceptions.h"
 #include "pipegen2_utils.h"
 
 namespace pipegen2
