@@ -14,6 +14,7 @@
 #include "device/device_api.h"
 #include "runtime_io.hpp"
 #include "perf_lib/perf_descriptor.hpp"
+#include "runtime_types.hpp"
 #include "yaml-cpp/yaml.h"
 
 // IO
@@ -121,6 +122,8 @@ tt_op_model_desc get_perf_model_desc(const tt_op_info &op_info);
 void run_netlist_analyzer(tt::ARCH arch, const string &netlist_path, const string &cluster_desc_path, const string &test_output_dir);
 
 std::string get_tt_runtime_hostname();
+
+std::chrono::seconds get_api_timeout(const tt_timeout_api_type &api_type);
 
 }
 

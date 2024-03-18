@@ -43,6 +43,14 @@ enum class tt_queue_header_field : uint8_t {
     Invalid = 0xFF,
 };
 
+// APIs that require timeout monitoring
+enum class tt_timeout_api_type {
+    CreateEthernetMap = 0,
+    StartDevice = 1,
+    CloseDevice = 2,
+    Invalid = 0xFF,
+};
+
 // For Varinst-on-device feature, to differentiate between which IO Queue Setting fields are targeted
 struct tt_queue_varinst_update_field_mask {
 

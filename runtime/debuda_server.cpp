@@ -134,6 +134,11 @@ void tt_debuda_server::wait_terminate() {
     server->stop();
 }
 
+bool tt_debuda_server::started_server() const {
+    // iF m_connection_addr is an empty string, we did not start a server
+    return !connection_address.empty();
+}
+
 tt_debuda_server_implementation::tt_debuda_server_implementation(tt_runtime* runtime) :
     tt::dbd::umd_implementation(DebudaIFC(runtime->cluster.get()).get_casted_device()), runtime(runtime) {}
 

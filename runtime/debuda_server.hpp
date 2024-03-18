@@ -46,4 +46,7 @@ class tt_debuda_server {
 
     // Allows user to continue debugging even when the tt_runtime exectution is over
     void wait_terminate();
+
+    // Check if a debuda server has started
+    bool started_server() const;
 };

@@ -1514,11 +1514,10 @@ void run_performance_analyzer(const PerfState &device_perf_state, const string &
     auto result = tt::run_command(analyzer_cmd, analyzer_log_path, analyzer_error_path);
     if (result.success) {
         log_info(tt::LogPerfInfra, "Performance analyzer finished successfully");
-    } else {
-        log_error("Error log:");
-        cout << result.message << endl;
+    } 
+    else {
+        log_error("Error log: {}", result.message);
         log_fatal("Performance analyzer failed. Full log under {}", analyzer_error_path);
-
     }
 }
 

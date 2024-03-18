@@ -86,8 +86,10 @@ void generate_cluster_desc_yaml(const string &build_dir_path) {
     else {
         cmd += "umd/device/bin/silicon/x86/create-ethernet-map " + build_dir_path + "/cluster_desc.yaml";
     }
-    log_info(tt::LogRuntime, "running: '{}'", cmd);
-    log_assert(system(cmd.c_str()) == 0, "Unable to generate cluster descriptor file");
+    std::chrono::seconds timeout = get_api_timeout(tt_timeout_api_type::CreateEthernetMap);
+    log_info(tt::LogRuntime, "running: '{}' with timeout {}s", cmd, timeout.count());
+    tt::cmd_result_t result = tt::run_command_with_timeout(cmd, timeout, "", "", false);
+    log_assert(result.success, "Unable to generate cluster descriptor file: {}", result.message);
     log_debug(tt::LogRuntime, "Generated cluster descriptor file at path={}/cluster_desc.yaml", build_dir_path);
 }
 
@@ -1442,6 +1444,15 @@ std::string get_tt_runtime_hostname() {
     return hostname_str;
 }
 
+// TODO: make more configurable, hardcoding timeouts for now
+std::chrono::seconds get_api_timeout(const tt_timeout_api_type &api_type) {
+    switch (api_type) {
+        case tt_timeout_api_type::CreateEthernetMap: return std::chrono::seconds(120);
+        case tt_timeout_api_type::StartDevice: return std::chrono::seconds(60);
+        case tt_timeout_api_type::CloseDevice: return std::chrono::seconds(60);
+        default: log_fatal("Unrecognized enum type for tt_timeout_api_type");
+    }
+}
 }
 
 std::ostream &operator<<(std::ostream &os, std::pair<std::string, std::set<std::string>> const &pair) {

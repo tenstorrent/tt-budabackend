@@ -631,7 +631,10 @@ void tt_runtime::start_device_cluster() {
     if (config.skip_device_init) {
         config.device_params.init_device = false;
     }
-    cluster->start_device(config.device_params);
+    cmd_result_t result = run_function_with_timeout([&](){ cluster->start_device(config.device_params); }, get_api_timeout(tt_timeout_api_type::StartDevice), false);
+    if (!result.success) {
+        log_fatal("{}: {}", __FUNCTION__, result.message);
+    }
 }
 
 tt::DEVICE_STATUS_CODE tt_runtime::compile_netlist(const std::string &netlist_path) {
@@ -1115,21 +1118,35 @@ void tt_runtime::drain_perf_dram_buffers(bool last_drain) {
 void tt_runtime::close_device() {
     if (cluster && config.do_shutdown())
     {
-        if (loader) {
-            log_assert(!cluster->is_idle(), "Attempting to stop tensix fw when cluster device state is set to idle");
-            loader->send_end_program_commands();
-            // For pybuda early exit/cleanup during compile-errors, no need for wait.
-            if (cluster->deasserted_risc_reset){
-                loader->flush_all_wc_epoch_queues_to_dram();
-                log_info(tt::LogRuntime, "Waiting for cluster completion");
-                cluster->wait_for_completion(config.output_dir);
-                set_runtime_state(tt_runtime_state::RunComplete);
+        std::function<void()> handle_close_device = [&]() {
+            if (loader) {
+                log_assert(!cluster->is_idle(), "Attempting to stop tensix fw when cluster device state is set to idle");
+                loader->send_end_program_commands();
+                // For pybuda early exit/cleanup during compile-errors, no need for wait.
+                if (cluster->deasserted_risc_reset){
+                    loader->flush_all_wc_epoch_queues_to_dram();
+                    log_info(tt::LogRuntime, "Waiting for cluster completion");
+                    cluster->wait_for_completion(config.output_dir);
+                    set_runtime_state(tt_runtime_state::RunComplete);
+                }
+            }
+            stop_debuda_server();
+            stop_log_server();
+            perf_set_device_end();
+            cluster->close_device();
+        };
+
+        // if a debuda server has started, don't set a timeout for close device
+        // as we need to wait indefinitely for the user to close the debuda server
+        if (debuda_server and debuda_server->started_server()) {
+            handle_close_device();
+        }
+        else {
+            cmd_result_t result = run_function_with_timeout(handle_close_device, get_api_timeout(tt_timeout_api_type::CloseDevice), false);
+            if (!result.success) {
+                log_fatal("{}: {}", __FUNCTION__, result.message);
             }
         }
-        stop_debuda_server();
-        stop_log_server();
-        perf_set_device_end();
-        cluster->close_device();
     }
 }
 
@@ -1417,7 +1434,7 @@ void tt_runtime::create_memory_profiler_reports() {
         if (fs::exists(l1_profile_out_dir)) {
             fs::remove_all(l1_profile_out_dir);
         }
-        fs::create_directory(l1_profile_out_dir);
+        fs::create_directories(l1_profile_out_dir);
         memory_profiler->create_reports_l1(l1_profile_out_dir);
     }
 }
