@@ -69,7 +69,7 @@ cmd_result_t run_command_with_timeout(const string &cmd, const std::chrono::seco
     else {
         // force kill the process if not wait_until_done
         wait_until_done ? c->wait() : c->terminate();
-        string err_message = "Running cmd " + cmd + " exceeded timeout of " + std::to_string(timeout_seconds.count()) + " second(s).";
+        const string err_message = "Running cmd " + cmd + " exceeded timeout of " + std::to_string(timeout_seconds.count()) + " second(s).";
         return {.success=false, .message=err_message};
     }
 }

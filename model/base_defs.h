@@ -49,5 +49,5 @@ namespace tt {
     bool run_command(const std::string &cmd, const std::string &log_file);
     cmd_result_t run_command(const std::string &cmd, const std::string &log_file, const std::string &err_file);
     cmd_result_t run_command_with_timeout(const string &cmd, const std::chrono::seconds &timeout_seconds, const string &log_file, const string &err_file, bool wait_until_done = true);
-cmd_result_t run_function_with_timeout(const std::function<void()> &f, const std::chrono::seconds &timeout_seconds, bool wait_until_done);
+    cmd_result_t run_function_with_timeout(const std::function<void()> &f, const std::chrono::seconds &timeout_seconds, bool wait_until_done = true);
 }
