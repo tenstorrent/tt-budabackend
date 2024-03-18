@@ -22,6 +22,10 @@ from itertools import repeat
 
 import yaml
 
+# add project root to search path
+project_root_path = os.path.join(os.path.dirname(__file__), "../..")
+sys.path.append(project_root_path)
+
 from verif.common.runner_net2pipe import run_net2pipe
 from verif.common.runner_pipegen import run_pipegen
 from verif.common.test_utils import (
