@@ -239,6 +239,19 @@ bool PGBuffer::is_end_to_end_queue() const
     return is_dram() && !has_no_input() && !has_no_outputs();
 }
 
+bool PGBuffer::has_output_pipe_id(NodeId pipe_id) const
+{
+    for (const PGPipe* output_pipe : m_output_pipes)
+    {
+        if (output_pipe->get_id() == pipe_id)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 #ifdef TT_DEBUG
     std::string PGBuffer::type_to_string()
     {

@@ -9,7 +9,6 @@
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_multicast_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_output_intermed_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_parallel_fork_streams_creator.h"
-#include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_multicast_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_gather_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_post_tm_unicast_streams_creator.h"
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_prefetch_pre_tm_parallel_fork_streams_creator.h"
@@ -133,11 +132,6 @@ namespace pipegen2
         else if (pipe_type == RGPipeType::DramMulticast)
         {
             return create_generic_pipe_streams_creator<DramMulticastStreamsCreator>(
-                resource_manager, virt_node_to_stream_node);
-        }
-        else if (pipe_type == RGPipeType::DramPrefetchPostTMMulticast)
-        {
-            return create_generic_pipe_streams_creator<DramPrefetchPostTMMulticastStreamsCreator>(
                 resource_manager, virt_node_to_stream_node);
         }
         else if (pipe_type == RGPipeType::Multicast)

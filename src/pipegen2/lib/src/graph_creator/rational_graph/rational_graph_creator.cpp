@@ -40,7 +40,6 @@
 #include "model/rational_graph/pipes/direct/unicast_to_pcie_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_parallel_fork_pipe.h"
-#include "model/rational_graph/pipes/fork/dram_prefetch_post_tm_multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/dram_prefetch_pre_tm_parallel_fork_pipe.h"
 #include "model/rational_graph/pipes/fork/multicast_pipe.h"
 #include "model/rational_graph/pipes/fork/padding_serial_fork_pipe.h"
@@ -692,16 +691,7 @@ namespace pipegen2
         const std::vector<PGBuffer*>& pg_pipe_outputs = subgraph_pipe->get_output_buffers()[scatter_index];
         RGPipeProperties rg_pipe_properties = create_rg_pipe_properties_from_pg_pipe(subgraph_pipe);
 
-        if (subgraph_pipe->is_dram_prefetch_post_tm())
-        {
-            fork_pipe = std::make_unique<DramPrefetchPostTMMulticastPipe>(
-                std::move(rg_pipe_properties),
-                subgraph_pipe->get_dram_pipe_total_readers(),
-                subgraph_pipe->get_dram_pipe_reader_index(),
-                subgraph_pipe->get_op_input_dram_io_buf_size_tiles(),
-                pipe_physical_location);
-        }
-        else if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
+        if (subgraph_pipe->has_non_prefetch_pre_tm_dram_input())
         {
             fork_pipe = std::make_unique<DramMulticastPipe>(
                 std::move(rg_pipe_properties),

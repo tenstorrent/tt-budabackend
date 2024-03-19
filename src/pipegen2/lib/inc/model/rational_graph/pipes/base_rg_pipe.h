@@ -31,7 +31,6 @@ namespace pipegen2
         DramOutputIntermed,
         SharedPackerIntermed,
         DramMulticast,
-        DramPrefetchPostTMMulticast,
         Multicast,
         DramParallelFork,
         DramPrefetchPreTMParallelFork,

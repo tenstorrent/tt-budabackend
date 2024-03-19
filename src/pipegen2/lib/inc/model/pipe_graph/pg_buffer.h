@@ -417,7 +417,10 @@ namespace pipegen2
 
         // Returns true if buffer is on DRAM and is both input and output to DRAM pipes.
         bool is_end_to_end_queue() const;
-    
+
+        // Returns true if buffer has a specific output pipe.
+        bool has_output_pipe_id(NodeId pipe_id) const;
+
     private:
         // Buffer id.
         NodeId m_id;
