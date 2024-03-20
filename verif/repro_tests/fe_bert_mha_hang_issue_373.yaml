@@ -1,0 +1,70 @@
+# -----------------
+# Gitlab issue
+# tenstorrent/budabackend#373
+# -----------------
+
+# -----------------
+# Repro command
+# ./build/test/verif/netlist_tests/test_training --netlist --netlist verif/repro_tests/fe_bert_mha_hang_issue_373.yaml --inputs feeder_q --outputs drainer_q
+# -----------------
+
+devices:
+    arch: grayskull
+  
+queues:
+  feeder_q:       {input: HOST, type: queue, entries: 1, grid_size: [1, 2], t: 6, mblock: [3, 1], ublock: [4, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[6, 0x300e7960], [7, 0x300fff40]]}
+  drainer_q:      {input: bw_in1_mha_0_output_matmul_1_transpose_nop, type: queue, entries: 1, grid_size: [1, 2], t: 1, mblock: [3, 3], ublock: [4, 2], df: Float16_b, ublock_order: c, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x34000000]]}
+
+graphs:
+  bwd_1:
+    target_device: 0
+    input_count: 1
+    bw_in1_mha_0_output_matmul_1_transpose_nop: {type: nop, grid_loc: [1, 1], grid_size: [1, 2], inputs: [feeder_q],
+         t: 1, mblock: [3, 3], ublock: [4, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 6, transpose]}
+
+programs:
+  - run_bwd:
+    - param: [$p_zero_grad, $p_loop_count]
+    - var: {$v_zero_grad: 0, $c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q1: 0, $lptr_q1: 0}
+    - varinst: [$v_zero_grad, set, $p_zero_grad]
+    - loop: $p_loop_count
+    -   execute: {graph_name: bwd_1, queue_settings: {
+                feeder_q: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2}} }
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$v_zero_grad, set, 0]
+    - endloop
+
+# -----------------
+# Passing version
+# -----------------
+# devices:
+#     arch: grayskull
+
+# queues:
+#   feeder_q:       {input: HOST, type: queue, entries: 1, grid_size: [1, 2], t: 1, mblock: [3, 3], ublock: [4, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[6, 0x300e7960], [7, 0x300fff40]]}
+
+#   drainer_q:      {input: bw_in1_mha_0_output_matmul_1_transpose_nop, type: queue, entries: 1, grid_size: [1, 2], t: 1, mblock: [3, 3], ublock: [4, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x34000000]]}
+
+# graphs:
+#   bwd_1:
+#     target_device: 0
+#     input_count: 1
+#     bw_in1_mha_0_output_matmul_1_transpose_nop: {type: nop, grid_loc: [1, 1], grid_size: [1, 2], inputs: [feeder_q],
+#           t: 1, mblock: [3, 3], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+# programs:
+#   - run_bwd:
+#     - param: [$p_zero_grad, $p_loop_count]
+#     - var: {$v_zero_grad: 0, $c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+#     - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $gptr_q2: 0, $lptr_q2: 0, $gptr_q1: 0, $lptr_q1: 0}
+#     - varinst: [$v_zero_grad, set, $p_zero_grad]
+#     - loop: $p_loop_count
+#     -   execute: {graph_name: bwd_1, queue_settings: {
+#                 feeder_q: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2}} }
+#     -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 2]
+#     -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 2]
+#     -   varinst: [$v_zero_grad, set, 0]
+#     - endloop

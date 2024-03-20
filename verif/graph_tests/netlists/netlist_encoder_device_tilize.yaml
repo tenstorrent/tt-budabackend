@@ -1,0 +1,239 @@
+# git checkout a0fc0ca2c
+# pytest pybuda/test/benchmark/benchmark.py -m bert -c base -opt 4 -o perf.json --env PYBUDA_EXP_APPROX=1 PYBUDA_FUSE_REDUCE=1 PYBUDA_DISABLE_DYNAMIC_DRAM=1 PYBUDA_DISABLE_DRAM0=1 PYBUDA_FUSED_OP_MULTIPLIER=2 PYBUDA_FORCE_INTERMED_TO_OUTPUT_DF=1 PYBUDA_DISABLE_MIN_MATMUL_BUFFER=1 --loop_count 100 --auto_transpose --layers 1 --save_tti device_images/bert.tti
+
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  input_1:                                         {input: HOST, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [4, 24], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input_1_flat:                                    {input: HOST, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [4, 24], ublock: [1, 1], ublock_order: r, df: Float16_b, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x38000000]]}
+  attention_mask:                                  {input: HOST, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x31a40020]]}
+
+  # output
+  bert_encoders.output_layernorm_52:               {input: _fused_op_4_output_nop_0, type: queue, entries: 256, grid_size: [1, 1], t: 1, mblock: [2, 6], ublock: [2, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # parameter
+  layer.0.attention.self.query.weight:             {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [24, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[5, 0x50a51e0], [6, 0x50c4900], [7, 0x50c0300]]}
+  layer.0.attention.self.query.bias:               {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x509ed40], [3, 0x5106740], [4, 0x50d2c80]]}
+  layer.0.attention.self.key.weight:               {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [24, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x50900e0], [7, 0x508bae0], [1, 0x5059180]]}
+  layer.0.attention.self.key.bias:                 {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x5104420], [4, 0x50d0960], [5, 0x50a2ec0]]}
+  layer.0.attention.self.value.weight:             {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [24, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x506a0a0], [3, 0x50cfc00], [4, 0x509c140]]}
+  layer.0.attention.self.value.bias:               {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x50874a0], [7, 0x5089340], [1, 0x5056e60]]}
+  layer.0.attention.output.dense.weight:           {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [24, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x509b3e0], [4, 0x5067920], [5, 0x5067d80]]}
+  layer.0.attention.output.dense.bias:             {input: HOST, type: ram, entries: 1, grid_size: [1, 3], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[7, 0x5087020], [1, 0x5054b40], [2, 0x5067d80]]}
+  layer.0.attention.output.LayerNorm.weight:       {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[5, 0x5054240]]}
+  layer.0.attention.output.LayerNorm.bias:         {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[4, 0x5053de0]]}
+  layer.0.intermediate.dense.weight:               {input: HOST, type: ram, entries: 1, grid_size: [1, 12], t: 1, mblock: [24, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x501d700], [7, 0x501d700], [1, 0x4feb220], [2, 0x4ffe460], [3, 0x50323a0], [4, 0x501f5c0], [5, 0x501fa20], [6, 0x5051f20], [7, 0x5051f20], [1, 0x501fa40], [2, 0x5032c80], [3, 0x5066bc0]]}
+  layer.0.intermediate.dense.bias:                 {input: HOST, type: ram, entries: 1, grid_size: [1, 12], t: 1, mblock: [1, 2], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x4fe6be0], [2, 0x4ff9e20], [3, 0x502dd60], [4, 0x501af80], [5, 0x501b3e0], [6, 0x501b3e0], [7, 0x501b3e0], [1, 0x4fe8f00], [2, 0x4ffc140], [3, 0x5030080], [4, 0x501d2a0], [5, 0x501d700]]}
+  layer.0.output.dense.weight:                     {input: HOST, type: ram, entries: 1, grid_size: [1, 12], t: 1, mblock: [24, 1], ublock: [4, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x4fc4d20], [4, 0x4fb1f40], [5, 0x4fb23a0], [6, 0x4fb23a0], [7, 0x4fb23a0], [1, 0x4fb23c0], [2, 0x4fc5600], [3, 0x4ff9540], [4, 0x4fe6760], [5, 0x4fe6bc0], [6, 0x4fe6bc0], [7, 0x4fe6bc0]]}
+  layer.0.output.dense.bias:                       {input: HOST, type: ram, entries: 1, grid_size: [1, 12], t: 1, mblock: [1, 1], ublock: [1, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[5, 0x4fb11e0], [6, 0x4fb11e0], [7, 0x4fb11e0], [1, 0x4fb1200], [2, 0x4fc4440], [3, 0x4fc4440], [4, 0x4fb1660], [5, 0x4fb1ac0], [6, 0x4fb1ac0], [7, 0x4fb1ac0], [1, 0x4fb1ae0], [2, 0x4fc4d20]]}
+  layer.0.output.LayerNorm.weight:                 {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[3, 0x4fb0900]]}
+  layer.0.output.LayerNorm.bias:                   {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x4fb0900]]}
+
+  # constant
+  input_1_multiply_16:                             {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x509e8c0]]}
+  lc.input_tensor.softmax_18.dc.reduce_sum.3.0:    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[7, 0x508b660]]}
+  dc.input_tensor.softmax_18.4:                    {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 12, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[5, 0x509c5a0], [6, 0x50897c0]]}
+  lc.input_tensor.layernorm_38.dc.reduce_sum.0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x5087020]]}
+  dc.input_tensor.layernorm_38.1:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 6], ublock: [2, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[4, 0x505a700], [5, 0x505ab60]]}
+  lc.input_tensor.layernorm_38.dc.reduce_sum.5.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x4fb0900]]}
+  dc.input_tensor.layernorm_38.6:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x5054260], [2, 0x50674a0]]}
+  dc.input_tensor.layernorm_38.8:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x5086740], [7, 0x5086740]]}
+  lc.input_tensor.layernorm_52.dc.reduce_sum.0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[4, 0x4fb11e0]]}
+  dc.input_tensor.layernorm_52.1:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 6], ublock: [2, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x4fb7220], [3, 0x4fb7220]]}
+  lc.input_tensor.layernorm_52.dc.reduce_sum.5.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x4fb0d80]]}
+  dc.input_tensor.layernorm_52.6:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[6, 0x4fb0900], [7, 0x4fb0900]]}
+  dc.input_tensor.layernorm_52.8:                  {input: HOST, type: queue, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[4, 0x4fb0900], [5, 0x4fb0900]]}
+
+graphs:
+  fwd_0_0:
+    target_device: 0
+    input_count: 128
+    input_1_tilize: {type: tilizer, grid_loc: [5, 0], grid_size: [1, 1], inputs: [input_1_flat],
+         t: 1, mblock: [4, 24], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi}
+#     buffer__0_input_1_tilize: {type: tilizer, grid_loc: [5, 1], grid_size: [1, 1], inputs: [input_1_tilize],
+#          t: 1, mblock: [4, 24], ublock: [1, 1], buf_size_mb: 2, input_buf_min_size_tiles: [384], ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi}
+#     buffer__1_input_1_tilize: {type: tilizer, grid_loc: [5, 1], grid_size: [1, 1], inputs: [buffer__0_input_1_tilize],
+#          t: 1, mblock: [4, 24], ublock: [1, 1], buf_size_mb: 2, input_buf_min_size_tiles: [384], ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi}
+    matmul_2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 3], inputs: [input_1_tilize, layer.0.attention.self.query.weight, layer.0.attention.self.query.bias],
+         t: 1, mblock: [2, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 16}, m_k: 24, u_kt: 1}}
+    matmul_8: {type: matmul, grid_loc: [0, 3], grid_size: [1, 3], inputs: [input_1_tilize, layer.0.attention.self.key.weight, layer.0.attention.self.key.bias],
+         t: 1, mblock: [2, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 16}, m_k: 24, u_kt: 1}}
+    matmul_14: {type: matmul, grid_loc: [0, 9], grid_size: [1, 1], inputs: [matmul_2, matmul_8],
+         t: 12, mblock: [2, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [transpose, vslice: 12], input_0_tms: [hslice: 12],
+         attributes: {m_k: 2, u_kt: 1}}
+    _fused_op_0: {type: fused_op, grid_loc: [0, 10], grid_size: [1, 1], inputs: [matmul_14, input_1_multiply_16, attention_mask],
+         t: 12, mblock: [2, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}, broadcast: {z: 12}], input_1_tms: [broadcast: {c: 4}, broadcast: {r: 4}, broadcast: {z: 12}],
+         attributes: {approximate_mode: true, fused_op_id: 0, kernel_broadcast: {input_2: 8, input_1: 1}}}
+    softmax_18.dc.reduce_max.0: {type: reduce, grid_loc: [0, 11], grid_size: [1, 1], inputs: [_fused_op_0],
+         t: 12, mblock: [2, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 4}}
+    matmul_22: {type: matmul, grid_loc: [0, 6], grid_size: [1, 3], inputs: [input_1_tilize, layer.0.attention.self.value.weight, layer.0.attention.self.value.bias],
+         t: 1, mblock: [2, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 16}, m_k: 24, u_kt: 1}}
+    _fused_op_1: {type: fused_op, grid_loc: [1, 0], grid_size: [1, 4], inputs: [_fused_op_0, softmax_18.dc.reduce_max.0],
+         t: 12, mblock: [2, 1], ublock: [2, 1], buf_size_mb: 2, input_buf_min_size_tiles: [6, 0], ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 4}],
+         attributes: {approximate_mode: true, fused_op_id: 1}}
+    _fused_op_2: {type: fused_op, grid_loc: [1, 4], grid_size: [2, 1], inputs: [_fused_op_1, lc.input_tensor.softmax_18.dc.reduce_sum.3.0, dc.input_tensor.softmax_18.4, _fused_op_1], grid_transpose: true,
+         t: 12, mblock: [1, 1], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {r: 4}, broadcast: {z: 12}],
+         attributes: {approximate_mode: true, fused_op_id: 2, kernel_broadcast: {input_1: 1}}}
+    matmul_29: {type: matmul, grid_loc: [1, 6], grid_size: [1, 2], inputs: [_fused_op_2, matmul_22],
+         t: 12, mblock: [2, 1], ublock: [2, 1], buf_size_mb: 24, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [hslice: 12],
+         attributes: {m_k: 4, u_kt: 1}}
+    matmul_33: {type: matmul, grid_loc: [1, 8], grid_size: [1, 3], inputs: [matmul_29, layer.0.attention.output.dense.weight, layer.0.attention.output.dense.bias],
+         t: 1, mblock: [2, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}], input_0_tms: [hstack: 12],
+         attributes: {bias: true, kernel_broadcast: {input_2: 16}, m_k: 24, u_kt: 1}}
+    _fused_op_3: {type: fused_op, grid_loc: [1, 11], grid_size: [2, 1], inputs: [matmul_33, input_1, lc.input_tensor.layernorm_38.dc.reduce_sum.0.0, matmul_33, input_1, dc.input_tensor.layernorm_38.1, lc.input_tensor.layernorm_38.dc.reduce_sum.5.0, matmul_33, input_1, dc.input_tensor.layernorm_38.1, dc.input_tensor.layernorm_38.6, dc.input_tensor.layernorm_38.8, layer.0.attention.output.LayerNorm.weight, layer.0.attention.output.LayerNorm.bias],
+         t: 1, mblock: [1, 6], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_13_tms: [broadcast: {r: 4}], input_12_tms: [broadcast: {r: 4}], input_6_tms: [broadcast: {r: 24}], input_2_tms: [broadcast: {r: 24}],
+         attributes: {approximate_mode: true, fused_op_id: 3, kernel_broadcast: {input_13: 48, input_12: 48, input_6: 1, input_2: 1}}}
+    matmul_41: {type: matmul, grid_loc: [3, 0], grid_size: [1, 12], inputs: [_fused_op_3, layer.0.intermediate.dense.weight, layer.0.intermediate.dense.bias],
+         t: 1, mblock: [2, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 16}, m_k: 24, u_kt: 1}}
+    gelu_44: {type: gelu, grid_loc: [2, 1], grid_size: [1, 2], inputs: [matmul_41],
+         t: 1, mblock: [2, 12], ublock: [2, 4], buf_size_mb: 2, ublock_order: c, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         attributes: {approximate_mode: false}}
+    matmul_47: {type: matmul, grid_loc: [4, 0], grid_size: [1, 12], inputs: [gelu_44, layer.0.output.dense.weight, layer.0.output.dense.bias],
+         t: 1, mblock: [2, 1], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 4}, m_k: 24, u_kt: 4}}
+    buffer_0__fused_op_3_buffer_0__fused_op_3__fused_op_4: {type: nop, grid_loc: [2, 0], grid_size: [1, 1], inputs: [_fused_op_3],
+         t: 1, mblock: [2, 6], ublock: [2, 4], buf_size_mb: 2, input_buf_min_size_tiles: [240], ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    buffer_0__fused_op_3__fused_op_4: {type: nop, grid_loc: [2, 3], grid_size: [1, 1], inputs: [buffer_0__fused_op_3_buffer_0__fused_op_3__fused_op_4],
+         t: 1, mblock: [2, 6], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    _fused_op_4: {type: fused_op, grid_loc: [2, 4], grid_size: [2, 1], inputs: [matmul_47, buffer_0__fused_op_3__fused_op_4, lc.input_tensor.layernorm_52.dc.reduce_sum.0.0, matmul_47, buffer_0__fused_op_3__fused_op_4, dc.input_tensor.layernorm_52.1, lc.input_tensor.layernorm_52.dc.reduce_sum.5.0, matmul_47, buffer_0__fused_op_3__fused_op_4, dc.input_tensor.layernorm_52.1, dc.input_tensor.layernorm_52.6, dc.input_tensor.layernorm_52.8, layer.0.output.LayerNorm.weight, layer.0.output.LayerNorm.bias], grid_transpose: true,
+         t: 1, mblock: [1, 6], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_13_tms: [broadcast: {r: 4}], input_12_tms: [broadcast: {r: 4}], input_6_tms: [broadcast: {r: 24}], input_2_tms: [broadcast: {r: 24}],
+         attributes: {approximate_mode: true, fused_op_id: 3, kernel_broadcast: {input_13: 48, input_12: 48, input_6: 1, input_2: 1}}}
+    _fused_op_4_output_nop_0: {type: nop, grid_loc: [2, 6], grid_size: [1, 1], inputs: [_fused_op_4], untilize_output: true,
+         t: 1, mblock: [2, 6], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: LoFi}
+
+
+programs:
+  - run_fwd_0:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 128, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0_0, queue_settings: {
+               input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_1_flat: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               layer.0.attention.self.query.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.self.query.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.self.key.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.self.key.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_1_multiply_16: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.softmax_18.dc.reduce_sum.3.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.softmax_18.4: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               layer.0.attention.self.value.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.self.value.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.output.dense.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.output.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_38.dc.reduce_sum.0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_38.1: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_38.dc.reduce_sum.5.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_38.6: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_38.8: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               layer.0.attention.output.LayerNorm.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.output.LayerNorm.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.intermediate.dense.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.intermediate.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.output.dense.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.output.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_52.dc.reduce_sum.0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_52.1: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_52.dc.reduce_sum.5.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_52.6: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_52.8: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               layer.0.output.LayerNorm.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.output.LayerNorm.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 512]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 512]
+    - endloop
+
+
+fused_ops:
+  0: 
+    inputs: 3
+    intermediates: 0
+    schedules: 
+      -
+        - multiply_16.0: { type: multiply, inputs: [input0, input1], mblock: [2, 1], ublock: [2, 4], output: dest}
+        - add_17.0: { type: add, inputs: [dest, input2], mblock: [2, 1], ublock: [2, 4], output: output}
+  1: 
+    inputs: 2
+    intermediates: 0
+    schedules: 
+      -
+        - softmax_18.dc.subtract.1.0: { type: subtract, inputs: [input0, input1], input_1_tms: [tile_broadcast: c], mblock: [2, 1], ublock: [2, 1], output: dest}
+        - softmax_18.dc.exp.2.0: { type: exp, inputs: [dest], mblock: [2, 1], ublock: [2, 1], output: output}
+  2: 
+    inputs: 4
+    intermediates: 2
+    schedules: 
+      -
+        - softmax_18.dc.reduce_sum.3.lc1.0: { type: matmul, inputs: [input0, input1], attributes: {m_k: 4, u_kt: 1}, mblock: [1, 1], ublock: [2, 1], output: intermed0}
+      -
+        - softmax_18.dc.add.5.1: { type: add, inputs: [intermed0, input2], pop_last: [intermed0], mblock: [1, 1], ublock: [2, 1], output: dest}
+        - softmax_18.dc.reciprocal.6.1: { type: reciprocal, inputs: [dest], mblock: [1, 1], ublock: [2, 1], output: intermed1}
+        - softmax_18.dc.multiply.7.1: { type: multiply, inputs: [input3, intermed1], input_1_tms: [broadcast: {c: 4}, tile_broadcast: c], pop: [intermed1], mblock: [1, 1], ublock: [2, 4], output: output}
+  3: 
+    inputs: 14
+    intermediates: 4
+    schedules: 
+      -
+        - add_37.0: { type: add, inputs: [input0, input1], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.reduce_sum.0.lc1.0: { type: matmul, inputs: [intermed0, input2], attributes: {m_k: 6, u_kt: 4}, pop: [intermed0], mblock: [1, 1], ublock: [2, 1], output: intermed1}
+      -
+        - add_37.1: { type: add, inputs: [input3, input4], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.multiply.2.1: { type: multiply, inputs: [input5, intermed1], input_1_tms: [broadcast: {c: 24}], mblock: [1, 6], ublock: [2, 4], output: intermed2}
+        - layernorm_38.dc.subtract.3.1: { type: subtract, inputs: [intermed0, intermed2], pop: [intermed0, intermed2], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.multiply.4.1: { type: multiply, inputs: [intermed0, intermed0], pop: [intermed0], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.reduce_sum.5.lc1.1: { type: matmul, inputs: [intermed0, input6], attributes: {m_k: 6, u_kt: 4}, pop: [intermed0], mblock: [1, 1], ublock: [2, 1], output: intermed2}
+      -
+        - add_37.2: { type: add, inputs: [input7, input8], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.multiply.2.2: { type: multiply, inputs: [input9, intermed1], input_1_tms: [broadcast: {c: 24}], pop_last: [intermed1], mblock: [1, 6], ublock: [2, 4], output: intermed3}
+        - layernorm_38.dc.subtract.3.2: { type: subtract, inputs: [intermed0, intermed3], pop: [intermed0, intermed3], mblock: [1, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_38.dc.multiply.7.2: { type: multiply, inputs: [input10, intermed2], pop_last: [intermed2], mblock: [1, 1], ublock: [2, 1], output: dest}
+        - layernorm_38.dc.add.9.2: { type: add, inputs: [dest, input11], mblock: [1, 1], ublock: [2, 1], output: dest}
+        - layernorm_38.dc.sqrt.10.2: { type: sqrt, inputs: [dest], mblock: [1, 1], ublock: [2, 1], output: dest}
+        - layernorm_38.dc.reciprocal.11.2: { type: reciprocal, inputs: [dest], mblock: [1, 1], ublock: [2, 1], output: intermed3}
+        - layernorm_38.dc.multiply.12.2: { type: multiply, inputs: [intermed0, intermed3], input_1_tms: [broadcast: {c: 24}, tile_broadcast: c], pop: [intermed0, intermed3], mblock: [1, 6], ublock: [2, 4], output: dest}
+        - layernorm_38.dc.multiply.13.2: { type: multiply, inputs: [dest, input12], mblock: [1, 6], ublock: [2, 4], output: dest}
+        - layernorm_38.dc.add.14.2: { type: add, inputs: [dest, input13], mblock: [1, 6], ublock: [2, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+  io-config:
+    inputs: [input_1, input_1_flat, attention_mask]
+    outputs: [bert_encoders.output_layernorm_52]
+
+performance-check:
+  config-0:
+    graph-name: fwd_0_0
+    program-name: run_fwd_0
+    tensors-per-second:
+      expected: 5700
+      rtol: 0.10
+    cycles-per-tensor:
+      expected: 210000
+      rtol: 0.10

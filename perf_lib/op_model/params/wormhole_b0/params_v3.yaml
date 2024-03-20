@@ -1,0 +1,369 @@
+# params.yaml are versioned files containing params (constants) needed for op model estimations.
+# The sturcture is the following:
+# - Level 1 keys - op type name
+# - Level 2 keys 
+#    - These keys split params into sets for op models with different attributes; 
+#    - When deciding which set to use, we traverse level 2 keys in the reverse order to match 
+#      the most specialized set of attribute values, for example we use a set of params with 
+#      level 2 key approx/vector_c for op models that use approximate mode and column vector_mode)
+#    - Each op type must have a base set of params that is used when no other set is matched
+# - Level 3 keys
+#    - Actual param names used in the formulas
+#    - Level 3 keys are the same for all params sets
+
+# See perf_lib/op_model/README.md to see how we calculate params.
+
+# UNARY OPS
+
+nop:
+  base:
+    ublock_weight: 305
+    tile_weight: 56
+  df_int8:
+    ublock_weight: 300.79518131
+    tile_weight: 31.63897553
+  df_int32:
+    ublock_weight: 29.55958137
+    tile_weight: 282.23654481
+
+abs:
+  base:
+    ublock_weight: 31.24416072
+    tile_weight: 171.49657174
+  vector_r:
+    ublock_weight: 192.41205979
+    tile_weight: 73.14296983
+  vector_c:
+    ublock_weight: 144.10986813
+    tile_weight: 96.42560487
+
+cosine:
+  base:
+    ublock_weight: 13.26159625
+    tile_weight: 1547.50430493
+  vector_r:
+    ublock_weight: 43.22677031
+    tile_weight: 220.56621403
+  vector_c:
+    ublock_weight: 16.87871829
+    tile_weight: 793.94046552
+
+dropout:
+  base:
+    ublock_weight: 19.46042892
+    tile_weight: 574.20859506
+  vector_r:
+    ublock_weight: 155.95726047
+    tile_weight: 88.60592074
+  vector_c:
+    ublock_weight: 26.95886664
+    tile_weight: 297.18496136
+
+exp:
+  base:
+    ublock_weight: 9
+    tile_weight: 1771
+  vector_r:
+    ublock_weight: 29.90928201
+    tile_weight: 255.08236601
+  vector_c:
+    ublock_weight: 11.24436033
+    tile_weight: 906.00525761
+  approx:
+    ublock_weight: 10.21444666
+    tile_weight: 812.81243288
+  approx/vector_r:
+    ublock_weight: 94.65717034
+    tile_weight: 129.13225493
+  approx/vector_c:
+    ublock_weight: 10.34437245
+    tile_weight: 426.86754794
+
+gelu:
+  base:
+    ublock_weight: 7.92054741
+    tile_weight: 270.42409301
+  vector_r:
+    ublock_weight: 195.86307849
+    tile_weight: 73.62086904
+  vector_c:
+    ublock_weight: 73.39572549
+    tile_weight: 146.47760566
+
+gelu_derivative:
+  base:
+    ublock_weight: 19.45022077
+    tile_weight: 2219.61394575
+  vector_r:
+    ublock_weight: 15.23211471
+    tile_weight: 314.08627304
+  vector_c:
+    ublock_weight: 14.2297065
+    tile_weight: 1130.11071918
+  approx:
+    ublock_weight: 19.50433624
+    tile_weight: 383.7680148
+  approx/vector_r:
+    ublock_weight: 194.15981081
+    tile_weight: 74.06959261
+  approx/vector_c:
+    ublock_weight: 62.79386937
+    tile_weight: 193.23680864
+
+log:
+  base:
+    ublock_weight: 7.97213543
+    tile_weight: 718.10157769
+  vector_r:
+    ublock_weight: 118.0043758
+    tile_weight: 116.1974189
+  vector_c:
+    ublock_weight: 12.83971158
+    tile_weight: 377.46528932
+
+lrelu:
+  base:
+    ublock_weight: 19.46006499
+    tile_weight: 321.99155234
+  vector_r:
+    ublock_weight: 195.13870072
+    tile_weight: 73.71327325
+  vector_c:
+    ublock_weight: 73.99476199
+    tile_weight: 161.4029633
+
+power:
+  base:
+    ublock_weight: 54.37282805
+    tile_weight: 200.43831604
+  vector_r:
+    ublock_weight: 195.32026045
+    tile_weight: 73.59520611
+  vector_c:
+    ublock_weight: 123.48177223
+    tile_weight: 112.28697842
+
+reciprocal:
+  base:
+    ublock_weight: 7.94124729
+    tile_weight: 910.08949585
+  vector_r:
+    ublock_weight: 79.75362031
+    tile_weight: 141.75666331
+  vector_c:
+    ublock_weight: 11.30119706
+    tile_weight: 473.70558294
+  approx:
+    ublock_weight: 10.22895156
+    tile_weight: 780.80678659
+  approx/vector_r:
+    ublock_weight: 99.90575463
+    tile_weight: 125.12375352
+  approx/vector_c:
+    ublock_weight: 10.30849821
+    tile_weight: 409.85895601
+
+sigmoid:
+  base:
+    ublock_weight: 25.03534987
+    tile_weight: 266.46622969
+  vector_r:
+    ublock_weight: 191.47945113
+    tile_weight: 73.6263498
+  vector_c:
+    ublock_weight: 69.3604809
+    tile_weight: 146.80670281
+
+sine:
+  base:
+    ublock_weight: 7.94372077
+    tile_weight: 910.08903091
+  vector_r:
+    ublock_weight: 53.86667731
+    tile_weight: 253.53648977
+  vector_c:
+    ublock_weight: 23.4269007
+    tile_weight: 874.37118935
+
+sqrt:
+  base:
+    ublock_weight: 7.94372077
+    tile_weight: 910.08903091
+  vector_r:
+    ublock_weight: 81.07405178
+    tile_weight: 139.17054171
+  vector_c:
+    ublock_weight: 15.75346038
+    tile_weight: 459.31187532
+
+square:
+  base:
+    ublock_weight: 20.07828434
+    tile_weight: 204.16453935
+  vector_r:
+    ublock_weight: 192.39138458
+    tile_weight: 73.24656301
+  vector_c:
+    ublock_weight: 120.05791667
+    tile_weight: 112.41486545
+
+tanh:
+  base:
+    ublock_weight: 20.22655237
+    tile_weight: 204.14081969
+  vector_r:
+    ublock_weight: 192.21845954
+    tile_weight: 73.25829843
+  vector_c:
+    ublock_weight: 119.70512064
+    tile_weight: 112.44021298
+
+# BINARY OPS
+
+add:
+  base:
+    ublock_weight: 234.25383456
+    tile_weight: 49.60218332
+  df_int8:
+    ublock_weight: 295.72990124
+    tile_weight: 33.19176739
+  df_int32:
+    ublock_weight: 40.37744841
+    tile_weight: 576.29703567
+
+subtract:
+  base:
+    ublock_weight: 234.07853173
+    tile_weight: 49.68498286
+  df_int8:
+    ublock_weight: 299.0009375
+    tile_weight: 32.39898438
+
+multiply:
+  base:
+    ublock_weight: 222.04735499
+    tile_weight: 54.59673969
+  df_int8:
+    ublock_weight: 295.99415537
+    tile_weight: 33.59153892
+
+maximum:
+  base:
+    ublock_weight: 9.86461708
+    tile_weight: 333.84015239
+  df_int8:
+    ublock_weight: 46.18805867
+    tile_weight: 339.95401238
+  df_int32:
+    ublock_weight: 46.99187058
+    tile_weight: 599.91769458
+
+quantization:
+  base:
+    ublock_weight: 45.73634434
+    tile_weight: 594.58858343
+  df_int8:
+    ublock_weight: 45.73634434
+    tile_weight: 594.58858343
+
+dequantization:
+  base:
+    ublock_weight: 60.10736733
+    tile_weight: 529.06521226
+  df_int8:
+    ublock_weight: 60.10736733
+    tile_weight: 529.06521226
+  df_int32:
+    ublock_weight: 67.85934404
+    tile_weight: 669.0903464
+
+requantization:
+  base:
+    ublock_weight: 61.6907783
+    tile_weight: 489.35434847
+  df_int8:
+    ublock_weight: 61.6907783
+    tile_weight: 489.35434847
+  df_int32:
+    ublock_weight: 45.86787736
+    tile_weight: 632.18816185
+
+# MATMUL OPS
+
+depthwise:
+  base:
+    math_tiles_weight: 79
+    math_dest_spill_weight: 0
+    unpack_ublocks_weight: 0
+    unpack_tiles_weight: 0
+
+matmul:
+  base:
+    # FP16 model (perf_data/wormhole_b0/matmul-fp16-op-performance.csv)
+    math_tiles_weight: 15.51611247
+    math_dest_spill_weight: 47.70099138
+    unpack_ublocks_weight: 93.19695147
+    unpack_tiles_weight: 3.33289517
+  df_bfp:
+    # BFP8 model (perf_data/wormhole_b0/matmul-bfp8-op-performance.csv)
+    math_tiles_weight: 14.16279724
+    math_dest_spill_weight: 22.11293136
+    unpack_ublocks_weight: 192.76487862
+    unpack_tiles_weight: 3.97228042
+  df_int32:
+    # int32 model
+    math_tiles_weight: 17.00306137
+    math_dest_spill_weight: 160.82002908
+    unpack_ublocks_weight: 152.6718432
+    unpack_tiles_weight: 0.0
+  l1_acc_en:
+    # FP16 model (perf_data/wormhole_b0/matmul-l1-acc-fp16-op-performance.csv)
+    math_tiles_weight: 15.7398104
+    math_dest_spill_weight: 0
+    unpack_ublocks_weight: 20.92264602
+    unpack_tiles_weight: 3.39358452
+  l1_acc_en/df_bfp:
+    # BFP8 model (perf_data/wormhole_b0/matmul-l1-acc-bfp8-op-performance.csv)
+    math_tiles_weight_bfp: 14.03763588
+    math_dest_spill_weight: 26.61864423
+    unpack_ublocks_weight: 70.0132778
+    unpack_tiles_weight: 4.66421696
+
+matmul_sparse:
+  base:
+    # V1 Sparse weights
+    tile_weight: 18
+    reload: 20
+    reload_config: 20
+    reload_wait_pop: 20
+    pack_wait_push: 25
+    pack: 25
+    ublock_decode: 8
+    nz_ublock_decode: 8
+    nz_tile_decode: 12
+    # V2 Sparse weights
+    v2_ublock_decode: 80
+    v2_nz_ublock_decode: 80
+    v2_nz_strip_decode: 100
+
+
+# OTHER OPS
+
+reduce:
+  base:
+    ublock_weight: 76
+    tile_weight: 59
+  dim_c:
+    ublock_weight: 0
+    tile_weight: 91
+
+reduce_z:
+  base:
+    ublock_weight: 0
+    tile_weight: 287
+    z_weight: 268
+
+splice:
+  base:
+    ublock_weight: 132
+    tile_weight: 69

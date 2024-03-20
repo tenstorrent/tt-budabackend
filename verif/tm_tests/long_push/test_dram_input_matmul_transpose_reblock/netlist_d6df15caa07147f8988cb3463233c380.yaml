@@ -1,0 +1,81 @@
+devices:
+    arch: grayskull
+  
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 18
+    grid_size: [2, 1]
+    t: 8
+    mblock: [1, 1]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x1b377f80], [0, 0x36508e00]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 24
+    grid_size: [1, 1]
+    t: 8
+    mblock: [4, 1]
+    ublock: [4, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x37a49d00]]
+
+  output:
+    type: queue
+    input: op0
+    entries: 6
+    grid_size: [2, 4]
+    t: 8
+    mblock: [1, 1]
+    ublock: [1, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x15b6edc0], [1, 0x1b49cf80], [1, 0x1db2eca0], [1, 0x21764420], [1, 0x3023c7a0], [1, 0x361506e0], [1, 0x3a3d6ba0], [1, 0x3ef37b00]]
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count:  6
+    op0: 
+      type: matmul
+      grid_loc: [8, 0]
+      grid_size: [2, 4]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 1, u_kt: 1}
+      untilize_output: false
+      t: 8
+      mblock: [1, 1]
+      ublock: [1, 4]
+      input_0_tms: []
+      input_1_tms: [transpose]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar : {$lptr0 : 0, $gptr0 : 0, $lptr1 : 0, $gptr1 : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr1, rd_ptr_global: $gptr1}}}
+      - varinst: [$lptr0, incwrap, 6, 36]
+      - varinst: [$gptr0, incwrap, 6, 36]
+      - varinst: [$lptr1, incwrap, 6, 48]
+      - varinst: [$gptr1, incwrap, 6, 48]
+      - endloop: 

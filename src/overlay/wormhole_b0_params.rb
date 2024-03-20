@@ -1,0 +1,1 @@
+require "#{$PARAMS[:blob_gen_root]}/wormhole_params.rb"

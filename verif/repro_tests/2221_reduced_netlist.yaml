@@ -1,0 +1,61 @@
+devices:
+  arch: wormhole_b0
+
+queues:
+  input_0:                        {input: HOST, type: queue, entries: 40, grid_size: [7, 1], t: 2, mblock: [7, 5], ublock: [1, 1], ublock_order: c, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30d0000], [1, 0x45f0000], [2, 0x30d0000], [2, 0x45d0000], [3, 0x71d7580], [3, 0x40a3ec40], [4, 0x725df20]]}
+
+  input_1:                        {input: HOST, type: queue, entries: 40, grid_size: [1, 1], t: 1, mblock: [1, 5], ublock: [1, 1], ublock_order: c, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x716c080]]}
+
+  input_2:                        {input: HOST, type: queue, entries: 40, grid_size: [1, 1], t: 1, mblock: [1, 5], ublock: [1, 1], ublock_order: c, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x4095f8c0]]}
+
+  output_dram:
+    type: queue
+    input: _fused_op_7
+    entries: 1
+    grid_size: [7, 1]
+    t: 2
+    mblock: [7, 5]
+    ublock: [1, 1]
+    df: Float16_b
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x10000000], [2, 0x11000000], [2, 0x12000000], [2, 0x13000000], [2, 0x14000000], [2, 0x15000000], [2, 0x16000000]]
+
+graphs:
+  test_fused_op:
+    target_device: 0
+    input_count: 20
+
+    _fused_op_7: {type: fused_op, grid_loc: [0, 0], grid_size: [7, 1], inputs: [input_0, input_1, input_2],
+      t: 2, mblock: [7, 5], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, input_dram_io_buf_size_tiles: [49, 0, 0], ublock_order: c, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+      input_2_tms: [broadcast: {r: 98}, vslice: 2], input_1_tms: [broadcast: {r: 98}, vslice: 2],
+      attributes: {fused_op_id: 0}}
+
+
+programs:
+  - test_fused_op_program:
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 80, $c_microbatch_size: 20, $c_loop_count: 1}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - loop: $c_loop_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_fused_op,
+          queue_settings: {
+               input_0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+               input_1: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+               input_2: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $c_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $c_microbatch_size, $c_wrap]
+    - endloop
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 0
+    schedules:
+      -
+        - multiply_109.0: { type: multiply, inputs: [input0, input1], mblock: [7, 5], ublock: [1, 1], output: dest}
+        - add_114.0: { type: add, inputs: [dest, input2], attributes: {relu_en: true, relu_mode: min, relu_threshold: 0.000000e+00}, mblock: [7, 5], ublock: [1, 1], output: output}
+

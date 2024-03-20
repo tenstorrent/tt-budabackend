@@ -1,0 +1,141 @@
+
+# git checkout f0ef5a980
+# pytest pybuda/test/backend/models/test_bert.py::test_mha[inference-Wormhole_B0-cfg0]
+
+devices:
+  arch: [wormhole_b0, blackhole]
+
+queues:
+
+  # input
+  encoder_input:                                           {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 4], ublock: [1, 1], ublock_order: c, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x2100100]]}
+  attention_mask:                                          {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3000100]]}
+
+  # output
+  mha.output_mha_0_output.bias:                            {input: mha_0_output_output_nop_0, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3500100]]}
+
+  # parameter
+  mha.bert.encoder.layer.0.attention.self.query.weight:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x28e0100]]}
+  mha.bert.encoder.layer.0.attention.self.query.bias:      {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x40000000]]}
+  mha.bert.encoder.layer.0.attention.self.key.weight:      {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x40d0100]]}
+  mha.bert.encoder.layer.0.attention.self.key.bias:        {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x42000000]]}
+  mha.reciprocal_of_sqrt_of_head_size_0:                   {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x28e0100]]}
+  mha.bert.encoder.layer.0.attention.self.value.weight:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x40000000]]}
+  mha.bert.encoder.layer.0.attention.self.value.bias:      {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x97a0100]]}
+  mha.bert.encoder.layer.0.attention.output.dense.weight:  {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x41000000]]}
+  mha.bert.encoder.layer.0.attention.output.dense.bias:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x40d0100]]}
+
+  # constant
+  lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0:      {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x42000000]]}
+  dc.input_tensor.mha_0_as_softmax.4:                      {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 4, mblock: [4, 1], ublock: [1, 1], ublock_order: r, tile_dim: [32, 32], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x67c0100]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    mha_0_query: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [encoder_input, mha.bert.encoder.layer.0.attention.self.query.weight, mha.bert.encoder.layer.0.attention.self.query.bias],
+         t: 1, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 4}, l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    mha_0_key: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [encoder_input, mha.bert.encoder.layer.0.attention.self.key.weight, mha.bert.encoder.layer.0.attention.self.key.bias],
+         t: 1, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 4}, l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    mha_0_as: {type: matmul, grid_loc: [0, 2], grid_size: [1, 1], inputs: [mha_0_query, mha_0_key],
+         t: 4, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_1_tms: [transpose, vslice: 4], input_0_tms: [hslice: 4],
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    _fused_op_0: {type: fused_op, grid_loc: [1, 0], grid_size: [1, 1], inputs: [mha_0_as, mha.reciprocal_of_sqrt_of_head_size_0, attention_mask],
+         t: 4, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_2_tms: [broadcast: {r: 4}, broadcast: {z: 4}], input_1_tms: [broadcast: {c: 4}, broadcast: {r: 4}, broadcast: {z: 4}],
+         attributes: {fused_op_id: 0, kernel_broadcast: {input_2: 4, input_1: 1}}}
+    mha_0_as_softmax.dc.reduce_max.0: {type: reduce, grid_loc: [1, 1], grid_size: [1, 1], inputs: [_fused_op_0],
+         t: 4, mblock: [4, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         attributes: {dim: c, m_k: 1, type: max, u_kt: 4}}
+    _fused_op_1: {type: fused_op, grid_loc: [1, 2], grid_size: [1, 1], inputs: [_fused_op_0, mha_0_as_softmax.dc.reduce_max.0],
+         t: 4, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, input_buf_min_size_tiles: [20, 0], ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_1_tms: [broadcast: {c: 4}],
+         attributes: {approximate_mode: false, fused_op_id: 1}}
+    mha_0_as_softmax.dc.reduce_sum.3.lc1: {type: matmul, grid_loc: [2, 0], grid_size: [1, 1], inputs: [_fused_op_1, lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0],
+         t: 4, mblock: [4, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_1_tms: [broadcast: {r: 4}, broadcast: {z: 4}],
+         attributes: {kernel_broadcast: {input_1: 1}, l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    mha_0_value: {type: matmul, grid_loc: [2, 1], grid_size: [1, 1], inputs: [encoder_input, mha.bert.encoder.layer.0.attention.self.value.weight, mha.bert.encoder.layer.0.attention.self.value.bias],
+         t: 1, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_2_tms: [broadcast: {r: 4}],
+         attributes: {bias: true, kernel_broadcast: {input_2: 4}, l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    _fused_op_2: {type: fused_op, grid_loc: [2, 2], grid_size: [1, 1], inputs: [mha_0_as_softmax.dc.reduce_sum.3.lc1, dc.input_tensor.mha_0_as_softmax.4, _fused_op_1],
+         t: 4, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, input_buf_min_size_tiles: [0, 0, 64], ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         attributes: {approximate_mode: false, fused_op_id: 2}}
+    mha_0_ac: {type: matmul, grid_loc: [2, 3], grid_size: [1, 1], inputs: [_fused_op_2, mha_0_value],
+         t: 4, mblock: [4, 1], ublock: [1, 1], tile_dim: [32, 32], buf_size_mb: 8, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_1_tms: [hslice: 4],
+         attributes: {l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    mha_0_output: {type: matmul, grid_loc: [1, 3], grid_size: [1, 1], inputs: [mha_0_ac, mha.bert.encoder.layer.0.attention.output.dense.weight, mha.bert.encoder.layer.0.attention.output.dense.bias],
+         t: 1, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2,
+         input_2_tms: [broadcast: {r: 4}], input_0_tms: [hstack: 4],
+         attributes: {bias: true, kernel_broadcast: {input_2: 4}, l1_acc: true, m_k: 4, min_buffer_input: 0, u_kt: 1}}
+    mha_0_output_output_nop_0: {type: nop, grid_loc: [0, 3], grid_size: [1, 1], inputs: [mha_0_output], untilize_output: true,
+         t: 1, mblock: [4, 1], ublock: [1, 4], tile_dim: [32, 32], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2}
+
+
+programs:
+  - run_fwd_0:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $c_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_loop_count
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               encoder_input: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               attention_mask: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               mha.bert.encoder.layer.0.attention.self.query.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.self.query.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.self.key.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.self.key.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.reciprocal_of_sqrt_of_head_size_0: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.mha_0_as_softmax.dc.reduce_sum.3.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.mha_0_as_softmax.4: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.self.value.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.self.value.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.output.dense.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               mha.bert.encoder.layer.0.attention.output.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 4]
+    - endloop
+
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 0
+    schedules:
+      -
+        - mha_0_as_div.0: { type: multiply, inputs: [input0, input1], mblock: [4, 1], ublock: [1, 4], output: dest}
+        - mha_0_as_mask.0: { type: add, inputs: [dest, input2], mblock: [4, 1], ublock: [1, 4], output: output}
+  1:
+    inputs: 2
+    intermediates: 0
+    schedules:
+      -
+        - mha_0_as_softmax.dc.subtract.1.0: { type: subtract, inputs: [input0, input1], input_1_tms: [tile_broadcast: c], mblock: [4, 1], ublock: [1, 4], output: dest}
+        - mha_0_as_softmax.dc.exp.2.0: { type: exp, inputs: [dest], mblock: [4, 1], ublock: [1, 4], output: output}
+  2:
+    inputs: 3
+    intermediates: 1
+    schedules:
+      -
+        - mha_0_as_softmax.dc.add.5.0: { type: add, inputs: [input0, input1], mblock: [4, 1], ublock: [1, 1], output: dest}
+        - mha_0_as_softmax.dc.reciprocal.6.0: { type: reciprocal, inputs: [dest], mblock: [4, 1], ublock: [1, 1], output: intermed0}
+        - mha_0_as_softmax.dc.multiply.7.0: { type: multiply, inputs: [input2, intermed0], input_1_tms: [broadcast: {c: 4}, tile_broadcast: c], pop: [intermed0], mblock: [4, 1], ublock: [1, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.90
+    check_pcc: 0.96
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.01
+    uniform_upper_bound: 0.25

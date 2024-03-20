@@ -1,0 +1,140 @@
+# params.yaml are versioned files containing params (constants) needed for op model estimations.
+# The sturcture is the following:
+# - Level 1 keys - op type name
+# - Level 2 keys 
+#    - These keys split params into sets for op models with different attributes; 
+#    - When deciding which set to use, we traverse level 2 keys in the reverse order to match 
+#      the most specialized set of attribute values, for example we use a set of params with 
+#      level 2 key approx/vector_c for op models that use approximate mode and column vector_mode)
+#    - Each op type must have a base set of params that is used when no other set is matched
+# - Level 3 keys
+#    - Actual param names used in the formulas
+#    - Level 3 keys are the same for all params sets
+
+# See perf_lib/op_model/README.md to see how we calculate params.
+
+# UNARY OPS
+
+nop:
+  base:
+    ublock_weight: 305
+    tile_weight: 56
+
+exp:
+  base:
+    ublock_weight: 0
+    tile_weight: 2666
+  approx:
+    ublock_weight: 31.07656877
+    tile_weight: 668.07644903
+
+gelu:
+  base:
+    ublock_weight: 64
+    tile_weight: 286
+
+gelu_derivative:
+  base:
+    ublock_weight: 0
+    tile_weight: 3116
+  approx:
+    ublock_weight: 12.08514142
+    tile_weight: 822.24602774
+
+log:
+  base:
+    ublock_weight: 0
+    tile_weight: 1413
+
+power:
+  base:
+    ublock_weight: 140.92380467
+    tile_weight: 125.59285517
+
+reciprocal:
+  base:
+    ublock_weight: 29
+    tile_weight: 915
+  approx:
+    ublock_weight: 31.8097882
+    tile_weight: 905.52756067
+
+sigmoid:
+  base:
+    ublock_weight: 84.15414291
+    tile_weight: 174.75984679
+
+sqrt:
+  base:
+    ublock_weight: 195
+    tile_weight: 159
+
+# BINARY OPS
+
+add:
+  base:
+    ublock_weight: 293.96263856
+    tile_weight: 50.43405251
+
+subtract:
+  base:
+    ublock_weight: 293.60199392
+    tile_weight: 50.50601309
+
+multiply:
+  base:
+    ublock_weight: 261.21061127
+    tile_weight: 54.83754362
+
+maximum:
+  base:
+    ublock_weight: 30.74320292
+    tile_weight: 260.32786291
+
+# MATMUL OPS
+
+depthwise:
+  base:
+    math_tiles_weight: 79
+    math_dest_spill_weight: 0
+    unpack_ublocks_weight: 0
+    unpack_tiles_weight: 0
+
+matmul:
+  base:
+    m_k_weight: 1321
+    ublock_weight: 56
+    tile_weight: 36
+
+matmul_sparse:
+  base:
+    tile_weight: 36
+    reload: 20
+    reload_config: 20
+    reload_wait_pop: 20
+    pack_wait_push: 25
+    pack: 25
+    ublock_decode: 8
+    nz_ublock_decode: 8
+    nz_tile_decode: 12
+
+# OTHER OPS
+
+reduce:
+  base:
+    ublock_weight: 76
+    tile_weight: 59
+  dim_c:
+    ublock_weight: 0
+    tile_weight: 91
+
+reduce_z:
+  base:
+    ublock_weight: 0
+    tile_weight: 287
+    z_weight: 268
+
+splice:
+  base:
+    ublock_weight: 132
+    tile_weight: 69

@@ -1,0 +1,62 @@
+devices:
+  arch: GRAYSKULL
+
+queues:
+  lc.input_tensor.sparse0.0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [10, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]} # sparse input
+  input_1_sparse0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [36, 2], ublock: [2, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  lc.input_tensor.sparse0.1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x32000000]]} # encodings
+  ModuleBuilder.simple_sparse_matmul.output_sparse0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [8, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [lc.input_tensor.sparse0.0, input_1_sparse0, lc.input_tensor.sparse0.1] 
+      in_df: [Float16, Float16, RawUInt32] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      attributes: {m_k: 36, u_kt: 2, identity: true, num_index_tiles: 1, num_sparse_tiles: 10}
+      untilize_output: false 
+      gradient_op: false
+      t: 1
+      mblock: [8, 2]
+      ublock: [1, 1]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count, $c_zero]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         lc.input_tensor.sparse0.0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+         input_1_sparse0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         lc.input_tensor.sparse0.1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 2]
+      -   varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+

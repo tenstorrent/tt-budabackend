@@ -1,0 +1,110 @@
+# test_config_id=$TEMPLATE_test_config_id
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input0_dram_entries
+    grid_size: [$TEMPLATE_input0_dram_grid_size_r, $TEMPLATE_input0_dram_grid_size_c]
+    t: $TEMPLATE_input0_dram_t
+    mblock: [$TEMPLATE_input0_dram_mb_r, $TEMPLATE_input0_dram_mb_c]
+    ublock: [$TEMPLATE_input0_dram_ub_r, $TEMPLATE_input0_dram_ub_c]
+    df: $TEMPLATE_input0_dram_df
+    ublock_order: $TEMPLATE_input0_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_input0_dram_loc
+    $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
+
+  output0_dram:
+    type: queue
+    input: datacopy0
+    entries: $TEMPLATE_output0_dram_entries
+    grid_size: [$TEMPLATE_output0_dram_grid_size_r, $TEMPLATE_output0_dram_grid_size_c]
+    t: $TEMPLATE_output0_dram_t
+    mblock: [$TEMPLATE_output0_dram_mb_r, $TEMPLATE_output0_dram_mb_c]
+    ublock: [$TEMPLATE_output0_dram_ub_r, $TEMPLATE_output0_dram_ub_c]
+    df: $TEMPLATE_output0_dram_df
+    ublock_order: $TEMPLATE_output0_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_output0_dram_loc
+    $TEMPLATE_output0_dram_loc: $TEMPLATE_output0_dram_buffers
+
+  output1_dram:
+    type: queue
+    input: datacopy1
+    entries: $TEMPLATE_output1_dram_entries
+    grid_size: [$TEMPLATE_output1_dram_grid_size_r, $TEMPLATE_output1_dram_grid_size_c]
+    t: $TEMPLATE_output1_dram_t
+    mblock: [$TEMPLATE_output1_dram_mb_r, $TEMPLATE_output1_dram_mb_c]
+    ublock: [$TEMPLATE_output1_dram_ub_r, $TEMPLATE_output1_dram_ub_c]
+    df: $TEMPLATE_output1_dram_df
+    ublock_order: $TEMPLATE_output1_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_output1_dram_loc
+    $TEMPLATE_output1_dram_loc: $TEMPLATE_output1_dram_buffers
+
+graphs:
+  test_multi_tm_dram_datacopy:
+    target_device: 0
+    input_count: $TEMPLATE_microbatch_size
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_datacopy0_loc_r, $TEMPLATE_datacopy0_loc_c] 
+      grid_size: [$TEMPLATE_datacopy0_grid_size_r, $TEMPLATE_datacopy0_grid_size_c]
+      inputs: [input0_dram] 
+      in_df: [$TEMPLATE_datacopy0_in0_df]
+      acc_df: $TEMPLATE_datacopy0_acc_df
+      out_df: $TEMPLATE_datacopy0_out_df  
+      intermed_df: $TEMPLATE_datacopy0_intermed_df
+      ublock_order: $TEMPLATE_datacopy0_ublock_order
+      buf_size_mb: $TEMPLATE_datacopy0_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_datacopy0_untilize_output 
+      t: $TEMPLATE_datacopy0_t
+      mblock: [$TEMPLATE_datacopy0_mb_r, $TEMPLATE_datacopy0_mb_c]
+      ublock: [$TEMPLATE_datacopy0_ub_r, $TEMPLATE_datacopy0_ub_c]
+      input_0_tms: $TEMPLATE_datacopy0_input0_tms
+
+    datacopy1: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_datacopy1_loc_r, $TEMPLATE_datacopy1_loc_c] 
+      grid_size: [$TEMPLATE_datacopy1_grid_size_r, $TEMPLATE_datacopy1_grid_size_c]
+      inputs: [input0_dram] 
+      in_df: [$TEMPLATE_datacopy1_in0_df]
+      acc_df: $TEMPLATE_datacopy1_acc_df
+      out_df: $TEMPLATE_datacopy1_out_df  
+      intermed_df: $TEMPLATE_datacopy1_intermed_df
+      ublock_order: $TEMPLATE_datacopy1_ublock_order
+      buf_size_mb: $TEMPLATE_datacopy1_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_datacopy1_untilize_output 
+      t: $TEMPLATE_datacopy1_t
+      mblock: [$TEMPLATE_datacopy1_mb_r, $TEMPLATE_datacopy1_mb_c]
+      ublock: [$TEMPLATE_datacopy1_ub_r, $TEMPLATE_datacopy1_ub_c]
+      input_0_tms: $TEMPLATE_datacopy1_input0_tms
+      
+programs:
+  - test_multi_tm_dram_data_datacopy_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_datacopy,
+          queue_settings: {
+               input0_dram: {prologue: $TEMPLATE_input0_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: $TEMPLATE_microbatch_count # entries / input_count
+    microbatch_size: $TEMPLATE_microbatch_size # input_count
+    minibatch_count: $TEMPLATE_minibatch_count # host loop iterations

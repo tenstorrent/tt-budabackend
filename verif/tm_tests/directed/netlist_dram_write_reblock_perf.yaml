@@ -1,0 +1,54 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 512, grid_size: [1, 1], t: 4, mblock: [4, 2], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  output:  {type: queue, input: writer , entries: 512, grid_size: [1, 1], t: 4, mblock: [4, 2], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]} #, [2, 0x10000000]]} #, [3, 0x10000000], [4, 0x10000000]]}#, [1, 0x18000000], [2, 0x18000000], [3, 0x18000000], [4, 0x18000000]]}
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 512
+    reader: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [1, 1]
+      inputs: [input0] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi 
+      untilize_output: false 
+      t: 4
+      mblock: [4, 2]
+      ublock: [2, 4]
+    writer: 
+      type: datacopy 
+      grid_loc: [0, 1] 
+      grid_size: [1, 1]
+      inputs: [reader] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi 
+      untilize_output: false 
+      t: 4
+      mblock: [4, 2]
+      ublock: [2, 4]
+      
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 

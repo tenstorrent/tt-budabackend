@@ -1,0 +1,33 @@
+devices:
+  arch: [grayskull, wormhole]
+  
+queues:
+  in:  {type: queue, input: HOST    , entries: 1, grid_size: [2, 2], t: 10, mblock: [3, 3], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000000],[1, 0x32000000],[1, 0x34000000],[1, 0x36000000]]}
+  out: {type: queue, input: unary0  , entries: 1, grid_size: [2, 2], t: 10, mblock: [3, 3], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x32000000],[0, 0x34000000],[0, 0x36000000]]}
+
+graphs:
+  test_unary:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [2, 2], inputs: [in], in_df: [Float16_b], acc_df: Float16_b, out_df: Float16_b,  intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 10, mblock: [3, 3], ublock: [1, 1]}
+
+programs:
+  - tilize_untilize:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_unary, queue_settings: {
+          in: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.98
+    verbosity: AllFails

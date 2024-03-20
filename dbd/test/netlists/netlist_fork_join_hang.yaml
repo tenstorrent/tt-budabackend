@@ -1,0 +1,75 @@
+# git checkout 0d3b014c3
+# pytest pybuda/test/test_fork_join.py::test_fork_join_with_buff_queue_long_path[inference-Wormhole_B0-bfp8]
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  act1:                                                  {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 16, mblock: [40, 2], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0x0]}
+  act2:                                                  {input: HOST, type: queue, entries: 2, grid_size: [1, 2], t: 16, mblock: [20, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0xa14020, 0xc99040]}
+
+  # output
+  test_fork_join_with_buff_queue_long_path.output_join:  {input: join, type: queue, entries: 2, grid_size: [1, 1], t: 16, mblock: [60, 1], ublock: [1, 2], ublock_order: r, df: Float32, target_device: 0, loc: host, host: [0xf1e060]}
+
+  # parameter
+  test_fork_join_with_buff_queue_long_path.in0_mm_1:     {input: HOST, type: ram, entries: 1, grid_size: [10, 2], t: 16, mblock: [6, 1], ublock: [1, 30], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x3e5a100], [0, 0x40000000], [1, 0x3e5a100], [1, 0x40000000], [2, 0x3e5a100], [2, 0x40000000], [3, 0xaab4100], [3, 0x40000000], [4, 0xaab4100], [4, 0x40000000], [5, 0x3e5a100], [5, 0x40000000], [0, 0x49b0920], [0, 0x40b56820], [1, 0x49b0920], [1, 0x40b56820], [2, 0x49b0920], [2, 0x40b56820], [3, 0xb60a920], [3, 0x40b56820]]}
+  test_fork_join_with_buff_queue_long_path.in1_mm_2:     {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [4, 1], ublock: [2, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[4, 0xb60a920], [4, 0x40b56820], [5, 0x49b0920], [5, 0x40b56820]]}
+  test_fork_join_with_buff_queue_long_path.in1_mm_3:     {input: HOST, type: ram, entries: 1, grid_size: [1, 2], t: 1, mblock: [1, 4], ublock: [1, 4], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x5507140], [0, 0x416ad040]]}
+
+  # buffering
+  insert_queue0:                                         {input: matmul_1, type: queue, entries: 1, grid_size: [10, 2], t: 16, mblock: [6, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x5507140], [1, 0x416ad040], [2, 0x5507140], [2, 0x416ad040], [3, 0xc161140], [3, 0x416ad040], [4, 0xb612a40], [4, 0x40b5e940], [5, 0x49b8a40], [5, 0x40b5e940], [0, 0x5517360], [0, 0x416bd260], [1, 0x5567d60], [1, 0x4170dc60], [2, 0x5567d60], [2, 0x4170dc60], [3, 0xc1c1d60], [3, 0x4170dc60], [4, 0xb673660], [4, 0x40bbf560]]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    conc: {type: splice, grid_loc: [0, 0], grid_size: [1, 2], inputs: [act1, act2],
+         t: 16, mblock: [60, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {input0: [0, 40, 40], input1: [0, 20, 20]}}
+    matmul_1: {type: matmul, grid_loc: [0, 2], grid_size: [10, 2], inputs: [test_fork_join_with_buff_queue_long_path.in0_mm_1, conc],
+         t: 16, mblock: [6, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {m_k: 2, min_buffer_input: 0, u_kt: 30}}
+    matmul_2: {type: matmul, grid_loc: [0, 4], grid_size: [4, 1], inputs: [insert_queue0, test_fork_join_with_buff_queue_long_path.in1_mm_2],
+         t: 1, mblock: [15, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 16],
+         attributes: {m_k: 16, min_buffer_input: 0, u_kt: 2}}
+    matmul_3: {type: matmul, grid_loc: [0, 5], grid_size: [10, 2], inputs: [matmul_2, test_fork_join_with_buff_queue_long_path.in1_mm_3],
+         t: 1, mblock: [6, 4], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         attributes: {m_k: 1, min_buffer_input: 0, u_kt: 1}}
+    join: {type: subtract, grid_loc: [0, 7], grid_size: [10, 1], inputs: [conc, matmul_3], untilize_output: true,
+         t: 16, mblock: [6, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float32, Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_1_tms: [hslice: 16]}
+
+
+programs:
+  - run_fwd_0:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: 1
+    -   allocate_queue: [insert_queue0]
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               act2: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               insert_queue0: {prologue: false, epilogue: false, zero: False, global_rdptr_autoinc: 1, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               test_fork_join_with_buff_queue_long_path.in0_mm_1: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               test_fork_join_with_buff_queue_long_path.in1_mm_2: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               test_fork_join_with_buff_queue_long_path.in1_mm_3: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   deallocate_queue: [insert_queue0]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 4]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 4]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.90
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0

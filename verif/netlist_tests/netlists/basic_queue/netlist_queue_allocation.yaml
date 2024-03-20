@@ -1,0 +1,24 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 1, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  output: {type: queue, input: unary0 , entries: 1, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12100000], [0, 0x12200000], [0, 0x12300000]]}
+
+graphs:
+  test_unary:
+    target_device: 0
+    input_count: 1
+    unary0: {type: exp, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - allocate_queue: [output]
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary, queue_settings: {
+        q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+      - deallocate_queue: [output]

@@ -1,0 +1,123 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [1, 7]
+    t: 1
+    mblock: [1, 25]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000060], [3, 0x100196c0], [3, 0x10032d20], [3, 0x1004c380], [3, 0x100659e0], [3, 0x1007f040], [3, 0x100986a0]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [1, 12]
+    t: 10
+    mblock: [35, 1]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x10000080], [2, 0x10163820], [2, 0x102c6fc0], [2, 0x1042a760], [2, 0x1058df00], [2, 0x106f16a0], [2, 0x10854e40], [2, 0x109b85e0], [2, 0x10b1bd80], [2, 0x10c7f520], [2, 0x10de2cc0], [2, 0x10f46460]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 2
+    grid_size: [6, 2]
+    t: 1
+    mblock: [1, 4]
+    ublock: [2, 3]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x100000a0], [5, 0x100186c0], [5, 0x10030ce0], [5, 0x10049300], [5, 0x10061920], [5, 0x10079f40], [5, 0x10092560], [5, 0x100aab80], [5, 0x100c31a0], [5, 0x100db7c0], [5, 0x100f3de0], [5, 0x1010c400]]
+
+graphs:
+  test_multi_tm_datacopy_matmul:
+    target_device: 0
+    input_count: 2
+    feeder0:
+      type: datacopy
+      grid_loc: [3, 0]
+      grid_size: [1, 7]
+      inputs: [dram_input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [1, 25]
+      ublock: [1, 1]
+    feeder1:
+      type: datacopy
+      grid_loc: [2, 0]
+      grid_size: [1, 12]
+      inputs: [dram_input1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 10
+      mblock: [35, 1]
+      ublock: [1, 1]
+    op0:
+      type: matmul
+      grid_loc: [4, 0]
+      grid_size: [6, 2]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 25, u_kt: 7}
+      untilize_output: false
+      t: 1
+      mblock: [1, 4]
+      ublock: [2, 3]
+      input_0_tms: [broadcast: {z: 1}, broadcast: {r: 12}]
+      input_1_tms: [vstack: 5, hstack: 2]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_matmul,
+          queue_settings: {
+            dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations

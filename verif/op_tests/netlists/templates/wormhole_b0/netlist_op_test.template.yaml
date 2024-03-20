@@ -1,0 +1,48 @@
+devices:
+  arch: $TEMPLATE_device
+
+queues:
+  $TEMPLATE_in0
+  $TEMPLATE_in1
+  $TEMPLATE_in2
+  $TEMPLATE_in3
+  $TEMPLATE_out0
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count: $TEMPLATE_input_count
+    $TEMPLATE_op0
+    $TEMPLATE_op1
+    $TEMPLATE_op2
+    $TEMPLATE_op3
+    $TEMPLATE_op4
+    $TEMPLATE_op5
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, $TEMPLATE_loop_count]  # load loop count
+      - varinst : [$c_input_count, set, $TEMPLATE_input_count]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         $TEMPLATE_queue_settings_in0
+         $TEMPLATE_queue_settings_in1
+         $TEMPLATE_queue_settings_in2
+         $TEMPLATE_queue_settings_in3
+         $TEMPLATE_queue_settings_out0}}
+      - varinst: [$lptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: $TEMPLATE_loop_count
+  comparison-config: $TEMPLATE_comparison_config
+  stimulus-config:
+    overrides:
+      $TEMPLATE_stimulus_in0
+      $TEMPLATE_stimulus_in1
+      $TEMPLATE_stimulus_in2
+      $TEMPLATE_stimulus_in3

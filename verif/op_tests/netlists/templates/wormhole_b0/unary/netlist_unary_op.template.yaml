@@ -1,0 +1,66 @@
+devices:
+  arch: $TEMPLATE_device
+
+queues:
+  input:  {type: queue, input: HOST, entries: $TEMPLATE_entries, grid_size: [$TEMPLATE_in_grid_size_y, $TEMPLATE_in_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_in_mblock_m, $TEMPLATE_in_mblock_n], ublock: [$TEMPLATE_in_ublock_rt, $TEMPLATE_in_ublock_ct], tile_dim: [$TEMPLATE_in_tile_dim_r, $TEMPLATE_in_tile_dim_c], df: $TEMPLATE_in_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in_dram_buffers}
+  output: {type: queue, input: op0 , entries: $TEMPLATE_entries, grid_size: [$TEMPLATE_out_grid_size_y, $TEMPLATE_out_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_out_mblock_m, $TEMPLATE_out_mblock_n], ublock: [$TEMPLATE_out_ublock_rt, $TEMPLATE_out_ublock_ct], tile_dim: [$TEMPLATE_out_tile_dim_r, $TEMPLATE_out_tile_dim_c], df: $TEMPLATE_out_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_out_dram_buffers}
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count:  $TEMPLATE_input_count
+    op0: 
+      type: $TEMPLATE_unary_type 
+      grid_loc: [$TEMPLATE_grid_loc_y, $TEMPLATE_grid_loc_x]   # [r,c]
+      grid_size: [$TEMPLATE_grid_size_y, $TEMPLATE_grid_size_x] # [r,c]
+      inputs: [input] 
+      in_df: [$TEMPLATE_in_data_format] 
+      acc_df: $TEMPLATE_dest_accumulate_data_format
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: $TEMPLATE_untilize_output 
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_mblock_m,  $TEMPLATE_mblock_n]
+      ublock: [$TEMPLATE_ublock_rt, $TEMPLATE_ublock_ct]
+      tile_dim: [$TEMPLATE_out_tile_dim_r, $TEMPLATE_out_tile_dim_c]
+      attributes: {vector: $TEMPLATE_sfpu_vector_mode} # Needed only for SFPU ops, no effect on datacopy
+      input_0_tms: $TEMPLATE_transpose
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set,  $TEMPLATE_loop_count]   # load loop count
+      - varinst: [$c_input_count, set, $TEMPLATE_input_count]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      -   varinst: [$gptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: $TEMPLATE_loop_count
+  comparison-config:
+    type: $TEMPLATE_comparison_config_type
+    atol: $TEMPLATE_comparison_config_atol
+    rtol: $TEMPLATE_comparison_config_rtol
+    check_pct: $TEMPLATE_comparison_config_check_pct
+    check_pcc: $TEMPLATE_comparison_config_check_pcc
+    verbosity: $TEMPLATE_comparison_config_verbosity
+    # Sfpu ops work on at least 4 rows in a tile at once.
+    # Hence, if input tile_dim_r is < 4, and output tile_dim_r is > input tile_dim_r,
+    # hardware will output sfpu(0), which can be != 0, in rows between [input_tile_dim_r +1, 4].
+    # That is the padding that we don't care about, so it can be ignored when comparing with Golden.
+    # See BudaBackend issue #2060.
+    check_tile_rows_range: [1, $TEMPLATE_comparison_config_tile_dim_r]
+    check_tile_cols_range: [1, $TEMPLATE_comparison_config_tile_dim_c]
+  stimulus-config:
+    type: $TEMPLATE_stimulus_config_type
+    uniform_lower_bound: $TEMPLATE_stimulus_config_uniform_lower_bound
+    uniform_upper_bound: $TEMPLATE_stimulus_config_uniform_upper_bound
+

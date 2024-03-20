@@ -1,0 +1,91 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  #act1:                                         {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 12, mblock: [2,  1], ublock: [2, 2], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  hidden_states:                                {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 1,  mblock: [4, 24], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+  matmul_34:                                    {input: HOST, type: queue, entries: 8, grid_size: [1, 1], t: 1,  mblock: [2,  6], ublock: [2, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x38000000]]}
+
+  # output
+  fuse_layernorm_reduce.output_layernorm:       {input: _fused_op_0, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 6], ublock: [2, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0x0, 0x34000000]]}
+
+  # parameter
+  #layer.0.attention.output.dense.weight:           {input: HOST, type: ram, entries: 1, grid_size: [1, 2], t: 1, mblock: [6, 3], ublock: [4, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x60527a0], [0, 0x7058c40]]}
+  #layer.0.attention.output.dense.bias:             {input: HOST, type: ram, entries: 1, grid_size: [1, 2], t: 1, mblock: [1, 3], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x8052c00], [0, 0x90527a0]]}
+  layer.0.attention.output.LayerNorm.weight:       {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x50527a0]]}
+  layer.0.attention.output.LayerNorm.bias:         {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 4], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0xa052320]]}
+
+  # constant
+  lc.input_tensor.layernorm_39.dc.reduce_avg.0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0xb052c00]]}
+  lc.input_tensor.layernorm_39.dc.reduce_avg.3.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x4fb0900]]}
+  dc.input_tensor.layernorm_39.4:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0xc058c40]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+
+    _fused_op_0: {type: fused_op, grid_loc: [0, 0], grid_size: [1, 1], inputs: [matmul_34, hidden_states, lc.input_tensor.layernorm_39.dc.reduce_avg.0.0, lc.input_tensor.layernorm_39.dc.reduce_avg.3.0, dc.input_tensor.layernorm_39.4, layer.0.attention.output.LayerNorm.weight, layer.0.attention.output.LayerNorm.bias],
+         t: 1, mblock: [2, 6], ublock: [2, 4], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_6_tms: [broadcast: {r: 4}], input_5_tms: [broadcast: {r: 4}], input_3_tms: [broadcast: {r: 24}], input_2_tms: [broadcast: {r: 24}],
+         attributes: {approximate_mode: true, fused_op_id: 0}}
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               #act1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               matmul_34: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               hidden_states: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               layer.0.attention.output.LayerNorm.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               layer.0.attention.output.LayerNorm.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               #layer.0.attention.output.dense.weight: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               #layer.0.attention.output.dense.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_39.dc.reduce_avg.0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.layernorm_39.dc.reduce_avg.3.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               dc.input_tensor.layernorm_39.4: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}}}
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 16]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 16]
+    - endloop
+
+
+fused_ops:
+  0: 
+    inputs: 7
+    intermediates: 4
+    schedules: 
+      -
+        - add_38: { type: add, inputs: [input0, input1], mblock: [2, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_39.dc.reduce_avg.0.lc1: { type: matmul, inputs: [intermed0, input2], attributes: {m_k: 6, u_kt: 4}, pop: [intermed0], mblock: [2, 1], ublock: [2, 1], output: intermed1}
+      -
+        - add_38: { type: add, inputs: [input0, input1], mblock: [2, 6], ublock: [2, 4], output: dest}
+        - layernorm_39.dc.subtract.1: { type: subtract, inputs: [dest, intermed1], input_1_tms: [broadcast: {c: 24}], mblock: [2, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_39.dc.multiply.2: { type: multiply, inputs: [intermed0, intermed0], pop: [intermed0], mblock: [2, 6], ublock: [2, 4], output: intermed0}
+        - layernorm_39.dc.reduce_avg.3.lc1: { type: matmul, inputs: [intermed0, input3], attributes: {m_k: 6, u_kt: 4}, pop: [intermed0], mblock: [2, 1], ublock: [2, 1], output: intermed2}
+      -
+        - layernorm_39.dc.add.5: { type: add, inputs: [intermed2, input4], pop_last: [intermed2], mblock: [2, 1], ublock: [2, 1], output: dest}
+        - layernorm_39.dc.sqrt.6: { type: sqrt, inputs: [dest], mblock: [2, 1], ublock: [2, 1], output: dest}
+        - layernorm_39.dc.reciprocal.7: { type: reciprocal, inputs: [dest], mblock: [2, 1], ublock: [2, 1], output: intermed3}
+      -
+        - add_38: { type: add, inputs: [input0, input1], pop: [input0, input1], mblock: [2, 6], ublock: [2, 4], output: dest}
+        - layernorm_39.dc.subtract.1: { type: subtract, inputs: [dest, intermed1], input_1_tms: [broadcast: {c: 24}], pop_last: [intermed1], mblock: [2, 6], ublock: [2, 4], output: dest}
+        - layernorm_40.dc.multiply.8: { type: multiply, inputs: [dest, intermed3], input_1_tms: [broadcast: {c: 24}, tile_broadcast: c], pop_last: [intermed3], mblock: [2, 6], ublock: [2, 4], output: dest}
+        - layernorm_39.dc.multiply.9: { type: multiply, inputs: [dest, input5], input_1_tms: [tile_broadcast: r], mblock: [2, 6], ublock: [2, 4], output: dest}
+        - layernorm_39.dc.add.10: { type: add, inputs: [dest, input6], input_1_tms: [tile_broadcast: r],  mblock: [2, 6], ublock: [2, 4], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.80
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.25
+    normal_stddev: 0.2

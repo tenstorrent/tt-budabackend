@@ -1,0 +1,42 @@
+devices:
+    arch: grayskull
+  
+queues:
+  q0      : {type: queue, input: HOST   , entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x11000000], [0, 0x12000000], [0, 0x13000000]]} # 16kB per core
+  q1      : {type: queue, input: HOST   , entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000], [0, 0x21000000], [0, 0x22000000], [0, 0x23000000]]} # 16kB per core
+  output0 : {type: queue, input: matmul0 , entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x31000000], [0, 0x32000000], [0, 0x33000000]]}
+  
+graphs:
+  test_matmul:
+    target_device: 0
+    input_count: 1
+    matmul0:
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [2, 2]
+      inputs: [q0, q1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      attributes: {m_k: 2, u_kt: 2}
+      untilize_output: false
+      t: 1
+      mblock: [1, 1]
+      ublock: [4, 4]
+      input_0_tms: []
+      input_1_tms: []
+    
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_matmul, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 

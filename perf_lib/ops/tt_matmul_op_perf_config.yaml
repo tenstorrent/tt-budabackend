@@ -1,0 +1,265 @@
+# TODO - Common section to be shred across variants.
+# List out all the op variants to be tested
+variants:
+  tt_matmul_op:
+    tests:
+      small_128x128:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        rbg-config:
+        - perf_lib/ops/rbg_config_single_core_directed_test.yaml
+        -
+          config:
+            max-tensor-dim-r: 4
+            min-tensor-dim-r: 4
+            # Output size is too large for given max dest registers (64 vs 16)
+            # max-tensor-dim-c: 16
+            # min-tensor-dim-c: 16
+            max-tensor-dim-c: 4
+            min-tensor-dim-c: 4
+          nodes:
+            - name: feeder_op
+              types:
+                - tt_eltwise_unary_op
+              input_shapes:
+                0: [4, 4, 1, 1]
+            - name: target_op
+              types:
+                - tt_matmul_op
+              input_shapes:
+                0: [4, 4, 1, 1]
+                1: [4, 4, 1, 1]
+            - name: drainer_op
+              types:
+                - tt_eltwise_unary_op
+          edges:
+            - [[feeder_op, 0], [target_op, 0]]
+            - [[target_op, 0], [drainer_op, 0]]
+      # FF1 Matmul Tests #######################################
+      perf_bert_ff1_k16_per_block_k_tiles_4:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: baseline
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 16
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 4
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_ff1_k8_per_block_k_tiles_8:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.      
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 8
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 8
+          - --per_block_n_tiles 16
+      perf_bert_ff1_k8_per_block_k_tiles_4:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 8
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 4
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_ff1_k4_per_block_k_tiles_4:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 4
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 4
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      # FF2 Matmul Tests #######################################
+      perf_bert_ff2_k16_per_block_k_tiles_16:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: baseline
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 16
+          - --n_dim 4
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 16
+          - --per_block_n_tiles 4
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_ff2_k8_per_block_k_tiles_8:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 8
+          - --n_dim 4
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 8
+          - --per_block_n_tiles 4
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_ff2_k4_per_block_k_tiles_4:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 4
+          - --n_dim 4
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 4
+          - --per_block_n_tiles 4
+          - --min-inputs 1
+          - --max-inputs 1
+      # SelfOutput Matmul Tests #######################################
+      perf_bert_selfout_k16_per_block_k_tiles_2:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: baseline
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 16
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 2
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_selfout_k8_per_block_k_tiles_2:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 8
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 2
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      perf_bert_selfout_k4_per_block_k_tiles_2:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: experiment
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 4
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 2
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1
+      # KQV Matmul Tests #######################################
+      perf_bert_kqv_k16_per_block_k_tiles_4:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: target_op
+          num-inputs: 5
+          note: baseline
+        # One argument per list item for now.
+        cpp-test-config:
+          - --test=test_perf_matmul
+          - --m_dim 4
+          - --k_dim 16
+          - --n_dim 16
+          - --per_block_m_tiles 4
+          - --per_block_k_tiles 4
+          - --per_block_n_tiles 16
+          - --min-inputs 1
+          - --max-inputs 1

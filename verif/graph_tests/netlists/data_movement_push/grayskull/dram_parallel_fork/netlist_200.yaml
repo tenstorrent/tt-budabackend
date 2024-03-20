@@ -1,0 +1,81 @@
+# test_config_id=8
+devices:
+  arch: grayskull
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [20, 220]
+    ublock: [2, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[6, 0x10000000]]
+
+  output_dram:
+    type: queue
+    input: feeder0
+    entries: 1
+    grid_size: [1, 11]
+    t: 20
+    mblock: [5, 1]
+    ublock: [4, 2]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000000], [1, 0x10196420], [1, 0x1032c840], [1, 0x104c2c60], [1, 0x10659080], [1, 0x107ef4a0], [1, 0x109858c0], [1, 0x10b1bce0], [1, 0x10cb2100], [1, 0x10e48520], [1, 0x10fde940]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    feeder0:
+      type: datacopy
+      grid_loc: [0, 0]
+      grid_size: [1, 11]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 20
+      mblock: [5, 1]
+      ublock: [4, 2]
+      input_0_tms: [hslice: 10, vslice: 2]
+      untilize_output: false
+
+programs:
+  - program0:
+    - var: [$c_microbatch_count, $c_zero]
+    - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+    - varinst: [$c_microbatch_count, set, 1]
+    - varinst: [$c_zero, set, 0]
+    - loop: $c_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_op,
+          queue_settings: {
+               input0_dram: {
+                prologue: false,
+                epilogue: false,
+                zero: false,
+                rd_ptr_local: $lptr_q0,
+                rd_ptr_global: $gptr_q0,
+              }
+          }
+        }
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

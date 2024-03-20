@@ -1,0 +1,76 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [3, 2]
+    t: 26
+    mblock: [5, 4]
+    ublock: [1, 5]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000020], [1, 0x10528540], [1, 0x10a50a60], [1, 0x10f78f80], [1, 0x114a14a0], [1, 0x119c99c0]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 1
+    grid_size: [3, 1]
+    t: 26
+    mblock: [1, 40]
+    ublock: [5, 1]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x10000040], [4, 0x10a50a60], [4, 0x114a1480]]
+
+graphs:
+  test_multi_tm_dram_op:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [0, 6] 
+      grid_size: [3, 1]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 26
+      mblock: [1, 40]
+      ublock: [5, 1]
+      input_0_tms: [hstack: 1, hstack: 1]
+      
+programs:
+  - multi_tm_test_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_op,
+          queue_settings: {
+               dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

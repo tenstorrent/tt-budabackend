@@ -1,0 +1,59 @@
+devices:
+  arch: [blackhole, wormhole_b0]
+queues:
+  input:  {type: queue, input: HOST, entries: 5, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x2469cd80]]}
+  output: {type: ram, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [2, 2], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x3484b500]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: datacopy
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input] 
+      in_df: [Float16_b] 
+      acc_df: Float32
+      out_df: Float32  
+      intermed_df: Float32
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false 
+      gradient_op: true
+      t: 1
+      mblock: [1, 3]
+      ublock: [2, 2]
+      input_0_tms:
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+        #      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_loop_count, set,  1]   # load loop count
+      - varinst: [$c_input_count, set, 1]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input:  {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 10]
+      - varinst: [$gptr, incwrap, $c_input_count, 10]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+

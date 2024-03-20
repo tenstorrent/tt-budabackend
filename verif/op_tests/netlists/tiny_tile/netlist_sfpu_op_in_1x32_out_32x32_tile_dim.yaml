@@ -1,0 +1,65 @@
+devices:
+  arch: wormhole_b0
+
+queues:
+  input:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], tile_dim: [1, 32], df: Bfp8, target_device: 0, loc: dram, dram: [[1, 0x2c1c34e0]]}
+  output: {type: queue, input: op0 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Bfp2, target_device: 0, loc: dram, dram: [[1, 0x37d76f00]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: exp 
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [input] 
+      in_df: [Bfp8] 
+      acc_df: Float16
+      out_df: Bfp2
+      intermed_df: Bfp2
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi2
+      untilize_output: false 
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+      tile_dim: [32, 32]
+      attributes: {vector: r}
+      input_0_tms: None
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set,  1]
+      - varinst: [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 2]
+      -   varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.65
+    check_pcc: 0.8
+    verbosity: Concise
+    # Sfpu ops work on at least 4 rows in a tile at once.
+    # Hence, if input tile_dim_r is < 4, and output tile_dim_r is > input tile_dim_r,
+    # hardware will output sfpu(0), which can be != 0, in rows between [input_tile_dim_r +1, 4].
+    # That is the padding that we don't care about, so it can be ignored when comparing with Golden.
+    # See BudaBackend issue #2060.
+    check_tile_rows_range: [1, 1]
+    check_tile_cols_range: [1, 32]
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0

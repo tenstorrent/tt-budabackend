@@ -1,0 +1,64 @@
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  inputs:                                                        {input: HOST, type: queue, entries: 512, grid_size: [1, 8], t: 4, mblock: [4, 1], ublock: [2, 1], ublock_order: r, df: Float32, target_device: 1, loc: dram, dram: [[0, 0x38da100], [0, 0x795a120], [0, 0xb9da140], [0, 0xfa5a160], [0, 0x13ada180], [0, 0x17b5a1a0], [0, 0x1bbda1c0], [0, 0x1fc5a1e0]]}
+
+  # output
+  two_chip_full_grid_unaries_output:  {input: unary1_H, type: queue, entries: 512, grid_size: [1, 8], t: 4, mblock: [4, 1], ublock: [2, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x38da100], [1, 0x38da100], [2, 0x38da100], [3, 0x7ab4100], [4, 0x7ab4100], [5, 0x38da100], [0, 0x795a120], [1, 0x795a120]]}
+
+graphs:
+  fwd_0:
+    target_device: 1
+    input_count: 256
+    unary0_A: {type: nop, grid_loc: [0, 0], grid_size: [1, 8], inputs: [inputs],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_B: {type: nop, grid_loc: [1, 0], grid_size: [1, 8], inputs: [unary0_A],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_C: {type: nop, grid_loc: [2, 0], grid_size: [1, 8], inputs: [unary0_B],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_D: {type: nop, grid_loc: [3, 0], grid_size: [1, 8], inputs: [unary0_C],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_E: {type: nop, grid_loc: [4, 0], grid_size: [1, 8], inputs: [unary0_D],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_F: {type: nop, grid_loc: [5, 0], grid_size: [1, 8], inputs: [unary0_E],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_G: {type: nop, grid_loc: [6, 0], grid_size: [1, 8], inputs: [unary0_F],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary0_H: {type: nop, grid_loc: [7, 0], grid_size: [1, 8], inputs: [unary0_G],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+
+  fwd_1:
+    target_device: 0
+    input_count: 256
+    unary1_A: {type: nop, grid_loc: [0, 0], grid_size: [1, 8], inputs: [unary0_H],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_B: {type: nop, grid_loc: [1, 0], grid_size: [1, 8], inputs: [unary1_A],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_C: {type: nop, grid_loc: [2, 0], grid_size: [1, 8], inputs: [unary1_B],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_D: {type: nop, grid_loc: [3, 0], grid_size: [1, 8], inputs: [unary1_C],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_E: {type: nop, grid_loc: [4, 0], grid_size: [1, 8], inputs: [unary1_D],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_F: {type: nop, grid_loc: [5, 0], grid_size: [1, 8], inputs: [unary1_E],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_G: {type: nop, grid_loc: [6, 0], grid_size: [1, 8], inputs: [unary1_F],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+    unary1_H: {type: nop, grid_loc: [7, 0], grid_size: [1, 8], inputs: [unary1_G],
+         t: 4, mblock: [4, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3}
+
+programs:
+  - run_fwd:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 256, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               inputs: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   execute: {graph_name: fwd_1}
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 1024]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 1024]
+    - endloop

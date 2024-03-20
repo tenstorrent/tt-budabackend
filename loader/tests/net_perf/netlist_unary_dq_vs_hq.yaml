@@ -1,0 +1,26 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in_dq: {type: queue, input: HOST   , entries: 256, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  out_dq: {type: queue, input: unary_dq , entries: 256, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+  in_hq: {type: queue, input: HOST   , entries: 256, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x10000000]}
+  out_hq: {type: queue, input: unary_hq , entries: 256, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], df: Float16, target_device: 0, loc: host, host: [0x00000000]}
+
+graphs:
+  test_unary_dq:
+    target_device: 0
+    input_count: 128
+    unary_dq: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in_dq], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [12, 32], ublock: [1, 1]}
+
+  test_unary_hq:
+    target_device: 0
+    input_count: 128
+    unary_hq: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in_hq], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [12, 32], ublock: [1, 1]}
+
+programs:
+  - program_unary:
+      - staticvar: {$lptr: 0, $gptr: 0}

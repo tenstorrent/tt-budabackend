@@ -1,0 +1,86 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  in0:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in1:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  in1b:               {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+  in2:                {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x31000000]]}
+  in2b:               {type: queue, input: HOST    , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x32000000]]}
+
+  grad_acc_0:         {input: unary1, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  grad_acc_1:         {input: unary2, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x11000000]]}
+  grad_acc_2:         {input: unary3, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0x10000000]]}
+  grad_acc_3:         {input: unary4, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 1, loc: dram, dram: [[1, 0x11000000]]}
+
+  out0:               {type: queue, input: unary0  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+graphs:
+
+  graph0_incwrap:
+    target_device: 0
+    input_count: 4
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+  graph1_zero_acc:
+    target_device: 0
+    input_count: 4
+    unary1: {type: nop, gradient_op: true, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in1],    in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary2: {type: nop, gradient_op: true, grid_loc: [1, 1], grid_size: [1, 1], inputs: [in1b],   in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  graph2_zero_acc:
+    target_device: 1
+    input_count: 4
+    unary3: {type: nop, gradient_op: true, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in2],    in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+    unary4: {type: nop, gradient_op: true, grid_loc: [1, 1], grid_size: [1, 1], inputs: [in2b],   in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+programs:
+  # Dummy program because test harness requires at least one output.
+  - program0_incwrap:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_loop_count: 4, $c_input_count: 4, $c_input_wrap: 32}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph0_incwrap, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap]
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap]
+      - endloop
+  # 2 Chip : Setting Zero flag, making sure split up with opt level 4 to separate commands. Doesn't do output checking, RAMs are not used
+  # but at least pipecleans flow and hits original bug.
+  - program1_zero_acc:
+      - staticvar: {$lptr0: 0, $gptr0: 0}
+      - var: {$c_zero: 0, $c_loop_count: 4, $c_input_count: 4, $c_input_wrap: 32, $v_zero_grad: 1}
+      - loop: $c_loop_count
+      - execute: {graph_name: graph1_zero_acc, queue_settings: {
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          in1b: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          grad_acc_0: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+          grad_acc_1: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+      - execute: {graph_name: graph2_zero_acc, queue_settings: {
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          in2b: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0},
+          grad_acc_2: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+          grad_acc_3: {prologue: true, epilogue: true, zero: $v_zero_grad, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+      - varinst: [$lptr0, incwrap, $c_input_count, $c_input_wrap]
+      - varinst: [$gptr0, incwrap, $c_input_count, $c_input_wrap]
+      - varinst: [$v_zero_grad, set, 0]
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0,in1, in1b, in2, in2b]
+    outputs: [out0]
