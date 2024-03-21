@@ -1949,8 +1949,13 @@ int Net2Pipe::compute_intermediate_buffer_size_tiles(const tt_op_info &op_info, 
         // Later stages of the code relied on this behaviour, so here we return 1 for backward compatibility.
         int_size_tiles = std::max(int_size_tiles, 1);
     } else if (n2p::op_is_topk(op_info)){
-        int_size_tiles = op_info.input_dims[0].mblock_m * op_info.input_dims[0].mblock_n *
-                         op_info.input_dims[0].ublock_ct * op_info.input_dims[0].ublock_rt;
+        int mblock_m = op_info.output_dim.mblock_m;
+        int mblock_n = op_info.attributes.m_k;
+
+        int ublock_rt = op_info.output_dim.ublock_rt;
+        int ublock_ct = op_info.attributes.u_kt;
+
+        int_size_tiles = mblock_m * mblock_n * ublock_ct * ublock_rt;
     } else {
         int_size_tiles = op_info.gradient_op ? op_info.output_dim.t * mblock_tiles : mblock_tiles;
     }
@@ -2909,8 +2914,13 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                     int mblock_tiles = 0;
                     DataFormat intermed_data_format = op_info.intermed_data_format;
                     if (n2p::op_is_topk(op_info)) {
-                        mblock_tiles = op_info.input_dims[0].mblock_m * op_info.input_dims[0].mblock_n *
-                                       op_info.input_dims[0].ublock_ct * op_info.input_dims[0].ublock_rt;
+                        int mblock_m = op_info.output_dim.mblock_m;
+                        int mblock_n = op_info.attributes.m_k;
+
+                        int ublock_rt = op_info.output_dim.ublock_rt;
+                        int ublock_ct = op_info.attributes.u_kt;
+                        mblock_tiles = mblock_m  * mblock_n *
+                                       ublock_ct * ublock_rt;
                         intermed_data_format = op_info.input_data_formats[n2p::op_num_intermediate_buf(op_info)-1-k];
                     } else {
                         mblock_tiles = n2p::get_op_output_mblock_tiles(op_info);
@@ -3237,6 +3247,10 @@ void Net2Pipe::get_op_input(
         int num_rows = (input_queue_info.dim.mblock_m/core_r_div) * input_queue_info.dim.ublock_rt * tt::tile_dim_to_array(input_queue_info.tile_dim)[0];
         epoch_tiles = input_count * op_info.output_dim.t * num_rows * (input_queue_info.dim.mblock_n/core_c_div);
         scatter_gather_num_tiles = num_rows;
+    } else if (n2p::get_op_class(op_info) == OpClass::Topk) {
+        int mblock_size_tiles = op_info.output_dim.ublock_rt * op_info.attributes.u_kt * op_info.output_dim.mblock_m * op_info.attributes.m_k;
+        epoch_tiles = input_count * op_info.output_dim.t * mblock_size_tiles;
+        scatter_gather_num_tiles = op_info.output_dim.ublock_rt * op_info.attributes.u_kt;
     } else {
         int mblock_size_tiles = op_info.output_dim.ublock_rt * op_info.output_dim.ublock_ct * op_info.output_dim.mblock_m * op_info.output_dim.mblock_n;
         epoch_tiles = input_count * op_info.output_dim.t * mblock_size_tiles;
@@ -3588,6 +3602,8 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
         std::string table_input_name = op_info.input_names[index];
         tt_queue_info input_queue_info = this->parsed_netlist.queue_map.at(table_input_name);
         result = input_queue_info.dim.ublock_rt * tt::tile_dim_to_array(input_queue_info.tile_dim)[0]; //kernel always consumes one row of input ublock, pipegen needs this in row tiles
+    } else if (n2p::get_op_class(op_info) == OpClass::Topk) {
+        result = op_info.output_dim.ublock_rt * op_info.attributes.u_kt;
     } else {
         result = op_info.output_dim.ublock_rt * op_info.output_dim.ublock_ct;
     }
@@ -4476,11 +4492,11 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                                                                                         num_rows);
               epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
         } else if (n2p::get_op_class(op_info) == OpClass::Topk) {
-            int mblock_m = op_info.input_dims[0].mblock_m;
-            int mblock_n = op_info.input_dims[0].mblock_n;
+            int mblock_m = op_info.output_dim.mblock_m;
+            int mblock_n = op_info.attributes.m_k;
 
-            int ublock_rt = op_info.input_dims[0].ublock_rt;
-            int ublock_ct = op_info.input_dims[0].ublock_ct;
+            int ublock_rt = op_info.output_dim.ublock_rt;
+            int ublock_ct = op_info.attributes.u_kt;
 
             bool op_output_row_major_scan_order = producer_output_row_major_ublock_scan_order(op_name, epoch_context);
 
@@ -4495,7 +4511,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 op_info.grid_size_logical_r(),
                 op_info.grid_size_logical_c(),
                 op_output_row_major_scan_order);
-            epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
+            epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
         } else {
             int mblock_m = op_info.output_dim.mblock_m;
             int mblock_n = op_info.output_dim.mblock_n;

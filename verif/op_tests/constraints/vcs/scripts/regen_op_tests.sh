@@ -40,4 +40,5 @@ make DEVICE=${device} HARVESTED_ROWS=2 LOOPS=10 SEED=0 C=splice/splice_op_constr
 make DEVICE=${device} HARVESTED_ROWS=2 LOOPS=100 SEED=0 C=matmul/matmul_ident_op_constraints.sv TLIST=nightly
 make DEVICE=${device} HARVESTED_ROWS=2 LOOPS=20 SEED=0 C=matmul/matmul_op_constraints.sv TLIST=accumulate-z.nightly ARGS='+accumulate_z=1'
 make DEVICE=${device} HARVESTED_ROWS=2 LOOPS=20 SEED=0 C=matmul/matmul_op_constraints.sv TLIST=min-buffer-input.nightly
+# make DEVICE=${device} HARVESTED_ROWS=2 LOOPS=50 SEED=0 C=topk/topk_op_constraints.sv TLIST=nightly
 cd -

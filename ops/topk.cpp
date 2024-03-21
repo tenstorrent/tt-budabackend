@@ -29,7 +29,7 @@ void tt_topk_op::set_hlk_args_t(
 
     tt::tt_hlk_args_desc hlk_args_descriptor;
     hlk_args_descriptor.push_scalar_value("block_tile_dim", num_tiles_per_m_sub_block * num_tiles_per_n_sub_block);
-    hlk_args_descriptor.push_scalar_value("block_cnt", num_m_sub_blocks * num_n_sub_blocks * batch_cnt);
+    hlk_args_descriptor.push_scalar_value("block_cnt", num_m_sub_blocks * num_n_sub_blocks);
     hlk_args_descriptor.push_scalar_value("batch_cnt", batch_cnt);
     hlk_args_descriptor.push_scalar_value("num_m_sub_blocks", num_m_sub_blocks);
     hlk_args_descriptor.push_scalar_value("num_n_sub_blocks", num_n_sub_blocks);
@@ -73,6 +73,7 @@ tt_topk_op::tt_topk_op(
     const vector<std::pair<int, bool>>& kernel_broadcast,
     int k,
     TopKSort sort,
+    bool kreduce,
     const std::vector<std::vector<int>> &input_tile_dims,
     const std::vector<int> &output_tile_dims) :
     tt_op(type, name, grid_shape, grid_loc, grid_transpose) {
@@ -82,6 +83,7 @@ tt_topk_op::tt_topk_op(
         .output_tile_dims = output_tile_dims,
         .k = k,
         .sort = sort,
+        .kreduce = kreduce,
     };
 
     set_hlk_args_t(
@@ -98,7 +100,11 @@ tt_topk_op::tt_topk_op(
         k,
         static_cast<std::uint32_t>(sort));
 
-    set_hlk_cpp_file_name_all_cores("hlks/topk/top_k.cpp");
+    if (kreduce) {
+        set_hlk_cpp_file_name_all_cores("hlks/topk/top_k_reduce.cpp");
+    } else {
+        set_hlk_cpp_file_name_all_cores("hlks/topk/top_k.cpp");
+    }
 
     set_hlk_operand_dataformat_all_cores(HlkOperand::in0, in_0_data_format);
     set_hlk_operand_dataformat_all_cores(HlkOperand::in1, in_1_data_format);
@@ -127,6 +133,140 @@ std::string tt_topk_op::type_to_str() {
     return ret;
 }
 
+struct data {
+        data(float v, int i) : value(v), index(i) {}
+        float value;
+        int index;
+    };
+
+void cmp_and_swap(bool direction, int left_idx, int right_idx, std::vector<data> &array, bool unconditional_swap = false) {
+    if (direction) {
+        // Swap if in1 greater than in0
+        if (array.at(right_idx).value > array.at(left_idx).value) {
+            data tmp = array.at(left_idx);
+            array.at(left_idx) = array.at(right_idx);
+            array.at(right_idx) = tmp;
+        } else if (array.at(right_idx).value < 0 && array.at(left_idx).value < 0 &&
+                array.at(right_idx).value == array.at(left_idx).value) {
+            data tmp = array.at(left_idx);
+            array.at(left_idx) = array.at(right_idx);
+            array.at(right_idx) = tmp;
+        }
+    } else {
+        // Swap if in0 smaller than in1
+        if (array.at(right_idx).value < array.at(left_idx).value) {
+            data tmp = array.at(left_idx);
+            array.at(left_idx) = array.at(right_idx);
+            array.at(right_idx) = tmp;
+        } else if (array.at(right_idx).value > 0 && array.at(left_idx).value > 0 &&
+                array.at(right_idx).value == array.at(left_idx).value) {
+            data tmp = array.at(left_idx);
+            array.at(left_idx) = array.at(right_idx);
+            array.at(right_idx) = tmp;
+        }
+    }
+    if (unconditional_swap) {
+        data tmp = array.at(left_idx);
+        array.at(left_idx) = array.at(right_idx);
+        array.at(right_idx) = tmp;
+    }
+}
+
+void topk_sort(std::vector<std::vector<data>> &input_arrays, int k, const int array_size, bool kreduce) {
+    int logk = (int)std::log2(k);
+    int end_phase = logk;
+    bool dir_max;
+    int dist;
+
+    for (auto &array : input_arrays) {
+        if (!kreduce) {
+            // Local sort
+            for (int ph=0; ph<end_phase; ph++) {
+                dir_max = true;
+                int num_steps = ph+1;
+                int sorted_subseq_len = 1 << num_steps;
+                for (int subs=0; subs<(array_size/sorted_subseq_len); subs++) {
+                    int subs_base = subs*sorted_subseq_len;
+
+                    // switching of sorting direction in phases 3 & 4 for k>=64
+                    bool unconditional_swap = false;
+                    if (k >= 64) {
+                        if (ph >= 3 && ph < 5 && subs_base % 128 >= 64) {
+                            unconditional_swap = true;
+                        }
+                    }
+
+                    for (int ss=num_steps; ss>0; ss--) {
+                        dist = (1 << ss) / 2;
+                        
+                        int outer_comparisons = sorted_subseq_len/(2*dist); 
+                        for (int i=0; i<outer_comparisons; i++) {
+                            for (int j=0; j<dist; j++) {
+                                cmp_and_swap(dir_max, subs_base+i*2*dist+j, subs_base+i*2*dist+j+dist, array, unconditional_swap);
+                            }
+                        }
+                    }
+                    dir_max = !dir_max;
+                }
+            }
+        } else if (k > 16) {
+            // Rebuild phase 0
+            int num_k_sequences = array_size/k;
+            dir_max = true;
+            
+            for (int kseq=0; kseq<num_k_sequences; kseq++) {
+                int subs_base = kseq*k;
+                int num_steps = logk;
+                for (int ss=num_steps; ss>0; ss--) {
+                    dist = (1 << ss) / 2;
+                    int outer_comparisons = k/(2*dist); 
+                    for (int i=0; i<outer_comparisons; i++) {
+                        for (int j=0; j<dist; j++) {
+                            cmp_and_swap(dir_max, subs_base+i*2*dist+j, subs_base+i*2*dist+j+dist, array);
+                        }
+                    }
+                }
+                dir_max = !dir_max;
+            }
+        }
+
+        // Merge & rebuild
+        int mnr_loops = std::log2(array_size/k);
+        int num_k_sequences = array_size/k;
+        
+        for (int m=0; m<mnr_loops; m++) {
+            // Merge 
+            dist = (1<<m)*k;
+            dir_max = true;
+            for (int i=0; i<num_k_sequences/2; i++) {
+                for (int j=0; j<k; j++) {
+                    cmp_and_swap(dir_max, i*((1<<m)*2*k)+j, i*((1<<m)*2*k)+j+dist, array);
+                }
+            }
+            num_k_sequences = num_k_sequences >> 1;
+
+            // Rebuild
+            int k_seq_step = (1<<m)*2*k;
+            dir_max = true;
+            
+            for (int kseq=0; kseq<num_k_sequences; kseq++) {
+                int subs_base = kseq*k_seq_step;
+                int num_steps = logk;
+                for (int ss=num_steps; ss>0; ss--) {
+                    dist = (1 << ss) / 2;
+                    int outer_comparisons = k/(2*dist); 
+                    for (int i=0; i<outer_comparisons; i++) {
+                        for (int j=0; j<dist; j++) {
+                            cmp_and_swap(dir_max, subs_base+i*2*dist+j, subs_base+i*2*dist+j+dist, array);
+                        }
+                    }
+                }
+                dir_max = !dir_max;
+            }
+        }
+    }
+}
+
 void tt_topk_op::model(vector<tt_tensor *> &inputs, tt_tensor *out) {
     TT_ASSERT(inputs.size() == 2);
     log_assert(
@@ -142,27 +282,27 @@ void tt_topk_op::model(vector<tt_tensor *> &inputs, tt_tensor *out) {
     const tt_tensor &input = *inputs[0];
     const tt_tensor &indices = *inputs[1];
 
-    const int array_size = input.getw() * input.getz() * input.getct() * 32;
-    struct data {
-        data(float v, int i) : value(v), index(i) {}
-        float value;
-        int index;
-    };
-    std::vector<std::vector<data>> input_arrays(input.getrt() * 32);
+    int num_cores = this->get_grid_shape().c;
+
+    const int array_size = input.getw() * input.getct() / num_cores * 32;
+    
+    std::vector<std::vector<data>> input_arrays(num_cores * input.getrt() * input.getz() * 32);
     for (auto &array : input_arrays) {
         array.reserve(array_size);
     }
 
-    for (unsigned int wi = 0; wi < input.getw(); ++wi) {
-        for (unsigned int zi = 0; zi < input.getz(); ++zi) {
-            for (unsigned int ri = 0; ri < input.getrt(); ++ri) {
-                for (unsigned int ci = 0; ci < input.getct(); ++ci) {
-                    const tt_tile &tile = input.tile_tensor[wi][zi][ri][ci];
-                    const tt_tile &indices_tile = indices.tile_tensor[wi][zi][ri][ci];
-                    for (int row = 0; row < tile.tile_height; row++) {
-                        std::vector<data> &input_array = input_arrays[ri * 32 + row];
-                        for (int col = 0; col < tile.tile_width; col++) {
-                            input_array.emplace_back(tile.get(row, col), indices_tile.get(row, col));
+    for (unsigned int core = 0; core < num_cores; ++core) {
+        for (unsigned int wi = 0; wi < input.getw(); ++wi) {
+            for (unsigned int zi = 0; zi < input.getz(); ++zi) {
+                for (unsigned int ri = 0; ri < input.getrt(); ++ri) {
+                    for (unsigned int ci = 0; ci < (input.getct() / num_cores); ++ci) {
+                        const tt_tile &tile = input.tile_tensor[wi][zi][ri][core * (input.getct() / num_cores) + ci];
+                        const tt_tile &indices_tile = indices.tile_tensor[wi][zi][ri][core * (input.getct() / num_cores) + ci];
+                        for (int row = 0; row < tile.tile_height; row++) {
+                            std::vector<data> &input_array = input_arrays[core * input.getz() * input.getrt() * 32 + zi * input.getrt() * 32 + ri * 32 + row];
+                            for (int col = 0; col < tile.tile_width; col++) {
+                                input_array.emplace_back(tile.get(row, col), indices_tile.get(row, col));
+                            }
                         }
                     }
                 }
@@ -170,14 +310,11 @@ void tt_topk_op::model(vector<tt_tensor *> &inputs, tt_tensor *out) {
         }
     }
 
-    for (auto &array : input_arrays) {
-        std::partial_sort(array.begin(), array.begin() + config.k, array.end(), [](const data &a, const data &b) {
-            return a.value > b.value;
-        });
-    }
+    // topk sort
+    topk_sort(input_arrays, config.k, array_size, this->config.kreduce);
 
     tt_shape output_shape{
-        .rt = input.getrt(), .ct = static_cast<std::uint32_t>(std::ceil(config.k / 32.0f)), .z = 1, .w = 1};
+        .rt = input.getrt(), .ct = num_cores * static_cast<std::uint32_t>(std::ceil(config.k / 32.0f)), .z = input.getz(), .w = 1};
 
     DataFormat output_data_format = config.sort == TopKSort::Max ? input.get_data_format() : indices.get_data_format();
     bool input_missmatched = (out->get_shape() != output_shape) || (out->get_data_format() != output_data_format);
@@ -191,20 +328,22 @@ void tt_topk_op::model(vector<tt_tensor *> &inputs, tt_tensor *out) {
 
     const bool output_values = config.sort == TopKSort::Max ? true : false;
     tt_tensor &output = *out;
-    for (unsigned int wi = 0; wi < output.getw(); ++wi) {
-        for (unsigned int zi = 0; zi < output.getz(); ++zi) {
-            for (unsigned int ri = 0; ri < output.getrt(); ++ri) {
-                for (unsigned int ci = 0; ci < output.getct(); ++ci) {
-                    tt_tile &tile = output.tile_tensor[wi][zi][ri][ci];
-                    for (int row = 0; row < tile.tile_height; row++) {
-                        std::vector<data> &input_array = input_arrays[ri * 32 + row];
-                        for (int col = 0; col < tile.tile_width; col++) {
-                            if (ci * tile.tile_width + col < config.k) {
-                                const data &data = input_array[ci * tile.tile_width + col];
-                                tile.set(row, col, output_values ? data.value : data.index);
-                            } else {
-                                // Pad with zero
-                                tile.set(row, col, 0);
+    for (unsigned int core = 0; core < num_cores; ++core) {
+        for (unsigned int wi = 0; wi < output.getw(); ++wi) {
+            for (unsigned int zi = 0; zi < output.getz(); ++zi) {
+                for (unsigned int ri = 0; ri < output.getrt(); ++ri) {
+                    for (unsigned int ci = 0; ci < output.getct() / num_cores; ++ci) {
+                        tt_tile &tile = output.tile_tensor[wi][zi][ri][core * (output.getct() / num_cores) + ci];
+                        for (int row = 0; row < tile.tile_height; row++) {
+                            std::vector<data> &input_array = input_arrays[core * input.getz() * input.getrt() * 32 + zi * input.getrt() * 32 + ri * 32 + row];
+                            for (int col = 0; col < tile.tile_width; col++) {
+                                if (ci * tile.tile_width + col < config.k) {
+                                    const data &data = input_array[ci * tile.tile_width + col];
+                                    tile.set(row, col, output_values ? data.value : data.index);
+                                } else {
+                                    // Pad with zero
+                                    tile.set(row, col, 0);
+                                }
                             }
                         }
                     }

@@ -22,7 +22,7 @@ graphs:
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi2
-      attributes: {k: 32, sort: "argmax"}
+      attributes: {m_k: 1, u_kt: 4, k: 32, sort: "argmax", kreduce: false}
       t: 1
       mblock: [1, 1]
       ublock: [1, 1]
@@ -46,12 +46,10 @@ test-config:
     program_loop_count: 1
   comparison-config:
     type: AllCloseHw
-    atol: 0.0
-    rtol: 0.0
-    # Sorting on hardware and golden is not stable, so we can't expect exact match
-    # Issue tenstorrent/budabackend#2530
-    check_pct: 0.93
-    check_pcc: 0.93
+    atol: 0.01
+    rtol: 0.01
+    check_pct: 1.0
+    check_pcc: 0.99999
     verbosity: Concise
     check_tile_cols_range: [1,32]
   stimulus-config:

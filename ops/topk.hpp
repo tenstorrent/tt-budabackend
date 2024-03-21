@@ -20,6 +20,7 @@ struct tt_topk_config {
     std::vector<int> output_tile_dims;
     int k = 0;
     TopKSort sort = TopKSort::None;
+    bool kreduce = false;
 };
 class tt_topk_op : public tt_op {
    public:
@@ -46,6 +47,7 @@ class tt_topk_op : public tt_op {
         const vector<std::pair<int, bool>>& kernel_broadcast,
         int k,
         TopKSort sort,
+        bool kreduce,
         const std::vector<std::vector<int>>& input_tile_dims,
         const std::vector<int>& out_tile_dims
         );

@@ -607,7 +607,11 @@ void netlist_parser::parse_op(const YAML::Node& op, tt_op_info &op_info) {
                     (iiit->first.as<string>() == "sort") &&
                     (op_info.type == "topk")) {
                     op_info.attributes.sort = netlist_utils::get_topk_sort_enum(iiit->second.as<string>());
-                }else if (iiit->first.as<string>() == "zero_point") {
+                } else if (
+                    (iiit->first.as<string>() == "kreduce") &&
+                    (op_info.type == "topk")) {
+                    op_info.attributes.kreduce = iiit->second.as<bool>();
+                } else if (iiit->first.as<string>() == "zero_point") {
                     op_info.attributes.zero_point = iiit->second.as<float>();
                 } else if ((iiit->first.as<string>() == "ingress_channels")) {
                     parse_op_attribute_ingress_channels(op_info, iiit->second);
@@ -2584,6 +2588,18 @@ void netlist_parser::verify_complex_settings() {
                 }
             }
 
+            if (op_info.type == "topk") {
+                tt_dim_info topk_dims;
+                topk_dims.ublock_rt = op_info.output_dim.ublock_rt;
+                topk_dims.ublock_ct = op_info.attributes.u_kt;
+
+                verify_ublock_fits_into_dest(
+                    op_info.name,
+                    topk_dims,
+                    op_info.dest_accumulate_data_format,
+                    false,
+                    device_info.arch);
+            }
         }
     }
 

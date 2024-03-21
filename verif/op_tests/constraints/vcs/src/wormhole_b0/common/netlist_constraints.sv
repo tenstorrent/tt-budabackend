@@ -1,8 +1,8 @@
 `ifndef __NETLIST_CONSTRAINTS_SV__
 `define __NETLIST_CONSTRAINTS_SV__
 function string comparison_config_to_str(s_comparison_config cfg, int tile_rows);
-    return $sformatf("{type: %s, atol: %s, rtol: %s, check_pct: %s, check_pcc: %s, verbosity: %s, check_tile_rows_range: [1, %0d], check_tile_cols_range: [1, 32] }",
-        cfg.Type, cfg.atol, cfg.rtol, cfg.check_pct, cfg.check_pcc, cfg.verbosity, tile_rows);
+    return $sformatf("{type: %s, atol: %s, rtol: %s, check_pct: %s, check_pcc: %s, verbosity: %s, check_tile_rows_range: [1, %0d], check_tile_cols_range: [1, %0d] }",
+        cfg.Type, cfg.atol, cfg.rtol, cfg.check_pct, cfg.check_pcc, cfg.verbosity, tile_rows, cfg.check_tile_cols_range);
 endfunction
 
 class netlist_constraints;

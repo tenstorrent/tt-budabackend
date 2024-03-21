@@ -33,7 +33,7 @@
 `define BUFFER_LOC             dram, host
 typedef enum {`BUFFER_LOC} e_buffer_loc;
 
-`define DATA_FORMATS             bfp8, bfp8_b, fp16, fp16_b, fp32, bfp4, bfp4_b, bfp2, bfp2_b, int8, int32, RawUInt32
+`define DATA_FORMATS             bfp8, bfp8_b, fp16, fp16_b, fp32, bfp4, bfp4_b, bfp2, bfp2_b, int8, int32, RawUInt32, uint16
 `define MATH_FIDELITY            LoFi, HiFi2, HiFi3, HiFi4
 `define RELU_MODE                Min, Max
 `define STOCH_RND_MODE           None, Fpu, Pack, All
@@ -83,6 +83,7 @@ function string get_data_format(input e_data_format data_format);
       int8      : get_data_format = "Int8";
       int32     : get_data_format = "Int32";
       RawUInt32 : get_data_format = "RawUInt32";
+      uint16    : get_data_format = "UInt16";
       default   : get_data_format = "INVALID";
    endcase 
 endfunction
@@ -128,6 +129,7 @@ endfunction
                                     (data_format==int8)                            ?`TILE_SIZE_INT8:  \
                                     (data_format==int32 | data_format==RawUInt32)  ?`TILE_SIZE_INT32: \
                                     (data_format==fp16 | data_format==fp16_b)      ?`TILE_SIZE_FP16:  \
+                                    (data_format==uint16)                          ?`TILE_SIZE_FP16:  \
                                                                                     `TILE_SIZE_FP32)
 
 `define UNARY_TYPES             datacopy, nop, exp, log, sqrt, gelu, gelu_derivative, reciprocal, sigmoid, tanh  
@@ -196,6 +198,28 @@ endfunction
 
 `define BINARY_SFPU_TYPES quantization, requantization, dequantization
 typedef enum {`BINARY_SFPU_TYPES}  e_binary_sfpu_type;
+
+`define TOPK_SORT            k_max, k_argmax
+typedef enum {`TOPK_SORT}    e_topk_sort;
+
+function string get_attribute_sort(input e_topk_sort attributes_sort);
+  case (attributes_sort)
+    k_max   : get_attribute_sort = "max";
+    k_argmax: get_attribute_sort = "argmax";
+    default : get_attribute_sort = "INVALID";
+  endcase 
+endfunction
+
+`define TOPK_REDUCE          k_true, k_false
+typedef enum {`TOPK_REDUCE}  e_topk_reduce;
+
+function string get_attribute_kreduce(input e_topk_reduce attributes_kreduce);
+  case (attributes_kreduce)
+    k_true : get_attribute_kreduce = "true";
+    k_false: get_attribute_kreduce = "false";
+    default: get_attribute_kreduce = "INVALID";
+  endcase 
+endfunction
 
 class global_constraints;
   rand bit[2:0] target_device;

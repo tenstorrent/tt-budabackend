@@ -9,6 +9,7 @@ typedef struct {
    string check_pct;
    string check_pcc;
    string verbosity;
+   int check_tile_cols_range;
 } s_comparison_config;
 
 typedef struct {
@@ -308,6 +309,53 @@ function write_unary_stimulus_config(integer out_filehandle, e_unary_type unary_
        $fwrite(out_filehandle, "  stimulus_config_uniform_lower_bound: %s\n", stimulus_config.uniform_lower_bound);
        $fwrite(out_filehandle, "  stimulus_config_uniform_upper_bound: %s\n", stimulus_config.uniform_upper_bound);
      end
+  endfunction
+
+  function write_topk_comparison_config(integer out_filehandle, e_data_format in_data_format, integer k, e_topk_sort sort);
+    begin
+      s_comparison_config comparison_config;
+
+      comparison_config.Type = get_comparison_config_type(config_type);
+      comparison_config.verbosity = get_comparison_config_verbosity(config_verbosity);
+      if (in_data_format == bfp8_b) begin
+         if (sort == k_max) begin
+            comparison_config.atol = "0.01";
+            comparison_config.rtol = "0.01";
+            comparison_config.check_pct = "0.70";
+            comparison_config.check_pcc = "0.999";
+         end else begin
+            comparison_config.atol = "0.01";
+            comparison_config.rtol = "0.01";
+            comparison_config.check_pct = "0.70";
+            comparison_config.check_pcc = "0.70";
+         end
+      end else begin
+         comparison_config.atol = "0.01";
+         comparison_config.rtol = "0.01";
+         comparison_config.check_pct = "1.0";
+         comparison_config.check_pcc = "0.99999";
+      end
+
+      $fwrite(out_filehandle, "  comparison_config_type: %s\n", comparison_config.Type);
+      $fwrite(out_filehandle, "  comparison_config_atol: %s\n", comparison_config.atol);
+      $fwrite(out_filehandle, "  comparison_config_rtol: %s\n", comparison_config.rtol);
+      $fwrite(out_filehandle, "  comparison_config_check_pct: %s\n", comparison_config.check_pct);
+      $fwrite(out_filehandle, "  comparison_config_check_pcc: %s\n", comparison_config.check_pcc);
+      $fwrite(out_filehandle, "  comparison_config_verbosity: %s\n", comparison_config.verbosity);
+      if (k == 64) begin
+         $fwrite(out_filehandle, "  comparison_config_check_tile_cols_range: 32\n");
+      end else begin
+         $fwrite(out_filehandle, "  comparison_config_check_tile_cols_range: %0d\n", k);
+      end
+    end
+  endfunction
+
+  function write_topk_stimulus_config(integer out_filehandle, integer k);
+    begin
+      $fwrite(out_filehandle, "  stimulus_config_type: Normal\n");
+      $fwrite(out_filehandle, "  stimulus_config_normal_mean: 0.0\n");
+      $fwrite(out_filehandle, "  stimulus_config_normal_stddev: 5.0\n");
+    end
   endfunction
 
 endclass

@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
-//
-// SPDX-License-Identifier: Apache-2.0
 #include <cstdint>
 
 #include "hlks/inc/hlk_api.h"
@@ -127,94 +124,52 @@ void hlk_process_single_input(tt_core *core_ptr, const hlk_args_t *args) {
         hlk_copy_tile_to_dst_init_short(core_ptr, HlkOperand::in0, false, false);                                       // Enough to do init for in0 only
         hlk_topk_init(core_ptr, HlkOperand::in0);   // Enough to do init for in0 only
         
-        // Local sort
-        ///////////////
-        
         int total_block_tiles = args->block_cnt * args->block_tile_dim;
-        hlk_wait_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-        hlk_wait_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-        int start_phase = 0;
-        int end_phase = (args->k <= 64) ? args->logk-1 : 5;
-        SortDir dir = SortDir::ArgMax;
-        bool switch_dir = args->k == 64;
-        for (int t=0; t<total_block_tiles; t=t+2) {    
-            hlk_acquire_dst(core_ptr);
-            copy_index_and_data_tiles_to_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, t+1, (t+1 >= total_block_tiles));
-            hlk_sfpu_topk_local_sort(core_ptr, HlkOperand::intermed0, 0, (std::uint32_t)dir, end_phase, start_phase, 0, 0);
-            // Doing out of order packing without really checking for free tiles
-            // This is posisble since we are storing tiles on exact locations where they were read from
-            pack_index_and_data_tiles_from_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, t+1, (t+1 >= total_block_tiles));
-            hlk_release_dst(core_ptr);
-            dir = switch_dir ? hlk_switch_sort_direction(core_ptr, dir) : dir;
-        }
-
-        hlk_pop_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-        hlk_pop_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-        hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-        hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-        hlk_push_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-        hlk_push_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-        if (args->k > 64) {
-            
-            // for (int ph=6; ph<args->logk; ph++) {
-
-            //     int num_steps = ph+1;
-                
-            //     // Do steps num_steps to 7
-            //     for (int ss=num_steps; ss>6; ss--) {
-            //         int tile_dist = (1 << (ss-1)) >> 5;     // tile_dist = 2^(ss-1) / 32
-                    
-            //         hlk_wait_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //         hlk_wait_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-            //         for (int t=0; t<total_block_tiles; t=t+2) {
-            //             hlk_acquire_dst(core_ptr);
-            //             copy_tiles_to_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, tile_dist, 2);
-            //             hlk_unary_sfpu_op<sfpu_op>(core_ptr, HlkOperand::intermed0, t, gl_vector_mode, 0, 0);   // Run one phase
-            //             pack_tiles_from_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, tile_dist, 2);
-            //             hlk_release_dst(core_ptr);
-            //         }
-            //         hlk_pop_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //         hlk_pop_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-            //         hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //         hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-            //         hlk_push_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //         hlk_push_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-            //     }
-                
-            //     // Do steps 6 to 0
-            //     hlk_wait_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //     hlk_wait_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-            //     for (int t=0; t<total_block_tiles; t=t+2) {    
-            //         hlk_acquire_dst(core_ptr);
-            //         copy_tiles_to_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, 1, 2);
-            //         hlk_unary_sfpu_op<sfpu_op>(core_ptr, HlkOperand::intermed0, t, gl_vector_mode, 0, 0);   // Run one phase
-            //         pack_tiles_from_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, t, 1, 2);
-            //         hlk_release_dst(core_ptr);
-            //     }
-            //     hlk_pop_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //     hlk_pop_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-            //     hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //     hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-            //     hlk_push_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
-            //     hlk_push_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
-
-            // }
-            
-        }
-
-        // Merge 
         int num_k_sequences = args->num_k_sequences;
         int seqs_per_2tiles = args->seqs_per_2tiles;
         int tiles_per_seq = args->tiles_per_seq;
-        
+        SortDir dir = SortDir::ArgMax;
+        bool switch_dir = args->k == 64;
+        int hlk_left_ind = 0;
+        int target_tiles = ((num_k_sequences == 1) && (tiles_per_seq == 1)) ? 1 : 2;
+
+        if (args->k > 16) {// Initial Rebuild
+            hlk_wait_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
+            hlk_wait_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
+            int i = 0;
+            int sel_tile_id[2];
+            int sel_tile_id_ptr = 0;
+            dir = SortDir::ArgMax;
+            while (i < num_k_sequences) {
+                for (int t=0; t<tiles_per_seq; t++) {
+                    hlk_left_ind = i*args->k + t*32;
+                    int hlk_ltile_id = hlk_left_ind >> 5;       // left_ind / 32
+                    sel_tile_id[sel_tile_id_ptr] = hlk_ltile_id;
+                    sel_tile_id_ptr++;
+                    if (sel_tile_id_ptr == target_tiles) {
+                        hlk_acquire_dst(core_ptr);
+                        copy_index_and_data_tiles_to_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, sel_tile_id[0], sel_tile_id[1], target_tiles==1);
+                        hlk_sfpu_topk_rebuild(core_ptr, HlkOperand::intermed0, 0, (std::uint32_t)dir, 0, args->k, args->logk, target_tiles==1);
+                        pack_index_and_data_tiles_from_dest(core_ptr, HlkOperand::intermed0, HlkOperand::intermed1, sel_tile_id[0], sel_tile_id[1], target_tiles==1);
+                        hlk_release_dst(core_ptr);
+                        sel_tile_id_ptr = 0;
+                        dir = switch_dir ? hlk_switch_sort_direction(core_ptr, dir) : dir;
+                    }
+                }
+                i += (seqs_per_2tiles >> 1);
+            }
+
+            hlk_pop_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
+            hlk_pop_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
+
+            hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
+            hlk_wait_for_free_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
+
+            hlk_push_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);
+            hlk_push_tiles(core_ptr, HlkOperand::intermed1, total_block_tiles);
+        }
+
+        // Merge & Rebuild
         int num_m_loops = args->M;
         for (int m=0; m<num_m_loops; m++) {
 

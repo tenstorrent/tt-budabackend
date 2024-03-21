@@ -1154,9 +1154,9 @@ std::shared_ptr<tt_op> netlist_utils::create_op(
             block_cnt,                                  // std::uint32_t block_cnt
             batch_cnt,                                  // std::uint32_t batch_cnt
             op_info_ptr->input_dims[0].mblock_m,        // std::uint32_t num_m_sub_blocks
-            op_info_ptr->input_dims[0].mblock_n,        // std::uint32_t num_n_sub_blocks
+            op_info_ptr->attributes.m_k,                // std::uint32_t num_n_sub_blocks
             op_info_ptr->input_dims[0].ublock_rt,       // std::uint32_t num_tiles_per_m_sub_block
-            op_info_ptr->input_dims[0].ublock_ct,       // std::uint32_t num_tiles_per_n_sub_block
+            op_info_ptr->attributes.u_kt,               // std::uint32_t num_tiles_per_n_sub_block
             op_info_ptr->untilize_output,               // bool untilize_output
             op_info_ptr->math_fidelity,                 // MathFidelity math_fidelity
             fp32_dest_acc_en,                           // bool fp32_dest_acc_en
@@ -1166,6 +1166,7 @@ std::shared_ptr<tt_op> netlist_utils::create_op(
             op_info_ptr->attributes.kernel_broadcast,   // kernel_broadcast
             op_info_ptr->attributes.k,
             op_info_ptr->attributes.sort,
+            op_info_ptr->attributes.kreduce,
             input_tile_dims,
             out_tile_dims
             ));

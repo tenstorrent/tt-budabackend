@@ -118,6 +118,7 @@ struct tt_op_attributes {
     // TopK attributes
     int k = 0;
     TopKSort sort = TopKSort::None;
+    bool kreduce = false;
 };
 ostream& operator<<(ostream& out, const tt_op_attributes& t);
 void verify(const tt_op_attributes& t);

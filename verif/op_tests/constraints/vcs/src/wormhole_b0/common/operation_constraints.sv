@@ -134,13 +134,15 @@ virtual class operation_constraints extends node_constraints;
     }
 
     constraint rand_output_data_format {
-        if (dest_data_format == int32) {
-            dequantize == 1 -> output_data_format inside {`FLOAT_OUTPUT_FORMATS};
-            dequantize == 0 -> output_data_format inside {int32, int8};
-            requantize == 1 -> output_data_format == int8;
-            relu_en    == 1 -> output_data_format == int8 || output_data_format == fp32;
-        } else {
-            output_data_format inside {`FLOAT_OUTPUT_FORMATS};
+        if (output_data_format != uint16) {
+            if (dest_data_format == int32) {
+                dequantize == 1 -> output_data_format inside {`FLOAT_OUTPUT_FORMATS};
+                dequantize == 0 -> output_data_format inside {int32, int8};
+                requantize == 1 -> output_data_format == int8;
+                relu_en    == 1 -> output_data_format == int8 || output_data_format == fp32;
+            } else {
+                output_data_format inside {`FLOAT_OUTPUT_FORMATS};
+            }
         }
 
         // TODO: Check if this works for int32
@@ -349,6 +351,7 @@ virtual class operation_constraints extends node_constraints;
         cfg.check_pct = "0.9";
         cfg.check_pcc = "0.99";
         cfg.verbosity = "Concise";
+        cfg.check_tile_cols_range = 32;
         return cfg;
     endfunction
 endclass

@@ -155,6 +155,7 @@ class matmul_op extends operation_constraints;
             math_fidelity, 0, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
         cfg.Type = "AllClose";
         cfg.verbosity = "Concise";
+        cfg.check_tile_cols_range = 32;
         return cfg;
     endfunction
 

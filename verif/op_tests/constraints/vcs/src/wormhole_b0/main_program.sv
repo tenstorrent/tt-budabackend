@@ -20,6 +20,7 @@
 `include "operations/matmul_ident_op.sv"
 `include "operations/binary_sfpu_op.sv"
 `include "operations/depthwise_op.sv"
+`include "operations/topk_op.sv"
 
 class main_program;
     string out_filename;
@@ -144,6 +145,8 @@ class main_program;
             operation = binary_sfpu_op::new("op");
         end else if (op_name == "depthwise") begin
             operation = depthwise_op::new("op");
+        end else if (op_name == "topk") begin
+            operation = topk_op::new("op");
         end else begin
             $fatal(0, "ERROR: Unknown op_name %0s", op_name);
         end
