@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "model/data_flow/subgraph_leaf_groups.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

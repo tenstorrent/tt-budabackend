@@ -14,7 +14,7 @@
 #include "data_flow_calculator/transfer_limits_calculator.h"
 #include "data_flow_calculator/transfers_calculator.h"
 #include "model/data_flow/subgraph_leaf_groups.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -12,7 +12,7 @@
 #include "model/rational_graph/pipes/fork/dram_parallel_fork_pipe.h"
 #include "model/rational_graph/pipes/fork/serial_fork_pipe.h"
 #include "model/rational_graph/pipes/join/union_pipe.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

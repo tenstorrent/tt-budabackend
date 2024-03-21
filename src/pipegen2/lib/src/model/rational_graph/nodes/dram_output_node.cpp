@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "model/rational_graph/nodes/dram_output_node.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

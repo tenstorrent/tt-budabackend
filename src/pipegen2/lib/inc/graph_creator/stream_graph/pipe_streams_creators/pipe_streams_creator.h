@@ -14,7 +14,7 @@
 #include "model/rational_graph/nodes/virtual_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
 #include "model/stream_graph/stream_node.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

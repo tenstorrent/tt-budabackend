@@ -6,7 +6,7 @@
 #include "noc/noc_overlay_parameters.h" // Necessary for stream_io_map.h
 #include "stream_io_map.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

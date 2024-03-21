@@ -4,7 +4,7 @@
 #include "model/rational_graph/nodes/base_rg_node.h"
 
 #include "model/rational_graph/pipes/base_rg_pipe.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

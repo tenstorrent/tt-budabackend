@@ -6,7 +6,7 @@
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_read_common_streams_creator.h"
 #include "model/rational_graph/nodes/dram_embedding_table_input_node.h"
 #include "model/rational_graph/pipes/direct/dram_tilizer_pipe.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

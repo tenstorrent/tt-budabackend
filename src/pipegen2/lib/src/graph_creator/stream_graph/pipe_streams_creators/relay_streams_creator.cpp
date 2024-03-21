@@ -4,7 +4,7 @@
 #include "graph_creator/stream_graph/pipe_streams_creators/relay_streams_creator.h"
 
 #include "model/rational_graph/nodes/relay_node.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

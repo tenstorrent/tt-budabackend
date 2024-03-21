@@ -4,7 +4,7 @@
 #include "graph_creator/stream_graph/pipe_streams_creators/gather_to_dram_streams_creator.h"
 
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_write_common_streams_creator.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

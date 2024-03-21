@@ -12,9 +12,9 @@
 #include "model/data_flow/data_flow_info.h"
 #include "model/typedefs.h"
 #include "ncrisc_config.h"
-#include "pipegen2_utils.h"
 #include "phase_config.h"
 #include "stream_config.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

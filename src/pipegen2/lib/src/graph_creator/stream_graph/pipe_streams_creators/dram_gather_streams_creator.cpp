@@ -7,7 +7,7 @@
 #include "model/rational_graph/nodes/dram_input_node.h"
 #include "model/rational_graph/nodes/unpacker_output_node.h"
 #include "model/rational_graph/pipes/join/dram_gather_pipe.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

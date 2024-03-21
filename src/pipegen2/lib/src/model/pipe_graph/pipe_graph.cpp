@@ -6,7 +6,6 @@
 #include <unordered_set>
 
 #include "pipegen2_constants.h"
-#include "pipegen2_utils.h"
 
 namespace pipegen2
 {

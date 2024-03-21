@@ -6,7 +6,7 @@
 #include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
 #include "pipegen2_exceptions.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

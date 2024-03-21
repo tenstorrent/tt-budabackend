@@ -7,7 +7,7 @@
 #include "graph_creator/pipe_graph/pipe_graph_creator_internal.h"
 #include "model/pipe_graph/pg_buffer.h"
 #include "model/pipe_graph/pipe_graph.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

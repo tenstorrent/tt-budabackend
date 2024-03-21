@@ -5,7 +5,7 @@
 
 #include <set>
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

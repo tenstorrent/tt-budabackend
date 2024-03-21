@@ -20,7 +20,7 @@
 #include "model/rational_graph/nodes/virtual_node.h"
 #include "model/rational_graph/pipes/fork/dram_parallel_fork_pipe.h"
 #include "pipegen2_constants.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

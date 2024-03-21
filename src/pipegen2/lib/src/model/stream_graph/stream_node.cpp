@@ -7,7 +7,7 @@
 #include <sstream>
 #include <unordered_set>
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

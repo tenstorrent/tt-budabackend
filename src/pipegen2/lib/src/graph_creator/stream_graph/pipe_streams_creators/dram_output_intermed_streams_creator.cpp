@@ -6,7 +6,7 @@
 #include "model/rational_graph/nodes/dram_output_intermed_node.h"
 #include "model/rational_graph/pipes/direct/dram_output_intermed_pipe.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

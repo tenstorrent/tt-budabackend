@@ -19,7 +19,7 @@
 #include "model/stream_graph/stream_graph_collection.h"
 #include "model/stream_graph/stream_node.h"
 #include "pipegen2_constants.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

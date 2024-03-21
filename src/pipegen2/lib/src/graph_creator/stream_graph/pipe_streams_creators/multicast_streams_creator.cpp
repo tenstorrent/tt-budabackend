@@ -6,7 +6,7 @@
 #include "model/rational_graph/nodes/packer_input_node.h"
 #include "model/rational_graph/nodes/unpacker_output_node.h"
 #include "model/rational_graph/pipes/fork/multicast_pipe.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "device/tt_xy_pair.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

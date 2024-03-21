@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "model/stream_graph/stream_config.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

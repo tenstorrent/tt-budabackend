@@ -5,7 +5,7 @@
 
 #include "model/rational_graph/pipes/join/shared_packer_intermed_pipe.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

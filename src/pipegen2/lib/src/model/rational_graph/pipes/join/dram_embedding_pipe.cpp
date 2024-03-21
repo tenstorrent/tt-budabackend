@@ -6,7 +6,7 @@
 #include <numeric>
 
 #include "model/rational_graph/rational_graph.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

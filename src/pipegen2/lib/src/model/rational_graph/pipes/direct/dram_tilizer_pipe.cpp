@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "model/rational_graph/pipes/direct/dram_tilizer_pipe.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -6,7 +6,7 @@
 #include <numeric>
 
 #include "model/data_flow/data_flow_node.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -5,7 +5,7 @@
 
 #include "graph_creator/stream_graph/pipe_streams_creators/dram_read_common_streams_creator.h"
 #include "model/stream_graph/ncrisc_config.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -12,7 +12,7 @@
 #include "noc/noc_parameters.h"
 #include "perf_lib/scratch_api.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

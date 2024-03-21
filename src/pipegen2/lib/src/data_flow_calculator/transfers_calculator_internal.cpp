@@ -4,7 +4,7 @@
 #include "data_flow_calculator/transfers_calculator_internal.h"
 
 #include "model/data_flow/data_flow_node.h"
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {

@@ -9,7 +9,6 @@
 #include <unordered_map>
 
 #include "model/rational_graph/rational_graph.h"
-#include "pipegen2_utils.h"
 
 namespace pipegen2
 {

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "graph_creator/stream_graph/pipe_streams_creators/dormant_relay_streams_creator.h"
 
-#include "pipegen2_utils.h"
+#include "utils/logger.hpp"
 
 namespace pipegen2
 {
