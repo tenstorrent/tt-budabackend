@@ -34,14 +34,9 @@ run_debuda() {
     fi
 }
 
-# Form Wormhole we use nocTr coordinates (noc0 for GraySkull)
-if [ "$ARCH_NAME" = "grayskull" ]; then
-    CORE_LOC_11="1-1"
-    CORE_LOC_22="2-2"
-else
-    CORE_LOC_11="18-18"
-    CORE_LOC_22="19-19"
-fi
+# Use netlist core locations
+CORE_LOC_11="0,0"
+CORE_LOC_22="1,1"
 
 # Define the command array. IMPROVE: we could parse commands' help and extract the examples.
 declare -a COMMAND_LIST
