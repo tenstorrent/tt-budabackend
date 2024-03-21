@@ -10,8 +10,13 @@ import shutil
 import argparse
 
 def select_random_yaml_files(source_dir, destination_dir, num_files):
+    def has_skip_comment(file_path):
+        with open(file_path, 'r') as file:
+            first_line = file.readline().strip()
+            return first_line.startswith('#SKIP')
+
     # List all files in the source directory
-    files = [f for f in os.listdir(source_dir) if f.endswith('.yaml')]
+    files = [f for f in os.listdir(source_dir) if f.endswith('.yaml') and not has_skip_comment(os.path.join(source_dir, f))]
     
     # Select num_files random files
     selected_files = random.sample(files, min(num_files, len(files)))
