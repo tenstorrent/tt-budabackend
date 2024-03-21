@@ -125,6 +125,8 @@ std::string get_tt_runtime_hostname();
 
 std::chrono::seconds get_api_timeout(const tt_timeout_api_type &api_type);
 
+const std::string overlay_blobs_dir = "blobs";
+
 }
 
 std::ostream &operator<<(std::ostream &os, std::pair<std::string, std::set<std::string>> const &pair);

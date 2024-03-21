@@ -267,7 +267,7 @@ void run_blobgen(
     PROFILE_SCOPE_MS();
     stringstream blobgen_cmd;
     blobgen_cmd << "ruby " + root + "/src/overlay/blob_gen.rb";
-    blobgen_cmd << " --blob_out_dir " + build_graph_dir;
+    blobgen_cmd << " --blob_out_dir " + build_graph_dir + "/" + overlay_blobs_dir;
     blobgen_cmd << " --graph_yaml 1";
     blobgen_cmd << " --graph_input_file " + build_graph_dir + "blob.yaml";
     blobgen_cmd << " --graph_name pipegen_epoch" + to_string(temporal_epoch);

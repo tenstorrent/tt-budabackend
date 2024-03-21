@@ -506,7 +506,7 @@ void tt_epoch_binary::update_overlay_binary(const std::string &output_dir, const
     // Support for graph specific or epoch specific overlay blobs. TODO: merge to the same convention
     const string &epoch_path = output_dir + "/temporal_epoch_" + to_string(temporal_epoch);// + "/graph_" + graph_name;
 
-    string overlay_blob_path = epoch_path + "/overlay";
+    string overlay_blob_path = epoch_path + "/overlay" + "/" + tt::overlay_blobs_dir;
     log_trace(tt::LogLoader, "Update overlay blob using path {}", overlay_blob_path);
 
     for (tt_hex &hex : blob_bin_vec) {
