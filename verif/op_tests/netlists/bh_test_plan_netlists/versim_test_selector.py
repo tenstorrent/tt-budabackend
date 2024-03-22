@@ -15,8 +15,14 @@ def select_random_yaml_files(source_dir, destination_dir, num_files):
             first_line = file.readline().strip()
             return first_line.startswith('#SKIP')
 
-    # List all files in the source directory
-    files = [f for f in os.listdir(source_dir) if f.endswith('.yaml') and not has_skip_comment(os.path.join(source_dir, f))]
+    # List all .yaml files recursively in the source directory
+    files = []
+    for root, _, filenames in os.walk(source_dir):
+        for filename in filenames:
+            if filename.endswith('.yaml'):
+                file_path = os.path.join(root, filename)
+                if not has_skip_comment(file_path):
+                    files.append(file_path)
     
     # Select num_files random files
     selected_files = random.sample(files, min(num_files, len(files)))
@@ -29,11 +35,11 @@ def select_random_yaml_files(source_dir, destination_dir, num_files):
     os.makedirs(destination_dir)
 
     # Copy the selected files to the destination directory
-    for i, file_name in enumerate(selected_files):
+    for i, file_path in enumerate(selected_files):
         test_dir = os.path.join(destination_dir, f"test{i}")
         if not os.path.exists(test_dir):
             os.makedirs(test_dir)
-        shutil.copy(os.path.join(source_dir, file_name), os.path.join(test_dir, file_name))
+        shutil.copy(file_path, os.path.join(test_dir, os.path.basename(file_path)))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Select and copy random YAML files from a source directory to a destination directory.')
