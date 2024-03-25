@@ -16,6 +16,7 @@ from verif.common.runner_pipegen import (
     run_pipegen,
 )
 from verif.common.runner_utils import (
+    DEFAULT_BIN_DIR,
     DEFAULT_GRAYSKULL_SOC,
     DEFAULT_HARVESTED_WORMHOLE_B0_SOC,
     DEFAULT_WORMHOLE_B0_SOC,
@@ -157,7 +158,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                     perf_mode.value,
                     perf_level.value,
                     soc_descr,
-                    pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
+                    pipegen_path=os.path.join(DEFAULT_BIN_DIR, PIPEGEN_MASTER_BIN_NAME),
                     throw_if_error=True,
                 )
                 run_pipegen(

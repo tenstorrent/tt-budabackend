@@ -36,12 +36,23 @@ from pipegen_yaml_filter import *
 from ruamel.yaml import YAML
 
 from verif.common.runner_net2pipe import generate_net2pipe_outputs
-from verif.common.runner_pipegen import PIPEGEN_MASTER_BIN_NAME, run_pipegen
-from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
+from verif.common.runner_pipegen import (
+    PIPEGEN_BIN_NAME,
+    PIPEGEN_MASTER_BIN_NAME,
+    PipegenWorkerConfig,
+    run_pipegen_worker,
+)
+from verif.common.runner_utils import (
+    DEFAULT_BIN_DIR,
+    DEFAULT_TOP_LEVEL_BUILD_DIR,
+    execute_in_parallel,
+)
 from verif.common.test_utils import (
     DeviceArchs,
     create_or_clean_dir,
+    find_all_files_in_dir,
     get_epoch_dir,
+    get_epoch_from_filename,
     get_logger,
     setup_logger,
 )
@@ -65,23 +76,8 @@ class PipegenYamlFilterWorkerConfig:
     arch: DeviceArchs
 
 
-@dataclass
-class PipegenRunResult:
-    pipegen_master_command: str
-    pipegen_master_retcode: int
-    pipegen_command: str
-    pipegen_retcode: int
-
-
 filtered_netlists_count_sync: Optional[dict[DeviceArchs, mp.Value]] = None
 filtered_pipegen_yamls_count_sync: Optional[mp.Value] = None
-pipegen_run_count: Optional[mp.Value] = None
-net2pipe_run_count: Optional[mp.Value] = None
-
-
-def init_run_pipegens_sync_var(pipegen_count: mp.Value):
-    global pipegen_run_count
-    pipegen_run_count = pipegen_count
 
 
 def init_global_sync_vars(
@@ -90,29 +86,6 @@ def init_global_sync_vars(
     global filtered_netlists_count_sync, filtered_pipegen_yamls_count_sync
     filtered_netlists_count_sync = netlist_count
     filtered_pipegen_yamls_count_sync = pipegen_yamls_value
-
-
-# TODO remove the old func when filtering switches to logger too.
-def write_cmd_logs_v2(pipegen_run_results: list[PipegenRunResult]):
-    for pipegen_run_result in pipegen_run_results:
-        if (
-            pipegen_run_result.pipegen_master_retcode
-            and pipegen_run_result.pipegen_retcode
-        ):
-            # If both pipegens are failing on some yaml we consider such yaml invalid for the
-            # purpose of these tests, which is to compare difference in outputs not to test if
-            # pipegen is working on some netlist.
-            continue
-        if pipegen_run_result.pipegen_master_retcode:
-            logger.error(
-                f"Command {pipegen_run_result.pipegen_master_command} failed with"
-                f" error code: {pipegen_run_result.pipegen_master_retcode}"
-            )
-        if pipegen_run_result.pipegen_retcode:
-            logger.error(
-                f"Command {pipegen_run_result.pipegen_command} failed with error"
-                f" code: {pipegen_run_result.pipegen_retcode}"
-            )
 
 
 def filter_netlist_yamls(
@@ -176,57 +149,14 @@ def find_pipegen_yamls(
     new_blob_yaml_paths: list[str],
     epoch_ids: list[str],
 ):
-    for netlist_name in os.listdir(pipegen_yamls_dir):
-        netlist_dir = f"{pipegen_yamls_dir}/{netlist_name}"
-        out_dir = f"{results_dir}/{netlist_name}"
-        os.makedirs(out_dir)
-        for pipegen_yaml_name in os.listdir(netlist_dir):
-            pipegen_yaml_paths.append(f"{netlist_dir}/{pipegen_yaml_name}")
-            epoch_id = pipegen_yaml_name[:-5].split("_")[1]
-            epoch_ids.append(epoch_id)
-            original_blob_yaml_paths.append(f"{out_dir}/blob_{epoch_id}_original.yaml")
-            new_blob_yaml_paths.append(f"{out_dir}/blob_{epoch_id}.yaml")
-            if num_tests > 0 and len(pipegen_yaml_paths) == num_tests:
-                return
-
-
-def _run_pipegens_worker(
-    pipegen_yaml_path: str,
-    original_blob_yaml_path: str,
-    new_blob_yaml_path: str,
-    epoch_id: str,
-    arch: str,
-    bins_dir: str,
-    total_pipegen_yaml_count: int,
-) -> PipegenRunResult:
-    pipegen_master_retcode, pipegen_master_command = run_pipegen(
-        pipegen_yaml_path,
-        original_blob_yaml_path,
-        arch,
-        epoch_id,
-        bin_dir=bins_dir,
-        pipegen_bin_name=PIPEGEN_MASTER_BIN_NAME,
-    )
-    pipegen_retcode, pipegen_command = run_pipegen(
-        pipegen_yaml_path, new_blob_yaml_path, arch, epoch_id, bin_dir=bins_dir
-    )
-
-    with pipegen_run_count.get_lock():
-        pipegen_run_count.value += 1
-        local_pipegen_run_count = pipegen_run_count.value
-
-    if local_pipegen_run_count > 0 and local_pipegen_run_count % 100 == 0:
-        print(
-            f"Finished processing {local_pipegen_run_count} / {total_pipegen_yaml_count} pipegen "
-            f"yamls"
-        )
-
-    return PipegenRunResult(
-        pipegen_master_command=pipegen_master_command,
-        pipegen_master_retcode=pipegen_master_retcode,
-        pipegen_command=pipegen_command,
-        pipegen_retcode=pipegen_retcode,
-    )
+    for pipegen_relpath in find_all_files_in_dir(pipegen_yamls_dir, "*/pipegen*.yaml"):
+        pipegen_yaml_paths.append(os.path.join(pipegen_yamls_dir, pipegen_relpath))
+        epoch_id = get_epoch_from_filename(pipegen_relpath)
+        epoch_ids.append(epoch_id)
+        original_blob_yaml_paths.append(f"{results_dir}/blob_{epoch_id}_original.yaml")
+        new_blob_yaml_paths.append(f"{results_dir}/blob_{epoch_id}.yaml")
+        if num_tests > 0 and len(pipegen_yaml_paths) == num_tests:
+            return
 
 
 def run_pipegens(
@@ -236,26 +166,37 @@ def run_pipegens(
     epoch_ids: list[str],
     arch: str,
     bins_dir: str,
+    results_dir: str,
 ):
-    total_pipegen_count = len(pipegen_yaml_paths)
-    pipegen_run_sync_var = mp.Value("i", 0)
-    with mp.Pool(
-        initializer=init_run_pipegens_sync_var, initargs=(pipegen_run_sync_var,)
-    ) as pool:
-        pipegen_run_results = pool.starmap(
-            _run_pipegens_worker,
-            zip(
-                pipegen_yaml_paths,
-                original_blob_yaml_paths,
-                new_blob_yaml_paths,
-                epoch_ids,
-                repeat(arch),
-                repeat(bins_dir),
-                repeat(total_pipegen_count),
-            ),
+    worker_configs = [
+        PipegenWorkerConfig(
+            pipegen_yaml_path=pipegen_yaml_path,
+            blob_yaml_path=original_blob_yaml_path,
+            arch=arch,
+            epoch_id=epoch_id,
+            pipegen_path=os.path.join(bins_dir, PIPEGEN_BIN_NAME),
         )
+        for pipegen_yaml_path, original_blob_yaml_path, epoch_id in zip(
+            pipegen_yaml_paths, original_blob_yaml_paths, epoch_ids
+        )
+    ] + [
+        PipegenWorkerConfig(
+            pipegen_yaml_path=pipegen_yaml_path,
+            blob_yaml_path=new_blob_yaml_path,
+            arch=arch,
+            epoch_id=epoch_id,
+            pipegen_path=os.path.join(bins_dir, PIPEGEN_MASTER_BIN_NAME),
+        )
+        for pipegen_yaml_path, new_blob_yaml_path, epoch_id in zip(
+            pipegen_yaml_paths, new_blob_yaml_paths, epoch_ids
+        )
+    ]
 
-    write_cmd_logs_v2(pipegen_run_results)
+    execute_in_parallel(
+        run_pipegen_worker,
+        worker_configs,
+        log_file=os.path.join(results_dir, "pipegen_commands.log"),
+    )
 
 
 def run_filter_netlist_yamls_worker(
@@ -379,17 +320,22 @@ def remove_comparison_log_file(log_file_path: str):
     os.remove(log_file_path)
 
 
-def run_blob_comparator_worker(
-    pipegen_yaml_path: str,
-    original_blob_yaml_path: str,
-    new_blob_yaml_path: str,
-    sg_comparison_strategy: StreamGraphComparisonStrategy,
-) -> list:
-    failed_pipegen_yamls = []
-    comparison_log_path = f"{os.path.splitext(new_blob_yaml_path)[0]}_comparison.log"
+@dataclass
+class BlobComparatorWorker:
+    pipegen_yaml_path: str
+    original_blob_yaml_path: str
+    new_blob_yaml_path: str
+    sg_comparison_strategy: StreamGraphComparisonStrategy
 
-    original_blob_exists = os.path.exists(original_blob_yaml_path)
-    new_blob_exists = os.path.exists(new_blob_yaml_path)
+
+def run_blob_comparator_worker(worker_config: BlobComparatorWorker) -> list:
+    failed_pipegen_yamls = []
+    comparison_log_path = (
+        f"{os.path.splitext(worker_config.new_blob_yaml_path)[0]}_comparison.log"
+    )
+
+    original_blob_exists = os.path.exists(worker_config.original_blob_yaml_path)
+    new_blob_exists = os.path.exists(worker_config.new_blob_yaml_path)
 
     if not original_blob_exists:
         remove_comparison_log_file(comparison_log_path)
@@ -398,27 +344,30 @@ def run_blob_comparator_worker(
     comparison_successful = False
     if new_blob_exists:
         match = compare_blob_yamls(
-            original_blob_yaml_path,
-            new_blob_yaml_path,
+            worker_config.original_blob_yaml_path,
+            worker_config.new_blob_yaml_path,
             comparison_log_path,
-            sg_comparison_strategy,
+            worker_config.sg_comparison_strategy,
         )
         file_message = read_comparison_log_file(comparison_log_path)
         if match:
             logger.info(
-                f"Successfully compared blobs ({original_blob_yaml_path} vs {new_blob_yaml_path})"
+                f"Successfully compared blobs ({worker_config.original_blob_yaml_path} vs {worker_config.new_blob_yaml_path})"
                 f"{file_message}"
             )
             comparison_successful = True
         else:
             logger.error(
-                f"Failed comparing blobs ({original_blob_yaml_path} vs {new_blob_yaml_path})"
+                f"Failed comparing blobs ({worker_config.original_blob_yaml_path} vs {worker_config.new_blob_yaml_path})"
                 f"{file_message}"
             )
 
     if not comparison_successful:
-        failed_pipegen_yamls.append(pipegen_yaml_path)
-        shutil.copy(pipegen_yaml_path, os.path.dirname(original_blob_yaml_path))
+        failed_pipegen_yamls.append(worker_config.pipegen_yaml_path)
+        shutil.copy(
+            worker_config.pipegen_yaml_path,
+            os.path.dirname(worker_config.original_blob_yaml_path),
+        )
 
     remove_comparison_log_file(comparison_log_path)
 
@@ -458,20 +407,23 @@ def run_comparison(
         epoch_ids,
         arch,
         bins_dir,
+        results_dir,
     )
 
-    logger.info("Running pipegens done")
-
-    with mp.Pool() as pool:
-        failed_pipegen_yamls = pool.starmap(
-            run_blob_comparator_worker,
-            zip(
-                pipegen_yaml_paths,
-                original_blob_yaml_paths,
-                new_blob_yaml_paths,
-                repeat(sg_comparison_strategy),
-            ),
+    blob_comparator_worker_configs = [
+        BlobComparatorWorker(
+            pipegen_yaml_path,
+            original_blob_yaml_path,
+            new_blob_yaml_path,
+            sg_comparison_strategy,
         )
+        for pipegen_yaml_path, original_blob_yaml_path, new_blob_yaml_path in zip(
+            pipegen_yaml_paths, original_blob_yaml_paths, new_blob_yaml_paths
+        )
+    ]
+    failed_pipegen_yamls = execute_in_parallel(
+        run_blob_comparator_worker, blob_comparator_worker_configs
+    )
     failed_pipegen_yamls = sum(failed_pipegen_yamls, [])
 
     logger.info(f"Finished running on {len(pipegen_yaml_paths)} test cases")

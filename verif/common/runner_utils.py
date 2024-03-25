@@ -185,9 +185,7 @@ def execute_in_parallel(
                 f"Failed for {len([result for result in results if result.error_code != 0])}/{len(results)}."
             )
         else:
-            print_success(
-                f"Failed for 0/{len(results)}."
-            )
+            print_success(f"Failed for 0/{len(results)}.")
 
     return results
 

@@ -18,7 +18,7 @@ from verif.common.runner_pipegen import (
     PIPEGEN_MASTER_BIN_NAME,
     run_pipegen,
 )
-from verif.common.runner_utils import DeviceArchs
+from verif.common.runner_utils import DEFAULT_BIN_DIR, DeviceArchs
 from verif.common.test_utils import get_epoch_dir, get_logger, setup_logger
 
 logger = get_logger(__name__)
@@ -60,7 +60,7 @@ def measure_pipegen_time(
         blob_yaml_path,
         arch,
         0,
-        pipegen_bin_name=pipegen_bin_name,
+        pipegen_path=os.path.join(DEFAULT_BIN_DIR, pipegen_bin_name),
         timeout=PIPEGEN_TIMEOUT,
     )
     if retcode != 0:

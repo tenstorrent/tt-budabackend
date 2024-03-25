@@ -112,6 +112,20 @@ def get_epoch_dir(results_dir: str, epoch_id: str) -> str:
     return f"{results_dir}/temporal_epoch_{epoch_id}/overlay"
 
 
+def get_epoch_from_filename(filename: str) -> int:
+    """Extracts epoch number from given filename. Works when the epoch is the last thing in the filename.
+    Pipegen filter and pipegen output files like this.
+    Examples:
+        pipegen_0.yaml
+        example_dir/blob_25.yaml
+        wormhole_b0/1xlink/temporal_epoch_0
+
+    """
+    if filename.endswith(".yaml"):
+        filename = filename[:-5]
+    return int(filename.split("_")[-1])
+
+
 def create_dir_if_not_exist(dir_path: str):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -194,3 +208,9 @@ def find_all_files_in_dir(root_path: str, file_filter: str) -> list[str]:
         ]
         matches.extend(fnmatch.filter(relative_filenames, file_filter))
     return matches
+
+
+def extract_arch_from_path(path: str) -> str:
+    for arch in DeviceArchs.get_all_archs():
+        if arch + os.path.sep in path:
+            return arch
