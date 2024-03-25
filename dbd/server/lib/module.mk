@@ -3,7 +3,11 @@ DEBUDA_SERVER_LIB_CONFIGURATION_FILES = \
 	dbd/server/lib/configuration/blackhole.embed $(BUDA_HOME)/device/blackhole_8x10.yaml \
 	dbd/server/lib/configuration/grayskull.embed $(BUDA_HOME)/device/grayskull_10x12.yaml \
 	dbd/server/lib/configuration/wormhole.embed $(BUDA_HOME)/device/wormhole_8x10.yaml \
-	dbd/server/lib/configuration/wormhole_b0.embed $(BUDA_HOME)/device/wormhole_b0_8x10.yaml
+	dbd/server/lib/configuration/wormhole_b0.embed $(BUDA_HOME)/device/wormhole_b0_8x10.yaml \
+	dbd/server/lib/src/../configuration/blackhole.embed $(BUDA_HOME)/device/blackhole_8x10.yaml \
+	dbd/server/lib/src/../configuration/grayskull.embed $(BUDA_HOME)/device/grayskull_10x12.yaml \
+	dbd/server/lib/src/../configuration/wormhole.embed $(BUDA_HOME)/device/wormhole_8x10.yaml \
+	dbd/server/lib/src/../configuration/wormhole_b0.embed $(BUDA_HOME)/device/wormhole_b0_8x10.yaml
 
 DEBUDA_SERVER_LIB_CONFIGURATION_YAML_FILES = $(filter %.yaml, $(DEBUDA_SERVER_LIB_CONFIGURATION_FILES))
 DEBUDA_SERVER_LIB_CONFIGURATION_EMBED_FILES = $(filter %.embed, $(DEBUDA_SERVER_LIB_CONFIGURATION_FILES))
