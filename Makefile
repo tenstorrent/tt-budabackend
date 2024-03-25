@@ -159,6 +159,8 @@ ifeq ($(EMULATION_DEVICE_EN), 1)
 
 endif
 
+PYTHON_VERSION ?= python3.8
+
 build: backend build_hw
 ifeq ("$(HOST_ARCH)", "aarch64")
 # Don't build RiscV FW on ARM. Supported toolchain only works on x86.

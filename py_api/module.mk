@@ -3,7 +3,7 @@
 BACKEND_CONFIG ?= develop
 BACKEND_ARCH_NAME ?= grayskull
 
-BACKEND_INCLUDES = $(COMMON_INCLUDES) -I$(BUDA_HOME)/third_party/pybind11/include -I/usr/include/python3.8
+BACKEND_INCLUDES = $(COMMON_INCLUDES) -I$(BUDA_HOME)/third_party/pybind11/include -I/usr/include/$(PYTHON_VERSION)
 
 BUDABACKEND_LIBDIR = $(BUDA_HOME)/build/lib
 BUDABACKEND_LIB = $(BUDABACKEND_LIBDIR)/libtt.so

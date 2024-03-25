@@ -10,7 +10,7 @@ DEBUDA_PYBIND_LIB_INCLUDES = \
 	-Idbd/server/lib/inc \
 	-I$(BUDA_HOME)/umd \
 	-I$(PYBIND11_DIR)/include \
-	-I/usr/include/python3.8 \
+	-I/usr/include/$(PYTHON_VERSION) \
 
 DEBUDA_PYBIND_LDFLAGS = -ldbdserver -ldevice -lyaml-cpp -Wl,-rpath,\$$ORIGIN/../lib:\$$ORIGIN -pthread
 
