@@ -1,5 +1,7 @@
 
 $extra_tile_header_buffer_size = (2 * 32 * 1024)
+msg_info_buf_size = 16 * 2048
+$msg_info_buf_addr = $PARAMS[:data_buffer_space_base] - $PARAMS[:overlay_blob_size] - 128 - msg_info_buf_size
 
 require "#{$PARAMS[:blob_gen_root]}/graphs/unary_test.rb"
 require "#{$PARAMS[:blob_gen_root]}/graphs/unary_tilize_test.rb"

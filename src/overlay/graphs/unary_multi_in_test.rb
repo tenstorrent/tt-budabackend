@@ -71,8 +71,6 @@ output0_stream_id = $PARAMS[:output0_stream_id] ? $PARAMS[:output0_stream_id] : 
 
 num_phases = 1
 
-msg_info_buf_size = num_msgs*16
-
 chip_id = 0
 x = 0
 y = 0
@@ -97,15 +95,12 @@ for p in 1..num_phases
 
   $unary_multi_in_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
-
   $unary_multi_in_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input0_park_stream],
     :remote_source => true,  
@@ -116,14 +111,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  input0_test_data_base = input0_data_base + test_data_offset
 
   $unary_multi_in_test_graph[phase][input0_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_test_data_base,
     :buf_size => input0_park_buf_size,
-    :buf_base_addr => input0_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input0_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input0_data_stream],
@@ -134,17 +128,14 @@ for p in 1..num_phases
     :vc => 0,
     :group_priority => 0,
     :park_input => true
-  }  
-
-  buf_addr = input1_data_base
+  }
 
   $unary_multi_in_test_graph[phase][input1_data_stream] = {
     :input_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_data_base,
     :buf_size => input1_data_buf_size,
-    :buf_base_addr => input1_data_base,
-    :msg_info_buf_addr => buf_addr + input1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input1_park_stream],
     :remote_source => true,  
@@ -155,14 +146,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  input1_test_data_base = input1_data_base + test_data_offset
 
   $unary_multi_in_test_graph[phase][input1_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_test_data_base,
     :buf_size => input1_park_buf_size,
-    :buf_base_addr => input1_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input1_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input1_data_stream],
@@ -175,15 +165,12 @@ for p in 1..num_phases
     :park_input => true
   }  
 
-  buf_addr = input2_data_base
-
   $unary_multi_in_test_graph[phase][input2_data_stream] = {
     :input_index => 2,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input2_data_base,
     :buf_size => input2_data_buf_size,
-    :buf_base_addr => input2_data_base,
-    :msg_info_buf_addr => buf_addr + input2_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input2_park_stream],
     :remote_source => true,  
@@ -194,14 +181,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  input2_test_data_base = input2_data_base + test_data_offset
 
   $unary_multi_in_test_graph[phase][input2_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input2_test_data_base,
     :buf_size => input2_park_buf_size,
-    :buf_base_addr => input2_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input2_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input2_data_stream],
@@ -214,15 +200,12 @@ for p in 1..num_phases
     :park_input => true
   }  
 
-  buf_addr = input3_data_base
-
   $unary_multi_in_test_graph[phase][input3_data_stream] = {
     :input_index => 3,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input3_data_base,
     :buf_size => input3_data_buf_size,
-    :buf_base_addr => input3_data_base,
-    :msg_info_buf_addr => buf_addr + input3_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input3_data_stream],
     :remote_source => true,  
@@ -233,14 +216,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  input3_test_data_base = input3_data_base + test_data_offset
 
   $unary_multi_in_test_graph[phase][input3_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input3_test_data_base,
     :buf_size => input3_park_buf_size,
-    :buf_base_addr => input3_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input3_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :source_endpoint => true,   
     :remote_receiver => true,
     :dest => [input3_data_stream],
@@ -253,15 +235,12 @@ for p in 1..num_phases
     :park_input => true
   }  
 
-  buf_addr = output0_data_base
-
   $unary_multi_in_test_graph[phase][output0_stream] = {
     :output_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_data_base,
     :buf_size => output0_data_buf_size,
-    :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :vc => 0,
     :dest => [output0_park_stream],
     :num_msgs => num_output0_data_buf_msgs,
@@ -275,14 +254,13 @@ for p in 1..num_phases
     :next_phase_src_change => true
   }
 
-  buf_addr += test_data_offset
+  output0_test_data_base = output0_data_base + test_data_offset
   
   $unary_multi_in_test_graph[phase][output0_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_test_data_base,
     :buf_size => output0_park_buf_size,
-    :buf_base_addr => output0_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + output0_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [output0_stream],
     :remote_source => true,   

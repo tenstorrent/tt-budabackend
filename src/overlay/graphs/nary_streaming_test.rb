@@ -16,7 +16,6 @@ output0_double_buffered = false
 output0_no_resend = true
 
 data_buffer_space_base = $PARAMS[:data_buffer_space_base] + $extra_tile_header_buffer_size
-test_data_offset = $PARAMS[:test_data_offset] ? $PARAMS[:test_data_offset] : (64 * 1024)
 input_offset = 0
 input_stream_id_offset = $PARAMS[:chip] == "grayskull" ? 8 : 4
 chip_id = 0
@@ -49,7 +48,6 @@ output0_data_stream_id = $PARAMS[:output0_data_stream_id] ? $PARAMS[:output0_dat
 ##
 
 num_phases = 1
-msg_info_buf_size = num_msgs*16
 
 
 output0_data_stream = :"chip_#{chip_id}__y_#{y}__x_#{x}__stream_id_#{output0_data_stream_id}"
@@ -72,8 +70,7 @@ for p in 1..num_phases
         :auto_run => true,
         :buf_addr => buf_addr,
         :buf_size => input_data_buf_size[i],
-        :buf_base_addr => input_data_base[0],
-        :msg_info_buf_addr => buf_addr + input_data_buf_size[i],
+        :msg_info_buf_addr => $msg_info_buf_addr,
         :dest => [],
         :legacy_pack => true,
         :source_endpoint => true,  
@@ -109,7 +106,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs_in_block => output0_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
     :num_msgs => num_msgs_per_phase,

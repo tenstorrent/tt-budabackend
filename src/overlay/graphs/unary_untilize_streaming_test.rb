@@ -29,8 +29,6 @@ output0_data_stream_id = $PARAMS[:output0_data_stream_id] ? $PARAMS[:output0_dat
 
 num_phases = 1
 
-msg_info_buf_size = num_msgs*16
-
 chip_id = 0
 x = 0
 y = 0
@@ -47,14 +45,12 @@ for p in 1..num_phases
 
   $unary_untilize_streaming_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
   $unary_untilize_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :legacy_pack => true,
     :source_endpoint => true,  
@@ -67,15 +63,12 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr = output0_data_base
-
   $unary_untilize_streaming_test_graph[phase][output0_data_stream] = {
     :output_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_data_base,
     :buf_size => output0_data_buf_size,
-    :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :vc => 0,
     :dest => [],
     :num_msgs => num_output0_data_buf_msgs,

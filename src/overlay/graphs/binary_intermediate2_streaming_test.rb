@@ -31,7 +31,6 @@ output0_data_buf_size = num_output0_data_buf_msgs*output0_data_buf_msg_size
 output0_park_buf_size = num_output0_park_buf_msgs*output0_park_buf_msg_size
 
 data_buffer_space_base = $PARAMS[:data_buffer_space_base] + $extra_tile_header_buffer_size
-test_data_offset = $PARAMS[:test_data_offset] ? $PARAMS[:test_data_offset] : (64 * 1024)
 input0_data_base = $PARAMS[:input0_data_base] ? $PARAMS[:input0_data_base] : data_buffer_space_base;
 input1_data_base = $PARAMS[:input1_data_base] ? $PARAMS[:input1_data_base] : (data_buffer_space_base + (128 * 1024))
 output0_data_base = $PARAMS[:output0_data_base] ? $PARAMS[:output0_data_base] : (data_buffer_space_base + (256 * 1024));
@@ -58,7 +57,6 @@ intermediate1_stream_id = $PARAMS[:intermediate1_stream_id] ? $PARAMS[:intermedi
 ##
 
 num_phases = 1
-msg_info_buf_size = num_msgs*16
 
 chip_id = 0
 x = 0
@@ -83,15 +81,12 @@ for p in 1..num_phases
 
   $binary_intermediate2_streaming_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
-
   $binary_intermediate2_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :legacy_pack => true,
     :dest => [],
     :source_endpoint => true,  
@@ -103,16 +98,13 @@ for p in 1..num_phases
     :next_phase_src_change => true,
     :reg_update_vc => 1
   }
-  
-  buf_addr = input1_data_base
 
   $binary_intermediate2_streaming_test_graph[phase][input1_data_stream] = {
     :input_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_data_base,
     :buf_size => input1_data_buf_size,
-    :buf_base_addr => input1_data_base,
-    :msg_info_buf_addr => buf_addr + input1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :legacy_pack => true,
     :dest => [],
     :source_endpoint => true,  
@@ -125,16 +117,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr = intermediate0_data_base
-
   $binary_intermediate2_streaming_test_graph[phase][intermediate0_stream] = {
     :input_index => 2,
     :output_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => intermediate0_data_base,
     :buf_size => intermediate0_data_buf_size,
-    :buf_base_addr => intermediate0_data_base,
-    :msg_info_buf_addr => buf_addr + intermediate0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :legacy_pack => true,
     :dest => [],
     :num_msgs => num_intermediate0_data_buf_msgs,
@@ -148,16 +137,13 @@ for p in 1..num_phases
     :next_phase_src_change => true
   }
 
-  buf_addr = intermediate1_data_base
-
   $binary_intermediate2_streaming_test_graph[phase][intermediate1_stream] = {
     :input_index => 3,
     :output_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => intermediate1_data_base,
     :buf_size => intermediate1_data_buf_size,
-    :buf_base_addr => intermediate1_data_base,
-    :msg_info_buf_addr => buf_addr + intermediate1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs => num_intermediate1_data_buf_msgs,
     :msg_size => intermediate1_data_buf_msg_size,

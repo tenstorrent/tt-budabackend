@@ -57,8 +57,6 @@ output3_stream_id = $PARAMS[:output3_stream_id] ? $PARAMS[:output3_stream_id] : 
 
 num_phases = 1
 
-msg_info_buf_size = num_msgs*16
-
 chip_id = 0
 x = 0
 y = 0
@@ -78,15 +76,12 @@ for p in 1..num_phases
 
   $unary_multi_out_streaming_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
-
   $unary_multi_out_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :legacy_pack => true,
     :source_endpoint => true,  
@@ -123,7 +118,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :vc => 0,
     :dest => [],
     :num_msgs_in_block => output0_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
@@ -167,7 +162,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output1_data_base,
-    :msg_info_buf_addr => buf_addr + output1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :vc => 0,
     :dest => [],
     :num_msgs_in_block => output1_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
@@ -211,7 +206,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output2_data_base,
-    :msg_info_buf_addr => buf_addr + output2_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :vc => 0,
     :dest => [],
     :num_msgs_in_block => output2_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
@@ -255,7 +250,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output3_data_base,
-    :msg_info_buf_addr => buf_addr + output3_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :num_msgs_in_block => output3_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
     :num_msgs => num_msgs_per_phase,
     :msg_size => output3_data_buf_msg_size,

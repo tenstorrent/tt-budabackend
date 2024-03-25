@@ -18,7 +18,6 @@ output0_data_buf_size = $PARAMS[:output0_data_buf_size] ?  ($PARAMS[:output0_dat
 
 
 data_buffer_space_base = $PARAMS[:data_buffer_space_base] + $extra_tile_header_buffer_size
-test_data_offset = $PARAMS[:test_data_offset] ? $PARAMS[:test_data_offset] : (64 * 1024)
 input0_data_base = $PARAMS[:input0_data_base] ? $PARAMS[:input0_data_base] : data_buffer_space_base;
 output0_data_base = $PARAMS[:output0_data_base] ? $PARAMS[:output0_data_base] : (data_buffer_space_base + (256 * 1024));
 
@@ -33,8 +32,6 @@ output0_no_resend = true
 ##
 
 num_phases = 1
-
-msg_info_buf_size = num_msgs*16
 
 chip_id = 0
 x = 0
@@ -52,14 +49,12 @@ for p in 1..num_phases
 
   $unary_tilize_streaming_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
   $unary_tilize_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :source_endpoint => true,  
     :receiver_endpoint => $PARAMS[:chip] == "grayskull"? false : true ,
@@ -97,7 +92,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs_in_block => output0_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
     :num_msgs => num_msgs_per_phase,

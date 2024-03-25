@@ -52,7 +52,6 @@ intermediate0_stream_id = $PARAMS[:intermediate0_stream_id] ? $PARAMS[:intermedi
 ##
 
 num_phases = 1
-msg_info_buf_size = num_msgs*16
 
 chip_id = 0
 x = 0
@@ -76,15 +75,12 @@ for p in 1..num_phases
 
   $binary_intermediate_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
-
   $binary_intermediate_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input0_park_stream],
     :remote_source => true,   
@@ -95,15 +91,14 @@ for p in 1..num_phases
     :data_buf_no_flow_ctrl => true,
     :reg_update_vc => 1
   }
-  
-  buf_addr += test_data_offset
+
+  input0_test_data_base = input0_data_base + test_data_offset
 
   $binary_intermediate_test_graph[phase][input0_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_test_data_base,
     :buf_size => input0_park_buf_size,
-    :buf_base_addr => input0_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input0_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :legacy_pack => true,
     :source_endpoint => true,   
     :remote_receiver => true,
@@ -118,15 +113,12 @@ for p in 1..num_phases
     :park_input => true
   }  
 
-  buf_addr = input1_data_base
-
   $binary_intermediate_test_graph[phase][input1_data_stream] = {
     :input_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_data_base,
     :buf_size => input1_data_buf_size,
-    :buf_base_addr => input1_data_base,
-    :msg_info_buf_addr => buf_addr + input1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [input1_park_stream],
     :remote_source => true,   
@@ -138,14 +130,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  input1_test_data_base = input1_data_base + test_data_offset
 
   $binary_intermediate_test_graph[phase][input1_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_test_data_base,
     :buf_size => input1_park_buf_size,
-    :buf_base_addr => input1_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + input1_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :legacy_pack => true,
     :source_endpoint => true,   
     :remote_receiver => true,
@@ -160,15 +151,12 @@ for p in 1..num_phases
     :park_input => true
   }  
 
-  buf_addr = output0_data_base
-
   $binary_intermediate_test_graph[phase][output0_data_stream] = {
     :output_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_data_base,
     :buf_size => output0_data_buf_size,
-    :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [output0_park_stream],
     :num_msgs => num_output0_data_buf_msgs,
     :msg_size => output0_data_buf_msg_size,
@@ -182,14 +170,13 @@ for p in 1..num_phases
     :next_phase_src_change => true
   }
 
-  buf_addr += test_data_offset
+  output0_test_data_base = output0_data_base + test_data_offset
 
   $binary_intermediate_test_graph[phase][output0_park_stream] = {
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_test_data_base,
     :buf_size => output0_park_buf_size,
-    :buf_base_addr => output0_data_base + test_data_offset,
-    :msg_info_buf_addr => buf_addr + output0_park_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :src => [output0_data_stream],
     :remote_source => true,   
@@ -200,16 +187,15 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr += test_data_offset
+  output0_test2_data_base = output0_test_data_base + test_data_offset
 
   $binary_intermediate_test_graph[phase][intermediate0_stream] = {
     :input_index => 2,
     :output_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => output0_test2_data_base,
     :buf_size => intermediate0_data_buf_size,
-    :buf_base_addr => output0_data_base + 2*test_data_offset,
-    :msg_info_buf_addr => buf_addr + intermediate0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs => num_intermediate0_data_buf_msgs,
     :msg_size => intermediate0_data_buf_msg_size,

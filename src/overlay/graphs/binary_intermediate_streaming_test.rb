@@ -25,7 +25,6 @@ input1_data_base = $PARAMS[:input1_data_base] ? $PARAMS[:input1_data_base] : (da
 output0_data_base = $PARAMS[:output0_data_base] ? $PARAMS[:output0_data_base] : (data_buffer_space_base + (256 * 1024));
 intermediate0_data_base = $PARAMS[:intermediate0_data_base] ? $PARAMS[:intermediate0_data_base] : output0_data_base + (128 * 1024);
 
-
 input0_data_stream_id = $PARAMS[:input0_data_stream_id] ? $PARAMS[:input0_data_stream_id] : $PARAMS[:chip] == "grayskull" ? 8 : 4
 input1_data_stream_id = $PARAMS[:input1_data_stream_id] ? $PARAMS[:input1_data_stream_id] : $PARAMS[:chip] == "grayskull" ? 9 : 5
 output0_data_stream_id = $PARAMS[:output0_data_stream_id] ? $PARAMS[:output0_data_stream_id] : 24
@@ -42,7 +41,6 @@ output0_no_resend = true
 ##
 
 num_phases = 1
-msg_info_buf_size = num_msgs*16
 
 chip_id = 0
 x = 0
@@ -63,15 +61,12 @@ for p in 1..num_phases
 
   $binary_intermediate_streaming_test_graph[phase] = {}
 
-  buf_addr = input0_data_base
-
   $binary_intermediate_streaming_test_graph[phase][input0_data_stream] = {
     :input_index => 0,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input0_data_base,
     :buf_size => input0_data_buf_size,
-    :buf_base_addr => input0_data_base,
-    :msg_info_buf_addr => buf_addr + input0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :source_endpoint => true,  
     :receiver_endpoint => $PARAMS[:chip] == "grayskull"? false : true ,
@@ -84,15 +79,12 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-  buf_addr = input1_data_base
-
   $binary_intermediate_streaming_test_graph[phase][input1_data_stream] = {
     :input_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => input1_data_base,
     :buf_size => input1_data_buf_size,
-    :buf_base_addr => input1_data_base,
-    :msg_info_buf_addr => buf_addr + input1_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :source_endpoint => true,  
     :receiver_endpoint => $PARAMS[:chip] == "grayskull"? false : true ,
@@ -105,18 +97,13 @@ for p in 1..num_phases
     :reg_update_vc => 1
   }
 
-
-
-  buf_addr = intermediate0_data_base
-
   $binary_intermediate_streaming_test_graph[phase][intermediate0_stream] = {
     :input_index => 2,
     :output_index => 1,
     :auto_run => true,
-    :buf_addr => buf_addr,
+    :buf_addr => intermediate0_data_base,
     :buf_size => intermediate0_data_buf_size,
-    :buf_base_addr => intermediate0_data_base,
-    :msg_info_buf_addr => buf_addr + intermediate0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs => num_intermediate0_data_buf_msgs,
     :msg_size => intermediate0_data_buf_msg_size,
@@ -154,7 +141,7 @@ for p in 1..num_phases
     :buf_addr => buf_addr,
     :buf_size => buf_size,
     :buf_base_addr => output0_data_base,
-    :msg_info_buf_addr => buf_addr + output0_data_buf_size,
+    :msg_info_buf_addr => $msg_info_buf_addr,
     :dest => [],
     :num_msgs_in_block => output0_no_resend ? num_msgs_per_phase : num_msgs_per_phase * num_microblocks_in_buf,
     :num_msgs => num_msgs_per_phase,
