@@ -8,9 +8,6 @@ ci-cpp-linter:
       - when: never
   script:
     - git submodule update --init --depth=1 third_party/confidential_keys
-    - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-    - add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal main'
-    - apt-get update && apt-get install -y clang-format
     - ci/clang-format-repo.sh
     - git diff --exit-code  # Fail if any changes were made by clang-format
   artifacts:
