@@ -19,8 +19,7 @@ constexpr Integer round_to_power_of_2(Integer x) {
 
         Integer power_of_2(1);
         for (int i = 0; i < std::numeric_limits<Integer>::digits; i++) {
-            if (power_of_2 >= x)
-                return power_of_2;
+            if (power_of_2 >= x) return power_of_2;
             power_of_2 <<= 1;
         }
 
@@ -68,8 +67,7 @@ static constexpr Integer log2_const(Integer x) {
     // assert(x >= Integer(0));
 
     for (int i = 0; i < std::numeric_limits<Integer>::digits; i++) {
-        if (x <= Integer(1) << i)
-            return i;
+        if (x <= Integer(1) << i) return i;
     }
 
     return std::numeric_limits<Integer>::digits;
@@ -84,8 +82,7 @@ static constexpr Integer log2_flr_const(Integer x) {
     // assert(x >= Integer(0));
 
     for (int i = 0; i < std::numeric_limits<Integer>::digits; i++) {
-        if (x >> i == Integer(1))
-            return i;
+        if (x >> i == Integer(1)) return i;
     }
 
     return std::numeric_limits<Integer>::digits;

@@ -14,8 +14,7 @@ xy_pair xy_pair::parse(const std::string &s) {
     regex parser("\\s*(\\d+)\\D(\\d+)\\s*");
 
     smatch results;
-    if (!regex_match(s, results, parser))
-        throw runtime_error("Could not parse grid size, expecting format XxY.");
+    if (!regex_match(s, results, parser)) throw runtime_error("Could not parse grid size, expecting format XxY.");
 
     return xy_pair(stoul(results[1]), stoul(results[2]));
 }

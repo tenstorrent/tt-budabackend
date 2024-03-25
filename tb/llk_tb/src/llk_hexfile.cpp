@@ -35,8 +35,7 @@ bool parse_hex_line(const std::string& line, bool* seen_at, memory::address_t* h
         static const regex re(R"__(\s*(@?)(?:0[Xx])?([[:xdigit:]]{1,8})\s*,?\s*)__");
 
         smatch m;
-        if (!regex_match(line, m, re))
-            return false;
+        if (!regex_match(line, m, re)) return false;
 
         *seen_at = (m.length(1) != 0);
         *hex_address = stoul(m[2], nullptr, 16);
@@ -78,8 +77,7 @@ void read_contiguous_hex_file_impl(std::istream& input, Function&& callback) {
         if (!parse_hex_line(line, &seen_at, &hex_address))
             throw runtime_error("Memory image has unreadable data line.");
 
-        if (seen_at)
-            throw runtime_error("Memory file has multiple base addresses.");
+        if (seen_at) throw runtime_error("Memory file has multiple base addresses.");
 
         callback(hex_address);
     }
@@ -130,14 +128,12 @@ memory::address_t read_discontiguous_hex_file(
 
     while (getline(input, line)) {
         memory::address_t value;
-        if (!parse_hex_line(line, &seen_at, &value))
-            throw runtime_error("Memory image has unreadable line.");
+        if (!parse_hex_line(line, &seen_at, &value)) throw runtime_error("Memory image has unreadable line.");
 
         if (seen_at) {
             memory::address_t new_addr = value;
 
-            if (new_addr < addr)
-                throw runtime_error("Memory image address goes backwards.");
+            if (new_addr < addr) throw runtime_error("Memory image address goes backwards.");
 
             addr = new_addr;
         } else {

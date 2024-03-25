@@ -5,21 +5,19 @@
 
 #include <vector>
 
-namespace pipegen2
-{
+namespace pipegen2 {
 
 class DataFlowNode;
 class LeafGroup;
 class SubgraphLeafGroups;
 
-class TransfersCalculator
-{
-public:
+class TransfersCalculator {
+   public:
     // Calculates phases for all data flow nodes. Phases are calculated by visiting leaf nodes, in the order
     // provided by the subgraph leaf groups, and going backwards toward the root nodes.
     void calculate_phases(const SubgraphLeafGroups* subgraph_leaf_groups);
 
-private:
+   private:
     // Copies phases calculated for the first node in the leaf group to other nodes in the leaf group. Nodes in the
     // same leaf group will always have the exact same phases, so there is no need to compute them separately.
     void copy_calculated_phases_per_leaf_group(const SubgraphLeafGroups* subgraph_leaf_groups);
@@ -30,4 +28,4 @@ private:
     void copy_calculated_phases_per_leaf_group(const LeafGroup& leaf_group);
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -17,5 +17,6 @@ const hlk_args_t hlk_args{.dst_tile_rows = 1, .dst_tile_cols = 8, .block_tile_di
 const llk_math_eltwise_unary_params_t llk_args{.unused = 0};
 
 const std::int32_t sfpu_params[6] = {0, 0, 0, 0, 0, 0};
-constexpr std::int32_t unpack_dst_format[24] = {(std::int32_t) DataFormat::__dst_format__, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+constexpr std::int32_t unpack_dst_format[24] = {
+    (std::int32_t)DataFormat::__dst_format__, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 const std::int32_t arg_loop_count = 1;

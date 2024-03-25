@@ -5,10 +5,8 @@
 
 #include <cstdint>
 
-namespace pipegen2
-{
-namespace constants
-{
+namespace pipegen2 {
+namespace constants {
 // Logical location that is not mapped to a physical location.
 constexpr int unmapped_logical_location = 255;
 
@@ -54,6 +52,5 @@ constexpr unsigned int eth_pipe_reduce_mem_usage_threshold_bytes = 0;
 
 constexpr unsigned int mmio_dram_write_outgoing_noc_vc = 0;
 
-} // namespace constants
-} // namespace pipegen2
-
+}  // namespace constants
+}  // namespace pipegen2

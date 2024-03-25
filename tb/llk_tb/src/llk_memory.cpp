@@ -45,11 +45,9 @@ memory::memory(address_t base, std::vector<word_t> &&content) : m_base(base), m_
 
 memory memory::from_contiguous_hex(std::istream &in) {
     string line;
-    if (!getline(in, line))
-        throw runtime_error("Empty memory file.");
+    if (!getline(in, line)) throw runtime_error("Empty memory file.");
 
-    if (line.size() == 0 || line[0] != '@')
-        throw runtime_error("Memory file does not start with address line.");
+    if (line.size() == 0 || line[0] != '@') throw runtime_error("Memory file does not start with address line.");
 
     unsigned long base = stoul(string(line.begin() + 1, line.end()), nullptr, 16);
     if (base > numeric_limits<address_t>::max() / sizeof(word_t))
