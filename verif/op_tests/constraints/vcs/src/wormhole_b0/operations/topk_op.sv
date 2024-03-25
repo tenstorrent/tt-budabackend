@@ -78,9 +78,6 @@ class topk_op extends operation_constraints;
 
     constraint rand_topk_constraints {
         attributes_k inside {4, 8, 16, 32, 64};
-        // bug with K=4/8 and N = 32
-        (attributes_k == 4) -> (input_0.mblock_n * input_0.ublock_ct >= 2);
-        (attributes_k == 8) -> (input_0.mblock_n * input_0.ublock_ct >= 2);
         
         input_0.mblock_m == 1;
         input_0.mblock_n inside {4, 8, 16, 32};

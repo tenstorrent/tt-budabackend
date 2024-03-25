@@ -253,7 +253,7 @@ void hlk_process_single_input(tt_core *core_ptr, const hlk_args_t *args) {
 
             seqs_per_2tiles = (seqs_per_2tiles == 2) ? 2 : seqs_per_2tiles >> 1;
             num_k_sequences = num_k_sequences >> 1;
-            int target_tiles = ((num_k_sequences == 1) && (tiles_per_seq == 1)) ? 1 : 2;
+            int target_tiles = (total_block_tiles == 1 || ((num_k_sequences == 1) && (tiles_per_seq == 1))) ? 1 : 2;
 
             // Rebuild
             hlk_wait_tiles(core_ptr, HlkOperand::intermed0, total_block_tiles);

@@ -14,9 +14,6 @@ class topk_op_constraints extends global_constraints;
 
   constraint attributes {
     attributes_k inside {4, 8, 16, 32, 64};
-    // bug with K=4/8 and N = 32
-    (attributes_k == 4) -> (mblock_n*ublock_ct >= 2);
-    (attributes_k == 8) -> (mblock_n*ublock_ct >= 2);
   }
 
   constraint formats {
