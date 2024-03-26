@@ -5,6 +5,7 @@ from typing import List
 from perf_test_base import (
     OpType,
     ReblockTMPerfLib,
+    PerfResults,
     get_num_input_operands,
     VAR
 )
@@ -499,6 +500,7 @@ class QuantAttr(OpBaseAttr):
     def get_sorted_labels(self):
         return ["quant_type", "average-math-utilization-all-inputs", "total-runtime"]
     
+# This should match with get_perf_report_single_run
 def get_perf_labels_and_alignment(verbose, op_type, reblocking_mode):
     if verbose:
         label = (
@@ -508,6 +510,7 @@ def get_perf_labels_and_alignment(verbose, op_type, reblocking_mode):
             "runtime-last-input", "math-util-last-input", "cycles/tile",
             "first-input-idx-recorded", "last-input-idx-recorded",
             "average-math-utilization-all-inputs",
+            "total-math-runtime",
             "total-runtime",
         )
         
@@ -521,6 +524,7 @@ def get_perf_labels_and_alignment(verbose, op_type, reblocking_mode):
             "runtime-last-input", "math-util-last-input", "cycles/tile",
             "first-input-idx-recorded", "last-input-idx-recorded",
             "average-math-utilization-all-inputs",
+            "total-math-runtime",
             "total-runtime",
         )
 
@@ -537,6 +541,7 @@ def get_perf_labels_and_alignment(verbose, op_type, reblocking_mode):
         label = (
             "first-input-idx-recorded", "last-input-idx-recorded",
             "average-math-utilization-all-inputs",
+            "total-math-runtime",
             "total-runtime",
         )
 
@@ -562,12 +567,14 @@ def get_perf_labels_and_alignment(verbose, op_type, reblocking_mode):
 def get_report_label_and_alignment(attr, verbose, op_type, reblocking_mode):
     attr_label, attr_alignment = attr.get_attr_labels_and_alignment()
     perf_label, perf_alignment = get_perf_labels_and_alignment(verbose, op_type, reblocking_mode)
-    return attr_label+perf_label, attr_alignment+perf_alignment
+    return attr_label + perf_label, attr_alignment + perf_alignment
 
-def get_perf_report_single_run(perf_results_min_runtime, perf_results_max_runtime, verbose, op_type):
+# This should match with get_perf_labels_and_alignment
+def get_perf_report_single_run(perf_results_min_runtime: PerfResults, perf_results_max_runtime: PerfResults, verbose, op_type):
     assert perf_results_min_runtime.target_input == perf_results_max_runtime.target_input
     results = ()
     if verbose:
+        # record fastest core results
         results += (
             perf_results_min_runtime.target_input,
 
@@ -577,21 +584,24 @@ def get_perf_report_single_run(perf_results_min_runtime, perf_results_max_runtim
 
             perf_results_min_runtime.first_input_recorded, perf_results_min_runtime.last_input_recorded,
             perf_results_min_runtime.average_math_utilization,
+            perf_results_min_runtime.get_math_cycles(),
             perf_results_min_runtime.total_runtime,
         )
 
         if op_type == OpType.Tilizer:
             results += (perf_results_min_runtime.total_runtime_per_tile, )
         
-        results += (
-            perf_results_min_runtime.input0_bw, perf_results_min_runtime.input1_bw, perf_results_min_runtime.output_bw,
+        results += (perf_results_min_runtime.input0_bw, perf_results_min_runtime.input1_bw, perf_results_min_runtime.output_bw)
 
+        # record slowest core results
+        results += (
             perf_results_max_runtime.target_core.replace('-', ','),
             perf_results_max_runtime.total_wait_for_tile, perf_results_max_runtime.total_wait_for_free_tile,
             perf_results_max_runtime.execution_cycles, perf_results_max_runtime.math_utilization, perf_results_max_runtime.cycles_per_tile,
 
             perf_results_max_runtime.first_input_recorded, perf_results_max_runtime.last_input_recorded,
             perf_results_max_runtime.average_math_utilization,
+            perf_results_max_runtime.get_math_cycles(),
             perf_results_max_runtime.total_runtime,
         )
 
@@ -607,9 +617,11 @@ def get_perf_report_single_run(perf_results_min_runtime, perf_results_max_runtim
         )
 
     else:
+        # if not verbose mode, record results for the slowest core only
         results += (
             perf_results_max_runtime.first_input_recorded, perf_results_max_runtime.last_input_recorded,
             perf_results_max_runtime.average_math_utilization,
+            perf_results_max_runtime.get_math_cycles(),
             perf_results_max_runtime.total_runtime,
         )
         if op_type == OpType.Tilizer:

@@ -13,6 +13,8 @@ COLORS = {
     'YELLOW': '\033[93m',
     'CYAN': '\033[96m',
     'BOLD_RED': '\033[1;91m',
+    'BOLD_BLUE': "\033[1;34m",
+    'MAGENTA': '\033[35m',
     'RESET': '\033[0m'
 }
 

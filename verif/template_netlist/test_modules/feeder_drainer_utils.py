@@ -577,22 +577,34 @@ def get_dest_acc_data_format_constraints(
                 )
             )
         )
-        
+    
     output_dest_acc_data_format_constraint = And(
+        # If the output data format is int or any input data format is int, use Int32 as dest acc df
         Implies(
-            Or([output_data_format == data_format for data_format in data_formats_int]),
+            Or(
+                Or([output_data_format == data_format for data_format in data_formats_int]), 
+                Or([input_data_format == data_format for data_format in data_formats_int for input_data_format in input_data_formats])
+            ),
             output_dest_acc_data_format == DataFormat.Int32.value
         ),
+        
+        # If no input data format is int and output data format is not int, output dest acc df will be Float16/Float16_b depending on output dataformat A/B
         Implies(
-            Or([output_data_format == data_format for data_format in data_formats_a]),
+            And(
+                Or([output_data_format == data_format for data_format in data_formats_a]), 
+                And([input_data_format != data_format for data_format in data_formats_int for input_data_format in input_data_formats])
+            ),
             output_dest_acc_data_format == DataFormat.Float16.value
         ),
         Implies(
-            Or([output_data_format == data_format for data_format in data_formats_b]),
+            And(
+                Or([output_data_format == data_format for data_format in data_formats_b]),
+                And([input_data_format != data_format for data_format in data_formats_int for input_data_format in input_data_formats])
+            ),
             output_dest_acc_data_format == DataFormat.Float16_b.value
         )
     )
-    return input_dest_acc_data_format_constraints, output_dest_acc_data_format_constraint
+    return input_dest_acc_data_format_constraints + [output_dest_acc_data_format_constraint]
 
 # get input/output operand data format constraints for general ops when the input data format is integer
 def get_int_operand_data_format_constraints_for_general_ops(
@@ -674,9 +686,11 @@ def constrain_math_fidelity_and_data_format(
     quant_type=None,
 ):  
     input_output_data_formats = input_data_formats + [output_data_format]
-    input_output_dest_acc_data_formats = input_dest_acc_data_formats + [output_dest_acc_data_format]
     non_encoding_operand_data_formats = (input_data_formats[:2] + [output_data_format]) if perf_config.op_type == PerfTestType.MatmulSparse else input_output_data_formats
+    
+    input_output_dest_acc_data_formats = input_dest_acc_data_formats + [output_dest_acc_data_format]
     assert len(input_output_data_formats) == len(input_output_dest_acc_data_formats)
+    
     all_data_formats = input_data_formats + [output_data_format] + [intermed_data_format] + input_dest_acc_data_formats + [output_dest_acc_data_format]
     if arch_str.lower() == "wormhole" and perf_config.op_type == PerfTestType.Matmul:
         solver.add(math_fidelity == 2)
@@ -712,9 +726,11 @@ def constrain_math_fidelity_and_data_format(
                     math_fidelity == MathFidelity.HiFi4.value,
                     Or(
                         operand_data_format == DataFormat.Float32.value,
+                        operand_data_format == DataFormat.Int32.value,
                         operand_data_format == DataFormat.Float16.value,
                         operand_data_format == DataFormat.Float16_b.value,
-                        operand_data_format == DataFormat.Int32.value,
+                        operand_data_format == DataFormat.Bfp8.value, 
+                        operand_data_format == DataFormat.Bfp8_b.value, 
                         operand_data_format == DataFormat.Int8.value,
                     )
                 )
@@ -771,16 +787,14 @@ def constrain_math_fidelity_and_data_format(
             )
         )
     
-    # input dest acc df constraints are global across all ops
-    # output dest acc df constraints are different for integer ops
-    input_dest_acc_data_format_constraints, non_int_output_dest_acc_data_format_constraint = get_dest_acc_data_format_constraints(
+    dest_acc_data_format_constraints = get_dest_acc_data_format_constraints(
         input_data_formats=input_data_formats, 
         input_dest_acc_data_formats=input_dest_acc_data_formats,
         output_data_format=output_data_format,
         output_dest_acc_data_format=output_dest_acc_data_format
     )
     
-    non_int_all_data_format_constraints = non_int_operand_data_format_constraints + input_dest_acc_data_format_constraints + [non_int_output_dest_acc_data_format_constraint]
+    non_int_all_data_format_constraints = non_int_operand_data_format_constraints + dest_acc_data_format_constraints
     
     # Add data format constraints for specific ops
     if perf_config.op_type == PerfTestType.Tilizer:
@@ -810,7 +824,7 @@ def constrain_math_fidelity_and_data_format(
         # If Int8 or Int32 format is used, interm data formats in op must be Int8 or Int32
         int_constraints.append(Or(intermed_data_format == DataFormat.Int8.value, intermed_data_format == DataFormat.Int32.value))
         
-        int_constraints += input_dest_acc_data_format_constraints
+        int_constraints += dest_acc_data_format_constraints
         
         # If Int8 or Int32 format is used for any one of the input operands, dest accumulate data format must be int32 for target op
         int_constraints.append(output_dest_acc_data_format == DataFormat.Int32.value)
@@ -861,10 +875,7 @@ def constrain_math_fidelity_and_data_format(
         # If Int8 or Int32 format is used, interm data formats in op must be Int8 or Int32
         solver.add(Or(intermed_data_format == DataFormat.Int8.value, intermed_data_format == DataFormat.Int32.value))
         
-        solver.add(And(input_dest_acc_data_format_constraints))
-        
-        # If Int8 or Int32 format is used for any one of the input operands, dest accumulate data format must be int32 for target op
-        solver.add(output_dest_acc_data_format == DataFormat.Int32.value)
+        solver.add(And(dest_acc_data_format_constraints))
         
         # Matmul with int inputs must have input 0, 1 in Int8 format.
         solver.add(And(input_data_formats[0] == DataFormat.Int8.value, input_data_formats[1] == DataFormat.Int8.value))
@@ -903,10 +914,7 @@ def constrain_math_fidelity_and_data_format(
         # quantization op must have output data format Int8
         quant_constraints.append(output_data_format == DataFormat.Int8.value)
         
-        quant_constraints.append(And(input_dest_acc_data_format_constraints))
-        
-        # quantization op must have dest accumulation data format Int32
-        quant_constraints.append(output_dest_acc_data_format == DataFormat.Int32.value)
+        quant_constraints.append(And(dest_acc_data_format_constraints))
         
         
         ### Dequant and Requant constraints ###
@@ -921,10 +929,7 @@ def constrain_math_fidelity_and_data_format(
         # (de/re)quantization op must have input[1] data format Float32
         dequant_constraints.append(input_data_formats[1] == DataFormat.Float32.value)
         
-        dequant_constraints.append(And(input_dest_acc_data_format_constraints))
-        
-        # (de/re)quantization op must have dest accumulation data format Int32
-        dequant_constraints.append(output_dest_acc_data_format == DataFormat.Int32.value)
+        dequant_constraints.append(And(dest_acc_data_format_constraints))
         
         requant_constraints = dequant_constraints.copy()
         

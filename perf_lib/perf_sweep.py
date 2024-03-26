@@ -62,7 +62,7 @@ class PerfSweepDescriptor:
     '''
     PerfSweepDescriptor represents an option configuration descriptor for perf sweep.
     '''
-    def __init__(self, script_args: List, cmd_args: List):
+    def __init__(self, script_args: List[str], cmd_args: List[str]):
         self.state = self.parse_args_and_generate_state(script_args)
         self.perf_sweep_config: PerfOpSweepConfig = None
         self.without_tm_dir: str = ""
@@ -70,8 +70,8 @@ class PerfSweepDescriptor:
         self.template_yaml: str = ""
         self.module_name: str = "test_perf"
         self.arch_name: str = os.getenv("ARCH_NAME", "grayskull")
-        self.cmd: List = cmd_args.copy()
-        self.all_modes_output_directory: List = []
+        self.cmd: List[str] = cmd_args.copy()
+        self.all_modes_output_directory: List[str] = []
         
         self.run_prologue: bool = self.state.run_prologue
         self.run_single_op: bool = self.state.run_single_op
@@ -94,7 +94,7 @@ class PerfSweepDescriptor:
         self.update_existing_csv_path: str = self.state.update_existing_csv_path
         self.compare_with_csv: str = self.state.compare_with_csv
         self.perf_test_mode: PerfTestMode = get_perf_test_mode(self.state)
-        self.reuse_fw_bin: bool = self.state.reuse_fw_bin
+        self.reuse_fw_bin: bool = not self.state.recompile_fw_bin
         
         self.op_type: OpType = get_op_type_from_arg(self.op_type_str, OpType)
         self.perf_test_type: PerfTestType = get_op_type_from_arg(self.op_type_str, PerfTestType)
@@ -131,7 +131,7 @@ class PerfSweepDescriptor:
         parser.add_argument("--tm-test", action="store_true", default=False, help="Run in tm perf test mode. For each test with TMs another test with equivalent dims without TMs will be run as baseline. WARNING: has not been maintained.")
         parser.add_argument("--compare-with-csv", type=str, default="", help=f"If enabled, append perf results to the csv file in path <--netlists-output-dir>/{CSV_FILE_NAME_SECOND_RUN}. This should be used when comparing the results of two different sweeps.")
 
-        parser.add_argument("--keep-build-dirs", action="store_true", default=False, help=f"Store all test output build directories. If this is not enabled, all output directories will overwrite each other")
+        parser.add_argument("--keep-build-dirs", action="store_true", default=False, help=f"Keep the build directory for each test under test_#/tt_build.")
         parser.add_argument("--skip-constraint-solver", action="store_true", default=False,
             help="Skip the constraint solver. In this mode, all variables inside sweep_params for the op must be overriden."
         )
@@ -144,7 +144,7 @@ class PerfSweepDescriptor:
         parser.add_argument("--config-file", type=str, default="", help="Path to a yaml file with a dictionary with string keys and list values." )
         parser.add_argument("--start-from-index", type=int, default=0, help="Start from the given index in the config list.")
         parser.add_argument("--update-existing-csv-path", type=str, default="", help="Path to a csv file with the results of a previous sweep. The results of the current sweep will be appended to this file.")
-        parser.add_argument("--reuse-fw-bin", action="store_true", default=False, help="Reuse BRISC and NCRISC binaries between the tests executed in a single perf sweep run.")
+        parser.add_argument("--recompile-fw-bin", action="store_true", default=False, help="Recompile BRISC and NCRISC binaries between the tests executed in a single perf sweep run.")
 
         state = parser.parse_args(script_args)
         
@@ -433,26 +433,24 @@ Takes a command as input and runs it as a subprocess.
 Dumps the output of this process will be redirected to log_file.
 '''
 def run_single_test(cmd, log_file_path, timeout = None, myenv = None):
-    # run_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     cmd_str = " ".join(cmd)
-    logger.info(f"{COLORS['YELLOW']}Running command: {cmd_str} {COLORS['RESET']}(log: {log_file_path})")
+    logger.info(f"{COLORS['BOLD_BLUE']}Running Test Command: {COLORS['RESET']}{cmd_str} [log path: {log_file_path}]")
 
     with open(log_file_path, 'a') as log_file:
         run_process = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT, env=myenv)
-    try:
-        # write_piped_data_to_log(run_process)
-        run_process.wait(timeout)
-    except subprocess.TimeoutExpired:
-        logger.error("Timeout reached")
-        os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
-        run_process.wait()
-        raise Exception("Timeout")
-    except KeyboardInterrupt:
-        logger.error("Keyboard interrupt")
-        run_process.send_signal(signal.SIGKILL)
-        os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
-        run_process.wait()
-        raise Exception("Keyboard interrupt")
+        try:
+            run_process.wait(timeout)
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout reached")
+            os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
+            run_process.wait()
+            raise Exception("Timeout")
+        except KeyboardInterrupt:
+            logger.error("Keyboard interrupt")
+            run_process.send_signal(signal.SIGKILL)
+            os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
+            run_process.wait()
+            raise Exception("Keyboard interrupt")
 
 def check_test_pass(log_file_path):
     with open(log_file_path, "r") as log:
@@ -511,6 +509,7 @@ def get_perf_results_from_test(log_file_path, attr, override_target_op_name=None
     runtime_file_path = epoch_perf_dir + "runtime_table.json"
     op_perf_table_path = epoch_perf_dir + "op_perf_table.json"
     graph_perf = GraphPerf(runtime_file_path)
+    # Even though this function says for last input, some data like average_math_utilization is still across all inputs
     target_cores, all_perf_results = graph_perf.get_perf_results_for_target_op_last_input(target_op_name)
 
     op_perf = AllOpPerf(op_perf_table_path)
@@ -564,11 +563,9 @@ def run_single_config_and_collect_results(
     if os.path.exists(log_file_path):
         os.remove(log_file_path)
     
-    test_build_output_dir = None if sweep_desc.keep_build_dirs else output_dir + f"/{TEST_OUTPUT_DIR}/"
-    if test_build_output_dir is not None:
-        assert "tt_build" in test_build_output_dir
-        if os.path.exists(test_build_output_dir):
-            shutil.rmtree(test_build_output_dir, ignore_errors=True)
+    test_build_output_dir = os.path.join(netlist_dir, "tt_build")
+    if os.path.exists(test_build_output_dir):
+        shutil.rmtree(test_build_output_dir)
 
     test_cmd = run_test_from_netlist(
         netlist_path=netlist_path,
@@ -643,6 +640,9 @@ def run_single_config_and_collect_results(
     with open(sweep_file_path, 'a') as output_file:
         output_file.write(table_alignment % results)
         output_file.write("\n")
+    
+    if not sweep_desc.keep_build_dirs:
+        shutil.rmtree(test_build_output_dir)
         
 def run_equivalent_test_without_tm(
     sweep_desc: PerfSweepDescriptor,

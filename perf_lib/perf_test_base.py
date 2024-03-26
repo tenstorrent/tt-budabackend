@@ -127,6 +127,12 @@ def get_num_input_operands(test_type: OpType):
             f"Invalid test_type. This function is missing the number of operands for test_type {test_type.name}"
         )
 
+def is_number(val: str):
+    try:
+        float(val)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 def VAR(var_name, operand_index):
     if operand_index == -1:
@@ -252,6 +258,11 @@ class PerfResults:
         perf_diff.total_runtime             = get_diff_percentage(perf_diff.total_runtime, other.total_runtime)      
         perf_diff.total_runtime_per_tile    = get_diff_percentage(perf_diff.total_runtime_per_tile, other.total_runtime_per_tile)  
         return perf_diff
+    
+    def get_math_cycles(self):
+        if not is_number(self.average_math_utilization) or not is_number(self.total_runtime):
+            return "N/A"
+        return round(self.average_math_utilization / 100 * self.total_runtime)
 
 @dataclass
 class ComparisonConfig:

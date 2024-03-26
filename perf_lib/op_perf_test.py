@@ -154,7 +154,6 @@ def run_single_config(state, name, test_config_and_perf):
         attr = get_attr(state.op_type, state.reblocking_mode_perf_lib, config_list[0])
         netlist_path = f"{test_dir}/{yaml_file_name}"
         generate_perf_input_config_and_modify_netlist(test_config.perf_results, test_config_and_perf, test_dir, attr.target_op_name, netlist_path)
-    return
 
 def run_sweep_and_check_perf(state):
     assert state.arch_name == "grayskull" or state.arch_name == "wormhole" or state.arch_name == "wormhole_b0"
@@ -186,7 +185,6 @@ def run_sweep_and_check_perf(state):
     print_progress_bar(num_tests, num_tests)
 
 def generate_perf_input_config_and_modify_netlist(perf_results:PerfResults, op_perf_metric, output_dir, op_name, netlist_path):
-    
     all_perf_configs = {}
     perf_config = {}
     netlist_perf_configs = {}
