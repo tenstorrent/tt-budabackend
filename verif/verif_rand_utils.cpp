@@ -250,24 +250,47 @@ void verif::random::generate_with_step(tt_tensor &tensor, float start, float inc
 
 void verif::random::generate_with_step_rowwise_colwise(tt_tensor &tensor, float start, float increment, bool repeat_across_rows) {
     float current_value;
-    float col_end;
 
     tensor.reserve_tile_tensor();
-    for (int wi = 0; wi < tensor.getw(); ++wi) {
-        for (int zi = 0; zi < tensor.getz(); ++zi) {
-            for (int ri = 0; ri < tensor.getrt(); ++ri) {
-                col_end = start;
-                for (int ci = 0; ci < tensor.getct(); ++ci) {
-                    tt_tile* ptile = &tensor.tile_tensor[wi][zi][ri][ci];
-                    for (int i = 0; i < ptile->tile_height; ++i) {
-                        current_value = col_end;
-                        for (int j = 0; j < ptile->tile_width; ++j) {
-                            ptile->set(i, j, current_value);
-                            current_value += increment;
+    if (repeat_across_rows) {
+        float col_end;
+        for (int wi = 0; wi < tensor.getw(); ++wi) {
+            for (int zi = 0; zi < tensor.getz(); ++zi) {
+                for (int ri = 0; ri < tensor.getrt(); ++ri) {
+                    col_end = start;
+                    for (int ci = 0; ci < tensor.getct(); ++ci) {
+                        tt_tile* ptile = &tensor.tile_tensor[wi][zi][ri][ci];
+                        for (int i = 0; i < ptile->tile_height; ++i) {
+                            current_value = col_end;
+                            for (int j = 0; j < ptile->tile_width; ++j) {
+                                ptile->set(i, j, current_value);
+                                current_value += increment;
+                            }
                         }
-                    }
-                    col_end += ptile->tile_width;
+                        col_end += ptile->tile_width;
 
+                    }
+                }
+            }
+        }
+    } else {
+        float row_end;
+        for (int wi = 0; wi < tensor.getw(); ++wi) {
+            for (int zi = 0; zi < tensor.getz(); ++zi) {
+                for (int ci = 0; ci < tensor.getct(); ++ci) {
+                    row_end = start;
+                    for (int ri = 0; ri < tensor.getrt(); ++ri) {
+                        tt_tile* ptile = &tensor.tile_tensor[wi][zi][ri][ci];
+                        for (int j = 0; j < ptile->tile_width; ++j) {
+                            current_value = row_end;
+                            for (int i = 0; i < ptile->tile_height; ++i) {
+                                ptile->set(i, j, current_value);
+                                current_value += increment;
+                            }
+                        }
+                        row_end += ptile->tile_width;
+
+                    }
                 }
             }
         }

@@ -278,6 +278,11 @@ void device_setup() {
   // FIXME MT: enable later
   // enable_power_management();
 
+  #ifdef RISC_BLACKHOLE_HW
+    // Disable DEST CG 
+    *((uint32_t volatile *)RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
+  #endif
+
   #ifdef RISC_A0_HW
     disable_thcon_clock_gating();
   #endif

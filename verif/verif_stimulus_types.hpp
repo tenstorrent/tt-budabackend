@@ -18,6 +18,7 @@ enum class StimulusType {
     SparseEncodingNonzeroCounts,
     Step,
     StepRowwise,
+    StepColumnwise,
 };
 
 struct SparseEncodingAttributes {

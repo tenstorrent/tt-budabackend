@@ -34,6 +34,8 @@ StimulusType get_stimulus_type(string input) {
         return StimulusType::Step;
     } else if (input == "steprowwise") {
         return StimulusType::StepRowwise;
+    } else if (input == "stepcolumnwise") {
+        return StimulusType::StepColumnwise;
     } else {
         throw std::runtime_error("Incorrect stimulus type selected");
     }
@@ -259,6 +261,8 @@ void generate_tensor(VerifStimulusConfig stimulus_config, tt_tensor &tensor) {
         verif::random::generate_with_step(tensor, stimulus_config.step_start, stimulus_config.step_increment);
     } else if (stimulus_config.type == StimulusType::StepRowwise) {
         verif::random::generate_with_step_rowwise_colwise(tensor, stimulus_config.step_start, stimulus_config.step_increment, true);
+    } else if (stimulus_config.type == StimulusType::StepColumnwise) {
+        verif::random::generate_with_step_rowwise_colwise(tensor, stimulus_config.step_start, stimulus_config.step_increment, false);
     } else {
         log_error("Unsupported type in generate_tensor");
         log_fatal("Unsupported key in generate_tensor config");
