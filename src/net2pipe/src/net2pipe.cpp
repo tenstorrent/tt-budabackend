@@ -3081,9 +3081,8 @@ void Net2Pipe::get_op_input(
            } else if (index == 1) {
                input_block_size_tiles = input_block_k_tiles * op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct;
                scatter_gather_num_tiles = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.u_kt;
-               //epoch_tiles = input_count * op_info.attributes.act_t * input_block_size_tiles;
-               t*=op_info.attributes.accumulate ? op_info.attributes.z : 1;
-               epoch_tiles = input_count * t * input_block_size_tiles;
+               // Accumulate attribute is not supported in case of identity matmul.
+               epoch_tiles = input_count * op_info.attributes.act_t * input_block_size_tiles;
            } else if (index == 2) {
                input_block_size_tiles = op_info.attributes.num_index_tiles;
                scatter_gather_num_tiles = op_info.attributes.num_index_tiles;
