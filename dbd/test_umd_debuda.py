@@ -45,7 +45,7 @@ class UmdDbdOutputVerifier(DbdOutputVerifier):
         tester.assertRegex(lines[4], r"Connecting to debuda-server at tcp://localhost:5555\.\.\.")
         tester.assertRegex(lines[5], r"Connected to debuda-server\.")
         tester.assertRegex(lines[6], r"Loading yaml file: '\/tmp\/debuda_server_\w+\/cluster_desc\.yaml'")
-        tester.assertRegex(lines[7], r"Opened device: id=\d+, arch=\w+, has_mmio=\w+, harvesting=")
+        tester.assertRegex(lines[-1], r"Opened device: id=\d+, arch=\w+, has_mmio=\w+, harvesting=")
         self.server_temp_path = re.search(self.cluster_desc_regex, lines[6]).group(1)
         tester.assertTrue(self.server_temp_path.startswith("/tmp/debuda_server_") and self.server_temp_path.endswith("/"))
         return True

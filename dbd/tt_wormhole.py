@@ -110,6 +110,14 @@ class WormholeDevice(tt_device.Device):
     # the NOC0 Y location is 11. If harvesting mask bit 1 is set, then the NOC0 Y location is 1, etc...
     HARVESTING_NOC_LOCATIONS = [11, 1, 10, 2, 9, 3, 8, 4, 7, 5]
 
+    def get_harvested_noc0_y_rows(self):
+        harvested_noc0_y_rows = []
+        if self._harvesting:
+            bitmask = self._harvesting["harvest_mask"]
+            for h_index in range(0, self.row_count()):
+                if (1 << h_index) & bitmask:  # Harvested
+                    harvested_noc0_y_rows.append(self.HARVESTING_NOC_LOCATIONS[h_index])
+        return harvested_noc0_y_rows
 
     # Coordinate conversion functions (see tt_coordinate.py for description of coordinate systems)
     def noc0_to_tensix(self, loc):

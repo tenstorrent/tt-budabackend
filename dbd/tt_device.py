@@ -12,7 +12,7 @@ from tt_object import TTObject
 import tt_util as util
 from tt_coordinate import OnChipCoordinate, CoordinateTranslationError
 from collections import namedtuple
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Dict
 
 #
@@ -555,14 +555,9 @@ class Device(TTObject):
 
         return dev
 
+    @abstractmethod
     def get_harvested_noc0_y_rows(self):
-        harvested_noc0_y_rows = []
-        if self._harvesting:
-            bitmask = self._harvesting["harvest_mask"]
-            for h_index in range(0, self.row_count()):
-                if (1 << h_index) & bitmask:  # Harvested
-                    harvested_noc0_y_rows.append(self.HARVESTING_NOC_LOCATIONS[h_index])
-        return harvested_noc0_y_rows
+        pass
 
     def _create_tensix_netlist_harvesting_map(self):
         tensix_row = 0
@@ -609,7 +604,7 @@ class Device(TTObject):
         self._create_nocTr_noc0_harvesting_map()
 
     def _create_nocVirt_to_nocTr_map(self):
-        harvested_coord_translation_str = SERVER_IFC.get_harvested_coord_translation(0)
+        harvested_coord_translation_str = SERVER_IFC.get_harvested_coord_translation(self._id)
         self.nocVirt_to_nocTr_map = ast.literal_eval(
             harvested_coord_translation_str
         )  # Eval string to dict
@@ -817,6 +812,25 @@ class Device(TTObject):
             else:
                 locs.append(OnChipCoordinate.create(loc_or_list, self, "nocVirt"))
         return locs
+
+    @cached_property
+    def _block_locations(self):
+        """
+        Returns locations of all blocks as dictionary of tuples (unchanged coordinates from YAML)
+        """
+        result = {}
+        for block_type in self.block_types:
+            locs = []
+            dev = self.yaml_file.root
+
+            for loc_or_list in dev[block_type]:
+                if type(loc_or_list) != str and isinstance(loc_or_list, Sequence):
+                    for loc in loc_or_list:
+                        locs.append(OnChipCoordinate.create(loc, self, "noc0")._noc0_coord)
+                else:
+                    locs.append(OnChipCoordinate.create(loc_or_list, self, "noc0")._noc0_coord)
+            result[block_type] = locs
+        return result
 
     block_types = {
         "functional_workers": {"symbol": ".", "desc": "Functional worker"},

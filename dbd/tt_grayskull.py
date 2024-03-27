@@ -58,6 +58,10 @@ class GrayskullDevice(tt_device.Device):
     NOC0_X_TO_NOCTR_X = {i: i for i in range(0, len(NOC_0_X_TO_DIE_X))}
     NOCTR_X_TO_NOC0_X = {v: k for k, v in NOC0_X_TO_NOCTR_X.items()}
 
+    def get_harvested_noc0_y_rows(self):
+        harvested_workers = self._block_locations["harvested_workers"]
+        return list({y for x, y in harvested_workers})
+
     def noc0_to_tensix(self, noc0_loc):
         noc0_x, noc0_y = noc0_loc
         if noc0_y == 0 or noc0_y == 6:

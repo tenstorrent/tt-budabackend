@@ -30,8 +30,10 @@ The following coordinate systems are available to represent a grid location on t
                     corresponds to C in tensix, and Y corresponds to R). Notation: R,C
 
   The above three do not depend on harvesting. They only depend on the chip architecture. Also, they share
-  the extents in both X (column) and Y (row). The following coordinates depend on the harvesting mask
-  (i.e. when harvest_mast!=0). Note, see HARVESTING_NOC_LOCATIONS for more details on how harvest_mask is used.
+  the extents in both X (column) and Y (row). The following coordinates depend on the harvesting mask on WH
+  (i.e. when harvest_mast!=0) and harvested_workers on GS. Note, see HARVESTING_NOC_LOCATIONS for more
+  details on how harvest_mask is used. Difference is that UMD returns noc0 coordinates for GS, while for WH
+  if uses noc0Virt coordinates.
 
   - netlist:        Netlist grid coordinate. Notation: R,C
                     is similar to the 'tensix', but it does not include the disabled rows due to
