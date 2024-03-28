@@ -273,9 +273,12 @@ def get_phase_blob(chip_id, x, y, stream_id, phase, prev_phase, next_phase, dest
                                                   phase[:msg_group_stream_clear_type] ? phase[:msg_group_stream_clear_type] : 0))
         end
         cfg_dw_list << blob_cfg_dw(STREAM_MSG_SRC_IN_ORDER_FWD_NUM_MSGS_REG_INDEX, phase[:src_in_order_fwd_num_msgs] ? phase[:src_in_order_fwd_num_msgs] : 0)
-        cfg_dw_list << blob_cfg_dw($PARAMS[:noc_version] > 1 ? STREAM_GATHER_CLEAR_REG_INDEX : STREAM_MCAST_GATHER_CLEAR_REG_INDEX,
-                                  STREAM_GATHER_CLEAR(phase[:local_stream_clear_num] ? phase[:local_stream_clear_num] : 1,
-                                                      phase[:msg_group_stream_clear_type] ? phase[:msg_group_stream_clear_type] : 0))
+        if $PARAMS[:chip] != "blackhole"
+          # The STREAM_GATHER_CLEAR is part of STREAM_GATHER in blackhole
+          cfg_dw_list << blob_cfg_dw($PARAMS[:noc_version] > 1 ? STREAM_GATHER_CLEAR_REG_INDEX : STREAM_MCAST_GATHER_CLEAR_REG_INDEX,
+                                    STREAM_GATHER_CLEAR(phase[:local_stream_clear_num] ? phase[:local_stream_clear_num] : 1,
+                                                        phase[:msg_group_stream_clear_type] ? phase[:msg_group_stream_clear_type] : 0))
+        end
       end
 
       no_sender_below_stream_40 = true
