@@ -3,14 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """
 Usage:
-  riscv ( halt | step | cont | status )                                 [ -r <risc> ] [ --all ]
-  riscv rd [ -a <address> ]                                             [ -r <risc> ] [ --all ]
-  riscv wr [ -a <address> ] [ -d <data> ]                               [ -r <risc> ] [ --all ]
-  riscv bkpt (set | del)  [ -pt <point> ] [ -a <address> ]              [ -r <risc> ] [ --all ]
-  riscv wchpt (setr | setw | setrw | del)  [ -pt <point> ] [ -a <address> ] [ -d <data> ] [ -r <risc> ] [ --all ]
+  riscv ( halt | step | cont | status )                                 [ -r <risc> ] [ -c <core-loc> ] [ --all ]
+  riscv rd [ -a <address> ]                                             [ -r <risc> ] [ -c <core-loc> ] [ --all ]
+  riscv wr [ -a <address> ] [ -d <data> ]                               [ -r <risc> ] [ -c <core-loc> ] [ --all ]
+  riscv bkpt (set | del)  [ -pt <point> ] [ -a <address> ]              [ -r <risc> ] [ -c <core-loc> ] [ --all ]
+  riscv wchpt (setr | setw | setrw | del)  [ -pt <point> ] [ -a <address> ] [ -d <data> ] [ -r <risc> ] [ -c <core-loc> ] [ --all ]
 
 Options:
   -r <risc>       RiscV ID (0: brisc, 1-3 triscs, all). [ default: 0 ]
+  -c <core-loc>   Core location. Overrides --all.
   -a <address>    Address to set breakpoint at. Required for bkpt
   -d <data>       Data argument for commands that need it (bkpt)
   -pt <point>     Index of the breakpoint or watchpoint register. 8 points are supported (0-7)
@@ -43,6 +44,7 @@ import tt_util as util
 from tt_debug_risc import RiscDebug, RiscLoc, get_risc_name
 from docopt import docopt
 from debuda import UIState
+from tt_coordinate import OnChipCoordinate
 
 command_metadata = {"short": "r5", "type": "low-level", "description": __doc__}
 
@@ -68,9 +70,12 @@ def run(cmd_text, context, ui_state: UIState = None):
     else:
         locs = [ ui_state.current_location ]
 
+    if args["-c"]:
+        locs = [ OnChipCoordinate.create(args["-c"], device) ]
+
     for loc in locs:
         for risc_id in risc_ids:
-            where = f"{get_risc_name(risc_id)} { ui_state.current_location.full_str()}"
+            where = f"{get_risc_name(risc_id)} { loc.full_str()}"
 
             risc = RiscDebug(RiscLoc(loc, noc_id, risc_id))
             risc.enable_debug()
