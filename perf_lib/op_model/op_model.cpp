@@ -15,6 +15,7 @@ namespace tt {
 const std::unordered_map<ARCH, std::uint32_t> OpModel::VERSIONS = {
         {ARCH::GRAYSKULL, 2},
         {ARCH::WORMHOLE_B0, 3},
+        {ARCH::BLACKHOLE, 1},
 };
 
 // These won't be needed once we migrate the API to use enums instead of strings for architecture, type, etc.
@@ -26,6 +27,8 @@ ARCH get_arch_enum_from_string(const std::string& arch_str) {
         return ARCH::GRAYSKULL;
     } else if (str == "WORMHOLE_B0") {
         return ARCH::WORMHOLE_B0;
+    } else if (str == "BLACKHOLE") {
+        return ARCH::BLACKHOLE;
     } else {
         return ARCH::Invalid;
     }
@@ -35,6 +38,7 @@ std::string get_arch_string_from_enum(tt::ARCH arch) {
     switch (arch) {
         case ARCH::GRAYSKULL: return "grayskull"; break;
         case ARCH::WORMHOLE_B0: return "wormhole_b0"; break;
+        case ARCH::BLACKHOLE: return "blackhole"; break;
         default: return "Invalid"; break;
     }
 }

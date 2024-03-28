@@ -50,7 +50,7 @@ void check_estimates_with_perf_sweep_data(
 }
 
 TEST(OpModel, UnaryCycles) {
-    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0"};
+    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0", "blackhole"};
     std::vector<std::string> ops = {
         "exp",
         "gelu",
@@ -102,7 +102,7 @@ TEST(OpModel, UnaryCycles) {
 
 TEST(OpModel, ReduceOpCycles) {
     std::vector<std::string> op_attrs = {"r", "c"};
-    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0"};
+    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0", "blackhole"};
 
     tt::tt_op_model_desc op_desc = {
         .type = "reduce",
@@ -133,7 +133,7 @@ TEST(OpModel, ReduceOpCycles) {
 
 TEST(OpModel, ReduceZOpCycles) {
     std::vector<std::string> op_attrs = {"z"};
-    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0"};
+    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0", "blackhole"};
 
     tt::tt_op_model_desc op_desc = {
         .type = "reduce",
@@ -165,10 +165,11 @@ TEST(OpModel, ReduceZOpCycles) {
 }
 
 TEST(OpModel, MatmulOpCycles) {
-    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0"};
+    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0", "blackhole"};
     std::unordered_map<std::string, std::uint32_t> math_weight = {
         {"grayskull", 36},
         {"wormhole_b0", 18},
+        {"blackhole", 18},
     };
 
     tt::tt_op_model_desc op_desc = {
@@ -203,7 +204,7 @@ TEST(OpModel, MatmulOpCycles) {
 }
 
 TEST(OpModel, MatmulOpV2Cycles) {
-    std::vector<std::string> arch_names = {"wormhole_b0"};
+    std::vector<std::string> arch_names = {"wormhole_b0", "blackhole"};
     std::vector<std::pair<uint32_t, uint32_t>> k_dims = {{32, 1}, {16, 2}, {8, 4}, {4, 8}, {2, 16}, {1, 32}};
     std::vector<uint32_t> actual_cycles = {197027, 126764, 88479, 70939, 59613, 55571};
 
@@ -211,7 +212,6 @@ TEST(OpModel, MatmulOpV2Cycles) {
 
     tt::tt_op_model_desc op_desc = {
         .type = "matmul",
-        .arch = "wormhole_b0",
         .data_format = tt::DataFormat::Bfp8_b,
         .math_fidelity = tt::MathFidelity::LoFi,
         .t = 1,
@@ -221,19 +221,23 @@ TEST(OpModel, MatmulOpV2Cycles) {
         .ublock_ct = 4
     };
 
-    int test_id = 0;
-    for (const auto &k : k_dims) {
-        op_desc.mblock_k = k.first;
-        op_desc.ublock_kt = k.second;
-        std::uint32_t op_cycles = tt::OpModel::get_op_cycles(op_desc);
-        // std::cout << "k: " << k.first << " kt: " << k.second << " cycles: " << op_cycles << std::endl;
-        EXPECT_NEAR(op_cycles, actual_cycles[test_id], actual_cycles[test_id] * rtol) << "Test " << test_id << " failed";
-        test_id++;
+
+    for (const auto& arch : arch_names) {
+        int test_id = 0;
+        op_desc.arch = arch;
+        for (const auto &k : k_dims) {
+            op_desc.mblock_k = k.first;
+            op_desc.ublock_kt = k.second;
+            std::uint32_t op_cycles = tt::OpModel::get_op_cycles(op_desc);
+            // std::cout << "k: " << k.first << " kt: " << k.second << " cycles: " << op_cycles << std::endl;
+            EXPECT_NEAR(op_cycles, actual_cycles[test_id], actual_cycles[test_id] * rtol) << "Test " << test_id << " failed";
+            test_id++;
+        }
     }
 }
 
 TEST(OpModel, MatmulOpFidelityCycles) {
-    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0"};
+    std::vector<std::string> arch_names = {"grayskull", "wormhole_b0", "blackhole"};
 
     tt::tt_op_model_desc op_desc = {
         .type = "matmul",
@@ -272,12 +276,11 @@ TEST(OpModel, MatmulOpFidelityCycles) {
 }
 
 TEST(OpModel, MatmulOpL1AccV2Cycles) {
-    std::vector<std::string> arch_names = {"wormhole_b0"};
+    std::vector<std::string> arch_names = {"wormhole_b0", "blackhole"};
     std::vector<std::pair<uint32_t, uint32_t>> k_dims = {{32, 1}, {16, 2}, {8, 4}, {4, 4}};
 
     tt::tt_op_model_desc op_desc = {
         .type = "matmul",
-        .arch = "wormhole_b0",
         .data_format = tt::DataFormat::Bfp8_b,
         .math_fidelity = tt::MathFidelity::LoFi,
         .t = 1,
@@ -288,34 +291,37 @@ TEST(OpModel, MatmulOpL1AccV2Cycles) {
 
     // Test that L1 accumulate cycles are less than Dest accumulate
     // as long as m_k high, the L1 accumulate should be faster
-    int test_id = 0;
-    for (const auto& k : k_dims) {
-        op_desc.mblock_k = k.first;
-        op_desc.ublock_kt = k.second;
-        op_desc.l1_accumulate = false;
-        std::uint32_t dest_acc_cycles = tt::OpModel::get_op_cycles(op_desc);
+     for (const auto& arch : arch_names) {
+        op_desc.arch = arch;
+        int test_id = 0;
+        for (const auto& k : k_dims) {
+            op_desc.mblock_k = k.first;
+            op_desc.ublock_kt = k.second;
+            op_desc.l1_accumulate = false;
+            std::uint32_t dest_acc_cycles = tt::OpModel::get_op_cycles(op_desc);
+            op_desc.l1_accumulate = true;
+            std::uint32_t l1_acc_cycles = tt::OpModel::get_op_cycles(op_desc);
+            // std::cout << "k: " << k.first << " kt: " << k.second << " cycles: " << l1_acc_cycles << "," << dest_acc_cycles << std::endl;
+            EXPECT_LE(l1_acc_cycles, dest_acc_cycles) << "Test " << test_id << " failed";
+            test_id++;
+        }
+        // Test that L1 accumulate cycles for float16 and bfp8 are different using different models
         op_desc.l1_accumulate = true;
-        std::uint32_t l1_acc_cycles = tt::OpModel::get_op_cycles(op_desc);
-        // std::cout << "k: " << k.first << " kt: " << k.second << " cycles: " << l1_acc_cycles << "," << dest_acc_cycles << std::endl;
-        EXPECT_LE(l1_acc_cycles, dest_acc_cycles) << "Test " << test_id << " failed";
-        test_id++;
-    }
-    // Test that L1 accumulate cycles for float16 and bfp8 are different using different models
-    op_desc.l1_accumulate = true;
-    for (const auto& k : k_dims) {
-        op_desc.mblock_k = k.first;
-        op_desc.ublock_kt = k.second;
-        op_desc.data_format = tt::DataFormat::Float16_b;
-        std::uint32_t fp16_cycles = tt::OpModel::get_op_cycles(op_desc);
-        op_desc.data_format = tt::DataFormat::Bfp8_b;
-        std::uint32_t bfp8_cycles = tt::OpModel::get_op_cycles(op_desc);
-        EXPECT_NE(fp16_cycles, bfp8_cycles) << "Test " << test_id << " failed";
-        test_id++;
-    }
+        for (const auto& k : k_dims) {
+            op_desc.mblock_k = k.first;
+            op_desc.ublock_kt = k.second;
+            op_desc.data_format = tt::DataFormat::Float16_b;
+            std::uint32_t fp16_cycles = tt::OpModel::get_op_cycles(op_desc);
+            op_desc.data_format = tt::DataFormat::Bfp8_b;
+            std::uint32_t bfp8_cycles = tt::OpModel::get_op_cycles(op_desc);
+            EXPECT_NE(fp16_cycles, bfp8_cycles) << "Test " << test_id << " failed";
+            test_id++;
+        }
+     }
 }
 
 TEST(OpModel, DepthwiseCycles) {
-    std::vector<std::string> arch_names = {"wormhole_b0"};
+    std::vector<std::string> arch_names = {"wormhole_b0", "blackhole"};
     std::vector<std::string> ops = {"depthwise"};
 
     std::vector<std::uint32_t> v_mblock_m = {1, 2, 3};
@@ -326,7 +332,6 @@ TEST(OpModel, DepthwiseCycles) {
 
     tt::tt_op_model_desc op_desc = {
         .type = "depthwise",
-        .arch = "wormhole_b0",
         .data_format = tt::DataFormat::Float16,
         .math_fidelity = tt::MathFidelity::HiFi2,
         .t = 1,
@@ -337,15 +342,18 @@ TEST(OpModel, DepthwiseCycles) {
 
     float rtol = 0.10;
 
-    int test_id = 0;
-    for (const auto mblock_m : v_mblock_m) {
-        for (const auto &k : k_dims) {
-            op_desc.mblock_k = k.first;
-            op_desc.ublock_kt = k.second;
-            op_desc.mblock_m = mblock_m;
-            std::uint32_t op_cycles = tt::OpModel::get_op_cycles(op_desc);
-            EXPECT_NEAR(op_cycles, actual_cycles[test_id], actual_cycles[test_id] * rtol) << "Test " << test_id << " failed";
-            test_id++;
+    for (const auto& arch : arch_names) {
+        op_desc.arch = arch;
+        int test_id = 0;
+        for (const auto mblock_m : v_mblock_m) {
+            for (const auto &k : k_dims) {
+                op_desc.mblock_k = k.first;
+                op_desc.ublock_kt = k.second;
+                op_desc.mblock_m = mblock_m;
+                std::uint32_t op_cycles = tt::OpModel::get_op_cycles(op_desc);
+                EXPECT_NEAR(op_cycles, actual_cycles[test_id], actual_cycles[test_id] * rtol) << "Test " << test_id << " failed";
+                test_id++;
+            }
         }
     }
 }
@@ -398,6 +406,7 @@ TEST(OpModel, SigmoidPerfSweepCheck) {
 }
 
 TEST(OpModel, VectorModeCycles) {
+    std::vector<std::string> arch_names = {"wormhole_b0", "blackhole"};
     tt::tt_op_model_desc op_desc = {
         .data_format = tt::DataFormat::Float32,
         .math_fidelity = tt::MathFidelity::HiFi4,
@@ -407,22 +416,23 @@ TEST(OpModel, VectorModeCycles) {
         .ublock_rt = 2,
         .ublock_ct = 2,
     };
+    for (const auto& arch : arch_names) {
+        op_desc.arch = arch;
+        op_desc.type = "exp";
+        op_desc.approx_mode = false;
 
-    op_desc.arch = "wormhole_b0";
-    op_desc.type = "exp";
-    op_desc.approx_mode = false;
+        op_desc.vector_mode = tt::SfpuVectorMode::RC;
+        std::uint32_t observed_rc = tt::OpModel::get_op_cycles(op_desc);
 
-    op_desc.vector_mode = tt::SfpuVectorMode::RC;
-    std::uint32_t observed_rc = tt::OpModel::get_op_cycles(op_desc);
+        op_desc.vector_mode = tt::SfpuVectorMode::R;
+        std::uint32_t observed_r = tt::OpModel::get_op_cycles(op_desc);
 
-    op_desc.vector_mode = tt::SfpuVectorMode::R;
-    std::uint32_t observed_r = tt::OpModel::get_op_cycles(op_desc);
+        op_desc.vector_mode = tt::SfpuVectorMode::C;
+        std::uint32_t observed_c = tt::OpModel::get_op_cycles(op_desc);
 
-    op_desc.vector_mode = tt::SfpuVectorMode::C;
-    std::uint32_t observed_c = tt::OpModel::get_op_cycles(op_desc);
-
-    EXPECT_LT(observed_c, observed_rc) << "C " << observed_c << " cycles must be lower than RC " << observed_rc << " cycles";
-    EXPECT_LT(observed_r, observed_c) << "R " << observed_r << " cycles must be lower than C " << observed_c << " cycles";
+        EXPECT_LT(observed_c, observed_rc) << "C " << observed_c << " cycles must be lower than RC " << observed_rc << " cycles";
+        EXPECT_LT(observed_r, observed_c) << "R " << observed_r << " cycles must be lower than C " << observed_c << " cycles";
+    }
 }
 
 TEST(OpModel, EltwiseIntPerfSweepCheck) {
@@ -461,6 +471,7 @@ TEST(OpModel, MatmulIntPerfSweepCheck) {
 // This test just makes sure that perf estimates don't crash
 // for ops that don't have their own params but fallback to default estimates.
 TEST(OpModel, FallbackToDefaultParamsTest) {
+    std::vector<std::string> arch_names = {"wormhole_b0", "blackhole"};
     std::vector<std::string> ops = {
         "embedding",
         "ethernet_datacopy",
@@ -483,9 +494,11 @@ TEST(OpModel, FallbackToDefaultParamsTest) {
         .ublock_ct = 2,
     };
 
-    op_desc.arch = "wormhole_b0";
-    for (auto op : ops) {
-        op_desc.type = op;
-        tt::OpModel::get_op_cycles(op_desc);
+    for (const auto& arch : arch_names) {
+        op_desc.arch = arch;
+        for (auto op : ops) {
+            op_desc.type = op;
+            tt::OpModel::get_op_cycles(op_desc);
+        }
     }
 }
