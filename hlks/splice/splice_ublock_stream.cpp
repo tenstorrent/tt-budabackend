@@ -17,6 +17,8 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
         }
     }
 
+    int cur_ublock[SPLICE_MAX_NUM_INPUTS]= {0};
+
     for (int batch = 0; batch < args->batch_cnt; ++batch) {
         for (int input = 0; input < args->num_inputs; ++input) {
             if (kernel_broadcast[input] && kernel_broadcast_per_t[input]) {
@@ -31,6 +33,8 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                 int length = args->input_idx[input][1];
                 int stride = args->input_idx[input][2];
 
+                cur_ublock[input] += index;
+
                 // Drop blocks before index
                 if (not kernel_broadcast[input]) {
                     for (int d = 0; d < index; d++) {
@@ -40,7 +44,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                 }
 
                 // Take blocks
-                for (int t = 0; t < length; t++) {
+                for (int l = 0; l < length; l++) {
                     if (not kernel_broadcast[input]) {
                         hlk_wait_tiles(core_ptr, HlkOperand::in0 + input, args->block_tile_dim);
                     }
@@ -49,7 +53,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                         hlk_copy_tile_to_dst(
                             core_ptr,
                             HlkOperand::in0 + input,
-                            (not kernel_broadcast[input]) ? t : t % kernel_broadcast[input],
+                            (not kernel_broadcast[input]) ? t : (args->block_tile_dim * (cur_ublock[input] + l) + t) % kernel_broadcast[input],
                             t,
                             false);
                     }
@@ -75,6 +79,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                     }
                 }
 
+                cur_ublock[input] += stride;
                 block_index += length;
             }
         }
