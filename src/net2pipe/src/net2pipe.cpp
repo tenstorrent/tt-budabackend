@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
-//
 // SPDX-License-Identifier: Apache-2.0
 #include "net2pipe.h"
 
@@ -128,7 +127,7 @@ namespace n2p {
   }
   int get_max_tiles_at_output(const consumer_to_producer_tile_map& input_tm) {
     int max_num_tiles = 0;
-    for(auto & pipe_it : input_tm.pipes) {
+    for (const auto& pipe_it : input_tm.pipes) {
         if (pipe_it.second.tile_map.size() > max_num_tiles) {
             max_num_tiles = pipe_it.second.tile_map.size();
         }
@@ -139,11 +138,10 @@ namespace n2p {
   void unroll_pipes(consumer_to_producer_tile_map& input_tm) {
     std::map<int, phase_pipe_tile_map>   new_pipes;
     int pipe_index = 0;
-    for (auto &pipe_it : input_tm.pipes) {
-        auto &pipe = pipe_it.second;
-        auto [core_offset_r, core_offset_c] = pipe.dest_cores.at(0);
+    for (const auto& [_, pipe] : input_tm.pipes) {
+        auto& [core_offset_r, core_offset_c] = pipe.dest_cores.at(0);
         if(core_offset_r == -1) {
-            for(int i = 0; i < input_tm.consumer_num_cores_r; i++) {
+            for (int i = 0; i < input_tm.consumer_num_cores_r; i++) {
                 new_pipes[pipe_index].tile_map = pipe.tile_map;
                 new_pipes[pipe_index].dest_cores.push_back(std::make_pair(i, core_offset_c));
                 new_pipes[pipe_index].dest_mcast = false;
@@ -152,7 +150,7 @@ namespace n2p {
         }
         else {
             assert(core_offset_c == -1);
-            for(int i = 0; i < input_tm.consumer_num_cores_c; i++) {
+            for (int i = 0; i < input_tm.consumer_num_cores_c; i++) {
                 new_pipes[pipe_index].tile_map = pipe.tile_map;
                 new_pipes[pipe_index].dest_cores.push_back(std::make_pair(core_offset_r, i));
                 new_pipes[pipe_index].dest_mcast = false;
@@ -179,12 +177,12 @@ Net2Pipe::Net2Pipe(
 
     this->parsed_netlist.parse_file(netlist_file);
 
-    for (auto queue_it : this->parsed_netlist.queue_map) {
+    for (const auto& queue_it : this->parsed_netlist.queue_map) {
         if (queue_it.second.loc != QUEUE_LOCATION::HOST){
             workload_target_device_ids.insert(queue_it.second.target_device);
         }
     }
-    for (auto graph_it : this->parsed_netlist.graph_map) {
+    for (const auto& graph_it : this->parsed_netlist.graph_map) {
         workload_target_device_ids.insert(graph_it.second.target_device);
     }
 
@@ -199,7 +197,7 @@ Net2Pipe::Net2Pipe(
         YAML::Node device_descriptor_yaml = YAML::LoadFile(soc_descriptor_list_file_path);
         std::unordered_map<std::string, chip_id_t> processed_soc_descriptors{}; // To avoid re-parsing the same descriptor.
         if (device_descriptor_yaml["chip_descriptors"].IsDefined()) {
-            for (auto const& [chip_id, soc_descriptor_path] : device_descriptor_yaml["chip_descriptors"].as<std::map<int, std::string>>()) {
+            for (const auto& [chip_id, soc_descriptor_path] : device_descriptor_yaml["chip_descriptors"].as<std::map<int, std::string>>()) {
                 if (processed_soc_descriptors.count(soc_descriptor_path) == 0) {
                     this->soc_descriptors[chip_id] = *load_soc_descriptor_from_yaml(soc_descriptor_path);
                     processed_soc_descriptors[soc_descriptor_path] = chip_id;
@@ -237,12 +235,12 @@ int Net2Pipe::get_next_epoch_id() {
 
 
 bool Net2Pipe::find_matching_graph_exec(GraphExecVars &graph_exec) {
-    for (auto it = this->graph_exec_trace.begin(); it != graph_exec_trace.end(); ++it) {
-        if (it->instrn.graph_name == graph_exec.instrn.graph_name) {
+    for (const auto& graph_exec_trace_var : this->graph_exec_trace) {
+        if (graph_exec_trace_var.instrn.graph_name == graph_exec.instrn.graph_name) {
             bool graph_exec_arguments_match = true;
             for (uint32_t s = 0; s < graph_exec.queue_settings.size(); s++) {
-                graph_exec_arguments_match &= (graph_exec.queue_settings[s].prolog == it->queue_settings[s].prolog);
-                graph_exec_arguments_match &= (graph_exec.queue_settings[s].epilog == it->queue_settings[s].epilog);
+                graph_exec_arguments_match &= (graph_exec.queue_settings[s].prolog == graph_exec_trace_var.queue_settings[s].prolog);
+                graph_exec_arguments_match &= (graph_exec.queue_settings[s].epilog == graph_exec_trace_var.queue_settings[s].epilog);
             }
             // FIXME imatosevic - should the flags other than input_count be handled dynamically rather than uniquified?
             if (graph_exec_arguments_match) {
@@ -254,18 +252,18 @@ bool Net2Pipe::find_matching_graph_exec(GraphExecVars &graph_exec) {
 }
 
 bool all_graph_outputs_go_to_dram(const netlist_parser &netlist_parser, const std::string &graph_name) {
-    const auto &graph_info = netlist_parser.graph_map.at(graph_name);
+    const auto& graph_info = netlist_parser.graph_map.at(graph_name);
     std::unordered_set<std::string> unconsumed_ops = {};
-    for (const auto &[op_name, op_info] : graph_info.op_map) {
+    for (const auto& [op_name, op_info] : graph_info.op_map) {
         unconsumed_ops.insert(op_name);
     }
 
-    for (const auto &[queue_name, queue_info] : netlist_parser.queue_map) {
+    for (const auto& [queue_name, queue_info] : netlist_parser.queue_map) {
         unconsumed_ops.erase(queue_info.input);
     }
 
-    for (const auto &[op_name, op_info] : graph_info.op_map) {
-        for (const auto &input_names : op_info.input_names) {
+    for (const auto& [op_name, op_info] : graph_info.op_map) {
+        for (const auto& input_names : op_info.input_names) {
             unconsumed_ops.erase(input_names);
         }
     }
@@ -281,11 +279,11 @@ void Net2Pipe::run_instruction(netlist_program &program) {
         GraphExecVars graph_exec;
         tt_instruction_info instrn = program.get_current_instruction();
         graph_exec.instrn = instrn;
-        for (auto exec_q_set : instrn.queue_settings) {
+        for (const auto& exec_q_set : instrn.queue_settings) {
             QueueSettings q_set;
             q_set.name = exec_q_set.name;
-            auto prolog_variable = program.get_variable(exec_q_set.prolog);
-            auto epilog_variable = program.get_variable(exec_q_set.epilog);
+            const auto& prolog_variable = program.get_variable(exec_q_set.prolog);
+            const auto& epilog_variable = program.get_variable(exec_q_set.epilog);
             if ((prolog_variable.type == VARIABLE_TYPE::PARAM) or (epilog_variable.type == VARIABLE_TYPE::PARAM)) {
                 ERROR(
                     "queue=" + exec_q_set.name +
@@ -297,7 +295,7 @@ void Net2Pipe::run_instruction(netlist_program &program) {
         }
         if (!this->find_matching_graph_exec(graph_exec)) {
             this->graph_exec_uniquified.push_back(graph_exec);
-            const auto &graph_name = graph_exec.instrn.graph_name;
+            const auto& graph_name = graph_exec.instrn.graph_name;
             TT_ASSERT(graph_name.size() > 1, "Graph name is empty");
             int graph_temporal_epoch = parsed_netlist.get_temporal_graph_of_graph(graph_name);
             log_debug(
@@ -313,7 +311,7 @@ void Net2Pipe::run_instruction(netlist_program &program) {
 
 void Net2Pipe::get_program_trace() {
     // Run programs sequentially
-    for (string program_name : this->parsed_netlist.program_order) {
+    for (const std::string& program_name : this->parsed_netlist.program_order) {
         TT_ASSERT(
             this->parsed_netlist.program_map.find(program_name) != this->parsed_netlist.program_map.end(),
             "Program being executed doesn't exist...");
@@ -338,9 +336,7 @@ void Net2Pipe::output_pipes() {
     temporal_epoch_context dummy_context;
 
     // output queues in a separate file, make sure their IDs are globally unique
-    for (auto it : this->parsed_netlist.queue_map) {
-        tt_queue_info queue_info = it.second;
-        std::string queue_name = it.first;
+    for (const auto& [queue_name, queue_info] : this->parsed_netlist.queue_map) {
         log_debug(tt::LogRouter, "Creating queue_buffers for queue: {}", queue_name);
         std::uint64_t queue_unique_id = get_next_unique_id(dummy_context.horonological_unique_keys, n2p::UNIQUE_ID_ALIGN);  // not used in pipegen.yaml, just when we need unique ID per queue rather than per buffer
         dummy_context.queue_unique_id_info_map[queue_unique_id] = queue_info;
@@ -356,10 +352,8 @@ void Net2Pipe::output_pipes() {
         }
     }
 
-    for (auto graph_it : this->parsed_netlist.graph_map) {
-        tt_graph_info graph_info = graph_it.second;
-        for (auto op_it : graph_info.op_map) {
-            tt_op_info op_info = op_it.second;
+    for (const auto& [graph_name, graph_info] : this->parsed_netlist.graph_map) {
+        for (const auto& [op_name, op_info] : graph_info.op_map) {
             if (this->op_graph_map.count(op_info.name)) {
                 ERROR(
                     "Op name " + op_info.name + " not unique, found in graphs " + graph_info.name + " and " +
@@ -372,8 +366,8 @@ void Net2Pipe::output_pipes() {
 
     get_program_trace();
 
-    for (auto it = this->graph_exec_trace.begin(); it != this->graph_exec_trace.end(); ++it) {
-        n2p::Log() << "Executed graph: " << it->instrn.graph_name << "\n";
+    for (const auto& graph_exec_trace_var : this->graph_exec_trace) {
+        n2p::Log() << "Executed graph: " << graph_exec_trace_var.instrn.graph_name << "\n";
     }
 
     n2p::Log() << "\n **** pipegen.yaml files output ****\n\n";
@@ -391,11 +385,11 @@ void Net2Pipe::output_pipes() {
     {
         std::vector<temporal_epoch_context> epoch_contexts(num_temporal_epochs);
 
-        tt::parallel_for(
+        tt::parallel_for (
             0,
             num_temporal_epochs,
             [&](int temporal_epoch) {
-                const auto &graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
+                const auto& graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
                 temporal_epoch_context& epoch_context = epoch_contexts[temporal_epoch];
                 epoch_context.op_info_map = dummy_context.op_info_map;
                 epoch_context.input_count =
@@ -414,12 +408,12 @@ void Net2Pipe::output_pipes() {
             // Iterate over all unique keys generate by this->unique_id_gen
             // and generate deterministic version for each key.
             n2p::UniqueIdGenerator id_gen;
-            for (std::uint64_t key : dummy_context.horonological_unique_keys) {
+            for (const std::uint64_t& key : dummy_context.horonological_unique_keys) {
                 deterministic_id_map.insert(id_gen, key);
             }
 
-            for (const auto &context : epoch_contexts) {
-                for (std::uint64_t key : context.horonological_unique_keys) {
+            for (const auto& context : epoch_contexts) {
+                for (const std::uint64_t& key : context.horonological_unique_keys) {
                     deterministic_id_map.insert(id_gen, key);
                 }
             }
@@ -431,11 +425,11 @@ void Net2Pipe::output_pipes() {
         // std::unordered_map<std::uint64_t, router::router_buffer_info_t> buffer_map; // router_buffer_info
         // stores routing coordinates std::unordered_map<std::uint64_t, pipe_t> pipes;
         // pass id map on export and use it for all unique ids.
-        tt::parallel_for(
+        tt::parallel_for (
             0,
             num_temporal_epochs,
             [&](int temporal_epoch) {
-                const auto &graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
+                const auto& graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
                 temporal_epoch_context &epoch_context = epoch_contexts[temporal_epoch];
 
                 const int epoch_id = start_epoch_id + temporal_epoch;
@@ -444,12 +438,12 @@ void Net2Pipe::output_pipes() {
                     "Graph Temporal Epoch: {}, Assigned Epoch: {}",
                     temporal_epoch,
                     epoch_id);
-                const auto &out_dir = this->create_temporal_epoch_output_directory(epoch_id);
+                const auto& out_dir = this->create_temporal_epoch_output_directory(epoch_id);
 
                 YAML::Emitter out_yaml;
                 std::map<std::string, bool> op_queue_emitted;
                 std::unordered_map<string, tt_op_info> temporal_epoch_op_map;
-                for (const auto &graph_exec_var : graph_exec_vars) {
+                for (const auto& graph_exec_var : graph_exec_vars) {
                     // Emit the final routed graph to pipegen yaml file for this epoch
                     n2p::Log() << "Uniquified graph: " << graph_exec_var.instrn.graph_name << "\n";
                     emit_epoch(graph_exec_var, epoch_context, deterministic_id_map, temporal_epoch, op_queue_emitted, out_yaml);
@@ -483,8 +477,7 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
   const int MAX_STREAM_PHASES_PER_CORE = 1800;
   const int MAX_DRAM_QUEUE_OP_PIPE_INPUTS = 2000;
 
-  for (auto op_it : graph_info.op_map) {
-    tt_op_info op_info = op_it.second;
+  for (const auto& [op_name, op_info] : graph_info.op_map) {
     int num_op_inputs = op_info.input_names.size();
     int op_consumer_phases = 0;
     int op_producer_phases = 0;
@@ -508,7 +501,7 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
         op_dram_reads += input_dram_reads[input_name];
       }
     }
-    for (auto output_name : epoch_context.op_queue_output_map[op_info.name]) {
+    for (const auto& output_name : epoch_context.op_queue_output_map[op_info.name]) {
       if (name_is_op(output_name, epoch_context)) {
         tt_op_info consumer_op_info = epoch_context.op_info_map.at(output_name);
         int num_consumer_inputs = consumer_op_info.input_names.size();
@@ -545,7 +538,7 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
           n2p::Log() << "         " << input_name << " -> " << op_info.name << " consumer phases: " << input_consumer_phases[input_name] << std::endl;        
         }
       }
-      for (auto output_name : epoch_context.op_queue_output_map[op_info.name]) {
+      for (const auto& output_name : epoch_context.op_queue_output_map[op_info.name]) {
         if (name_is_op(output_name, epoch_context)) {
           n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer phases: " << output_producer_phases[output_name] << std::endl;        
           n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer streams: " << output_producer_streams[output_name] << std::endl;                
@@ -568,8 +561,8 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
 
 
 void Net2Pipe::get_graph_names(std::vector<std::string> &names_vec) {
-    for (auto it = this->graph_exec_uniquified.begin(); it != this->graph_exec_uniquified.end(); ++it)
-        names_vec.emplace_back(it->instrn.graph_name);
+    for (const auto& graph_exec_uniquified_var : graph_exec_uniquified)
+        names_vec.emplace_back(graph_exec_uniquified_var.instrn.graph_name);
 }
 
 bool Net2Pipe::is_name_hw_tilize(const std::string &name, const temporal_epoch_context &epoch_context) const {
@@ -646,10 +639,7 @@ void Net2Pipe::emit_queues_yaml(const temporal_epoch_context& epoch_context, con
     out_yaml << YAML::Key << ("graph_name");
     out_yaml << YAML::Value << "queues_graph";
     out_yaml << YAML::EndMap;
-    for (auto it : this->parsed_netlist.queue_map) {
-        tt_queue_info queue_info = it.second;
-        std::string queue_name = it.first;
-
+    for (const auto& [queue_name, queue_info] : this->parsed_netlist.queue_map) {
         int mblock_size_tiles = queue_info.dim.ublock_ct * queue_info.dim.ublock_rt * queue_info.dim.mblock_m * queue_info.dim.mblock_n;
         bool tiles_have_header;
         // FIXME imatosevic - this code needs updating for various queue settings
@@ -717,7 +707,7 @@ bool Net2Pipe::name_is_queue(std::string name) const { return this->parsed_netli
 bool Net2Pipe::name_is_op(std::string name, const temporal_epoch_context& epoch_context) const { return epoch_context.op_info_map.count(name); }
 
 void Net2Pipe::connect_outputs_to_inputs(const tt_graph_info &graph_info, int input_count, temporal_epoch_context& epoch_context) const {
-    for (auto op_it : graph_info.op_map) {
+    for (const auto& op_it : graph_info.op_map) {
         tt_op_info op_info = op_it.second;
         int num_op_inputs = op_info.input_names.size();
         n2p::Log() << "  Op: " << op_info.name << ", " << num_op_inputs << " inputs, input_count = " << input_count
@@ -731,9 +721,7 @@ void Net2Pipe::connect_outputs_to_inputs(const tt_graph_info &graph_info, int in
                 ERROR("Output graph: " + graph_info.name << ", op: " + op_info.name + ", unknown input: " + input_name);
             }
         }
-        for (auto q_it : this->parsed_netlist.queue_map) {
-            const std::string &q_name = q_it.first;
-            tt_queue_info q_info = q_it.second;
+        for (const auto& [q_name, q_info] : this->parsed_netlist.queue_map) {
             if (q_info.input == op_info.name) {
                 epoch_context.op_queue_output_map[op_info.name].push_back(q_name);
             }
@@ -745,12 +733,10 @@ void Net2Pipe::connect_outputs_to_inputs(const tt_graph_info &graph_info, int in
 }
 
 void Net2Pipe::compute_consumer_input_tile_mappings(const tt_graph_info &graph_info, temporal_epoch_context& epoch_context) const {
-    for (auto op_it : graph_info.op_map) {
-        tt_op_info op_info = op_it.second;
+    for (const auto& [_, op_info] : graph_info.op_map) {
         compute_op_tms(op_info.name, graph_info.input_count, epoch_context);
     }
-    for (auto q_it : this->parsed_netlist.queue_map) {
-        tt_queue_info queue_info = q_it.second;
+    for (const auto& [_, queue_info] : this->parsed_netlist.queue_map) {
         compute_queue_tms(queue_info.name, graph_info.input_count, epoch_context);
     }
 
@@ -814,15 +800,15 @@ void Net2Pipe::emit_relay_buffers(int runtime_input_count, const temporal_epoch_
     std::unordered_map<tt_cxy_pair, int> used_hardware_ethernet_streams = {};
     std::unordered_set<router::unique_id_t> hardware_ethernet_stream_buffers = {};
     std::unordered_set<router::unique_id_t> firmware_ethernet_stream_buffers = {};
-    for (const auto &[buf_id, buffer] : epoch_context.buffer_map) {
+    for (const auto& [buf_id, buffer] : epoch_context.buffer_map) {
         bool is_relay_buffer = !buffer.is_queue() && buffer.info().type() == tt::RouterBufferType::Relay;
         if (is_relay_buffer) {
             // output is always in the form of a single buffer entry in pipegen.yaml
             // that may be implicitly multiplied for scatter buffers
 
             // Is scatter just multiple output pipes or is it also target location dependent?
-            const auto &output_pipes = epoch_context.buffer_output_pipes.at(buf_id);
-            bool output_pipes_scatter = std::any_of(std::begin(output_pipes), std::end(output_pipes), [&](auto pipe_id) { return epoch_context.pipes.at(pipe_id).is_scatter() || epoch_context.pipes.at(pipe_id).has_multiple_timesteps(); });
+            const auto& output_pipes = epoch_context.buffer_output_pipes.at(buf_id);
+            bool output_pipes_scatter = std::any_of(std::begin(output_pipes), std::end(output_pipes), [&](const auto pipe_id) { return epoch_context.pipes.at(pipe_id).is_scatter() || epoch_context.pipes.at(pipe_id).has_multiple_timesteps(); });
             int routing_r = buffer.core_location().y;
             int routing_c = buffer.core_location().x;
             chip_id_t buffer_chip = buffer.chip_location();
@@ -878,7 +864,7 @@ void Net2Pipe::emit_relay_buffers(int runtime_input_count, const temporal_epoch_
             int c = is_eth_core_relay ? routing_c : this->soc_descriptors.at(buffer_chip).routing_x_to_worker_x.at(routing_c);
             int output_replicate = 0;
             bool output_is_scatter = false;
-            output_is_scatter = std::any_of(std::begin(output_pipes), std::end(output_pipes), [&](auto pipe_id) {
+            output_is_scatter = std::any_of(std::begin(output_pipes), std::end(output_pipes), [&](const auto pipe_id) {
                 return epoch_context.pipes.at(pipe_id).is_scatter();
             });
             int output_scatter_gather_num_tiles = buffer.info().scatter_gather_num_tiles();
@@ -964,11 +950,10 @@ void Net2Pipe::emit_buffers(
     std::map<std::string, bool> &op_queue_emitted,
     YAML::Emitter &out_yaml) const {;
 
-    for (auto op_it : graph_info.op_map) {
-        tt_op_info op_info = op_it.second;
+    for (const auto& [_, op_info] : graph_info.op_map) {
         int num_op_inputs = op_info.input_names.size();
         this->emit_kernel_bufs(out_yaml, epoch_context, deterministic_id_map, op_info.name, input_count);
-        for (const auto &input_name : op_info.input_names) {
+        for (const auto& input_name : op_info.input_names) {
             if (name_is_queue(input_name)) {
                 if (!op_queue_emitted[input_name]) {
                     this->emit_queue(
@@ -986,7 +971,7 @@ void Net2Pipe::emit_buffers(
                 ERROR("Output graph: " + graph_info.name << ", op: " + op_info.name + ", unknown input: " + input_name);
             }
         }
-        for (const auto & output_name : epoch_context.op_queue_output_map.at(op_info.name)) {
+        for (const auto& output_name : epoch_context.op_queue_output_map.at(op_info.name)) {
             if (name_is_queue(output_name)) {
                 if (!op_queue_emitted[output_name]) {
                     this->emit_queue(
@@ -1012,8 +997,7 @@ bool Net2Pipe::is_name_prolog_queue(const std::string& name, const temporal_epoc
 }
 
 void Net2Pipe::collect_epoch_buffer_info(const tt_graph_info &graph_info, int input_count, temporal_epoch_context& epoch_context) const {
-    for (auto op_it : graph_info.op_map) {
-        tt_op_info op_info = op_it.second;
+    for (const auto& [_, op_info] : graph_info.op_map) {
         int num_op_inputs = op_info.input_names.size();
         if (netlist_utils::is_valid_ethernet_op(op_info.type)) {
             this->naive_place_unplaced_ethernet_datacopy_ops(op_info.name, epoch_context);
@@ -1047,9 +1031,9 @@ void Net2Pipe::collect_epoch_buffer_info(const tt_graph_info &graph_info, int in
             }
         }
 
-        for (auto it : epoch_context.op_queue_output_map.at(op_info.name)) {
-            if (name_is_queue(it)) {
-                const std::string &output_q_name = it;
+        for (const auto& output_name : epoch_context.op_queue_output_map.at(op_info.name)) {
+            if (name_is_queue(output_name)) {
+                const std::string &output_q_name = output_name;
                 const tt_queue_info& output_q_info = this->parsed_netlist.queue_map.at(output_q_name);
                 if (op_info.output_data_format != this->parsed_netlist.queue_map.at(output_q_name).data_format) {
                     ERROR(
@@ -1084,25 +1068,24 @@ void Net2Pipe::collect_epoch_buffer_info(const tt_graph_info &graph_info, int in
 }
 
 void Net2Pipe::collect_pipe_info(const tt_graph_info &graph_info, temporal_epoch_context& epoch_context) const {
-    for (const auto &[op_name, op_info] : graph_info.op_map) {
+    for (const auto& [op_name, op_info] : graph_info.op_map) {
         collect_op_input_pipes(op_info.name, graph_info.input_count, epoch_context);
-        for (auto it : epoch_context.op_queue_output_map[op_info.name]) {
-            if (name_is_queue(it)) {
-                const std::string &output_q_name = it;
-                collect_queue_input_pipes(output_q_name, epoch_context);
+        for (const auto& output_name : epoch_context.op_queue_output_map[op_info.name]) {
+            if (name_is_queue(output_name)) {
+                collect_queue_input_pipes(output_name, epoch_context);
             }
         }
     }
 
-    for (auto &[pipe_id, pipe] : epoch_context.pipes) {
+    for (auto& [pipe_id, pipe] : epoch_context.pipes) {
         if (pipe.is_scatter()) {
             auto const first_segment_location = pipe.scatter_segment_core_location(0);
             bool all_locations_same = std::all_of(
-                pipe.core_locations().begin(), pipe.core_locations().end(), [&first_segment_location](auto const &loc) {
+                pipe.core_locations().begin(), pipe.core_locations().end(), [&first_segment_location](const auto& loc) {
                     return loc == first_segment_location;
                 });
             bool has_stack_padding = std::any_of(
-                pipe.output_padding_buffer_list.begin(), pipe.output_padding_buffer_list.end(), [](auto const &buf_id) {
+                pipe.output_padding_buffer_list.begin(), pipe.output_padding_buffer_list.end(), [](const auto& buf_id) {
                     return buf_id != 0;
                 });
             if (!all_locations_same or has_stack_padding) {
@@ -1113,7 +1096,7 @@ void Net2Pipe::collect_pipe_info(const tt_graph_info &graph_info, temporal_epoch
             bool all_segments_same = std::all_of(
                 pipe.time_multiplexed_output_buffer_ids().begin(),
                 pipe.time_multiplexed_output_buffer_ids().end(),
-                [&first_segment_outputs](auto const& outputs) {
+                [&first_segment_outputs](const auto& outputs) {
                 return outputs == first_segment_outputs; });
             if (all_segments_same) {
                 pipe.locations.clear();
@@ -1126,21 +1109,21 @@ void Net2Pipe::collect_pipe_info(const tt_graph_info &graph_info, temporal_epoch
 
 void Net2Pipe::collect_epoch_info( const std::vector<GraphExecVars> &graph_exec_vars, temporal_epoch_context& epoch_context) const {
 
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         // collect info for this epoch
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         log_debug(tt::LogNet2Pipe, "\tUniquified graph: {}", graph_exec_var.instrn.graph_name);
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         int input_count = graph_info.input_count;
         this->connect_outputs_to_inputs(graph_info, input_count, epoch_context);
     }
     // Populate queue_setting_map for this entire epoch
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         for (const auto& [op_name, op_info] : graph_info.op_map) {
-            for (const auto &input_name : op_info.input_names) {
+            for (const auto& input_name : op_info.input_names) {
                 if (name_is_queue(input_name)) {
                     epoch_context.queue_setting_map[input_name] = {
                         .name = input_name,
@@ -1153,7 +1136,7 @@ void Net2Pipe::collect_epoch_info( const std::vector<GraphExecVars> &graph_exec_
                 log_assert(netlist_utils::is_valid_drainer_op(op_info.type), "Only drainer ops can have no outputs.");
                 continue;
             }
-            for (const auto & output_name : epoch_context.op_queue_output_map.at(op_name)) {
+            for (const auto& output_name : epoch_context.op_queue_output_map.at(op_name)) {
                 if (name_is_queue(output_name)) {
                     epoch_context.queue_setting_map[output_name] = {
                         .name = output_name,
@@ -1164,26 +1147,26 @@ void Net2Pipe::collect_epoch_info( const std::vector<GraphExecVars> &graph_exec_
             }
         }
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         for (const auto& q_it : graph_exec_var.queue_settings) {
             epoch_context.queue_setting_map[q_it.name] = q_it;
         }
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         this->compute_consumer_input_tile_mappings(graph_info, epoch_context);
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         this->check_op_resource_usage(graph_info, epoch_context);
         // FIXME imatosevic - extend this to op->queue reblocking resources
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         int input_count = graph_info.input_count;
         this->collect_epoch_buffer_info(graph_info, input_count, epoch_context);
     }
-    for (const auto &graph_exec_var : graph_exec_vars) {
+    for (const auto& graph_exec_var : graph_exec_vars) {
         tt_graph_info graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
         this->collect_pipe_info(graph_info, epoch_context);
     }
@@ -1259,14 +1242,13 @@ bool Net2Pipe::is_input_adjacent_mcast(std::string producer_name, std::string co
     }
 
     int input_index = -1;
-    for (auto it : epoch_context.op_input_name_map.at(consumer_name)) {
-        if (it.second == producer_name) {
-            input_index = it.first;
+    for (const auto& [index, input] : epoch_context.op_input_name_map.at(consumer_name)) {
+        if (input == producer_name) {
+            input_index = index;
             break;
         }
     }
     TT_ASSERT(input_index != -1);
-
     bool consumer_input_row_mcast;
     bool consumer_input_col_mcast;
     bool consumer_input_noc1_mcast;
@@ -1359,7 +1341,7 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
 
     if (epoch_context.op_queue_output_map.find(producer_name) != epoch_context.op_queue_output_map.end()) {
         std::unordered_map<std::string, std::size_t> consumer_visit_count;
-        for (std::string consumer_name : epoch_context.op_queue_output_map.at(producer_name)) {
+        for (const std::string& consumer_name : epoch_context.op_queue_output_map.at(producer_name)) {
             consumer_to_producer_tile_map tm;
             if (name_is_op(consumer_name, epoch_context) ) { // and not is_name_prolog_queue(producer_name, this->queue_setting_map)) {
                 tt_op_info output_op_info = epoch_context.op_info_map.at(consumer_name);
@@ -1490,7 +1472,7 @@ void Net2Pipe::read_epoch_queue_info(
       if (epoch_context.op_queue_output_map[queue_name].size()) {
         //log_debug(tt::LogNet2Pipe, "this->op_queue_output_map[queue_name]: queue_name: {}: {}", queue_name, fmt::join(this->op_queue_output_map[queue_name], ", "));
         prolog_replicate = num_unique_items(epoch_context.op_queue_output_map[queue_name]);
-        for (std::string connected_op_name : epoch_context.op_queue_output_map[queue_name]) {
+        for (const std::string& connected_op_name : epoch_context.op_queue_output_map[queue_name]) {
           n2p::Log() << " Queue " << queue_name << " is input for op " << connected_op_name << ", prolog=" << queue_setting.prolog << "\n";
           int op_target_device = this->op_graph_map.at(connected_op_name).target_device;
           if (op_target_device != queue_info.target_device) {
@@ -1561,7 +1543,7 @@ void Net2Pipe::read_epoch_queue_info(
 }
 
 int Net2Pipe::get_queue_dram_subchannel(std::uint64_t q_buf_id, const temporal_epoch_context& epoch_context) const {
-    const auto &dram_core = epoch_context.buffer_map.at(q_buf_id).core_location();
+    const auto& dram_core = epoch_context.buffer_map.at(q_buf_id).core_location();
     int subchannel = std::get<1>(this->soc_descriptors.at(dram_core.chip).dram_core_channel_map.at(dram_core));
     return subchannel;
 }
@@ -2040,7 +2022,7 @@ void Net2Pipe::emit_kernel_bufs(
                     "Op " + op_info.name + ": [r=" + std::to_string(y_coord) + ", c=" + std::to_string(x_coord) +
                     "], kernel input buf " + std::to_string(k));
                 out << YAML::Value << YAML::BeginMap;
-                const auto &input_buffer = epoch_context.buffer_map.at(input_unique_id);
+                const auto& input_buffer = epoch_context.buffer_map.at(input_unique_id);
                 int input_operand_id = input_buffer.info().stream_id();
                 TT_ASSERT(is_ethernet_datacopy || input_operand_id == input_id);
                 out << SET_KEY_VAL("md_op_name", op_name);
@@ -2165,7 +2147,7 @@ void Net2Pipe::emit_kernel_bufs(
 
                 std::uint64_t output_unique_id = epoch_context.op_output_buf_map.at(op_name).at(i).at(j);
                 chip_id_t chip = epoch_context.buffer_map.at(output_unique_id).core_location().chip;
-                const auto &output_buf = epoch_context.buffer_map.at(output_unique_id);
+                const auto& output_buf = epoch_context.buffer_map.at(output_unique_id);
                 output_size_tiles = output_buf.info().allocated_size_in_tiles();
                 TT_ASSERT(output_is_scatter == static_cast<int>(epoch_context.op_queue_output_scatter.at(op_name)));
                 TT_ASSERT(output_scatter_gather_num_tiles == epoch_context.op_queue_output_buf_granularity.at(op_name));
@@ -2194,7 +2176,7 @@ void Net2Pipe::emit_kernel_bufs(
 
                 out << SET_KEY_VAL("md_op_name", op_name);
                 out << SET_KEY_VAL("buffer_type", n2p::c_Packer);
-                const auto &output_buffer = epoch_context.buffer_map.at(output_unique_id);
+                const auto& output_buffer = epoch_context.buffer_map.at(output_unique_id);
                 int output_operand_id = output_buffer.info().stream_id();
                 TT_ASSERT(is_ethernet_datacopy || output_operand_id == output_id);
                 out << SET_KEY_VAL("id", output_operand_id);
@@ -2244,7 +2226,7 @@ void Net2Pipe::emit_kernel_bufs(
                 for (int k = 0; k < n2p::op_num_intermediate_buf(op_info); k++) {
                     // FIXME: Update to grab directly from the buffer instead (intermediate_buffer.info().<>)
                     std::uint64_t int_unique_id = epoch_context.op_intermediate_buf_map.at(op_name).at(i).at(j).at(k);
-                    const auto &intermediate_buffer = epoch_context.buffer_map.at(int_unique_id);
+                    const auto& intermediate_buffer = epoch_context.buffer_map.at(int_unique_id);
 
                     int int_tile_size_bytes = intermediate_buffer.info().tile_size_in_bytes();
                     int int_epoch_tiles = intermediate_buffer.info().total_epoch_tiles();
@@ -2395,13 +2377,13 @@ void Net2Pipe::create_prolog_buffers(const std::string &op_name, int input_index
         int core_log_x = core_c;
 
         chip_id_t chip = this->op_graph_map.at(op_name).target_device;
-        const auto &routing_core_coordinates = tt_cxy_pair(
+        const auto& routing_core_coordinates = tt_cxy_pair(
             chip,
             this->soc_descriptors.at(chip).worker_log_to_routing_x.at(core_log_x),
             this->soc_descriptors.at(chip).worker_log_to_routing_y.at(core_log_y)
         );
 
-        const auto &input_buffer_info = tt::buffer_info(
+        const auto& input_buffer_info = tt::buffer_info(
             tt::RouterBufferType::PrologInter, 
             0,// k, 
             0,//op_info.t, 
@@ -2458,9 +2440,9 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
     chip_id_t producer_chip = this->op_graph_map.at(producer_op_name).target_device;
 
     const std::unordered_map<chip_id_t, eth_coord_t> &chip_locations = cluster_description->get_chip_locations();
-    const auto &[producer_chip_x, producer_chip_y, producer_rack, producer_shelf] =
+    const auto& [producer_chip_x, producer_chip_y, producer_rack, producer_shelf] =
         chip_locations.at(producer_chip);
-    const auto &[consumer_chip_x, consumer_chip_y, consumer_rack, consumer_shelf] =
+    const auto& [consumer_chip_x, consumer_chip_y, consumer_rack, consumer_shelf] =
         chip_locations.at(consumer_chip);
 
 
@@ -2469,12 +2451,12 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
     auto consumer_up_channels = std::vector<ethernet_channel_t>{};
     auto consumer_down_channels = std::vector<ethernet_channel_t>{};
 
-    const auto &chip_connections = cluster_description->get_ethernet_connections();
-    const auto &consumer_chip_connections = chip_connections.at(consumer_chip);
-    for (const auto &[consumer_channel, connected_endpoint] : consumer_chip_connections) {
+    const auto& chip_connections = cluster_description->get_ethernet_connections();
+    const auto& consumer_chip_connections = chip_connections.at(consumer_chip);
+    for (const auto& [consumer_channel, connected_endpoint] : consumer_chip_connections) {
       chip_id_t connected_chip = std::get<0>(connected_endpoint);
 
-      const auto &[connected_chip_x, connected_chip_y, connected_rack, connected_shelf] =
+      const auto& [connected_chip_x, connected_chip_y, connected_rack, connected_shelf] =
           chip_locations.at(connected_chip);
       int delta_x = connected_chip_x - consumer_chip_x;
       if (delta_x > 0) {
@@ -2500,11 +2482,11 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
     auto producer_up_channels = std::vector<ethernet_channel_t>{};
     auto producer_down_channels = std::vector<ethernet_channel_t>{};
 
-    const auto &producer_chip_connections = chip_connections.at(producer_chip);
-    for (const auto &[producer_channel, connected_endpoint] : producer_chip_connections) {
+    const auto& producer_chip_connections = chip_connections.at(producer_chip);
+    for (const auto& [producer_channel, connected_endpoint] : producer_chip_connections) {
       chip_id_t connected_chip = std::get<0>(connected_endpoint);
 
-      const auto &[connected_chip_x, connected_chip_y, connected_rack, connected_shelf] =
+      const auto& [connected_chip_x, connected_chip_y, connected_rack, connected_shelf] =
           chip_locations.at(connected_chip);
       int delta_x = connected_chip_x - producer_chip_x;
       if (delta_x > 0) {
@@ -2533,7 +2515,7 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
                                         int travel_x,  // positive is right, negative is left
                                         int travel_y   // positive is up, negative is down
                                         ) -> std::vector<ethernet_channel_t> {
-        const auto &channels = (travel_x > 0)   ? channels_left
+        const auto& channels = (travel_x > 0)   ? channels_left
                                : (travel_x < 0) ? channels_right
                                : (travel_y > 0) ? channels_down
                                                 : channels_up;
@@ -2561,7 +2543,7 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
     int consumer_delta_x = consumer_chip_x - producer_chip_x;
     int consumer_delta_y = consumer_chip_y - producer_chip_y;
 
-    const auto &producer_channels = 
+    const auto& producer_channels = 
         choose_direction_channels(producer_chip,
                                   producer_up_channels,
                                   producer_right_channels,
@@ -2569,7 +2551,7 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
                                   producer_left_channels,
                                   producer_delta_x,
                                   producer_delta_y);
-    const auto &consumer_channels = 
+    const auto& consumer_channels = 
         choose_direction_channels(consumer_chip,
                                   consumer_up_channels,
                                   consumer_right_channels,
@@ -2628,8 +2610,8 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
         if (eth_channels_assigned) {
             int src_channel =
                 op_info.attributes.ethernet_datacopy_attr.ingress_channels.at(col + row * op_info.grid_size.c);
-            const auto &sender_buffer_routing_coordinates = soc_descriptor.ethernet_cores.at(src_channel);
-            const auto &sender_buffer_location = tt_cxy_pair(eth_gather_src_device, sender_buffer_routing_coordinates);
+            const auto& sender_buffer_routing_coordinates = soc_descriptor.ethernet_cores.at(src_channel);
+            const auto& sender_buffer_location = tt_cxy_pair(eth_gather_src_device, sender_buffer_routing_coordinates);
             return sender_buffer_location;
         } else {
             return eth_gather_src_device;
@@ -2658,7 +2640,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
             int num_input_bufs = n2p::get_op_num_input_bufs(op_info);
 
             // Need to update for ethernet datacopy - should be the dest channel locations 
-            const auto &routing_core_coordinates = get_op_core_routing_cxy(op_name, op_info, i, j, is_ethernet_datacopy);
+            const auto& routing_core_coordinates = get_op_core_routing_cxy(op_name, op_info, i, j, is_ethernet_datacopy);
             const bool routing_core_is_assigned = std::holds_alternative<tt_cxy_pair>(routing_core_coordinates);
             TT_ASSERT(routing_core_is_assigned || is_ethernet_datacopy, "Only ethernet datacopy op buffers can be unassigned to routing cores when collecting kernel buffer info");
 
@@ -2681,7 +2663,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 // Need to set operand_id to -1 for ethernet datacopy because the operand ID is resolved later
                 tt_xy_pair const &input_tile_dim_xy =
                     tt_xy_pair(n2p::get_tile_width(input_tile_dim), n2p::get_tile_height(input_tile_dim));
-                const auto &input_buffer_info = tt::buffer_info(
+                const auto& input_buffer_info = tt::buffer_info(
                    tt::RouterBufferType::Input, 
                    is_ethernet_datacopy ? -1 : k, 
                    op_info.output_dim.t, 
@@ -2705,7 +2687,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                     input_buffer_info.allocated_size_in_bytes(),
                     op_info.name,
                     k);
-                const auto &input_buffer =
+                const auto& input_buffer =
                     routing_core_is_assigned
                         ? (is_ethernet_datacopy
                                ? router::router_buffer_info_t::create_mutable(
@@ -2723,10 +2705,10 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                     TT_ASSERT(k == 0);
                     bool channels_assigned = op_info.attributes.ethernet_datacopy_attr.ingress_channels.size() > 0;
                     chip_id_t eth_gather_src_device = this->op_graph_map.at(op_info.name).target_device;
-                    const auto &sender_buffer_location = get_eth_datacopy_sender_chip_relay_buffer_location(
+                    const auto& sender_buffer_location = get_eth_datacopy_sender_chip_relay_buffer_location(
                         i, j, op_info, channels_assigned, this->soc_descriptors.at(eth_gather_src_device));
 
-                    const auto &producer_side_buffer = channels_assigned
+                    const auto& producer_side_buffer = channels_assigned
                                                            ? router::create_immutable_relay_buffer(
                                                                  1,
                                                                  input_scatter_gather_num_tiles,
@@ -2743,7 +2725,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                                                                  std::get<chip_id_t>(sender_buffer_location));
                     std::uint64_t buffer_unique_id = get_next_unique_id(epoch_context.horonological_unique_keys, n2p::UNIQUE_ID_ALIGN);
                     if (channels_assigned) {
-                        const auto &l = std::get<tt_cxy_pair>(sender_buffer_location);
+                        const auto& l = std::get<tt_cxy_pair>(sender_buffer_location);
                         log_debug(
                             tt::LogNet2Pipe,
                             "Ethernet datacopy producer side relay buffer id {} placed on chip={} y={} x={}",
@@ -2778,7 +2760,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                         fmt::join(pipe_outputs, ", "));
                     int tile_clear_granularity = this->get_op_kernel_input_tile_clear_granularity(op_info, 0);
 
-                    const auto &eth_link_pipe =
+                    const auto& eth_link_pipe =
                         channels_assigned
                             ? pipe_t(
                                   std::get<tt_cxy_pair>(routing_core_coordinates),
@@ -2849,7 +2831,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
             // Need to set operand_id to -1 for ethernet datacopy because the operand_id is resolved later
 
             const TileDim output_tile_dim = op_info.output_tile_dim;
-            const auto &output_buffer_info = tt::buffer_info(
+            const auto& output_buffer_info = tt::buffer_info(
                 tt::RouterBufferType::Output, 
                 is_ethernet_datacopy ? -1 : OUTPUT_BUFFER_STREAM_START, 
                 op_info.output_dim.t, 
@@ -2880,7 +2862,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 output_buffer_info.allocated_size_in_bytes(),
                 op_info.name,
                 0);
-            const auto &output_buffer = routing_core_is_assigned ? 
+            const auto& output_buffer = routing_core_is_assigned ? 
                 router::router_buffer_info_t::create_immutable(std::get<tt_cxy_pair>(routing_core_coordinates), output_buffer_info) :
                 router::router_buffer_info_t::create_mutable(std::get<chip_id_t>(routing_core_coordinates), output_buffer_info);
 
@@ -2896,7 +2878,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 op_info.name,
                 0);
 
-                const auto &output_scatter_buf_info = routing_core_is_assigned ?
+                const auto& output_scatter_buf_info = routing_core_is_assigned ?
                     router::router_buffer_info_t::create_immutable(std::get<tt_cxy_pair>(routing_core_coordinates), output_buffer_info) :
                     router::router_buffer_info_t::create_mutable(std::get<chip_id_t>(routing_core_coordinates), output_buffer_info);
                 epoch_context.buffer_map.insert({output_unique_id + rep*output_scatter_gather_num_tiles, output_scatter_buf_info});
@@ -2930,7 +2912,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                     int int_scatter_gather_num_tiles = mblock_tiles;
 
                     TileDim intermediate_tile_dim = op_info.output_tile_dim;
-                    const auto &intermediate_buffer_info = tt::buffer_info(
+                    const auto& intermediate_buffer_info = tt::buffer_info(
                         tt::RouterBufferType::Intermediate, 
                         int_id,
                         op_info.output_dim.t, 
@@ -3483,9 +3465,9 @@ void n2p::get_op_input_mcast(const tt_op_info& op_info, int input_num,
 
 int n2p::get_op_input_total_bcast_factor(tt_op_info op_info, int index) {
   int result = 1;
-  for (auto it : op_info.input_tm_ops[index]) {
-    string tm_name = get<0>(it);
-    std::vector<int> curr_tm_args = get<1>(it);
+  for (const auto& it : op_info.input_tm_ops[index]) {
+    const std::string tm_name = get<0>(it);
+    const std::vector<int>& curr_tm_args = get<1>(it);
     if (tm_name == "c_broadcast" || tm_name == "r_broadcast" || tm_name == "z_broadcast") {
       result *= curr_tm_args[0];
     }
@@ -3748,9 +3730,9 @@ void Net2Pipe::compute_queue_tms(std::string queue_name, int input_count, tempor
     }
 
     // Apply TMs
-    for (auto it : queue_info.input_tm_ops[0]) {
-        string tm_name = get<0>(it);
-        std::vector<int> curr_tm_args = get<1>(it);
+    for (const auto& it : queue_info.input_tm_ops[0]) {
+        const std::string tm_name = get<0>(it);
+        const std::vector<int>& curr_tm_args = get<1>(it);
         input_src_tm = input_src_tm.apply_tm(tm_name, curr_tm_args);
     }
 
@@ -3770,7 +3752,7 @@ void Net2Pipe::compute_queue_tms(std::string queue_name, int input_count, tempor
 
     // check restrictions on queue input pipes
     std::set<std::pair<int, int>> dest_cores;
-    for(auto & pipe_it : input_tm.pipes) {
+    for (const auto& pipe_it : input_tm.pipes) {
         phase_pipe_tile_map pipe = pipe_it.second;
         if (pipe.dest_cores.size() > 1) {
             ERROR(std::string("Queue ") + queue_name + " has input stacking pipe with multiple destination buffers");
@@ -3783,7 +3765,7 @@ void Net2Pipe::compute_queue_tms(std::string queue_name, int input_count, tempor
         bool first_input = true;
         int first_producer_core_r = -1;
         int first_producer_core_c = -1;
-        for (tile_to_core_index_map core_tile_index : pipe.tile_map) {
+        for (const tile_to_core_index_map& core_tile_index : pipe.tile_map) {
             if (first_input) {
                 first_producer_core_r = core_tile_index.core_r;
                 first_producer_core_c = core_tile_index.core_c;
@@ -3856,9 +3838,9 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
         input_src_tm = input_src_tm.unpad(op_info.input_unpadding.at(input_num).rt, op_info.input_unpadding.at(input_num).ct);
 
         // Apply TMs
-        for (auto it : op_info.input_tm_ops[input_num]) {
-            string tm_name = get<0>(it);
-            std::vector<int> curr_tm_args = get<1>(it);
+        for (const auto& it : op_info.input_tm_ops[input_num]) {
+            const std::string tm_name = get<0>(it);
+            const std::vector<int>& curr_tm_args = get<1>(it);
             input_src_tm = input_src_tm.apply_tm(tm_name, curr_tm_args);
         }
         
@@ -3867,8 +3849,8 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
         // Verification / Assertions for post padding
         bool tm_padding = false;
-        for (auto it : op_info.input_tm_ops.at(input_num)) {
-            const string &tm_name = get<0>(it);
+        for (const auto& it : op_info.input_tm_ops.at(input_num)) {
+            const std::string& tm_name = get<0>(it);
             TT_ASSERT(not tm_padding or tm_padding and (tm_name == "hslice" or tm_name == "vslice"), "Padding must only be followed by slice: tm: {}", tm_name);
             tm_padding |= tm_name == "pad";
         }
@@ -4574,7 +4556,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
                 std::vector<std::uint64_t> pipe_outputs = {buf_unique_id};
                 std::vector<std::uint64_t> pipe_inputs = get_queue_pipe_input(queue_info, r, c, epoch_context);
                 // queue input pipes never implement gather, reblocking, or TMs
-                const auto &first_input_location = epoch_context.buffer_map.at(pipe_inputs.at(0)).core_location();
+                const auto& first_input_location = epoch_context.buffer_map.at(pipe_inputs.at(0)).core_location();
                 auto pipe_location = first_input_location;
                 std::uint64_t pipe_unique_id = get_next_unique_id(epoch_context.horonological_unique_keys, n2p::UNIQUE_ID_ALIGN);
                 // input/output NOCs are assigned after router pass (since for WH we need info on DRAM sub-channels)
@@ -4589,11 +4571,11 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
     }    
     else {
         consumer_to_producer_tile_map tile_map = epoch_context.queue_input_tm_pipes_map[queue_name];
-        for (auto pipe_it : tile_map.pipes) {
+        for (const auto& pipe_it : tile_map.pipes) {
             phase_pipe_tile_map pipe = pipe_it.second;
             std::uint64_t pipe_unique_id = get_next_unique_id(epoch_context.horonological_unique_keys, n2p::UNIQUE_ID_ALIGN);
             std::vector<std::vector<std::uint64_t>> pipe_outputs;
-            for (auto it : pipe.dest_cores) {
+            for (const auto& it : pipe.dest_cores) {
                 std::vector<std::uint64_t> curr_output;
                 int r = it.first;
                 int c = it.second;
@@ -4605,7 +4587,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
             bool all_inputs_on_same_core = true;
             int last_input_core_r = -1;
             int last_input_core_c = -1;
-            for (tile_to_core_index_map it : pipe.tile_map) {
+            for (const tile_to_core_index_map& it : pipe.tile_map) {
                 int input_core_r = it.core_r;
                 int input_core_c = it.core_c;
                 if (last_input_core_r == -1) {
@@ -4627,7 +4609,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
             std::vector<std::uint64_t> pipe_inputs;
             int granularity_index = 0;
             const int scatter_granularity = epoch_context.op_queue_output_buf_granularity.at(queue_info.input);
-            for (tile_to_core_index_map it : pipe.tile_map) {
+            for (const tile_to_core_index_map& it : pipe.tile_map) {
                 int input_core_r = it.core_r;
                 int input_core_c = it.core_c;
                 int input_tile_index = it.tile_index;
@@ -4640,7 +4622,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
                 granularity_index++;
             }
 
-            for(auto buf_id: pipe_inputs) {
+            for (const auto& buf_id: pipe_inputs) {
                 if(epoch_context.buffer_map.find(buf_id) == epoch_context.buffer_map.end() ) {
                     log_warning(tt::LogNet2Pipe, "Queue: {} ", queue_name);
                     tile_map.print();
@@ -4648,13 +4630,13 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
                 }
             }
 
-            const auto &output_buf_ids = pipe_outputs.at(0);
-            const auto &location = pipe_coords_cxy.at(0);
+            const auto& output_buf_ids = pipe_outputs.at(0);
+            const auto& location = pipe_coords_cxy.at(0);
             log_debug(tt::LogNet2Pipe, "CREATING QUEUE INPUT PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}", 
                 pipe_unique_id,
                 location.chip, location.y, location.x, 
-                std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](auto id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
-                std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](auto id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
+                std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
+                std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                 fmt::join(pipe_inputs, ", "), fmt::join(output_buf_ids, ", ")
                 );
             auto router_pipe = pipe_t(location, pipe_inputs, output_buf_ids, queue_name, 0);
@@ -4710,12 +4692,12 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
     //     int r = tile_core_index_map.core_r;
     //     int c = tile_core_index_map.core_c;
     //     if (is_queue) {
-    //         const auto &queue_info = this->parsed_netlist.queue_map.at(input_name);
+    //         const auto& queue_info = this->parsed_netlist.queue_map.at(input_name);
     //         TT_ASSERT(queue_info.loc == QUEUE_LOCATION::DRAM);
     //         auto dram_channel = get_queue_dram_channel(queue_info, r, c);
     //         // TODO(snijjar): get subchannel info added to netlist definition
     //         auto dram_subchannel = 0;
-    //         const auto &dram_core_location = this->soc_descriptor->dram_cores.at(dram_channel).at(dram_subchannel);
+    //         const auto& dram_core_location = this->soc_descriptor->dram_cores.at(dram_channel).at(dram_subchannel);
     //         return tt_cxy_pair(queue_info.target_device, dram_core_location.x, dram_core_location.y);
     //     } else {
     //         tt_op_info producer_op_info = epoch_context.op_info_map[input_name];
@@ -4731,7 +4713,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
 
     auto get_op_input_producer_chip = [&](const std::string &name) {
         if (epoch_context.op_info_map.find(name) != epoch_context.op_info_map.end()) {
-            const auto &op_info = epoch_context.op_info_map.at(name);
+            const auto& op_info = epoch_context.op_info_map.at(name);
             if (netlist_utils::is_valid_ethernet_op(op_info.type)) {
                 return op_info.attributes.ethernet_datacopy_attr.dest_device;
             } else {
@@ -4769,7 +4751,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             std::set<std::string> unique_ops;
             //log_debug(tt::LogNet2Pipe, "graph_name: {}", graph_name);
             //log_debug(tt::LogNet2Pipe, "op_name: {}", op_name);
-            for (std::string connected_op_name : epoch_context.op_queue_output_map[input_name]) {
+            for (const std::string& connected_op_name : epoch_context.op_queue_output_map[input_name]) {
                 //log_debug(tt::LogNet2Pipe, "connected_op_name: {}", connected_op_name);
               if (connected_op_name == op_name) {
                 prolog_consumer_index_found = true;
@@ -4822,7 +4804,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
 
         const int scatter_granularity = step2 ? tile_map.scatter_granularity : epoch_context.op_queue_output_buf_granularity.at(input_name);
 
-        for (auto pipe_it : tile_map.pipes) {
+        for (const auto& pipe_it : tile_map.pipes) {
             
             phase_pipe_tile_map pipe = pipe_it.second;
             if(not pipe.validate_padding()) {
@@ -4835,7 +4817,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             std::vector<std::vector<std::uint64_t>> pipe_outputs;
 
             auto& in_buf_map = (has_two_step_prolog and step1) ? epoch_context.prolog_buffer_map : epoch_context.op_input_buf_map;
-            for (auto it : pipe.dest_cores) {
+            for (const auto& it : pipe.dest_cores) {
                 std::vector<std::uint64_t> curr_output;
                 int core_offset_r = it.first;
                 int core_offset_c = it.second;
@@ -4865,7 +4847,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             //log_debug(tt::LogNet2Pipe, "scatter_granularity: {}", scatter_granularity);
             //log_debug(tt::LogNet2Pipe, "tile_map:");
             // TODO: Can we not just iterate through pipe.tile_map in increments of scatter granularity?
-            for (tile_to_core_index_map it : pipe.tile_map) {
+            for (const tile_to_core_index_map& it : pipe.tile_map) {
                 int input_core_r = it.core_r;
                 int input_core_c = it.core_c;
                 int input_tile_index = it.tile_index;
@@ -4912,7 +4894,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             std::vector<tt_cxy_pair> pipe_coords_cxy = {};
             
             for (size_t i = 0; i < pipe_outputs.size(); i++) {
-                const auto &pipe_coord = pipe_coords.at(i);
+                const auto& pipe_coord = pipe_coords.at(i);
                 pipe_coords_cxy.push_back(pipe_coord_lookup_function(pipe_coord, op_info, pipe_coords_are_ethernet_channels));
             }
 
@@ -4920,7 +4902,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             if(pipe_outputs.size() > 1) {
                 for (size_t i = 0; i < pipe_outputs.size(); i++) {
                     if(pipe.padding_output_list.at(i)) { // TODO: fix this initialization
-                        const auto &pipe_coord = pipe_coords.at(i);
+                        const auto& pipe_coord = pipe_coords.at(i);
                         const chip_id_t chip_buffer_loc = std::get<0>(pipe_coord);
                         const int core_y_buffer_loc = std::get<1>(pipe_coord);
                         const int core_x_buffer_loc = std::get<2>(pipe_coord);
@@ -4942,7 +4924,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             }
 
             TT_ASSERT(pipe_coords_cxy.size() == pipe_outputs.size());
-            for(auto buf_id: pipe_inputs) {
+            for (const auto& buf_id: pipe_inputs) {
                 if(epoch_context.buffer_map.find(buf_id) == epoch_context.buffer_map.end() ) {
                     log_warning(tt::LogNet2Pipe, "Op: {}, Input {}: {} ", op_name, input_index, input_name);
                     tile_map.print();
@@ -4951,13 +4933,13 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             }
 
             if (pipe_outputs.size() == 1) { // This is for default non-scatter pipes
-                const auto &output_buf_ids = pipe_outputs.at(0);
-                const auto &location = pipe_coords_cxy.at(0);
+                const auto& output_buf_ids = pipe_outputs.at(0);
+                const auto& location = pipe_coords_cxy.at(0);
                 log_debug(tt::LogNet2Pipe, "CREATING PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}", 
                     pipe_unique_id,
                     location.chip, location.y, location.x, 
-                    std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](auto id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
-                    std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](auto id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
+                    std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
+                    std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                     fmt::join(pipe_inputs, ", "), fmt::join(output_buf_ids, ", ")
                     );
                 auto router_pipe = pipe_t(location, pipe_inputs, output_buf_ids, op_name, input_index, tile_clear_granularity);
@@ -4968,7 +4950,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
                 // TODO(snijjar): correctly compute the scatter attribute for each timestep
                 std::stringstream ss;
                 log_debug(tt::LogNet2Pipe, "CREATING SCATTER PIPE {}: input_buffer_ids: {}, output_buffer_ids:", pipe_unique_id, fmt::join(pipe_inputs, ", "));
-                for (auto const &output_buf_ids : pipe_outputs) log_debug(tt::LogNet2Pipe, "  - {}", fmt::join(output_buf_ids, ", "));
+                for (const auto& output_buf_ids : pipe_outputs) log_debug(tt::LogNet2Pipe, "  - {}", fmt::join(output_buf_ids, ", "));
                 auto router_pipe = pipe_t(pipe_coords_cxy, pipe_inputs, pipe_outputs, op_name, input_index, tile_clear_granularity);
                 router_pipe.output_padding_buffer_list = output_padding_list;
                 epoch_context.pipes.insert({pipe_unique_id, router_pipe});
@@ -5025,7 +5007,7 @@ bool Net2Pipe::is_ethernet_pipe(const pipe_t &pipe, const temporal_epoch_context
 void Net2Pipe::get_queue_consumer_map(
     std::map<router::unique_id_t, std::vector<router::unique_id_t>> inputs_to_output_pipes_map, temporal_epoch_context& epoch_context) const {
 
-    for (auto input_to_output_pipe_list: inputs_to_output_pipes_map) {
+    for (const auto& input_to_output_pipe_list: inputs_to_output_pipes_map) {
 
         router::unique_id_t input_id = input_to_output_pipe_list.first;
         vector<router::unique_id_t> const& output_pipe_ids = input_to_output_pipe_list.second;
@@ -5037,12 +5019,12 @@ void Net2Pipe::get_queue_consumer_map(
                 epoch_context.input_queue_id_to_consumer_cores.insert({input_id, {}});
             }
 
-            for (auto output_pipe_id: output_pipe_ids) {
+            for (const auto& output_pipe_id: output_pipe_ids) {
                 TT_ASSERT(epoch_context.pipes.find(output_pipe_id) != epoch_context.pipes.end(), "All input and output ids extracted from pipe inputs and outputs must exist in buffer_map");
                 router::pipe_t const& output_pipe = epoch_context.pipes.at(output_pipe_id);
                 bool is_output_op = !(epoch_context.buffer_map.at(output_pipe.output_segment_output_buffer_ids(0).at(0)).is_queue());
                 if (is_output_op) {
-                    for (tt_cxy_pair const& output_op_coord : output_pipe.core_locations()) {
+                    for (const tt_cxy_pair& output_op_coord : output_pipe.core_locations()) {
                         epoch_context.input_queue_id_to_consumer_cores.at(input_id).insert(output_op_coord);
                     }
                 }
@@ -5060,7 +5042,7 @@ void Net2Pipe::get_queue_consumer_map(
             epoch_context.op_info_map.at(op_name).get_core_yx_coord(loc.y, loc.x, y_coord, x_coord);
 
             chip_id_t chip = this->op_graph_map.at(op_name).target_device;
-            const auto &routing_core_coordinates = tt_cxy_pair(
+            const auto& routing_core_coordinates = tt_cxy_pair(
                 chip,
                 this->soc_descriptors.at(chip).worker_log_to_routing_x.at(x_coord),
                 this->soc_descriptors.at(chip).worker_log_to_routing_y.at(y_coord));
@@ -5072,7 +5054,7 @@ void Net2Pipe::get_queue_consumer_map(
 
 void Net2Pipe::get_queue_producer_map(
     std::map<router::unique_id_t, std::vector<router::unique_id_t>> inputs_to_output_pipes_map, temporal_epoch_context& epoch_context) const {
-    for(auto input_to_output_pipe_list : inputs_to_output_pipes_map) {
+    for (const auto& input_to_output_pipe_list : inputs_to_output_pipes_map) {
         router::unique_id_t input_id = input_to_output_pipe_list.first;
         vector<router::unique_id_t> output_pipe_ids = input_to_output_pipe_list.second;
 
@@ -5081,11 +5063,11 @@ void Net2Pipe::get_queue_producer_map(
 
         if(is_input_op) {
             tt_cxy_pair input_op_coord = epoch_context.buffer_map.at(input_id).core_location();
-            for(router::unique_id_t output_pipe_id : output_pipe_ids) {
+            for (const router::unique_id_t& output_pipe_id : output_pipe_ids) {
                 router::pipe_t const& pipe = epoch_context.pipes.at(output_pipe_id);
                 int num_pipe_segments = pipe.number_of_output_segments();
                 for (int s = 0; s < num_pipe_segments; s++) {
-                    for (router::unique_id_t output_id : pipe.output_segment_output_buffer_ids(s)) {
+                    for (const router::unique_id_t& output_id : pipe.output_segment_output_buffer_ids(s)) {
                         if(epoch_context.buffer_map.at(output_id).is_queue()) {
                             if(epoch_context.output_queue_id_to_producer_cores.find(output_id) == epoch_context.output_queue_id_to_producer_cores.end()) {
                                 epoch_context.output_queue_id_to_producer_cores.insert({output_id, {}});
@@ -5108,7 +5090,7 @@ void Net2Pipe::dump_queue_to_core_map_to_file(const std::string& output_dir, boo
     unordered_map<queue_buffer_info, set<tt_cxy_pair>> queue_buf_to_cores;
 
     const auto& queue_id_to_core = queue_to_producer ? epoch_context.output_queue_id_to_producer_cores : epoch_context.input_queue_id_to_consumer_cores;
-    for(const auto& queue : queue_id_to_core) {
+    for (const auto& queue : queue_id_to_core) {
         router::unique_id_t q_id = queue.first;
         const router::router_buffer_info_t& buffer_info = epoch_context.buffer_map.at(q_id);\
         const router::router_queue_allocation_info queue_location = buffer_info.queue_info().get_allocation_info();
@@ -5128,7 +5110,7 @@ void Net2Pipe::dump_queue_to_core_map_to_file(const std::string& output_dir, boo
         queue_buf_to_cores.at(queue_buf_info).insert(queue.second.begin(), queue.second.end());
     }
 
-    for(const auto& buf_it : queue_buf_to_cores) {
+    for (const auto& buf_it : queue_buf_to_cores) {
         string queue_name = buf_it.first.queue_name;
         auto queue_location = router::router_queue_allocation_info{buf_it.first.alloc_info};
         uint64_t unique_q_id = epoch_context.queue_name_unique_id_map.at(queue_name);
@@ -5140,14 +5122,14 @@ void Net2Pipe::dump_queue_to_core_map_to_file(const std::string& output_dir, boo
         queue_yaml["addr"] = uint_to_string(queue_location.address);
 
         uint buf_idx = 0;
-        for(; buf_idx < queue_info.alloc_info.size(); buf_idx++) {
+        for (; buf_idx < queue_info.alloc_info.size(); buf_idx++) {
             if(queue_info.alloc_info.at(buf_idx) == queue_location) {
                 break;
             }
         }
         TT_ASSERT(buf_idx != queue_info.alloc_info.size(), "The queue-buffer location extracted from buffer map should exist in queue_unique_id_info_map.");
 
-        for(tt_cxy_pair core: buf_it.second) {
+        for (const tt_cxy_pair& core: buf_it.second) {
             YAML::Node core_yaml;
             core_yaml["chip_id"] = core.chip;
             core_yaml["x"] = core.x;
@@ -5166,11 +5148,11 @@ void insert_new_input_to_output_entry(
         std::vector<router::unique_id_t> const& input_list,
         std::vector<router::unique_id_t> const& output_pipe_list) {
     
-    for (auto input: input_list) {
+    for (const auto& input: input_list) {
         if (inputs_to_output_pipes_map.find(input) == inputs_to_output_pipes_map.end()) {
             inputs_to_output_pipes_map.insert({input, {}});
         }
-        for (auto output: output_pipe_list) {
+        for (const auto& output: output_pipe_list) {
             if (std::find(inputs_to_output_pipes_map.at(input).begin(), inputs_to_output_pipes_map.at(input).end(), output) == inputs_to_output_pipes_map.at(input).end()) {
                 inputs_to_output_pipes_map.at(input).push_back(output);
             }
@@ -5181,8 +5163,8 @@ void insert_new_input_to_output_entry(
 template<typename T>
 vector<T> flatten_2d_vec(vector<vector<T>> input) {
     vector<T> output;
-    for (auto row: input) {
-        for (auto col: row) {
+    for (const auto& row: input) {
+        for (const auto& col: row) {
             output.push_back(col);
         }
     }
@@ -5219,7 +5201,7 @@ int Net2Pipe::check_pipe_consumer_repeat(const pipe_t &pipe) const {
 }
 int Net2Pipe::pipe_scatter_outputs_consumer_repeat(const std::vector<std::vector<std::uint64_t>> &pipe_outputs, const std::vector<std::uint64_t>& output_id_padding) const {
     std::vector<bool> pipe_output_padding;
-    for(auto & pad_id: output_id_padding) {
+    for (const auto& pad_id: output_id_padding) {
         pipe_output_padding.push_back(pad_id > 0);
     }
     return pipe_scatter_outputs_consumer_repeat(pipe_outputs, pipe_output_padding);
@@ -5275,7 +5257,7 @@ bool Net2Pipe::check_pipe_inputs_periodic(const pipe_t& pipe, int& period, int& 
   }
 
   std::vector<std::uint64_t> const& output_buffers = pipe.output_segment_output_buffer_ids(0);
-  bool feeds_queue_buffers = std::any_of(output_buffers.begin(), output_buffers.end(), [this, &epoch_context](auto id) { return epoch_context.buffer_map.at(id).is_queue();});
+  bool feeds_queue_buffers = std::any_of(output_buffers.begin(), output_buffers.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();});
   if (feeds_queue_buffers) {
     return false;
   }
@@ -5335,7 +5317,7 @@ bool Net2Pipe::check_pipe_inputs_periodic(const pipe_t& pipe, int& period, int& 
 template<> struct std::hash<std::vector<uint64_t>> {
     std::size_t operator()(std::vector<uint64_t> const& vec) const noexcept {
         std::size_t ret = 0;
-        for(auto& i : vec) {
+        for (const auto& i : vec) {
             ret = ret ^ (std::hash<uint64_t>()(i) << 1);
         }
         return ret;
@@ -5346,7 +5328,7 @@ namespace {
 std::vector<uint64_t> get_unique_queues(const std::vector<uint64_t>& pipe_inputs) {
     std::vector<uint64_t> result;
     std::unordered_set<uint64_t> unique_ids_set;
-    for(auto b_id : pipe_inputs) {
+    for (const auto& b_id : pipe_inputs) {
         uint64_t id = b_id / 100000;
         if (unique_ids_set.find(id)==unique_ids_set.end())
         {
@@ -5365,9 +5347,9 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> dram_group_mapping; // [dram_queue_name][op_reader_name][list of grouped ops]
 
     // for all ops
-    for (auto &[op_name, op_info]: temporal_epoch_op_map) {
+    for (const auto& [op_name, op_info]: temporal_epoch_op_map) {
         // process normal queues and pre-tm prolog queues that dont have forks
-        for (auto& input_name : op_info.input_names) {
+        for (const auto& input_name : op_info.input_names) {
             const bool not_a_fork = op_info.forked_dram_input_names.find(input_name) == op_info.forked_dram_input_names.end();
             if (not_a_fork and name_is_queue(input_name)) {
                 if( dram_group_mapping[input_name].find(op_info.name) == dram_group_mapping[input_name].end()) {
@@ -5376,14 +5358,14 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
             }
         }
         // process the forked_dram_input_names field
-        for (auto&[input_queue_name, dram_reader_op] : op_info.forked_dram_input_names ) {
+        for (const auto& [input_queue_name, dram_reader_op] : op_info.forked_dram_input_names ) {
             dram_group_mapping[input_queue_name][dram_reader_op].push_back(op_name);
         }
     }
 
 /*
     std::unordered_map<uint64_t, std::vector<uint64_t>> pipe_groups;
-    for (auto &[queue_name, dram_groups] : dram_group_mapping) {
+    for (const auto& [queue_name, dram_groups] : dram_group_mapping) {
         const tt_queue_info &queue_info = this->parsed_netlist.queue_map.at(queue_name);
         for (int r = 0; r < queue_info.grid_size.r; r++) {
             for (int c = 0; c < queue_info.grid_size.c; c++) {
@@ -5391,14 +5373,14 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
                 total_readers_per_buffer
             }
         }
-        for (auto &[op_reader_name, op_reader_group] : dram_groups) {
-            for (auto & group_member_op_name : op_reader_group) {
+        for (const auto& [op_reader_name, op_reader_group] : dram_groups) {
+            for (const auto& group_member_op_name : op_reader_group) {
             }
         }
     }
 */
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<uint64_t>>> dram_group_pipes; // [dram_queue_name][op_reader_name][list of pipes (ids)]
-    for (auto &[pipe_unique_id, pipe] : epoch_context.pipes) {
+    for (const auto& [pipe_unique_id, pipe] : epoch_context.pipes) {
         const auto op_name = pipe.consumer_name();
         if(temporal_epoch_op_map.find(op_name) == temporal_epoch_op_map.end()){
             continue;
@@ -5418,10 +5400,10 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
 
     // sort pipes into fork groups and designate first pipe in the list as the dram_reader
     std::map<std::string, std::map<std::string, std::map<std::vector<uint64_t>, std::vector<uint64_t>>>> dram_group_pipes_by_forks;
-    for (auto &[input_queue_name, op_readers] : dram_group_pipes) {
-        for (auto &[op_reader_name, pipe_ids] : op_readers) {
+    for (const auto& [input_queue_name, op_readers] : dram_group_pipes) {
+        for (const auto& [op_reader_name, pipe_ids] : op_readers) {
             std::map<std::vector<uint64_t>, std::vector<uint64_t>> unique_input_pipes;
-            for (auto & pipe_id : pipe_ids) {
+            for (const auto& pipe_id : pipe_ids) {
                 //if(unique_input_pipes.find(p.input_buffer_ids) == unique_input_pipes.end())
                 const auto& p = epoch_context.pipes.at(pipe_id);
                 const auto op_name = p.consumer_name();
@@ -5439,29 +5421,29 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
     // record num readers per buffer
     std::unordered_map<uint64_t, int> total_readers_per_buffer;
     
-    for (auto &[input_queue_name, op_readers] : dram_group_pipes_by_forks) {
-        for (auto &[op_reader_name, unique_input_pipes] : op_readers) {
+    for (const auto& [input_queue_name, op_readers] : dram_group_pipes_by_forks) {
+        for (const auto& [op_reader_name, unique_input_pipes] : op_readers) {
             if(dram_group_mapping.at(input_queue_name).at(op_reader_name).size() == 0) { // TODO: This only works if there is a single dram reader with an internal pipe replica
                 // each pipe reader should be separate
-                for (auto &[_, pipe_ids] : unique_input_pipes) {
-                    for (const auto & dram_reader_pipe_id : pipe_ids) {
+                for (const auto& [_, pipe_ids] : unique_input_pipes) {
+                    for (const auto& dram_reader_pipe_id : pipe_ids) {
                         const auto& dram_reader_pipe = epoch_context.pipes.at(dram_reader_pipe_id);
                         auto unique_queue_ids = get_unique_queues(dram_reader_pipe.input_buffer_ids);
-                        for(auto q_id : unique_queue_ids) {
+                        for (const auto& q_id : unique_queue_ids) {
                             total_readers_per_buffer[q_id]++;
                         }
                     }
                 }
             }
             else {
-                for (auto &[_, pipe_ids] : unique_input_pipes) {
+                for (const auto& [_, pipe_ids] : unique_input_pipes) {
                     const auto& dram_reader_pipe = epoch_context.pipes.at(pipe_ids.at(0));
                     auto unique_queue_ids = get_unique_queues(dram_reader_pipe.input_buffer_ids);
-                    for(auto q_id : unique_queue_ids) {
+                    for (const auto& q_id : unique_queue_ids) {
                         total_readers_per_buffer[q_id]++;
                     }
                     /*
-                    for(auto b_id : dram_reader_pipe.input_buffer_ids) {
+                    for (const auto& b_id : dram_reader_pipe.input_buffer_ids) {
                         total_readers_per_buffer[b_id]++;
                     }*/
                 }
@@ -5470,10 +5452,10 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
     }
 
     std::unordered_map<uint64_t, int> current_reader_per_buffer;
-    for (auto &[input_queue_name, op_readers] : dram_group_pipes_by_forks) {
-        for (auto &[op_reader_name, unique_pipe_groups] : op_readers) {
+    for (const auto& [input_queue_name, op_readers] : dram_group_pipes_by_forks) {
+        for (const auto& [op_reader_name, unique_pipe_groups] : op_readers) {
             if(dram_group_mapping.at(input_queue_name).at(op_reader_name).size() == 0) { // TODO: This only works if there is a single dram reader with an internal pipe replica
-                for (auto &[_, pipe_ids] : unique_pipe_groups) {
+                for (const auto& [_, pipe_ids] : unique_pipe_groups) {
                     const int fork_index = 0;
                     const int num_forks = 1;
                     for (const auto& p_id : pipe_ids) {
@@ -5481,7 +5463,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
                         pipe_metadata.num_forks = num_forks;
                         pipe_metadata.fork_index = fork_index;
                         const auto& forking_pipe = epoch_context.pipes.at(p_id);
-                        for(auto buffer_id: forking_pipe.input_buffer_ids) {
+                        for (const auto& buffer_id: forking_pipe.input_buffer_ids) {
                             const int total_readers = total_readers_per_buffer.at(buffer_id/100000);
                             pipe_metadata.total_readers.push_back(total_readers);
                             const int reader_index = current_reader_per_buffer[buffer_id/100000];
@@ -5490,14 +5472,14 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
 
                         epoch_context.dram_fork_pipe_metadata_by_pipe[p_id] = pipe_metadata;
                         auto unique_queue_ids = get_unique_queues(forking_pipe.input_buffer_ids);
-                        for(auto q_id : unique_queue_ids) {
+                        for (const auto& q_id : unique_queue_ids) {
                             current_reader_per_buffer[q_id]++;
                         }
                     }                    
                 }
             }
             else {
-                for (auto &[_, pipe_ids] : unique_pipe_groups) {
+                for (const auto& [_, pipe_ids] : unique_pipe_groups) {
                     int fork_index = 0;
                     const int num_forks = pipe_ids.size();
                     for (const auto& p_id : pipe_ids) {
@@ -5505,7 +5487,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
                         pipe_metadata.num_forks = num_forks;
                         pipe_metadata.fork_index = fork_index;
                         const auto& forking_pipe = epoch_context.pipes.at(p_id);
-                        for(auto buffer_id: forking_pipe.input_buffer_ids) {
+                        for (const auto& buffer_id: forking_pipe.input_buffer_ids) {
                             const int total_readers = total_readers_per_buffer.at(buffer_id/100000);
                             pipe_metadata.total_readers.push_back(total_readers);
                             const int reader_index = current_reader_per_buffer[buffer_id/100000];
@@ -5519,7 +5501,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
                     // get fork index == 0 pipe and increment buffer reader index
                     const auto& dram_reader_pipe = epoch_context.pipes.at(pipe_ids.at(0));
                     auto unique_queue_ids = get_unique_queues(dram_reader_pipe.input_buffer_ids);
-                    for(auto q_id : unique_queue_ids) {
+                    for (const auto& q_id : unique_queue_ids) {
                         current_reader_per_buffer[q_id]++;
                     }
                 }
@@ -5536,11 +5518,11 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
 
     std::vector<std::uint64_t> grad_op_pipe_ids;
     grad_op_pipe_ids.reserve(epoch_context.grad_op_pipes.size());
-    std::sort(grad_op_pipe_ids.begin(), grad_op_pipe_ids.end(), [&](const auto &a, const auto &b) {
+    std::sort(grad_op_pipe_ids.begin(), grad_op_pipe_ids.end(), [&](const auto& a, const auto& b) {
         return deterministic_id_map.get_deterministic_key(a) < deterministic_id_map.get_deterministic_key(b);
     });
 
-    for (std::uint64_t pipe_unique_id : grad_op_pipe_ids) {
+    for (const std::uint64_t& pipe_unique_id : grad_op_pipe_ids) {
         // Insert grad op info seperately into inputs_to_outputs_map, since its not included in this -> pipes
         const auto& pipe = epoch_context.grad_op_pipes.at(pipe_unique_id);
         std::vector<router::unique_id_t> input_list_current_pipe;
@@ -5566,7 +5548,7 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
         insert_new_input_to_output_entry(inputs_to_output_pipes_map, input_list_current_pipe, {pipe_unique_id});
     }
 
-    for (auto &[pipe_unique_id, pipe] : epoch_context.pipes) {
+    for (const auto& [pipe_unique_id, pipe] : epoch_context.pipes) {
         std::vector<router::unique_id_t> input_list_current_pipe;
         std::vector<router::unique_id_t> output_list_current_pipe;
         out << YAML::BeginMap;
@@ -5695,7 +5677,7 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
             int ethernet_chan = consumer_is_worker_core ? -1 : soc_desc.get_channel_of_ethernet_core(first_consumer_core_xy);
 
             int p = 0;
-            for (const auto &it : pipe.core_locations()) {
+            for (const auto& it : pipe.core_locations()) {
                 const tt_xy_pair &core_xy = tt_xy_pair(it.x, it.y);
                 bool is_worker_core = soc_desc.is_worker_core(core_xy);
                 TT_ASSERT(consumer_is_worker_core == is_worker_core, "Net2pipe doesn't currently support pipes that scatter to a mix of tensix and non-tensix cores");
@@ -5807,7 +5789,7 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
     if (valid_scatter_op) {
         all_inputs_on_same_core = true;
 
-        for (tile_to_core_index_map it : pipe.tile_map) {
+        for (const tile_to_core_index_map& it : pipe.tile_map) {
             // Wrap inputs onto the local core grid if the input is_prolog
             int input_core_r = is_prolog ? it.core_r % op_info.grid_size_logical_r() : it.core_r;
             int input_core_c = is_prolog ? it.core_c % op_info.grid_size_logical_c() : it.core_c;
@@ -5844,7 +5826,7 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
     adjacent_mcast = is_input_adjacent_mcast(input_name, op_info.name, adjacent_noc_id, epoch_context);
 
     // dest cores are the cores, starting at [0,0], within the op-grid, independent of where the op is placed on the chip
-    for (auto it : pipe.dest_cores) {
+    for (const auto& it : pipe.dest_cores) {
         TT_ASSERT((it.first != -1) || op_input_col_mcast);
         TT_ASSERT((it.second != -1) || op_input_row_mcast);
         bool col_mcast_pipe = (it.first == -1) && (op_info.grid_size_logical_r() > 1);
@@ -5876,7 +5858,7 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
         if (use_last_input_pipe_coords) {
             pipe_chip = producer_chip;
             if (name_is_op(input_name, epoch_context)) {
-              const auto &input_op_info = epoch_context.op_info_map.at(input_name);
+              const auto& input_op_info = epoch_context.op_info_map.at(input_name);
               if (netlist_utils::is_valid_ethernet_op(input_op_info.type)) {
                 pipe_chip = consumer_chip;
                 // if it's an ethernet op, we need to get the core from the output, which is the core on the other side of the
@@ -5920,22 +5902,22 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
 
 void Net2Pipe::register_pipe_as_output_of_buffers(
     std::uint64_t pipe_id, const std::vector<std::uint64_t> &buffer_ids, temporal_epoch_context& epoch_context) const {
-    for (auto id : buffer_ids) {
+    for (const auto& id : buffer_ids) {
         epoch_context.buffer_output_pipes[id].insert(pipe_id);
     }
 }
 
 void Net2Pipe::register_pipe_as_input_of_buffers(
     std::uint64_t pipe_id, const std::vector<std::uint64_t> &buffer_ids, temporal_epoch_context& epoch_context) const {
-    for (auto id : buffer_ids) {
+    for (const auto& id : buffer_ids) {
         epoch_context.buffer_input_pipes.insert({id, pipe_id});
     }
 }
 
 void Net2Pipe::register_pipe_as_input_of_buffers(
     std::uint64_t pipe_id, const time_multiplexed_outputs_t &timestep_buffer_ids, temporal_epoch_context& epoch_context) const {
-    for (const auto &buffer_ids : timestep_buffer_ids) {
-        for (auto id : buffer_ids) {
+    for (const auto& buffer_ids : timestep_buffer_ids) {
+        for (const auto& id : buffer_ids) {
             epoch_context.buffer_input_pipes.insert({id, pipe_id});
         }
     }
@@ -5970,13 +5952,13 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
         temporal_epoch_graph_exec_vars.at(temporal_epoch).begin(),
         temporal_epoch_graph_exec_vars.at(temporal_epoch).end(),
         std::back_inserter(temporal_epoch_chip_ids),
-        [this](const auto &graph_exec_var) {
+        [this](const auto& graph_exec_var) {
             return this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name).target_device;
         }
     );
 
     log_debug(tt::LogRouter, "{}", "temporal_epoch_chip_ids");
-    for (auto id : temporal_epoch_chip_ids) {
+    for (const auto& id : temporal_epoch_chip_ids) {
         log_debug(tt::LogRouter, "\t{}", id);
     }
 
@@ -5989,7 +5971,7 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
     log_debug(tt::LogNet2Pipe, "---------------------------");
     log_trace(tt::LogRouter, "BEFORE ROUTER");
 
-    for (const auto &[id, buffer_info] : epoch_context.buffer_map) {
+    for (const auto& [id, buffer_info] : epoch_context.buffer_map) {
         log_trace(tt::LogRouter, "\t{}", id);
     }
 
@@ -5998,7 +5980,7 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
     TT_ASSERT(chip_ids.size() > 0);
     TT_ASSERT(this->config.is_feature_ethernet_multichip_compile_enabled || epoch_context.buffer_map.size() > 0);
     TT_ASSERT(this->config.is_feature_ethernet_multichip_compile_enabled || epoch_context.pipes.size() > 0);
-    for (const auto &[id, buf] : epoch_context.buffer_map) {
+    for (const auto& [id, buf] : epoch_context.buffer_map) {
         if (!buf.is_queue()) {
             if (buf.info().type() == RouterBufferType::Input) {
                 TT_ASSERT(epoch_context.buffer_input_pipes.find(id) != epoch_context.buffer_input_pipes.end());
@@ -6011,11 +5993,11 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
     }
     log_trace(tt::LogRouter, "Validated buffer_input_pipes and buffer_output_pipes");
     log_trace(tt::LogRouter, "buffer_input_pipes: ");
-    for (const auto &[buf_id, input_pipe_id] : epoch_context.buffer_input_pipes) {
+    for (const auto& [buf_id, input_pipe_id] : epoch_context.buffer_input_pipes) {
         log_trace(tt::LogRouter, "\tpipe {} -> buf_id {} ", input_pipe_id, buf_id);
     }
     log_trace(tt::LogRouter, "buffer_output_pipes: ");
-    for (const auto &[buf_id, output_pipe_ids] : epoch_context.buffer_output_pipes) {
+    for (const auto& [buf_id, output_pipe_ids] : epoch_context.buffer_output_pipes) {
         log_trace(tt::LogRouter, "\tbuf_id {} -> pipes: ", buf_id);
         for (const auto p_id : output_pipe_ids) {
             log_trace(tt::LogRouter, "\t\t{}", p_id);
@@ -6078,7 +6060,7 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
 
 
     log_trace(tt::LogRouter, "AFTER ROUTER");
-    for (const auto &[id, buffer_info] : epoch_context.buffer_map) {
+    for (const auto& [id, buffer_info] : epoch_context.buffer_map) {
         log_trace(tt::LogRouter, "\t{}", id);
     }
 
@@ -6124,7 +6106,7 @@ uint64_t Net2Pipe::get_pad_buffer_id(const tt_op_info& op_info, temporal_epoch_c
     // If we already created the buffer, just return the ID
     if(epoch_context.pad_buffers_db.find(key) != epoch_context.pad_buffers_db.end()) {
         if( not (name_is_queue(input_name) and not epoch_context.queue_setting_map.at(input_name).prolog)) {
-            auto & buf = epoch_context.pad_buffers_db.at(key);
+            auto& buf = epoch_context.pad_buffers_db.at(key);
             buf.tiles_per_input += buf.scatter_gather_num_tiles;
         }
         return epoch_context.pad_buffers_db.at(key).uniqid;
@@ -6275,8 +6257,8 @@ void Net2Pipe::emit_padding_table() {
 
     YAML::Emitter out_yaml;
     out_yaml << YAML::BeginSeq;
-    for(const auto& [df, t]: this->dram_pad_addr_table) {
-        for(const auto& [pad_val, addr]: t) {
+    for (const auto& [df, t]: this->dram_pad_addr_table) {
+        for (const auto& [pad_val, addr]: t) {
             // TODO: if we start running out of space in the table, may need to do smarter per chip and channel allocations 
             // At best we can specialize to: {chip, channel, address, num_tiles, dataformat, value}
             out_yaml << YAML::BeginMap;
@@ -6313,12 +6295,12 @@ void Net2Pipe::build_padding_table() {
     size_t num_temporal_epochs = this->temporal_epoch_graph_exec_vars.size();
     // for all temporal epochs
     for (size_t temporal_epoch = 0; temporal_epoch < num_temporal_epochs; temporal_epoch++) {
-        const auto &graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
+        const auto& graph_exec_vars = this->temporal_epoch_graph_exec_vars.at(temporal_epoch);
         // for all graphs
-        for (const auto &graph_exec_var : graph_exec_vars) {
+        for (const auto& graph_exec_var : graph_exec_vars) {
             const tt_graph_info& graph_info = this->parsed_netlist.graph_map.at(graph_exec_var.instrn.graph_name);
             // for all ops
-            for (auto &[op_name, op_info]: graph_info.op_map) {
+            for (const auto& [op_name, op_info]: graph_info.op_map) {
                 // for all inputs
                 const int num_input_bufs = n2p::get_op_num_input_bufs(op_info);
                 for (int input_index = 0; input_index < num_input_bufs; input_index++) {
@@ -6342,21 +6324,21 @@ void Net2Pipe::build_padding_table() {
 void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op_info>& temporal_epoch_op_map, int epoch_id, const temporal_epoch_context& epoch_context, const n2p::DeterministicKeyMap& deterministic_id_map) const {
     std::unordered_map<std::string, std::map<int, std::unordered_map<tt_cxy_pair, std::set<router::unique_id_t>>>> consumer_to_pipe_id_map;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<tt_cxy_pair, std::set<router::unique_id_t>>>> producer_to_pipe_id_map;
-    for (auto &[pipe_unique_id, pipe] : epoch_context.pipes) {
+    for (const auto& [pipe_unique_id, pipe] : epoch_context.pipes) {
         const string consumer_name = pipe.consumer_name();
         auto& consumer_map = consumer_to_pipe_id_map[consumer_name][pipe.consumer_input_index()];
         if(pipe.has_consumer()) {
         
             if(pipe.is_scatter()) {
-                for(auto& buffer_ids: pipe.time_multiplexed_output_buffer_ids()) {
-                    for(auto& buffer_id: buffer_ids) {
+                for (const auto& buffer_ids: pipe.time_multiplexed_output_buffer_ids()) {
+                    for (const auto& buffer_id: buffer_ids) {
                         const auto& buffer = epoch_context.buffer_map.at(buffer_id);
                         consumer_map[buffer.core_location()].insert(pipe_unique_id);
                     }
                 }
             }
             else {
-                for(auto& buffer_id: pipe.output_buffer_ids()) {
+                for (const auto& buffer_id: pipe.output_buffer_ids()) {
                     auto& buffer = epoch_context.buffer_map.at(buffer_id);
                     consumer_map[buffer.core_location()].insert(pipe_unique_id);
                 }
@@ -6378,24 +6360,24 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
             //fmt::print("ERROR? name not queue or op: {}\n", consumer_name);
         }
 
-        for(auto& buffer_id: pipe.input_buffer_ids) {
+        for (const auto& buffer_id: pipe.input_buffer_ids) {
             auto& buffer = epoch_context.buffer_map.at(buffer_id);
             producer_to_pipe_id_map[input_name][consumer_name][buffer.core_location()].insert(pipe_unique_id);
         }
     }
 #if 0
-    for(auto& [consumer_name, operand_map]: consumer_to_pipe_id_map) {
+    for (const auto& [consumer_name, operand_map]: consumer_to_pipe_id_map) {
         if(name_is_queue(consumer_name)) {
             continue;
         }
         const tt_op_info& op_info = temporal_epoch_op_map.at(consumer_name);
         std::cout << "op_name: " << consumer_name << "\n";
-        for(auto& [operand_id, output_location]: operand_map) {
+        for (const auto& [operand_id, output_location]: operand_map) {
             std::string input_name = op_info.input_names.at(operand_id);
             fmt::print("\toperand {}: \"{}\"\n", operand_id, input_name);
-            for(auto& [location, pipes]: output_location) {
+            for (const auto& [location, pipes]: output_location) {
                 fmt::print("\t\tpipes to: ({}, {}, {}): ", location.chip, location.y, location.x);
-                for(auto& pipe_id: pipes) {
+                for (const auto& pipe_id: pipes) {
                     std::cout << pipe_id << ", ";
                 }
                 std::cout  << "\n";
@@ -6403,7 +6385,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
         } 
     }
 
-    for(auto& [queue_name, queue_info]: this->parsed_netlist.queue_map) {
+    for (const auto& [queue_name, queue_info]: this->parsed_netlist.queue_map) {
         if (netlist_parser::is_queue_fed_by_op(queue_info)
             and temporal_epoch_op_map.find(queue_info.input) != temporal_epoch_op_map.end()
         ) {
@@ -6411,24 +6393,24 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
         }
     }
 
-    for(auto& [op_name, op_info]: temporal_epoch_op_map) {
+    for (const auto& [op_name, op_info]: temporal_epoch_op_map) {
         std::cout << "op_name: " << op_name << "\n";
-        for(auto& [operand_id, output_location]: consumer_to_pipe_id_map.at(op_name)) {
+        for (const auto& [operand_id, output_location]: consumer_to_pipe_id_map.at(op_name)) {
             std::string input_name = op_info.input_names.at(operand_id);
             fmt::print("\toperand {}: {} ({})\n", operand_id, input_name, name_is_queue(input_name) ? "queue" : name_is_op(input_name) ? "op" : "error");
-            for(auto& [location, pipes]: output_location) {
+            for (const auto& [location, pipes]: output_location) {
                 fmt::print("\t\tpipes to: ({}, {}, {}): ", location.chip, location.y, location.x);
-                for(auto& pipe_id: pipes) {
+                for (const auto& pipe_id: pipes) {
                     std::cout << pipe_id << ", ";
                 }
                 std::cout  << "\n";
             }
         }
-        for(auto& [output_name, pipe_input_locations]: producer_to_pipe_id_map.at(op_name)) {
+        for (const auto& [output_name, pipe_input_locations]: producer_to_pipe_id_map.at(op_name)) {
             fmt::print("\toutput: {} ({})\n", output_name, name_is_queue(output_name) ? "queue" : name_is_op(output_name) ? "op" : "error");
-            for(auto& [location, pipes]: pipe_input_locations) {
+            for (const auto& [location, pipes]: pipe_input_locations) {
                 fmt::print("\t\tpipes from: ({}, {}, {}): ", location.chip, location.y, location.x);
-                for(auto& pipe_id: pipes) {
+                for (const auto& pipe_id: pipes) {
                     std::cout << pipe_id << ", ";
                 }
                 std::cout  << "\n";
@@ -6449,7 +6431,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
     out_yaml << YAML::Key << "ops";
     out_yaml << YAML::Value;
     out_yaml << YAML::BeginMap; // op map
-    for(auto& [op_name, op_info]: temporal_epoch_op_map) {
+    for (const auto& [op_name, op_info]: temporal_epoch_op_map) {
         out_yaml << YAML::Key << op_name;
         out_yaml << YAML::Value;
         out_yaml << YAML::BeginMap; // op detail     
@@ -6458,7 +6440,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
         out_yaml << YAML::BeginSeq; // operands
         if(consumer_to_pipe_id_map.find(op_name) != consumer_to_pipe_id_map.end()) {
             int operand_count = 0;
-            for(auto& [operand_id, output_location]: consumer_to_pipe_id_map.at(op_name)) {
+            for (const auto& [operand_id, output_location]: consumer_to_pipe_id_map.at(op_name)) {
                 std::string input_name = op_info.input_names.at(operand_id);
                 if (operand_count < operand_id) {
                     log_warning(tt::LogNet2Pipe, "Incomplete operand map for OP : {} ", op_name);
@@ -6475,12 +6457,12 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
                 out_yaml << YAML::Key << "pipes";
                 out_yaml << YAML::Value;
                 out_yaml << YAML::BeginMap; // pipe locations
-                for(auto& [location, pipes]: output_location) {
+                for (const auto& [location, pipes]: output_location) {
                     std::string loc_str = fmt::format("{}-{}-{}", location.chip, location.y, location.x);
                     out_yaml << YAML::Key << loc_str;
                     out_yaml << YAML::Value;
                     out_yaml << YAML::BeginSeq; // pipe ids
-                    for(auto& pipe_id: pipes) {
+                    for (const auto& pipe_id: pipes) {
                         out_yaml << deterministic_id_map.get_deterministic_key(pipe_id);
                     }
                     out_yaml << YAML::EndSeq; // pipe ids
@@ -6495,7 +6477,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
         out_yaml << YAML::Value;
         out_yaml << YAML::BeginSeq; // outputs
         if(producer_to_pipe_id_map.find(op_name) != producer_to_pipe_id_map.end()) {
-            for(auto& [output_name, pipe_input_locations]: producer_to_pipe_id_map.at(op_name)) {
+            for (const auto& [output_name, pipe_input_locations]: producer_to_pipe_id_map.at(op_name)) {
                 //fmt::print("\toutput: {} ({})\n", output_name, name_is_queue(output_name) ? "queue" : name_is_op(output_name) ? "op" : "error");
                 std::string type = name_is_queue(output_name) ? "queue" : name_is_op(output_name, epoch_context) ? "op" : "error";
                 out_yaml << YAML::BeginMap; // output detail
@@ -6507,13 +6489,13 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
                 out_yaml << YAML::Value;
                 out_yaml << YAML::BeginMap; // pipe locations
 
-                for(auto& [location, pipes]: pipe_input_locations) {
+                for (const auto& [location, pipes]: pipe_input_locations) {
                     //fmt::print("\t\tpipes from: ({}, {}, {}): ", location.chip, location.y, location.x);
                     std::string loc_str = fmt::format("{}-{}-{}", location.chip, location.y, location.x);
                     out_yaml << YAML::Key << loc_str;
                     out_yaml << YAML::Value;
                     out_yaml << YAML::BeginSeq; // pipe ids
-                    for(auto& pipe_id: pipes) {
+                    for (const auto& pipe_id: pipes) {
                         out_yaml << deterministic_id_map.get_deterministic_key(pipe_id);
                     }
                     out_yaml << YAML::EndSeq; // pipe ids
@@ -6543,7 +6525,7 @@ uint32_t Net2Pipe::get_dram_pad_addr(DataFormat df, float pad_val) const {
 }
 
 void Net2Pipe::emit_padding_buffers(YAML::Emitter &out, const temporal_epoch_context& epoch_context, const n2p::DeterministicKeyMap& deterministic_id_map) const {
-    for(const auto& [key, buf]: epoch_context.pad_buffers_db) {
+    for (const auto& [key, buf]: epoch_context.pad_buffers_db) {
 
         out << YAML::BeginMap;
         out << YAML::Key << ("buffer_" + std::to_string(deterministic_id_map.get_deterministic_key(buf.uniqid)));
