@@ -9,7 +9,13 @@ from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import pygraphviz_layout
-from pipegen_yaml_filter_utils import BufferNode, GraphNode, PipeGraph, PipeNode
+
+from verif.common.pipegen_yaml_filter_utils import (
+    BufferNode,
+    GraphNode,
+    PipeGraph,
+    PipeNode,
+)
 
 
 class PipegenYamlVisualizer:

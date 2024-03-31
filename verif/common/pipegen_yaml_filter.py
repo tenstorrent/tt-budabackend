@@ -7,7 +7,7 @@ Filters pipegen yaml for specific type of pipes and buffers.
 """
 from __future__ import annotations
 
-from pipegen_yaml_filter_utils import *
+from verif.common.pipegen_yaml_filter_utils import *
 
 
 class FilterType(IntEnum):

@@ -13,7 +13,7 @@ import threading
 
 import yaml
 
-LOGGER_NAME = "pipegen_tests_logger"
+LOGGER_NAME = "common_tests_logger"
 logger = logging.getLogger(LOGGER_NAME)
 
 

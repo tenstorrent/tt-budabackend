@@ -22,9 +22,12 @@ from verif.common.runner_utils import (
 from verif.common.test_utils import (
     DeviceArchs,
     find_all_files_in_dir,
+    get_logger,
     get_netlist_arch,
     get_netlist_name,
 )
+
+logger = get_logger(__name__)
 
 NET2PIPE_BIN_NAME = "net2pipe"
 
@@ -112,9 +115,11 @@ def generate_net2pipe_outputs(
 
     if os.path.exists(net2pipe_out_dir) and not overwrite:
         # Optimization to reuse generated net2pipe outputs.
-        print(f"Skipping net2pipe workers, outputs already exist at {net2pipe_out_dir}")
+        logger.warning(
+            f"Skipping net2pipe workers, outputs already exist at {net2pipe_out_dir}"
+        )
         return
-    print("Running net2pipe workers")
+    logger.info("Running net2pipe workers")
 
     verify_builds_dir(builds_all_archs_dir)
 
@@ -147,7 +152,7 @@ def generate_net2pipe_outputs(
     if num_samples >= 0:
         random.shuffle(all_worker_args)
         all_worker_args = all_worker_args[:num_samples]
-        print(f"Choosing randomized {num_samples} netlists to run net2pipe on.")
+        logger.info(f"Choosing randomized {num_samples} netlists to run net2pipe on.")
 
     execute_in_parallel(
         _run_net2pipe_worker,

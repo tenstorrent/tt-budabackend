@@ -10,16 +10,10 @@ import multiprocessing as mp
 import os
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime
 from itertools import repeat
 from subprocess import TimeoutExpired
 
-from verif.common.test_utils import (
-    DeviceArchs,
-    get_logger,
-    print_success,
-    print_warning,
-)
+from verif.common.test_utils import DeviceArchs, get_logger
 
 DEFAULT_BIN_DIR_NAME = "bin"
 DEFAULT_TOP_LEVEL_BUILD_DIR = "./build"
@@ -141,6 +135,8 @@ def write_cmd_logs_to_file(command_error_pair: list[WorkerResult], log_path: str
 def execute_in_parallel(
     func,
     args,
+    initializer_func: function = None,
+    initializer_var: mp.Value = None,
     serialize_for_debug: bool = False,
     log_file: str = None,
 ):
@@ -152,6 +148,10 @@ def execute_in_parallel(
         Function to execute in parallel.
     args: list
         List of arguments to pass to the function.
+    initializer_func: Optional[function]
+        If functions use a shared variable which they need an initializer for, the initializer should be passed through this argument.
+    initializer_var: Optional[mp.Value]
+        If functions use a shared variable, it should be passed through this argument.
     serialize_for_debug: bool
         If this is set to True, the function will be executed serially in the main thread, and not in parallel.
         This can be used for easier debugging of worker functions.
@@ -163,29 +163,31 @@ def execute_in_parallel(
     if not serialize_for_debug:
         with mp.Pool(
             initializer=__init_parallel_run_sync_var,
-            initargs=(run_count_sync_var,),
+            initargs=(run_count_sync_var, initializer_func, initializer_var),
         ) as pool:
             results = pool.starmap(
                 __single_worker_with_logging,
                 zip(repeat(func), args, repeat(total_run_count)),
             )
     else:
-        __init_parallel_run_sync_var(run_count_sync_var)
+        __init_parallel_run_sync_var(
+            run_count_sync_var, initializer_func, initializer_var
+        )
         results = []
         for arg in args:
             results.append(__single_worker_with_logging(func, arg, total_run_count))
 
-    print(f"Completed all {func.__name__}.")
+    logger.info(f"Completed all {func.__name__}.")
     if len(results) > 0 and isinstance(results[0], WorkerResult):
         if log_file is not None:
             write_cmd_logs_to_file(results, log_file)
-            print(f"Command logs and errors written to {log_file}.")
+            logger.info(f"Command logs and errors written to {log_file}.")
         if any(result.error_code > 0 for result in results):
-            print_warning(
+            logger.warning(
                 f"Failed for {len([result for result in results if result.error_code != 0])}/{len(results)}."
             )
         else:
-            print_success(f"Failed for 0/{len(results)}.")
+            logger.info(f"Failed for 0/{len(results)}.")
 
     return results
 
@@ -206,9 +208,13 @@ def __single_worker_with_logging(worker_func, worker_args, total_run_count):
 
 def __init_parallel_run_sync_var(
     worker_run_count: mp.Value,
+    initializer_func: function = None,
+    initializer_var: mp.Value = None,
 ):
     global global_worker_run_count
     global_worker_run_count = worker_run_count
+    if initializer_func is not None and initializer_var is not None:
+        initializer_func(initializer_var)
 
 
 def __inc_parallel_run_sync_var():
@@ -235,6 +241,6 @@ def __log_running_progress(current_iter: int, total_iters: int, item_name: str):
         print_step = 10000
 
     if current_iter % print_step == 0 or current_iter == 1:
-        print(
-            f"{datetime.now()}: Finished running {item_name} on {current_iter} / {total_iters} items."
+        logger.info(
+            f"Finished running {item_name} on {current_iter} / {total_iters} items."
         )

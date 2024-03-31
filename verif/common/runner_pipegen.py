@@ -26,7 +26,10 @@ from verif.common.test_utils import (
     extract_arch_from_path,
     find_all_files_in_dir,
     get_epoch_from_filename,
+    get_logger,
 )
+
+logger = get_logger(__name__)
 
 PIPEGEN_BIN_NAME = "pipegen2"
 PIPEGEN_MASTER_BIN_NAME = "pipegen2_master"
@@ -175,9 +178,9 @@ def generate_pipegen_outputs(
     """
     if os.path.exists(pipegen_out_dir) and not overwrite:
         # Optimization to reuse generated pipegen outputs.
-        print(f"Skipping pipegen, outputs already exist at {pipegen_out_dir}")
+        logger.warning(f"Skipping pipegen, outputs already exist at {pipegen_out_dir}")
         return
-    print("Running pipegen workers")
+    logger.info("Running pipegen workers")
 
     worker_configs = []
 
@@ -219,7 +222,7 @@ def generate_pipegen_outputs(
 
     if num_samples >= 0:
         worker_configs = worker_configs[:num_samples]
-        print(f"Choosing first {num_samples} pipegen.yamls to run pipegen on.")
+        logger.info(f"Choosing first {num_samples} pipegen.yamls to run pipegen on.")
 
     execute_in_parallel(
         run_pipegen_worker, worker_configs, log_file=f"{pipegen_out_dir}/pipegen.log"

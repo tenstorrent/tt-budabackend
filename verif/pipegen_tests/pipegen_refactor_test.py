@@ -16,25 +16,22 @@ Example commands (from repo root):
         --out out --netlists out/netlists \
         --arch wormhole_b0 --builds-dir build_archs
     python3 verif/pipegen_tests/pipegen_refactor_test.py --command test \
-        --yamls out/filtered_yamls --out out/pipegen_refactor_test_output \
+        --yamls out/filtered_yamls/filtered_yamls_Nothing --out out/pipegen_refactor_test_output \
         --arch wormhole_b0 --builds-dir build_archs --pipegens-bin-dir build_archs/wormhole_b0/bin
 """
 from __future__ import annotations
 
 import argparse
-import multiprocessing as mp
 import os
 import shutil
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from itertools import repeat
-from typing import Optional
 
 from blob_comparator import BlobComparator, StreamGraphComparisonStrategy
-from pipegen_yaml_filter import *
 from ruamel.yaml import YAML
 
+from verif.common.pipegen_yaml_filter import FilterType
 from verif.common.runner_net2pipe import generate_net2pipe_outputs
 from verif.common.runner_pipegen import (
     PIPEGEN_BIN_NAME,
@@ -42,6 +39,7 @@ from verif.common.runner_pipegen import (
     PipegenWorkerConfig,
     run_pipegen_worker,
 )
+from verif.common.runner_pipegen_filter import filter_pipegen_yamls
 from verif.common.runner_utils import (
     DEFAULT_BIN_DIR,
     DEFAULT_TOP_LEVEL_BUILD_DIR,
@@ -49,9 +47,7 @@ from verif.common.runner_utils import (
 )
 from verif.common.test_utils import (
     DeviceArchs,
-    create_or_clean_dir,
     find_all_files_in_dir,
-    get_epoch_dir,
     get_epoch_from_filename,
     get_logger,
     setup_logger,
@@ -61,83 +57,7 @@ logger = get_logger(__name__)
 
 NET2PIPE_OUT_DIR_NAME = "net2pipe_out"
 FILTERED_YAMLS_OUT_DIR_NAME = "filtered_yamls"
-PIPEGEN_LOG_FILE_NAME = "pipegen.log"
 DEFAULT_SG_COMPARISON_STRATEGY = StreamGraphComparisonStrategy.edges.name
-
-
-@dataclass
-class PipegenYamlFilterWorkerConfig:
-    netlist_dir: str
-    filtered_netlist_dir: str
-    filter_type: FilterType
-    num_samples: int
-    total_netlist_count: int
-    arch_net2pipe_out_dir: str
-    arch: DeviceArchs
-
-
-filtered_netlists_count_sync: Optional[dict[DeviceArchs, mp.Value]] = None
-filtered_pipegen_yamls_count_sync: Optional[mp.Value] = None
-
-
-def init_global_sync_vars(
-    netlist_count: dict[DeviceArchs, mp.Value], pipegen_yamls_value: mp.Value
-):
-    global filtered_netlists_count_sync, filtered_pipegen_yamls_count_sync
-    filtered_netlists_count_sync = netlist_count
-    filtered_pipegen_yamls_count_sync = pipegen_yamls_value
-
-
-def filter_netlist_yamls(
-    netlist_dir: str,
-    filtered_netlist_dir: str,
-    filter_type: FilterType,
-    num_samples: int,
-) -> int:
-    with filtered_pipegen_yamls_count_sync.get_lock():
-        if num_samples > 0 and filtered_pipegen_yamls_count_sync.value >= num_samples:
-            return 0
-
-    os.mkdir(filtered_netlist_dir)
-
-    epoch_id = 0
-    epoch_dir = get_epoch_dir(netlist_dir, epoch_id)
-    num_processed = 0
-    while os.path.isdir(epoch_dir):
-        filtered = True
-        pipegen_yaml_path = os.path.join(epoch_dir, "pipegen.yaml")
-
-        # Check if pipegen.yaml exists, if not, skip this epoch.
-        if os.path.isfile(pipegen_yaml_path):
-            if filter_type == FilterType.Nothing:
-                os.system(
-                    f"cp {pipegen_yaml_path} {filtered_netlist_dir}/pipegen_{epoch_id}.yaml"
-                )
-            else:
-                filtered = filter_pipegen_yaml(
-                    f"{pipegen_yaml_path}",
-                    f"{filtered_netlist_dir}/pipegen_{epoch_id}.yaml",
-                    filter_type,
-                )
-        else:
-            filtered = False
-
-        epoch_id = epoch_id + 1
-        epoch_dir = get_epoch_dir(netlist_dir, epoch_id)
-        if filtered:
-            num_processed += 1
-            with filtered_pipegen_yamls_count_sync.get_lock():
-                filtered_pipegen_yamls_count_sync.value += 1
-                if (
-                    num_samples > 0
-                    and filtered_pipegen_yamls_count_sync.value >= num_samples
-                ):
-                    break
-
-    if not os.listdir(filtered_netlist_dir):
-        os.system(f"rm -rf {filtered_netlist_dir}")
-
-    return num_processed
 
 
 def find_pipegen_yamls(
@@ -199,29 +119,6 @@ def run_pipegens(
     )
 
 
-def run_filter_netlist_yamls_worker(
-    worker_config: PipegenYamlFilterWorkerConfig,
-) -> int:
-    num_processed = filter_netlist_yamls(
-        netlist_dir=worker_config.netlist_dir,
-        filtered_netlist_dir=worker_config.filtered_netlist_dir,
-        filter_type=worker_config.filter_type,
-        num_samples=worker_config.num_samples,
-    )
-
-    with filtered_netlists_count_sync[worker_config.arch].get_lock():
-        filtered_netlists_count_sync[worker_config.arch].value += 1
-        num_filtered_netlists = filtered_netlists_count_sync[worker_config.arch].value
-
-    if num_filtered_netlists > 0 and num_filtered_netlists % 100 == 0:
-        print(
-            f"Filtered {num_filtered_netlists}/{worker_config.total_netlist_count} netlists in "
-            f"{worker_config.arch_net2pipe_out_dir}"
-        )
-
-    return num_processed
-
-
 def filter_yamls(
     netlists_dir: str,
     filter_type: FilterType,
@@ -233,53 +130,12 @@ def filter_yamls(
     net2pipe_out_dir = os.path.join(out_dir, NET2PIPE_OUT_DIR_NAME)
     generate_net2pipe_outputs(netlists_dir, net2pipe_out_dir, builds_dir)
 
-    filtered_yamls_dir_per_arch = {}
-    for arch in DeviceArchs.get_all_archs():
-        filtered_yamls_dir = f"{out_dir}/{filtered_yamls_dir_name}/{arch}"
-        filtered_yamls_dir_per_arch[arch] = filtered_yamls_dir
-        create_or_clean_dir(filtered_yamls_dir)
-
-    worker_configs = []
-
-    for arch in DeviceArchs.get_all_archs():
-        net2pipe_arch_out_dir = os.path.join(net2pipe_out_dir, arch)
-        netlist_names = os.listdir(net2pipe_arch_out_dir)
-
-        for netlist_name in netlist_names:
-            netlist_dir = os.path.join(net2pipe_arch_out_dir, netlist_name)
-            if not os.path.isdir(netlist_dir):
-                continue
-            filtered_netlist_dir = f"{filtered_yamls_dir_per_arch[arch]}/{netlist_name}"
-            worker_configs.append(
-                PipegenYamlFilterWorkerConfig(
-                    netlist_dir=netlist_dir,
-                    filtered_netlist_dir=filtered_netlist_dir,
-                    filter_type=filter_type,
-                    num_samples=num_samples,
-                    total_netlist_count=len(netlist_names),
-                    arch_net2pipe_out_dir=net2pipe_arch_out_dir,
-                    arch=arch,
-                )
-            )
-
-    processed_netlist_sync = {
-        arch: mp.Value("i", 0) for arch in DeviceArchs.get_all_archs()
-    }
-    filtered_pipegen_yamls_sync = mp.Value("i", 0)
-    with mp.Pool(
-        initializer=init_global_sync_vars,
-        initargs=(processed_netlist_sync, filtered_pipegen_yamls_sync),
-    ) as pool:
-        num_processed = pool.map(run_filter_netlist_yamls_worker, worker_configs)
-
-    print()
-
-    num_processed = sum(num_processed)
-    if num_processed > 0:
-        print(f"Found {num_processed} pipegen yamls")
-    else:
-        print("No pipegen yamls found")
-    print()
+    filter_pipegen_yamls(
+        net2pipe_out_dir,
+        os.path.join(out_dir, filtered_yamls_dir_name),
+        filter_type,
+        num_samples,
+    )
 
 
 def compare_blob_yamls(
@@ -450,10 +306,6 @@ def compare_pipegens_on_yamls(
     results_dir = f"{out}/{timestamp}"
     os.makedirs(results_dir)
 
-    # Set up logger.
-    log_file_path = f"{results_dir}/{PIPEGEN_LOG_FILE_NAME}"
-    setup_logger(log_file_path=log_file_path)
-
     logger.info(
         f"Blob comparator is using: '{sg_comparison_strategy.name}' as the comparison strategy"
     )
@@ -551,6 +403,11 @@ if __name__ == "__main__":
     assert args.num_samples > 0 or args.num_samples == -1
 
     start_time = time.ctime()
+
+    # Set up logger.
+    os.makedirs(args.out, exist_ok=True)
+    log_file_path = f"{args.out}/pipegen_{args.command}.log"
+    setup_logger(log_file_path=log_file_path)
 
     # TODO switch prints to logger for filtering mode too.
     if args.command == "filter":

@@ -11,8 +11,8 @@ from pipegen_refactor_test import (
     compare_pipegens_on_yamls,
     filter_yamls,
 )
-from pipegen_yaml_filter import FilterType
 
+from verif.common.pipegen_yaml_filter import FilterType
 from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
 
 if __name__ == "__main__":
