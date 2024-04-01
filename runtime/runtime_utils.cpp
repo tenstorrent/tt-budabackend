@@ -788,17 +788,17 @@ void print_device_description(ofstream &outfile, const std::vector<int> &grid, c
 }
 
 std::unique_ptr<buda_soc_description> get_default_soc_desc(const tt::ARCH &arch) {
-    std::string default_soc_desc_name;
+    std::string default_soc_desc_name = buda_home();
 
     switch (arch) {
         case tt::ARCH::BLACKHOLE:
-            default_soc_desc_name = "device/blackhole_80_arch.yaml"; break;
+            default_soc_desc_name += "device/blackhole_80_arch.yaml"; break;
         case tt::ARCH::WORMHOLE:
-            default_soc_desc_name = "device/wormhole_8x10.yaml"; break;
+            default_soc_desc_name += "device/wormhole_8x10.yaml"; break;
         case tt::ARCH::WORMHOLE_B0:
-            default_soc_desc_name = "device/wormhole_b0_8x10.yaml"; break;
+            default_soc_desc_name += "device/wormhole_b0_8x10.yaml"; break;
         case tt::ARCH::GRAYSKULL:
-            default_soc_desc_name = "device/grayskull_10x12.yaml"; break;
+            default_soc_desc_name += "device/grayskull_10x12.yaml"; break;
         default:
             log_fatal("Invalid arch name");
     }
