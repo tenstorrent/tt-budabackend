@@ -463,6 +463,9 @@ namespace pipegen2
         configure_dram_or_pcie_receiving_stream(
             dram_receiving_stream, std::move(ncrisc_configs), pipe, dram_input_node, data_flow_info,
             max_num_tiles_per_phase);
+
+        check_dram_input_buffer_size_constraints(dram_receiving_stream, get_unpacker_output_node(pipe), 
+                                                 max_dram_input_buffer_size_tiles, dram_input_node->get_tile_size());
     }
 
     void DramReadCommonStreamsCreator::configure_pcie_receiving_stream(
@@ -718,6 +721,41 @@ namespace pipegen2
                                                     num_iterations_in_epoch, max_num_tiles_per_phase);
 
         return unpacker_stream;
+    }
+
+    void DramReadCommonStreamsCreator::check_dram_input_buffer_size_constraints(
+        const StreamNode* stream_node, 
+        const UnpackerOutputNode* unpacker_node,
+        unsigned int max_dram_input_buffer_size_tiles,
+        unsigned int dram_input_node_tile_size_bytes)
+    {
+        if (max_dram_input_buffer_size_tiles == 0)
+        {
+            return;
+        }
+
+        unsigned int stream_node_buf_size_tiles = stream_node->get_base_config().get_buffer_size().value() /
+                                                  dram_input_node_tile_size_bytes;
+
+        if (stream_node->get_stream_type() == StreamType::Relay)
+        {
+            log_assert(stream_node_buf_size_tiles <= max_dram_input_buffer_size_tiles,
+                       "DRAM relay input stream {} allocates a buffer of {} tiles, which is bigger than "
+                       "the limit of {} tiles", stream_node->get_stream_id(),
+                       stream_node_buf_size_tiles, max_dram_input_buffer_size_tiles);
+        }
+        else if (stream_node->get_stream_type() == StreamType::Unpacker)
+        {
+            unsigned int unpacker_node_buf_size_tiles = unpacker_node->get_size_tiles();
+            unsigned int max_buf_size_tiles = std::max(max_dram_input_buffer_size_tiles,
+                                                       unpacker_node_buf_size_tiles);
+            
+            log_assert(stream_node_buf_size_tiles <= max_buf_size_tiles,
+                       "DRAM unpacker input stream {} allocates a buffer of {} tiles, which is bigger than both "
+                       "the unpacker buffer size in tiles {} and PyBuda limit of {} tiles",
+                       stream_node->get_stream_id(), stream_node_buf_size_tiles, unpacker_node_buf_size_tiles,
+                       max_dram_input_buffer_size_tiles);
+        }
     }
 
 }

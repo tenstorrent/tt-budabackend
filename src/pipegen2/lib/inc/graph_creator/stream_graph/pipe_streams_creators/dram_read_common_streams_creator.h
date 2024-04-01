@@ -228,6 +228,13 @@ namespace pipegen2
             const DataFlowInfo& data_flow_info,
             std::vector<NcriscConfig>&& ncrisc_configs);
 
+        // Checks whether DRAM input stream buffer fulfills constraints by input_dram_io_buf_size_tiles.
+        void check_dram_input_buffer_size_constraints(
+            const StreamNode* stream_node, 
+            const UnpackerOutputNode* unpacker_node,
+            unsigned int max_dram_input_buffer_size_tiles,
+            unsigned int dram_input_node_tile_size_bytes);
+
         // Stream creator to use for creating streams.
         StreamCreator* m_stream_creator;
     };
