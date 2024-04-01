@@ -499,7 +499,12 @@ namespace pipegen2
         }
         else
         {
-            chunk_size = std::min(phase_tiles, rg_pipe->get_num_tiles_to_transfer(data_flow_info));
+            const unsigned int tiles_to_transfer = rg_pipe->get_num_tiles_to_transfer(data_flow_info);
+            
+            // If number of tiles to transfer by this pipe exceeds max num tiles per phase, then we need to ensure
+            // that the chunk sizes divides both max tiles per phase and the tiles per input, otherwise we might end up
+            // with a hang (if it turns out that the chunk size doesn't divide tiles per input).
+            chunk_size = tiles_to_transfer > phase_tiles ? std::gcd(phase_tiles, tiles_to_transfer) : tiles_to_transfer;
             min_chunk_size = rg_pipe->get_min_num_tiles_to_transfer(data_flow_info);
         }
 
