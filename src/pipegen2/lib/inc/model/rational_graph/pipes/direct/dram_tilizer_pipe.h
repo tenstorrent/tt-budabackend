@@ -32,7 +32,7 @@ namespace pipegen2
         const DramEmbeddingTableInputNode* get_embedding_table() const;
 
         // Returns the minimum number of tiles to transfer in one chunk.
-        int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
+        unsigned int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
 
         unsigned int get_tilize_row_col_offset() const { return m_tilize_row_col_offset; }
 

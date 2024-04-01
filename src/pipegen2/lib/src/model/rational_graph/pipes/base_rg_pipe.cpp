@@ -176,9 +176,9 @@ namespace pipegen2
         return offsets;
     }
 
-    int RGBasePipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
+    unsigned int RGBasePipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
     {
-        int min_num_tiles_to_transfer = 0;
+        unsigned int min_num_tiles_to_transfer = 0;
 
         for (const PipeInput& pipe_input : get_inputs())
         {
@@ -189,7 +189,7 @@ namespace pipegen2
         return min_num_tiles_to_transfer;
     }
 
-    int RGBasePipe::get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
+    unsigned int RGBasePipe::get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
     {
         return data_flow_info.get_tiles_to_send(m_output_nodes[0]);
     }

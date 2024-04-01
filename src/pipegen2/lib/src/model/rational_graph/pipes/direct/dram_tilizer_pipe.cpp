@@ -19,7 +19,7 @@ namespace pipegen2
         return dram_embedding_table;
     }
 
-    int DramTilizerPipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
+    unsigned int DramTilizerPipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
     {
         const DramEmbeddingTableInputNode* dram_embedding_table = get_embedding_table();
 

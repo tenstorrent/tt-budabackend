@@ -148,11 +148,6 @@ namespace pipegen2
                                                           const DramInputNode* dram_input_node,
                                                           const unsigned int max_dram_input_buffer_size_tiles);
 
-        // Calculates GCD of all non-virtual buffers that are downstream of the given pipe.
-        void get_clear_granularity_of_downstream_buffers(const RGBasePipe* rg_pipe,
-                                                         const RGBaseNode* rg_node,
-                                                         unsigned int* clear_granularity);
-
         // Calculates max bytes which can be transferred in a single dram read NOC transaction.
         unsigned int get_dram_read_max_transfer_size_bytes(const unsigned int dram_input_node_tile_size,
                                                            const unsigned int max_dram_input_buffer_size_tiles);

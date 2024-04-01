@@ -183,6 +183,7 @@ namespace pipegen2
         // between unpacker's and root buffers.
         void scale_up_dram_receiving_stream(StreamNode* stream,
                                             const RGBasePipe* pipe,
+                                            const DataFlowInfo& data_flow_info,
                                             unsigned int max_num_tiles_per_phase,
                                             unsigned int dram_input_node_tile_size_bytes,
                                             unsigned int max_dram_input_buffer_size_tiles);

@@ -156,8 +156,17 @@ namespace pipegen2
         // the unpacker.
         const unsigned int dram_read_chunk_size = base_ncrisc_config.dram_buf_read_chunk_size_tiles.value() *
                                                   base_ncrisc_config.msg_size;
-        const unsigned int unpacker_buffer_size = unpacker_node->get_tile_size() * unpacker_node->get_size_tiles();
-        return std::lcm(dram_read_chunk_size, unpacker_buffer_size);
+
+        const unsigned int unpacker_clearing_size = unpacker_node->get_transfer_granularity() * 
+                                                    unpacker_node->get_tile_size();
+
+        const unsigned int full_unpacker_buffer_size = unpacker_node->get_tile_size() * unpacker_node->get_size_tiles();
+
+        const unsigned int base_merged_buffer_size = std::lcm(dram_read_chunk_size, unpacker_clearing_size);
+
+        // Select the minimal buffer size which is greater than or equal to the full unpacker buffer size, which is
+        // divisible by both the dram read chunk size and the unpacker clearing granularity.
+        return std::ceil(1.0 * full_unpacker_buffer_size / base_merged_buffer_size) * base_merged_buffer_size;
     }
 
     unsigned int StreamCreator::calculate_pipe_reduce_mem_usage_threshold(unsigned int max_dram_input_buffer_size_tiles,

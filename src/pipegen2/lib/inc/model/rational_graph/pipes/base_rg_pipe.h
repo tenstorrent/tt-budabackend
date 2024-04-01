@@ -287,10 +287,10 @@ namespace pipegen2
         std::vector<unsigned int> get_input_node_offsets(const RGBaseNode* input_node) const;
 
         // Returns the least possible number of tiles to transfer in one chunk of input data.
-        virtual int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const;
+        virtual unsigned int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const;
 
         // Returns total number of tiles to transfer that is accumulated from all inputs.
-        virtual int get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const;
+        virtual unsigned int get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const;
 
         // Gets the first dram input node of a RG pipe.
         const DramInputNode* get_first_dram_input_node() const;

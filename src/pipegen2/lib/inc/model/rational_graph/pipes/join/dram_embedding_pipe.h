@@ -42,12 +42,12 @@ namespace pipegen2
 
         // Returns the minimum number of tiles to transfer in one chunk. It is derived from the number of embedding
         // indices per input.
-        int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
+        unsigned int get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
 
         // Returns the greatest possible number of tiles to transfer that is divisible by the number of embedding
         // indices per input. Also, if the number of embedding input indices per input is greater than the number of
         // embedding indices per tile, then returns the GCD of the two numbers.
-        int get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
+        unsigned int get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const override;
 
     private:
         // Pipe inputs without the embedding index input.

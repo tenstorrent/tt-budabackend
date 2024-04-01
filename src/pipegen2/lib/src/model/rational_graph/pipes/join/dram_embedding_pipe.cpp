@@ -62,7 +62,7 @@ namespace pipegen2
         return m_inputs_without_embedding_index;
     }
 
-    int DramEmbeddingPipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
+    unsigned int DramEmbeddingPipe::get_min_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
     {
         const DramEmbeddingIndexInputNode* embedding_index = get_embedding_index();
         const unsigned int embedding_indices_per_input = embedding_index->get_embedding_indices_per_input();
@@ -73,7 +73,7 @@ namespace pipegen2
         return embedding_indices_per_input < tile_dim_r ? 1 : tile_dim_r;
     }
 
-    int DramEmbeddingPipe::get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
+    unsigned int DramEmbeddingPipe::get_num_tiles_to_transfer(const DataFlowInfo& data_flow_info) const
     {
         const DramEmbeddingIndexInputNode* embedding_index = get_embedding_index();
         const unsigned int embedding_indices_per_input = embedding_index->get_embedding_indices_per_input();
