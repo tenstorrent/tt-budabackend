@@ -148,6 +148,11 @@ namespace pipegen2
                                                           const DramInputNode* dram_input_node,
                                                           const unsigned int max_dram_input_buffer_size_tiles);
 
+        // Calculates max chunk of data a pipe can read from dram at a time.
+        unsigned int calculate_max_chunk_size_for_pipe(const RGBasePipe* rg_pipe,
+                                                       const DataFlowInfo& data_flow_info,
+                                                       const unsigned int max_num_tiles_per_phase);
+
         // Calculates max bytes which can be transferred in a single dram read NOC transaction.
         unsigned int get_dram_read_max_transfer_size_bytes(const unsigned int dram_input_node_tile_size,
                                                            const unsigned int max_dram_input_buffer_size_tiles);

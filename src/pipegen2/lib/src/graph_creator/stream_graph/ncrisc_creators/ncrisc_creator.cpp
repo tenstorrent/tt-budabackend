@@ -472,7 +472,7 @@ namespace pipegen2
         const unsigned int phase_tiles = data_flow_info.get_max_num_tiles_per_phase(dram_input_node);
         const RGBasePipe* rg_pipe = dram_input_node->get_output_pipe();
 
-        unsigned int chunk_size;
+        std::optional<unsigned int> chunk_size;
         unsigned int min_chunk_size = std::numeric_limits<unsigned int>::max();
 
         const DramParallelForkPipe* dram_fork_pipe = dynamic_cast<const DramParallelForkPipe*>(rg_pipe);
@@ -487,39 +487,49 @@ namespace pipegen2
             const std::vector<const RGBaseNode*>& fork_virtual_nodes = dram_fork_pipe->get_output_nodes();
             log_assert(fork_virtual_nodes.size() > 0, "Expecting at least one output fork virtual node.");
 
-            chunk_size = std::min(
-                phase_tiles, fork_virtual_nodes.at(0)->get_output_pipe()->get_num_tiles_to_transfer(data_flow_info));
-
-            for (const RGBaseNode* v_node : fork_virtual_nodes)
+            for (unsigned int i = 0; i < fork_virtual_nodes.size(); ++i)
             {
-                const RGBasePipe* out_pipe = v_node->get_output_pipe();
-                chunk_size = std::gcd(chunk_size, out_pipe->get_num_tiles_to_transfer(data_flow_info));
+                const RGBasePipe* out_pipe = fork_virtual_nodes[i]->get_output_pipe();
+                const unsigned int chunk_size_per_fork = calculate_max_chunk_size_for_pipe(
+                    out_pipe, data_flow_info, phase_tiles);
+
+                chunk_size = std::gcd(chunk_size.value_or(chunk_size_per_fork), chunk_size_per_fork);
                 min_chunk_size = std::min(min_chunk_size, out_pipe->get_min_num_tiles_to_transfer(data_flow_info));
             }
         }
         else
         {
-            const unsigned int tiles_to_transfer = rg_pipe->get_num_tiles_to_transfer(data_flow_info);
-            
-            // If number of tiles to transfer by this pipe exceeds max num tiles per phase, then we need to ensure
-            // that the chunk sizes divides both max tiles per phase and the tiles per input, otherwise we might end up
-            // with a hang (if it turns out that the chunk size doesn't divide tiles per input).
-            chunk_size = tiles_to_transfer > phase_tiles ? std::gcd(phase_tiles, tiles_to_transfer) : tiles_to_transfer;
+            chunk_size = calculate_max_chunk_size_for_pipe(rg_pipe, data_flow_info, phase_tiles);
             min_chunk_size = rg_pipe->get_min_num_tiles_to_transfer(data_flow_info);
         }
 
-        chunk_size = std::lcm(chunk_size, min_chunk_size);
+        log_assert(chunk_size.has_value(), "Failed to compute valid read_chunk_size_tiles");
+
+        chunk_size = std::lcm(chunk_size.value(), min_chunk_size);
 
         const unsigned int tile_size = dram_input_node->get_tile_size();
         const unsigned int max_transfer_size_bytes =
             get_dram_read_max_transfer_size_bytes(tile_size, max_dram_input_buffer_size_tiles);
 
         chunk_size = get_transfer_chunk_size_tiles(
-            chunk_size, min_chunk_size, tile_size, constants::dram_input_stream_max_pending_read_tiles,
+            chunk_size.value(), min_chunk_size, tile_size, constants::dram_input_stream_max_pending_read_tiles,
             max_transfer_size_bytes);
-        log_assert(chunk_size > 0, "Failed to compute valid read_chunk_size_tiles");
+        log_assert(chunk_size.value() > 0, "Failed to compute valid read_chunk_size_tiles");
 
-        return chunk_size;
+        return chunk_size.value();
+    }
+
+    unsigned int NcriscCreator::calculate_max_chunk_size_for_pipe(const RGBasePipe* rg_pipe,
+                                                                  const DataFlowInfo& data_flow_info,
+                                                                  const unsigned int max_num_tiles_per_phase)
+    {
+        const unsigned int tiles_to_transfer = rg_pipe->get_num_tiles_to_transfer(data_flow_info);
+            
+        // If number of tiles to transfer by this pipe exceeds max num tiles per phase, then we need to ensure
+        // that the chunk sizes divides both max tiles per phase and the tiles per input, otherwise we might end up
+        // with a hang (if it turns out that the chunk size doesn't divide tiles per input).
+        return tiles_to_transfer > max_num_tiles_per_phase ? 
+               std::gcd(max_num_tiles_per_phase, tiles_to_transfer) : tiles_to_transfer;
     }
 
     unsigned int NcriscCreator::get_dram_read_max_transfer_size_bytes(const unsigned int dram_input_node_tile_size,
