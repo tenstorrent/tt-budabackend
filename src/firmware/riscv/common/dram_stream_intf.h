@@ -4,6 +4,7 @@
 #ifndef _DRAM_STREAM_INTF_H_
 #define _DRAM_STREAM_INTF_H_
 
+#include "dram_stream_intf_constants.h"
 #include "epoch.h"
 #include "stream_interface.h"
 #include "risc.h"
@@ -31,30 +32,6 @@
 // - up to 40 total active DRAM queues
 // - flags field has only bits [15:0] used
 
-#define MAX_DRAM_INPUT_STREAMS   8
-#define MAX_DRAM_OUTPUT_STREAMS  8
-#define MAX_L0_DRAM_Q_STATE_T    40
-#define MAX_PREFETCH_STREAMS     24
-
-#define DRAM_QUEUE_NO_EPOCH_CHECK 0
-#define DRAM_QUEUE_EPOCH_CHECK_EN 0x8000
-
-#define DRAM_STRIDE_UPDATE_WAIT 0x00008000
-#define DRAM_STRIDE_WRAP_BIT    0x00004000
-
-#define DRAM_IO_SCATTER_SKIP_TOKEN 0xFFE00000
-
-#define DRAM_STREAMING_SYNC_NUMBER 0xbad0f00d
-
-#define IS_DRAM_PADDING_SET    0x40000000
-
-#define DRAM_SCATTER_LIST_START_OFFSET 16
-#define DRAM_SCATTER_LIST_INVALID 0xFFFFFFFF
-#define DRAM_IO_IS_SCATTER_LOOP    0x80000000
-#define DRAM_IO_IS_SCATTER_LOOP_SIZE 2
-
-#define READ_WORDS_THRESH    750
-
 const uint32_t DRAM_BUF_RDPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_rdptr);
 const uint32_t DRAM_BUF_WRPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_wrptr);
 const uint32_t DRAM_BUF_LOCAL_RDPTR_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_dram_local_rdptr);
@@ -63,26 +40,6 @@ const uint32_t DRAM_BUF_STRIDE_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, 
 const uint32_t DRAM_BUF_QUEUE_UPDATE_STRIDE_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, rd_queue_update_stride);
 const uint32_t DRAM_BUF_STREAMING_TAG_OFFSET = offsetof(dram_io_state_t::dram_to_l1_t, dram_streaming_tag);
 const uint32_t DRAM_BUF_DATA_OFFSET = sizeof(dram_io_state_t::dram_to_l1_t);
-
-const uint32_t ZERO_GRAD_CHUNK_SIZE_BYTES = 512;
-const uint32_t LOG_ZERO_GRAD_CHUNK_SIZE_BYTES = 9;
-
-const uint32_t DRAM_HEADER_SIZE = 32; //  we are not utilizing eventual padded bytes [no need to copy these from/to dram]
-
-const uint32_t DRAM_PTR_UPDATE_PENDING_MASK = 0x8000;
-
-const uint32_t DRAM_PTR_UPDATE_MASK = (0x1 << 6) - 1;
-const uint32_t DRAM_MIN_ENTIRES_POLL = 0;
-
-const uint8_t NULL_STREAM = 0xFF;
-
-#define DRAM_Q_RAM (((uint32_t)0x1) << 0)
-#define DRAM_Q_INPUT_NOC_FLAG (((uint32_t)0x3) << 1)
-#define DRAM_Q_STREAMING_FLAG (((uint32_t)0x1) << 3)
-#define DRAM_Q_PTRS_LOADED_FLAG (((uint32_t)0x1) << 4)
-
-#define DRAM_Q_HEADER_ZERO_FLAG (((uint32_t)0x1) << 0)
-#define DRAM_Q_DECOUPLED_FLAG (((uint32_t)0x1) << 1)
 
 typedef struct quick_q_t { // Support for 2 entires only, cant support stream 0
   uint32_t entry_0;
@@ -266,12 +223,12 @@ typedef struct dram_output_stream_state_t {
 
 } dram_output_stream_state_t;
 
-
 // make sure all these fit into nrisc local mem:
-
-static_assert(sizeof(dram_input_stream_state_t) == (68 + EPOCH_MAX_OUTPUT_FORKS));
-static_assert(sizeof(dram_output_stream_state_t) == 96);
-static_assert(sizeof(dram_q_state_t) == 36);
+static_assert(
+  sizeof(dram_input_stream_state_t) == 
+  EXPECTED_DRAM_INPUT_STREAM_STATE_T_STRUCT_SIZE_WITHOUT_FORKS + EPOCH_MAX_OUTPUT_FORKS);
+static_assert(sizeof(dram_output_stream_state_t) == EXPECTED_DRAM_OUTPUT_STREAM_STATE_T_STRUCT_SIZE);
+static_assert(sizeof(dram_q_state_t) == EXPECTED_DRAM_Q_STATE_T_STRUCT_SIZE);
 
 // total local mem size = 4KB:
 //    stack = 1KB
@@ -280,7 +237,7 @@ static_assert(sizeof(dram_q_state_t) == 36);
 //    No usable bytes remain (ncrisc w/ perf dump)
 static_assert(((sizeof(dram_input_stream_state_t) * MAX_DRAM_INPUT_STREAMS) +
                (sizeof(dram_output_stream_state_t) * MAX_DRAM_OUTPUT_STREAMS) +
-               (sizeof(dram_q_state_t) * MAX_L0_DRAM_Q_STATE_T)) <= (2880));
+               (sizeof(dram_q_state_t) * MAX_L0_DRAM_Q_STATE_T)) <= MAX_NCRISC_STRUCTS_SIZE);
 
 #pragma pack(pop)
 
