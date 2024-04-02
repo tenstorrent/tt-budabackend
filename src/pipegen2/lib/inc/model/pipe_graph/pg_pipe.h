@@ -75,17 +75,17 @@ namespace pipegen2
 
         void set_ethernet_channel(int ethernet_channel) { m_ethernet_channel = ethernet_channel; }
 
-        int get_incoming_noc_id() const { return m_incoming_noc_id; }
+        NOC_ROUTE get_incoming_noc_id() const { return m_incoming_noc_id; }
 
-        void set_incoming_noc_id(int incoming_noc_id) { m_incoming_noc_id = incoming_noc_id; }
+        void set_incoming_noc_id(NOC_ROUTE incoming_noc_id) { m_incoming_noc_id = incoming_noc_id; }
 
         int get_incoming_noc_vc() const { return m_incoming_noc_vc; }
 
         void set_incoming_noc_vc(int incoming_noc_vc) { m_incoming_noc_vc = incoming_noc_vc; }
 
-        int get_outgoing_noc_id() const { return m_outgoing_noc_id; }
+        NOC_ROUTE get_outgoing_noc_id() const { return m_outgoing_noc_id; }
 
-        void set_outgoing_noc_id(int outgoing_noc_id) { m_outgoing_noc_id = outgoing_noc_id; }
+        void set_outgoing_noc_id(NOC_ROUTE outgoing_noc_id) { m_outgoing_noc_id = outgoing_noc_id; }
 
         int get_outgoing_noc_vc() const { return m_outgoing_noc_vc; }
 
@@ -293,13 +293,13 @@ namespace pipegen2
         int m_ethernet_channel;
 
         // ID of the NOC used to receive data.
-        int m_incoming_noc_id;
+        NOC_ROUTE m_incoming_noc_id;
 
         // Virtual channel of the NOC used to receive data.
         int m_incoming_noc_vc;
 
         // ID of the NOC used to send data.
-        int m_outgoing_noc_id;
+        NOC_ROUTE m_outgoing_noc_id;
 
         // Virtual channel of the NOC used to send data.
         int m_outgoing_noc_vc;

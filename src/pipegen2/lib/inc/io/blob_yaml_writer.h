@@ -92,6 +92,9 @@ namespace pipegen2
         // Returns string representation of a given boolean value.
         static std::string get_string(bool value);
 
+        // Returns string representation of noc route.
+        static std::string get_string(NOC_ROUTE value);
+
         // Overloaded function to return string from string argument. It does nothing smart, but it is needed to
         // compile.
         static std::string get_string(const std::string& value);

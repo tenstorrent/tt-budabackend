@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 namespace pipegen2
 {
@@ -29,5 +30,11 @@ namespace pipegen2
         // POST_TM are prologue buffers where the TM is applied first and then saved in L1.
         // This is done because it can improve the bandwidth utilization when sending this to the unpacker.
         POST_TM
+    };
+
+    enum class NOC_ROUTE: unsigned int {
+        NOC0 = 0,
+        NOC1 = 1,
+        INVALID = std::numeric_limits<unsigned int>::max()
     };
 }

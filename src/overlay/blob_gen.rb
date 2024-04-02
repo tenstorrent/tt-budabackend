@@ -1079,58 +1079,6 @@ phase_info.each do |yx_label, streams|
   end
 end
 
-# Secondary process graph that depends on data discovered in first processing
-phase_info.each do |yx_label, streams|
-  chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
-  streams.each do |stream_id, phases|
-    phase_nums = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id]
-    num_phases = $tt_sorted_phases[graph_name][:"chip_#{chip_id}__y_#{y}__x_#{x}"][stream_id].length
-    for p in 0..(num_phases-1) do
-      phase = phase_nums[p]
-		  if (phases[phase])
-		    # Set the remaining nocs that will be used
-		    if (phases[phase][:source_endpoint] && !phases[phase][:eth_receiver])
-			    if (!phases[phase][:incoming_data_noc])
-			      phases[phase][:incoming_data_noc] = 0
-			    end
-			    phases[phase][:remote_src_update_noc] = 1-phases[phase][:incoming_data_noc]
-		    elsif (phases[phase][:remote_source] || phases[phase][:local_sources_connected] || (phases[phase][:source_endpoint] && phases[phase][:eth_receiver]))
-			    chosen_noc = nil
-          phases[phase][:src].each do |src|
-			      other_chip, other_y, other_x, other_stream_id = ParseStreamString(src.to_s)
-			      if (chosen_noc == nil)
-				      chosen_noc = phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:outgoing_data_noc]
-			      end
-			      phase_info[:"chip_#{other_chip}__y_#{other_y}__x_#{other_x}"][other_stream_id][phase][:outgoing_data_noc] = chosen_noc
-			      phases[phase][:incoming_data_noc] = chosen_noc
-			      phases[phase][:remote_src_update_noc] = phases[phase][:incoming_data_noc] == 0 ? 1 : 0
-			    end
-
-          if (phases[phase][:remote_source] || (phases[phase][:source_endpoint] && phases[phase][:eth_receiver]))
-            prev_phase, dontcare = GetPrevPhase(phase_info, phase_nums, num_phases, phase, chip_id, x, y, stream_id)
-            if (prev_phase != nil && !phases[prev_phase][:next_phase_src_change])
-              while (prev_phase != nil) do
-                prev_prev_phase, dontcare = GetPrevPhase(phase_info, phase_nums, num_phases, prev_phase, chip_id, x, y, stream_id)
-                if (prev_prev_phase == nil || phases[prev_prev_phase][:next_phase_src_change] || phases[prev_phase][:npsc_opt_processed])
-                  phases[phase][:incoming_data_noc] = phases[prev_phase][:incoming_data_noc]
-                  phases[phase][:remote_src_update_noc] = phases[prev_phase][:remote_src_update_noc]
-                  phases[phase][:remote_src_is_mcast] = phases[prev_phase][:remote_src_is_mcast]
-                  phases[phase][:data_buf_no_flow_ctrl] = phases[prev_phase][:data_buf_no_flow_ctrl]
-                  phases[phase][:src] = phases[prev_phase][:src]
-                  phases[phase][:src_dest_index] = phases[prev_phase][:src_dest_index]
-                  phases[phase][:npsc_opt_processed] = true
-                  break
-                end
-                prev_phase = prev_prev_phase
-              end
-            end
-          end
-		    end
-		  end
-	  end
-  end
-end
-
 if $verbose == 1
   pp "Tile sizes found: "
   pp $tile_size_tile_header_buf_addr_map_per_chip

@@ -1019,8 +1019,8 @@ namespace pipegen2
         base_stream_config.set_dram_output(true);
         base_stream_config.set_dram_io(false);
         base_stream_config.set_dram_ram(true);
-        base_stream_config.set_incoming_data_noc(0);
-        base_stream_config.set_outgoing_data_noc(0);
+        base_stream_config.set_incoming_data_noc(NOC_ROUTE::NOC0);
+        base_stream_config.set_outgoing_data_noc(NOC_ROUTE::NOC0);
         base_stream_config.set_vc(0);
     }
 

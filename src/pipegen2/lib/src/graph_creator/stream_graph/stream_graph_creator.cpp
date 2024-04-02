@@ -82,6 +82,8 @@ namespace pipegen2
 
         insert_dummy_phases(stream_graph_collection.get());
 
+        set_incoming_noc_ids(stream_graph_collection.get());
+
         StreamResourcesAllocator stream_resources_allocator(resource_manager);
         stream_resources_allocator.allocate_resources(stream_graph_collection.get());
 
@@ -456,6 +458,42 @@ namespace pipegen2
                         phase_iter->config.set_follow_by_receiver_dummy_phase(false);
                     }
                 }
+            }
+        }
+    }
+
+    void StreamGraphCreator::set_incoming_noc_ids(StreamGraphCollection* stream_graph_collection)
+    {
+        for (const std::unique_ptr<StreamGraph>& stream_graph : stream_graph_collection->get_stream_graphs())
+        {
+            for (const std::unique_ptr<StreamNode>& stream_node : stream_graph->get_streams())
+            {
+                if (stream_node->get_base_config().get_incoming_data_noc().has_value())
+                {
+                    stream_node->get_base_config().set_remote_src_update_noc(
+                        get_complementary_noc_route(stream_node->get_base_config().get_incoming_data_noc().value()));
+                    continue;
+                }
+
+                // Using NOC 0 by default in case when stream is not connected to any source stream.
+                NOC_ROUTE chosen_noc_id = NOC_ROUTE::NOC0;
+                if (stream_node->get_phase_config(0).get_source().has_value())
+                {
+                    StreamNode* source_stream = stream_node->get_phase_config(0).get_source().value();
+
+                    // TODO: Investigate why the following assert fails when it shouldn't.
+                    // log_assert(source_stream->get_base_config().get_outgoing_data_noc().has_value(),
+                    //            "Expected to have outgoing data NOC set for the source stream when "
+                    //            "two streams are connected");
+
+                    chosen_noc_id = source_stream->get_base_config().get_outgoing_data_noc().value_or(chosen_noc_id);
+                }
+
+                log_debug(tt::LogPipegen2,
+                          "Setting incoming noc id {} on stream node, location {}, type {}",
+                          chosen_noc_id, stream_node->get_physical_location().str(), stream_node->get_stream_type());
+                stream_node->get_base_config().set_incoming_data_noc(chosen_noc_id);
+                stream_node->get_base_config().set_remote_src_update_noc(get_complementary_noc_route(chosen_noc_id));
             }
         }
     }

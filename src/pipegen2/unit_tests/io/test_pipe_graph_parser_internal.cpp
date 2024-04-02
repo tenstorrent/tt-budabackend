@@ -902,7 +902,7 @@ TEST(Pipegen2_PipeGraphParserInternal, StringStartsWith_DoesntStart)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipe_ParsingPipeWithCorrectAttributes)
 {
     PGPipeMock pipe_mock(
-        116000000000, 1, 1, 7, 0, 2, 1, 2, 1, 0, 1, 0, 1, 24, {0, 0, 10}, {1, 1, 1}, {0, 0, 0},
+        116000000000, 1, 1, 7, NOC_ROUTE::NOC0, 2, NOC_ROUTE::NOC1, 2, 1, 0, 1, 0, 1, 24, {0, 0, 10}, {1, 1, 1}, {0, 0, 0},
         {109000000000, 112000000000}, {120000000000, 128000000000}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 147000000000});
     std::vector<std::string> yaml_lines = pipe_mock.to_json_list_of_strings_all_attributes();
 

@@ -107,6 +107,15 @@ namespace pipegen2
         // all the messages on the communication channel.
         static void insert_dummy_phases(StreamGraphCollection* stream_graph_collection);
 
+        // Sets incoming NOC ids for all streams in the stream graph that do not have it set.
+        static void set_incoming_noc_ids(StreamGraphCollection* stream_graph_collection);
+
+        // Get complementary NOC route.
+        static NOC_ROUTE get_complementary_noc_route(NOC_ROUTE route)
+        {
+            return route == NOC_ROUTE::NOC0 ? NOC_ROUTE::NOC1 : NOC_ROUTE::NOC0;
+        }
+
         // Unrolls data transfer iterations for each stream in the stream graph as much as possible.
         void unroll_stream_graph(StreamGraph* stream_graph, unsigned int max_unroll_factor);
 

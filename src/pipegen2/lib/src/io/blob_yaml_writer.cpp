@@ -303,6 +303,7 @@ namespace pipegen2
         write_optionally("remote_receiver", stream_config.get_remote_receiver());
         write_optionally("remote_source", stream_config.get_remote_source());
         write_optionally("remote_src_is_mcast", stream_config.get_remote_src_is_mcast());
+        write_optionally("remote_src_update_noc", stream_config.get_remote_src_update_noc());
         write_optionally("resend", stream_config.get_resend());
         write_optionally("scatter_idx", stream_config.get_scatter_idx());
         write_optionally("scatter_list_indicies_per_input", stream_config.get_scatter_list_indicies_per_input());
@@ -366,6 +367,11 @@ namespace pipegen2
         std::stringstream stream;
         stream << std::boolalpha << value;
         return stream.str();
+    }
+
+    std::string BlobYamlWriter::get_string(NOC_ROUTE value)
+    {
+        return get_string(static_cast<unsigned int>(value));
     }
 
     std::string BlobYamlWriter::get_string(const std::string& value)

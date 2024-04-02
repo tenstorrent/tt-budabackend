@@ -3,7 +3,10 @@
 # structure expected by scripts in verif/pipegen_tests.
 # Note that some build artifacts do end up in the default build directory,
 # so we need to clean it out between each build.
-build_dir="build_archs"
+# Example of using this script (from the root of the repo):
+#   ./verif/pipegen_tests/build_all_archs.sh
+#   ./verif/pipegen_tests/build_all_archs.sh build_master
+build_dir="${1:-build_archs}"
 OUT=build make clean &&
 OUT=$build_dir/grayskull make clean &&
 OUT=$build_dir/grayskull ARCH_NAME=grayskull make -j$(nproc) --debug build_hw &&

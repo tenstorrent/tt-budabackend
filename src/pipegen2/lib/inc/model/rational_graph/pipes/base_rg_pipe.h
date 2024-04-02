@@ -117,9 +117,9 @@ namespace pipegen2
     {
     public:
         RGPipeProperties(NodeId pipe_id = -1,
-                         unsigned int incoming_noc_id = -1,
+                         NOC_ROUTE incoming_noc_id = NOC_ROUTE::INVALID,
                          unsigned int incoming_noc_vc = -1,
-                         unsigned int outgoing_noc_id = -1,
+                         NOC_ROUTE outgoing_noc_id = NOC_ROUTE::INVALID,
                          unsigned int outgoing_noc_vc = -1,
                          unsigned int periodic_repeat = 1,
                          unsigned int consumer_repeat = 1,
@@ -150,7 +150,7 @@ namespace pipegen2
         {
         }
 
-        void set_incoming_noc_id(unsigned int incoming_noc_id) { m_incoming_noc_id = incoming_noc_id; }
+        void set_incoming_noc_id(NOC_ROUTE incoming_noc_id) { m_incoming_noc_id = incoming_noc_id; }
 
         void set_incoming_noc_vc(unsigned int incoming_noc_vc) { m_incoming_noc_vc = incoming_noc_vc; }
 
@@ -158,11 +158,11 @@ namespace pipegen2
 
         NodeId get_pipe_id() const { return m_pipe_id; }
 
-        unsigned int get_incoming_noc_id() const { return m_incoming_noc_id; }
+        NOC_ROUTE get_incoming_noc_id() const { return m_incoming_noc_id; }
 
         unsigned int get_incoming_noc_vc() const { return m_incoming_noc_vc; }
 
-        unsigned int get_outgoing_noc_id() const { return m_outgoing_noc_id; }
+        NOC_ROUTE get_outgoing_noc_id() const { return m_outgoing_noc_id; }
 
         unsigned int get_outgoing_noc_vc() const { return m_outgoing_noc_vc; }
 
@@ -180,13 +180,13 @@ namespace pipegen2
         NodeId m_pipe_id;
 
         // ID of the NOC used to receive data.
-        unsigned int m_incoming_noc_id;
+        NOC_ROUTE m_incoming_noc_id;
 
         // Virtual channel of the NOC used to receive data.
         unsigned int m_incoming_noc_vc;
 
         // ID of the NOC used to send data.
-        unsigned int m_outgoing_noc_id;
+        NOC_ROUTE m_outgoing_noc_id;
 
         // Virtual channel of the NOC used to send data.
         unsigned int m_outgoing_noc_vc;
@@ -221,11 +221,11 @@ namespace pipegen2
 
         NodeId get_id() const { return m_pipe_properties.get_pipe_id(); }
 
-        unsigned int get_incoming_noc_id() const { return m_pipe_properties.get_incoming_noc_id(); }
+        NOC_ROUTE get_incoming_noc_id() const { return m_pipe_properties.get_incoming_noc_id(); }
 
         unsigned int get_incoming_noc_vc() const { return m_pipe_properties.get_incoming_noc_vc(); }
 
-        unsigned int get_outgoing_noc_id() const { return m_pipe_properties.get_outgoing_noc_id(); }
+        NOC_ROUTE get_outgoing_noc_id() const { return m_pipe_properties.get_outgoing_noc_id(); }
 
         unsigned int get_outgoing_noc_vc() const { return m_pipe_properties.get_outgoing_noc_vc(); }
 

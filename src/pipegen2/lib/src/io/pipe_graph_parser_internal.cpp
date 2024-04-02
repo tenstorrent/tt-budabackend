@@ -48,7 +48,7 @@ void parse_pipe(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_grap
         }
         else if (attr_name == "incoming_noc_id")
         {
-            pipe->set_incoming_noc_id(parse_int_attribute_value(attr_value));
+            pipe->set_incoming_noc_id(static_cast<NOC_ROUTE>(parse_int_attribute_value(attr_value)));
         }
         else if (attr_name == "incoming_vc")
         {
@@ -56,7 +56,7 @@ void parse_pipe(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_grap
         }
         else if (attr_name == "outgoing_noc_id")
         {
-            pipe->set_outgoing_noc_id(parse_int_attribute_value(attr_value));
+            pipe->set_outgoing_noc_id(static_cast<NOC_ROUTE>(parse_int_attribute_value(attr_value)));
         }
         else if (attr_name == "outgoing_vc")
         {

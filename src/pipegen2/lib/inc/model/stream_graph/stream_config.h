@@ -148,6 +148,7 @@ namespace pipegen2
             ADD_FIELD_TO_MAP(msg_info_buf_addr)
             ADD_FIELD_TO_MAP(follow_by_receiver_dummy_phase)
             ADD_FIELD_TO_MAP(follow_by_sender_dummy_phase)
+            ADD_FIELD_TO_MAP(remote_src_update_noc)
         }
 
 #undef ADD_FIELD_TO_MAP
@@ -167,7 +168,8 @@ namespace pipegen2
                                           FieldMap<std::uint64_t>,
                                           FieldMap<unsigned int>,
                                           FieldMap<std::vector<StreamNode*>>,
-                                          FieldMap<StreamNode*>>;
+                                          FieldMap<StreamNode*>,
+                                          FieldMap<NOC_ROUTE>>;
         std::unordered_map<std::type_index, FieldMapBase> m_field_maps;
 
         // Returns appropriate FieldMap for a given type.
@@ -295,7 +297,7 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(bool, ptrs_not_zero)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, producer_epoch_id)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, unroll_iter)
-        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, incoming_data_noc)
+        DEFINE_MEMBER_AND_ACCESSOR(NOC_ROUTE, incoming_data_noc)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, input_index)
         DEFINE_MEMBER_AND_ACCESSOR(bool, is_scatter_pack);
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, buf_space_available_ack_thr)
@@ -316,7 +318,7 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(bool, resend)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, num_msgs)
         DEFINE_MEMBER_AND_ACCESSOR(bool, legacy_pack)
-        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, outgoing_data_noc)
+        DEFINE_MEMBER_AND_ACCESSOR(NOC_ROUTE, outgoing_data_noc)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, vc)
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, output_index)
         DEFINE_MEMBER_AND_ACCESSOR(bool, moves_raw_data)
@@ -374,6 +376,7 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(unsigned int, msg_info_buf_addr)
         DEFINE_MEMBER_AND_ACCESSOR(bool, follow_by_receiver_dummy_phase)
         DEFINE_MEMBER_AND_ACCESSOR(bool, follow_by_sender_dummy_phase)
+        DEFINE_MEMBER_AND_ACCESSOR(NOC_ROUTE, remote_src_update_noc)
 #undef DEFINE_MEMBER_AND_ACCESSOR
     };
 } // namespace pipegen2
