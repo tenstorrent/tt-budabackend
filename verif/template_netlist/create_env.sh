@@ -6,5 +6,5 @@ parent_path=$(dirname "${BASH_SOURCE[0]}")
 abs_parent_path=$(realpath $parent_path)
 verif_path=$(dirname $abs_parent_path)
 repo_path=$(dirname $verif_path)
-python3.8 -m venv $parent_path/env
+python3 -m venv $parent_path/env
 bash -c "cd $parent_path; echo -e '\nexport PYTHONPATH=\$PYTHONPATH:$repo_path:$abs_parent_path\n' >> env/bin/activate && source env/bin/activate && pip3 install -r requirements.txt --no-cache-dir"
