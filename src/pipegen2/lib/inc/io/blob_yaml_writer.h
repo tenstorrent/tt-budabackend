@@ -40,25 +40,25 @@ namespace pipegen2
         void write_phase_configs(const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs);
 
         // Collects stream configs mapped by phase id.
-        std::map<PhaseId, std::vector<std::pair<std::string, StreamConfig>>> collect_phase_map(
+        std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>> collect_phase_map(
             const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs);
 
         // Writes phase map to the blob yaml.
-        void write_phase_map(const std::map<PhaseId, std::vector<std::pair<std::string, StreamConfig>>>& phase_map);
+        void write_phase_map(const std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map);
 
         // Writes DRAM performance info to the blob yaml.
         void write_dram_perf_info(const PerfInfoManager& perf_info_manager);
 
-        // Goes through all the streams in the stream graphs and collects phases with same id.
-        // Returns a map, mapping phase id to vector of all the streams having a phase with that id
-        // and index of phase with that id in the stream.
+        // Goes through all the streams in the stream graphs and fills phases with same id.
+        // Returns a map, mapping phase id to a map mapping stream ids having a phase with that id
+        // to their respective StreamConfigs.
         void collect_stream_graph_phases(
             const StreamGraph* stream_graph,
-            std::map<PhaseId, std::vector<std::pair<std::string /* stream id */, StreamConfig>>>& phase_map);
+            std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map);
 
         // Returns list of ncrisc configs grouped by stream id key. Map (instead of unordered_map) needs to be used
         // to keep deterministic output.
-        std::map<std::string /* stream id key */, const std::vector<NcriscConfig>*>
+        std::map<tt_cxys_pair, const std::vector<NcriscConfig>*>
         collect_ncrisc_configs(const StreamGraph* stream_graph);
 
         // Writes string representation of a dram blob into blob yaml.
@@ -71,7 +71,7 @@ namespace pipegen2
         static std::string get_core_location_string(const tt_cxy_pair& core_location);
 
         // Returns string representation of stream node.
-        static std::string get_stream_node_string(const StreamNode* stream_node);
+        static std::string get_stream_node_string(const tt_cxys_pair& stream_location);
 
         // Writes parameter string to the blob yaml if parameter has a value, with an optional converter function
         // for the value.

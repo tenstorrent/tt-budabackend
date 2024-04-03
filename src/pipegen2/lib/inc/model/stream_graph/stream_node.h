@@ -99,6 +99,8 @@ namespace pipegen2
 
         const tt_cxy_pair& get_physical_location() const { return m_physical_location; }
 
+        const tt_cxys_pair get_stream_location_with_id() const { return { get_stream_id(), get_physical_location() }; }
+
         // Creates phase config for each phase info and adds them to the stream.
         void add_phase_configs(const std::vector<PhaseInfo>& phases_info, const unsigned int max_num_tiles_per_phase);
 

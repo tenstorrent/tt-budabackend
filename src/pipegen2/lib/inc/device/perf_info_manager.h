@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <map>
 #include <vector>
-#include <unordered_map>
 
 #include "device/tt_xy_pair.h"
 
@@ -40,11 +40,11 @@ public:
 
     // Returns mapping from worker core location to info that is written to blob.yaml under `dram_perf_buf_noc_addr`
     // attribute.
-    std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> get_dram_perf_buf_noc_addr_info() const;
+    std::map<tt_cxy_pair, std::vector<uint64_t>> get_dram_perf_buf_noc_addr_info() const;
 
     // Returns mapping from worker core location to info that is written to blob.yaml under `dram_perf_buf_max_req`
     // attribute.
-    std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> get_dram_perf_buf_max_req_info() const;
+    std::map<tt_cxy_pair, std::vector<uint64_t>> get_dram_perf_buf_max_req_info() const;
 
 private:
     // Adds chip to track.

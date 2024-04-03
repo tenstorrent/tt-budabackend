@@ -25,9 +25,9 @@ PerfInfoManager::PerfInfoManager(int perf_dump_info, const SoCInfo* soc_info) :
 
 PerfInfoManager::~PerfInfoManager() {}
 
-std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram_perf_buf_noc_addr_info() const
+std::map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram_perf_buf_noc_addr_info() const
 {
-    std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> workers_to_info;
+    std::map<tt_cxy_pair, std::vector<uint64_t>> workers_to_info;
 
     for (const std::unique_ptr<Chip>& chip : m_chips)
     {
@@ -50,9 +50,9 @@ std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram
     return workers_to_info;
 }
 
-std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram_perf_buf_max_req_info() const
+std::map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram_perf_buf_max_req_info() const
 {
-    std::unordered_map<tt_cxy_pair, std::vector<uint64_t>> workers_to_info;
+    std::map<tt_cxy_pair, std::vector<uint64_t>> workers_to_info;
 
     for (const std::unique_ptr<Chip>& chip : m_chips)
     {
