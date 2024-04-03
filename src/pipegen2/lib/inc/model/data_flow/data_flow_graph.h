@@ -22,6 +22,11 @@ namespace pipegen2
 
         // Returns true if the graph contains only a single isolated node.
         bool is_single_node_graph() const { return m_nodes.size() == 1; }
+        
+#ifdef TT_DEBUG
+        // Forms JSON string used for debug visualizer to visualize data flow graph.
+        std::string to_json() const;
+#endif
 
     private:
         // List of data flow nodes which make up the graph.

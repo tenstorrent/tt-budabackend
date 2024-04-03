@@ -231,6 +231,14 @@ namespace pipegen2
         // TODO: Remove this after dram read data flow refactor.
         bool should_accumulate_sending_phases() const;
 
+#ifdef TT_DEBUG
+        // Returns color of the data flow node in a visualization graph.
+        std::string get_node_color() const;
+
+        // Returns label for the data flow node in a visualization graph.
+        std::string get_visualize_label() const;
+#endif
+
     protected:
         DataFlowNode();
 

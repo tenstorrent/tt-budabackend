@@ -75,6 +75,21 @@ namespace pipegen2
                 return "Unknown";
         }
     }
+
+    std::string data_flow_type_to_string(DataFlowType data_flow_type)
+    {
+        switch(data_flow_type)
+        {
+            case DataFlowType::Parallel:
+                return "Parallel";
+            case DataFlowType::ParallelCopy:
+                return "ParallelCopy";
+            case DataFlowType::Serial:
+                return "Serial";
+            default:
+                return "Unknown";
+        }
+    }
 #endif
 
     const RGBaseNode* RGBasePipe::get_first_input_node() const

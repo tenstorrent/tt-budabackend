@@ -77,6 +77,11 @@ namespace pipegen2
         Serial
     };
 
+#ifdef TT_DEBUG
+    // Returns appropriate name string for each data flow type, used for debug visualizer to visualize data flow graph.
+    std::string data_flow_type_to_string(DataFlowType data_flow_type);
+#endif
+
     // Pipe input, represented with input node and offset in its data address.
     class PipeInput
     {

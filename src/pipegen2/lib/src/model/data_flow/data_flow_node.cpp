@@ -304,4 +304,53 @@ namespace pipegen2
     {
         return !is_dram_or_pcie_input() && !is_dram_parallel_fork();
     }
+
+#ifdef TT_DEBUG
+    std::string DataFlowNode::get_node_color() const
+    {
+        if (is_root_node())
+        {
+            return "#D54100";
+        }
+        else if (is_leaf_node())
+        {
+            return "#FFDD33";
+        }
+        
+        return "#FFFFFF";
+    }
+
+    std::string DataFlowNode::get_visualize_label() const
+    {
+        std::string label = std::to_string(get_id());
+        label += "\\n" + data_flow_type_to_string(get_dataflow_type());
+        if (is_dram_or_pcie_input())
+        {
+            label += "\\nDRAM/PCIE input";
+        }
+        if (is_dram_or_pcie_output())
+        {
+            label += "\\nDRAM/PCIE output";
+        }
+        if (is_untilized_dram_output())
+        {
+            label += "\\nDRAM untilized output";
+        }
+        if (is_dram_parallel_fork())
+        {
+            label += "\\nDRAM parallel fork";
+        }
+        if (is_intermediate())
+        {
+            label += "\\nintermediate";
+        }
+        if (is_scatter())
+        {
+            label += "\\nscatter";
+        }
+
+        return label;
+    }
+#endif
+
 }
