@@ -250,7 +250,8 @@ namespace pipegen2
                                            input_buffer->get_mblock_n(),
                                            input_buffer->get_mblock_k(),
                                            input_buffer->get_ublock_rt(),
-                                           input_buffer->get_ublock_ct()));
+                                           input_buffer->get_ublock_ct()),
+                input_buffer->get_op_name());
         }
         else
         {

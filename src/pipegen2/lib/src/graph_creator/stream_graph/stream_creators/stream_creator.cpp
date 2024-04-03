@@ -308,6 +308,8 @@ namespace pipegen2
         {
             base_stream_config.set_legacy_pack(true);
         }
+
+        stream->set_op_name(packer_node->get_op_name());
     }
 
     void StreamCreator::configure_prefetch_pre_tm_relay_stream(StreamNode* stream,

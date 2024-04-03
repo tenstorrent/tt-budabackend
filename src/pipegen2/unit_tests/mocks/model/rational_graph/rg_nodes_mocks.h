@@ -28,7 +28,8 @@ public:
                         scatter_gather_num_tiles,
                         false /* untilized_output */,
                         -1 /* shared_space_buffer_node_id */,
-                        RGBaseNode::BlockingParams(0, 0, 0, 0, 0))
+                        RGBaseNode::BlockingParams(0, 0, 0, 0, 0),
+                        "" /* op_name */)
     {
     }
 };

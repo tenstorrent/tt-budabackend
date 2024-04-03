@@ -21,14 +21,18 @@ namespace pipegen2
                         unsigned int scatter_gather_num_tiles,
                         bool untilized_output,
                         NodeId shared_space_buffer_node_id,
-                        BlockingParams&& blocking_params) :
+                        BlockingParams&& blocking_params,
+                        const std::string& op_name) :
             BaseInputNode(node_id, RGNodeType::PackerInput, physical_location, size_tiles, tile_size, num_epoch_tiles,
                           tiles_per_input, operand_id, num_scatter_chunks, scatter_gather_num_tiles),
             m_untilized_output(untilized_output),
             m_shared_space_buffer_node_id(shared_space_buffer_node_id),
-            m_blocking_params(std::move(blocking_params))
+            m_blocking_params(std::move(blocking_params)),
+            m_op_name(op_name)
         {
         }
+
+        const std::string& get_op_name() const { return m_op_name; }
 
         bool is_untilized_output() const { return m_untilized_output; }
 
@@ -44,6 +48,9 @@ namespace pipegen2
         const BlockingParams& get_blocking_params() const { return m_blocking_params; }
 
     private:
+        // Netlist op name.
+        std::string m_op_name;
+
         // Does the packer untilize its output.
         bool m_untilized_output;
 
