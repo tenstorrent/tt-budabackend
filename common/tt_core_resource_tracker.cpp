@@ -23,15 +23,15 @@ ClusterResourceModel::ClusterResourceModel(
 CoreResources* ClusterResourceModel::get_core_resources(const tt_cxy_pair &location) {
     log_assert(
         this->chip_hw_cores.find(location) != this->chip_hw_cores.end(),
-        "Core (c=", location.chip, ",y=", location.y, ",x=", location.x,
-        "not available in current temporal epoch, maybe missing empty graphs for this chip");
+        "Core (c={}, y={}, x={}) not available in current temporal epoch, maybe missing empty graphs for this chip",
+        location.chip, location.y, location.x);
     return this->chip_hw_cores.at(location).get();
 }
 const CoreResources* ClusterResourceModel::get_core_resources(const tt_cxy_pair &location) const {
     log_assert(
         this->chip_hw_cores.find(location) != this->chip_hw_cores.end(),
-        "Core (c=", location.chip, ",y=", location.y, ",x=", location.x, 
-        "not available in current temporal epoch, maybe missing empty graphs for this chip");
+        "Core (c={}, y={}, x={}) not available in current temporal epoch, maybe missing empty graphs for this chip",
+        location.chip, location.y, location.x);
     return this->chip_hw_cores.at(location).get();
 }
 
