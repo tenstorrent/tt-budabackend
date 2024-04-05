@@ -34,38 +34,32 @@ CKERNEL_INC_DIR  = $(BUDA_HOME)/build/src/ckernels
 FIRMWARE_RISCV_DIR = $(BUDA_HOME)/src/firmware/riscv
 FIRMWARE_RISCV_INC_DIR = $(BUDA_HOME)/build/src/firmware/riscv
 
-ifdef HLK_INC
-# if HLK_INC is defined, we have detected the HLK compilation flow
-# these are the includes for the HLK auto-generated flow
-# todo.pp line 57 (-I$(CKERNEL_INC_DIR)/gen/out \) might not be needed
 INCLUDES = \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc \
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/common/inc \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/common/inc \
-	-I$(HLK_INC) \
-	-I$(HLK_LIB_INC) \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/llk_lib/ \
+	-I$(BUDA_HOME)/third_party/tt_llk_$(ARCH_NAME)/llk_lib/  \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_io/ \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_api/ \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/ \
 	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
 	-I$(BUDA_HOME)/perf_lib/ \
 	-I$(CKERNEL_INC_DIR)/gen/out \
+
+
+ifdef HLK_INC
+# if HLK_INC is defined, we have detected the HLK compilation flow
+# these are the includes for the HLK auto-generated flow
+# todo.pp line 57 (-I$(CKERNEL_INC_DIR)/gen/out \) might not be needed
+INCLUDES += \
+	-I$(HLK_INC) \
+	-I$(HLK_LIB_INC) \
 	-I$(CKERNEL_DIR)/$(ARCH_NAME)/hlk_defs/
 else
 # these are the includes for the TB LLK flow
-INCLUDES = \
+INCLUDES += \
 	-I$(CKERNEL_DIR)/test/inc \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/common/inc \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/common/inc \
 	-I$(CKERNEL_DIR)/hlkc/inc \
-	-I$(CKERNEL_DIR)/hlkc/src \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/llk_lib/ \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_io/ \
-	-I$(CKERNEL_DIR)/$(ARCH_NAME)/buda/llk_api/ \
-	-I$(CKERNEL_INC_DIR)/gen/out \
-	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME) \
-	-I$(FIRMWARE_RISCV_INC_DIR)/$(ARCH_NAME)/noc \
-	-I$(BUDA_HOME)/perf_lib/
+	-I$(CKERNEL_DIR)/hlkc/src
 endif
 
 DISABLE_FWLOG ?= 1
