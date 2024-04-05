@@ -116,28 +116,28 @@ void netlist_parser::parse_queues(const YAML::Node& queues, unordered_map<string
                     if (it->second["read_ports"]) {
                         if (this->device_info.arch == tt::ARCH::GRAYSKULL) {
                             log_fatal("read_ports setting for DRAM buffers is not available for grayskull");
-                        }            
-                        log_assert(it->second["dram"].size() == it->second["read_ports"].size(), "queue {}: read_ports setting must have one element per queue buffer", name); 
+                        }
+                        log_assert(it->second["dram"].size() == it->second["read_ports"].size(), "queue {}: read_ports setting must have one element per queue buffer", name);
                         int i = 0;
                         for (const YAML::Node &read_port_info : it->second["read_ports"]) {
                             int32_t read_port = read_port_info.as<std::int32_t>();
-                            log_assert(read_port >= 0 && read_port <= 2, "queue {}: read_ports setting must be in the range 0-2", name); 
-                            queue_map[name].alloc_info[i].read_port = read_port;                            
+                            log_assert(read_port >= 0 && read_port <= 2, "queue {}: read_ports setting must be in the range 0-2", name);
+                            queue_map[name].alloc_info[i].read_port = read_port;
                             i++;
-                        }            
+                        }
                     }
                     if (it->second["write_ports"]) {
                         if (this->device_info.arch == tt::ARCH::GRAYSKULL) {
                             log_fatal( "write_ports setting for DRAM buffers is not available for grayskull");
-                        }            
-                        log_assert(it->second["dram"].size() == it->second["write_ports"].size(), "queue {}: write_ports setting must have one element per queue buffer", name); 
+                        }
+                        log_assert(it->second["dram"].size() == it->second["write_ports"].size(), "queue {}: write_ports setting must have one element per queue buffer", name);
                         int i = 0;
                         for (const YAML::Node &write_port_info : it->second["write_ports"]) {
                             int32_t write_port = write_port_info.as<std::int32_t>();
-                            log_assert(write_port >= 0 && write_port <= 2, "queue {}: write_ports setting must be in the range 0-2", name); 
+                            log_assert(write_port >= 0 && write_port <= 2, "queue {}: write_ports setting must be in the range 0-2", name);
                             queue_map[name].alloc_info[i].write_port = write_port;
                             i++;
-                        }            
+                        }
                     }
                 } else if (queue_map[name].loc == QUEUE_LOCATION::HOST) {
                     log_assert(
@@ -176,7 +176,7 @@ void netlist_parser::parse_queues(const YAML::Node& queues, unordered_map<string
             } else if (iit->first.as<std::string>() == "tile_dim") {
                 queue_map[name].tile_dim = get_tile_dim_from_array({iit->second[0].as<int>(), iit->second[1].as<int>()});
                 log_assert(queue_map[name].tile_dim != TileDim::Invalid, "Invalid tile dim for queue {}", name);
-                log_assert(this->device_info.arch == tt::ARCH::GRAYSKULL ? queue_map[name].tile_dim == TileDim::Dim32x32 : true, "Grayskull only supports 32x32 (default) tile sizes");               
+                log_assert(this->device_info.arch == tt::ARCH::GRAYSKULL ? queue_map[name].tile_dim == TileDim::Dim32x32 : true, "Grayskull only supports 32x32 (default) tile sizes");
             } else {
                 log_fatal(
                     "Field {} is not supported for tt_queue_info settings",
@@ -334,7 +334,7 @@ void netlist_parser::parse_op(const YAML::Node& op, tt_op_info &op_info) {
     }
 
     // By default, front-end doesn't require a minimal input buffer size, so we default to 0 and let net2pipe decide.
-    // Similar for dram io input buf size - we default to 0 and let pipegen decide. 
+    // Similar for dram io input buf size - we default to 0 and let pipegen decide.
     if (op_info.input_buf_min_size_tiles.size() == 0) {
         for (int i = 0; i < op_info.input_names.size(); i++) {
             op_info.input_buf_min_size_tiles.push_back(0);
@@ -402,7 +402,7 @@ void netlist_parser::parse_op(const YAML::Node& op, tt_op_info &op_info) {
                             op_info.name,
                             op_info.input_names.size() - 1);
 
-                        op_info.attributes.kernel_broadcast.at(input_index) = {1, false}; 
+                        op_info.attributes.kernel_broadcast.at(input_index) = {1, false};
                     }
                 } else if (iiit->first.as<string>() == "m_k") {
                     op_info.attributes.m_k = iiit->second.as<int>();
@@ -756,7 +756,7 @@ void netlist_parser::parse_tm_info(
                     final_tm_name = tm_name;
                     log_assert(
                         iiit->second.IsScalar(),
-                        "{} needs to be a scalar value for {}", 
+                        "{} needs to be a scalar value for {}",
                         tm_name,
                         consumer_name
                     );
@@ -842,9 +842,9 @@ void netlist_parser::parse_tm_ops(const YAML::Node &tms, const string &tm_key, t
 
 void netlist_parser::parse_padding(const YAML::Node& input_padding_node, const string &input_key, tt_op_info &op_info) {
     const int input_index = get_tm_index(input_key, op_info.name, op_info.type, op_info.input_names.size());
-    log_assert(not op_info.input_padding.at(input_index).tm_padding or 
-                (op_info.input_padding.at(input_index).rt == 0 and op_info.input_padding.at(input_index).ct == 0), 
-                "Padding must be specified only once. Op: {}, type {}, input {}", 
+    log_assert(not op_info.input_padding.at(input_index).tm_padding or
+                (op_info.input_padding.at(input_index).rt == 0 and op_info.input_padding.at(input_index).ct == 0),
+                "Padding must be specified only once. Op: {}, type {}, input {}",
                 op_info.name, op_info.type, input_index
             );
     for (const auto & it : input_padding_node) {
@@ -1314,6 +1314,8 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
     if (initialized) {
         clear();
     }
+    graph_order = std::vector<string>();
+    std::vector<string> expanded_queue_names;
     for (YAML::const_iterator it = netlist.begin(); it != netlist.end(); ++it) {
         if (it->first.as<std::string>() == "devices") {
             try {
@@ -1325,6 +1327,7 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
         if (it->first.as<std::string>() == "queues") {
             try {
                 parse_queues(it->second, queue_map);
+                expanded_queue_names = expand_multi_instance_queues();
             } catch (const std::exception &e) {
                 log_fatal("{}", e.what());
             }
@@ -1351,6 +1354,9 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
             }
         }
     }
+    for (auto& q: expanded_queue_names) {
+        queue_map.erase(q);
+    }
 
     verify_inputs_exist();
 
@@ -1376,21 +1382,48 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
 
 void netlist_parser::verify_queue_input_exists(const tt_queue_info &queue) const {
     if (is_queue_fed_by_op(queue)) {
-        log_assert(
-            op_graph_map.find(queue.input) != op_graph_map.end(),
-            "Queue={} has an input={} that does not exist in the netlist",
-            queue.name,
-            queue.input);
+        // Note: queue already expanded, i.e. their names already contain ".0/.1" suffixes.
+        bool is_found = (op_graph_map.find(queue.input) != op_graph_map.end());
+        if (!is_found && queue_to_devices_map.find(queue.name) == queue_to_devices_map.end()) {
+            std::string dot_device = "." + std::to_string(queue.target_device);
+            log_assert(queue.input.substr(queue.input.size() - dot_device.size()) == dot_device,
+                    "Incorrect queue input name, does not end with dot device");
+            std::string input_without_device = queue.input.substr(0, queue.input.size() - dot_device.size());
+            log_assert(op_graph_map.find(input_without_device) != op_graph_map.end(),
+                    "Queue={} has an input={} on device={} that does not exist in the netlist",
+                    queue.name, queue.input, queue.target_device);
+        } else {
+            log_assert(is_found,
+                    "Queue={} has an input={} that does not exist in the netlist",
+                    queue.name, queue.input);
+            // TODO make sure target_devices are the same
+        }
     }
 }
 
 void netlist_parser::verify_op_inputs_exist(const tt_op_info &op) const {
+    // Make sure inputs to the ops exist in the netlist.
+    // If it's the name of a queue, may need to remove the ".0/.1" suffix.
+    // If it's the name of an op, it shouldn't have the ".0/.1" suffix,
+    //     with the exception of dp nops, but the dp nops only feed an output queue,
+    //     so we only need to check the existence in op_graph_map.
     for (const auto &input_name : op.input_names) {
-        log_assert(
-            queue_map.find(input_name) != queue_map.end() || op_graph_map.find(input_name) != op_graph_map.end(),
-            "Op={} has an input={} that does not exist in the netlist",
-            op.name,
-            input_name);
+        bool is_queue = false;
+        for (const auto& [queue_name, queue_info] : queue_map) {
+            if (queue_name == input_name) {
+                is_queue = true;
+                break;
+            }
+            if (queue_name == input_name + "." + std::to_string(queue_info.target_device)) {
+                is_queue = true;
+                break;
+            }
+        }
+        if (is_queue) continue;
+
+        log_assert(op_graph_map.find(input_name) != op_graph_map.end(),
+                "Op={} has an input={} that does not exist in the netlist",
+                op.name, input_name);
     }
 }
 
@@ -1405,7 +1438,7 @@ void netlist_parser::verify_inputs_exist() const {
         }
     }
 }
-    
+
 void netlist_parser::verify_queues() {
     log_assert(queue_map.size(), "Queues empty for netlist parsed");
     log_trace(tt::LogNetlist, "Queues Parsed In Netlist");
@@ -1689,31 +1722,31 @@ void netlist_parser::derive_complex_settings() {
             for (auto& queue_setting_it : instruction_it.queue_settings) {
                 log_assert(
                     queue_map.find(queue_setting_it.name) != queue_map.end(),
-                    "Cannot for queue_setting for IO={} in Program={}", 
+                    "Cannot find queue_setting for IO={} in Program={}",
                     queue_setting_it.name, program_it.second.name
                 );
                 const auto& queue_info = queue_map.at(queue_setting_it.name);
                 if (queue_info.type == IO_TYPE::Queue) {
                     // IO_TYPE::Queue
                     if (queue_setting_it.rd_ptr_autoinc.empty()) {
-                        queue_setting_it.rd_ptr_autoinc = "1"; 
+                        queue_setting_it.rd_ptr_autoinc = "1";
                     }
                     if (queue_setting_it.global_wrptr_autoinc.empty()) {
-                        queue_setting_it.global_wrptr_autoinc = "1"; 
+                        queue_setting_it.global_wrptr_autoinc = "1";
                     }
                     if (queue_setting_it.global_rdptr_autoinc.empty()) {
-                        queue_setting_it.global_rdptr_autoinc = "0"; 
+                        queue_setting_it.global_rdptr_autoinc = "0";
                     }
                 } else if (queue_info.type == IO_TYPE::RandomAccess) {
                     // IO_TYPE::RandomAccess
                     if (queue_setting_it.rd_ptr_autoinc.empty()) {
-                        queue_setting_it.rd_ptr_autoinc = "0"; 
+                        queue_setting_it.rd_ptr_autoinc = "0";
                     }
                     if (queue_setting_it.global_wrptr_autoinc.empty()) {
-                        queue_setting_it.global_wrptr_autoinc = "0"; 
+                        queue_setting_it.global_wrptr_autoinc = "0";
                     }
                     if (queue_setting_it.global_rdptr_autoinc.empty()) {
-                        queue_setting_it.global_rdptr_autoinc = "0"; 
+                        queue_setting_it.global_rdptr_autoinc = "0";
                     }
                 } else {
                     log_fatal ("Unsupported IO Type for IO={}", queue_setting_it.name);
@@ -1872,7 +1905,7 @@ void netlist_parser::derive_complex_settings() {
                 }
 
                 // Check if output and intermed data formats are the same
-                fused_op_info.output_and_intermed_format_match = is_intermed_buffer_used ? 
+                fused_op_info.output_and_intermed_format_match = is_intermed_buffer_used ?
                     op_it.second.output_data_format == op_it.second.intermed_data_format : true;
 
                 // Check if all inputs and intermed data formats are the same
@@ -1912,7 +1945,7 @@ void netlist_parser::derive_complex_settings() {
                         }
 
                         // Enable fp32 to fp16_a conversion for movd2a/b (bbe bug #1372)
-                        // Cast is needed in case acc_df == Float32, we have binary op 
+                        // Cast is needed in case acc_df == Float32, we have binary op
                         // and one of the inputs is "dest" and other is of exp type A.
                         scheduled_op.cast_dest_fp32_to_fp16_a =
                             scheduled_op.input_names.size() == 2 && acc_df_float32 &&
@@ -2102,28 +2135,50 @@ void netlist_parser::derive_input_dims_for_op(
         op_info.input_names.size(),
         op_info.input_dims.size());
 }
+
 bool netlist_parser::is_queue_fed_by_op(tt_queue_info queue) {
     return !(queue.input == "HOST" or queue.input.find("net2net") != string::npos);
 }
 
-void netlist_parser::expand_multi_instance_structures() {
+std::vector<string> netlist_parser::expand_multi_instance_queues() {
+    std::vector<std::string> old_queue_names;
     // Expand each multi-device queue into multiple single-device queues
-    for (auto &queue : queue_to_devices_map) {
-        for (auto &device : queue.second) {
-            tt_queue_info device_queue = queue_map[queue.first];
-            device_queue.target_device = device;
-            if (device_queue.input != "HOST")
-                device_queue.input = device_queue.input + "." + std::to_string(device);
-            std::string name = queue.first + "." + std::to_string(device);
-            device_queue.name = name;
-            queue_map[name] = device_queue;
+    for (const auto &[queue_name, devices] : queue_to_devices_map) {
+        int q_size = 0;
+        for (auto &device : devices) {
+            tt_queue_info queue_info = queue_map[queue_name];
+            queue_info.target_device = (queue_info.loc != QUEUE_LOCATION::HOST ? device : 0); // host queues must be on MMIO chip, assuming chip 0
+            if (queue_info.input != "HOST") {
+                queue_info.input = queue_info.input + "." + std::to_string(device);
+            }
+            std::string name = queue_name + "." + std::to_string(device);
+            queue_info.name = name;
+
+            if (queue_info.loc == QUEUE_LOCATION::HOST) {
+                if (device == 0) {
+                    // assuming chip 0 is mmio
+                    int curr_size = get_tensor_size_in_bytes(queue_info, true) * queue_info.entries;
+                    q_size += curr_size;
+                } else {
+                    for (auto& ainfo: queue_info.alloc_info) {
+                        ainfo.address += q_size + tt::io::io_queue_header_size_bytes; // make sure the addresses don't overlap
+                        // TODO align
+                    }
+                }
+            }
+
+            queue_map[name] = queue_info;
         }
-        queue_map.erase(queue.first);
+        old_queue_names.push_back(queue_name);
     }
+    return old_queue_names;
+}
+
+void netlist_parser::expand_multi_instance_structures() {
     // Expand each multi-device graph into multiple single-device graphs
-    for (auto &graph : graph_to_devices_map) {
-        for (auto &device : graph.second) {
-            tt_graph_info device_graph = graph_map[graph.first];
+    for (const auto &[graph_name, devices] : graph_to_devices_map) {
+        for (auto &device : devices) {
+            tt_graph_info device_graph = graph_map[graph_name];
             device_graph.target_device = device;
             device_graph.name = device_graph.name + "." + std::to_string(device);
 
@@ -2140,26 +2195,56 @@ void netlist_parser::expand_multi_instance_structures() {
             }
             device_graph.op_map = op_map_;
 
-            std::string name = graph.first + "." + std::to_string(device);
+            std::string name = graph_name + "." + std::to_string(device);
             graph_map[name] = device_graph;
         }
-        graph_map.erase(graph.first);
+        if (devices.size() > 0) {
+            graph_map.erase(graph_name);
+        }
     }
+
+    //
+    std::unordered_map<std::string, std::vector<int>> graph_to_input_devices_map;
+    for (const auto &[graph_name, graph_info]: graph_map) {
+        if (graph_to_devices_map.find(graph_name) != graph_to_devices_map.end()) {
+            continue;
+        }
+        std::unordered_set<std::uint32_t> target_devices_for_graph = {};
+        if (graph_map.find(graph_name) != graph_map.end()) {
+            for (const auto& [op_name, op_info]: graph_map.at(graph_name).op_map) {
+                for (auto& input_name: op_info.input_names) {
+                    if (queue_map.find(input_name) != queue_map.end() &&
+                            queue_map[input_name].target_device != -1) {
+                        target_devices_for_graph.insert(queue_map[input_name].target_device);
+                    }
+                }
+            }
+        }
+        if (target_devices_for_graph.size() > 1) {
+            std::vector<int> devices;
+            devices.assign(target_devices_for_graph.begin(), target_devices_for_graph.end());
+            graph_to_input_devices_map.insert({graph_name, devices});
+        }
+    }
+
     // Expand each multi-device graph in graph_order
-    if (graph_to_devices_map.size()) {
+    if (graph_to_devices_map.size() > 0 || graph_to_input_devices_map.size() > 0) {
         std::vector<std::string> graph_order_ = graph_order;
         graph_order.clear();
-        for (auto &graph : graph_order_) {
+        for (const auto &graph : graph_order_) {
             if (graph_to_devices_map.find(graph) != graph_to_devices_map.end()) {
                 for (auto &device : graph_to_devices_map[graph]) {
                     string name = graph + "." + std::to_string(device);
                     graph_order.push_back(name);
                 }
+            } else {
+                graph_order.push_back(graph);
             }
         }
     }
+
     // Expand each multi-device instruction in program_trace
-    if (queue_to_devices_map.size() or graph_to_devices_map.size()) {
+    if (queue_to_devices_map.size() or graph_to_devices_map.size() or graph_to_input_devices_map.size()) {
         for (auto &program : program_map) {
             std::vector<tt_instruction_info> program_trace_ = program.second.program_trace;
             program.second.program_trace.clear();
@@ -2173,6 +2258,26 @@ void netlist_parser::expand_multi_instance_structures() {
                         }
                         program.second.program_trace.push_back(instrn_);
                     }
+                } else if (graph_to_input_devices_map.find(instrn.graph_name) != graph_to_input_devices_map.end()) {
+                    // if graph contains a queue that spans multiple devices
+                    auto old_queue_settings = instrn.queue_settings;
+                    instrn.queue_settings.clear();
+                    for (auto &queue_setting : old_queue_settings) {
+                        bool pushed = false;
+                        for (auto &device : graph_to_input_devices_map.at(instrn.graph_name)) {
+                            std::string expanded_queue_name = queue_setting.name + "." + std::to_string(device);
+                            if (queue_map.find(expanded_queue_name) != queue_map.end()) {
+                                tt_queue_setting_info queue_setting_with_device = queue_setting;
+                                queue_setting_with_device.name = expanded_queue_name;
+                                instrn.queue_settings.push_back(queue_setting_with_device);
+                                pushed = true;
+                            }
+                        }
+                        if (!pushed) {
+                            instrn.queue_settings.push_back(queue_setting);
+                        }
+                    }
+                    program.second.program_trace.push_back(instrn);
                 } else {
                     program.second.program_trace.push_back(instrn);
                 }
@@ -2183,7 +2288,7 @@ void netlist_parser::expand_multi_instance_structures() {
 
 void netlist_parser::verify_ublock_fits_into_dest(const string& op_name, const tt_dim_info& op_output_dim, DataFormat op_dest_accumulate_data_format, bool full_sync_mode, tt::ARCH arch) {
     std::uint32_t max_ublock_dim = full_sync_mode ? DstSize::FullSize : DstSize::HalfSize;
-    if ((op_dest_accumulate_data_format == DataFormat::Float32) or 
+    if ((op_dest_accumulate_data_format == DataFormat::Float32) or
         (op_dest_accumulate_data_format == DataFormat::Int32)) {
         max_ublock_dim /= 2; // default dst size in tiles is for Float16 format
     }
@@ -2295,7 +2400,7 @@ void netlist_parser::verify_complex_settings() {
             bool is_matmul = netlist_utils::is_valid_matmul_op(op_info.type);
             bool is_dense_matmul = is_matmul && !op_info.attributes.identity;
             bool is_identity_matmul = is_matmul && op_info.attributes.identity;
-            
+
             // Input tile dims verification
             for (int i = 0; i < op_info.input_tile_dims.size(); i++) {
                 TileDim input_tile_dim = op_info.input_tile_dims[i];
@@ -2314,7 +2419,7 @@ void netlist_parser::verify_complex_settings() {
                     case TileDim::Dim2x32:
                     case TileDim::Dim4x32:
                     case TileDim::Dim8x32:
-                    case TileDim::Dim16x32: 
+                    case TileDim::Dim16x32:
                     case TileDim::Dim32x16:{
                         log_assert(
                             (is_dense_matmul && (i != 2)) || (is_identity_matmul && (i == 1)) || is_unary_or_binary,
@@ -2551,7 +2656,7 @@ void netlist_parser::verify_complex_settings() {
             }
         }
     }
-    
+
     // START: Untilized output queue rules
     // Grid size must be 1,1
     // Must feed only 1 output queue and not an op
@@ -2572,14 +2677,14 @@ void netlist_parser::verify_complex_settings() {
     for (const auto &graph_it : graph_map) {
         for (const auto &op_it : graph_it.second.op_map) {
             const tt_op_info& op_info = op_it.second;
-            
+
             verify_ublock_fits_into_dest(
                 op_info.name,
                 op_info.output_dim,
                 op_info.dest_accumulate_data_format,
                 false,
                 device_info.arch);
-            
+
             if (is_valid_fused_op(op_info.type)) {
                 for (const auto& schedule: op_info.fused_op_info.schedules) {
                     for (const auto& scheduled_op: schedule.scheduled_ops) {
@@ -2851,7 +2956,7 @@ void netlist_parser::verify_complex_settings() {
 
                 if(is_valid_matmul_op(op_info.type)) {
                     bool accumulate_en = (device_info.arch != tt::ARCH::GRAYSKULL) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
-    
+
                     if(accumulate_en) {
                         log_assert(
                         (op_info.intermed_data_format == op_info.dest_accumulate_data_format),
@@ -2868,7 +2973,7 @@ void netlist_parser::verify_complex_settings() {
                         "wh_a0 hardware constraint: sfpu op is using a2d op with fp32 dest acc enabled. Must set "
                         "in0_df to Float32");
                 }
-                
+
                 //Issue: #1816
                 log_assert(op_info.attributes.stoch_rnd_mode != StochRndMode::Fpu && op_info.attributes.stoch_rnd_mode != StochRndMode::All,
                 "HW constraint: stochastic fpu rounding cannot be enabled with float32 dest");
@@ -2878,7 +2983,7 @@ void netlist_parser::verify_complex_settings() {
 
                 if(is_valid_matmul_op(op_info.type)) {
                     bool accumulate_en = (device_info.arch != tt::ARCH::GRAYSKULL) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
-    
+
                     if(accumulate_en) {
                         log_assert(
                         (op_info.intermed_data_format == op_info.dest_accumulate_data_format),
@@ -2923,20 +3028,20 @@ void netlist_parser::verify_complex_settings() {
             // Constraint: kernel broadcast performance (Issue #2509)
             if ((is_valid_matmul_op(op_info.type) || is_valid_depthwise_op(op_info.type)) && this->device_info.arch != tt::ARCH::GRAYSKULL) {
                 if (op_info.attributes.kernel_broadcast.size() > 0 &&
-                    op_info.attributes.kernel_broadcast[0].first > 1 && 
+                    op_info.attributes.kernel_broadcast[0].first > 1 &&
                     op_info.output_dim.ublock_ct < op_info.output_dim.ublock_rt) {
                     log_assert(op_info.attributes.kernel_broadcast[0].first % (op_info.output_dim.ublock_rt * op_info.attributes.u_kt) == 0,
-                          "graph={} op={} is a matmul/depthwise op and if ublock_ct < ublock_rt, kernel broadcast factor on input0 must be divisible by ublock_rt * u_kt", 
-                               graph_it.second.name, 
+                          "graph={} op={} is a matmul/depthwise op and if ublock_ct < ublock_rt, kernel broadcast factor on input0 must be divisible by ublock_rt * u_kt",
+                               graph_it.second.name,
                                op_info.name);
                 }
 
                 if (op_info.attributes.kernel_broadcast.size() > 1 &&
-                    op_info.attributes.kernel_broadcast[1].first > 1 && 
+                    op_info.attributes.kernel_broadcast[1].first > 1 &&
                     op_info.output_dim.ublock_ct >= op_info.output_dim.ublock_rt) {
                     log_assert(op_info.attributes.kernel_broadcast[1].first % op_info.output_dim.ublock_ct == 0,
-                          "graph={} op={} is a matmul/depthwise op and if ublock_ct >= ublock_rt, kernel broadcast factor on input1 must be divisible by ublock_ct", 
-                               graph_it.second.name, 
+                          "graph={} op={} is a matmul/depthwise op and if ublock_ct >= ublock_rt, kernel broadcast factor on input1 must be divisible by ublock_ct",
+                               graph_it.second.name,
                                op_info.name);
                 }
             }
@@ -2945,8 +3050,8 @@ void netlist_parser::verify_complex_settings() {
             if (is_bfp8_format(op_info.intermed_data_format) || is_bfp8_format(op_info.output_data_format)) {
                 log_assert(op_info.attributes.stoch_rnd_mode == StochRndMode::None || op_info.attributes.stoch_rnd_mode == StochRndMode::Fpu,
                            "graph={} op={} - stoch_rnd mode 'pack' and 'all' are not enabled for Bfp8 formats",
-                           graph_it.second.name, 
-                           op_info.name); 
+                           graph_it.second.name,
+                           op_info.name);
             }
 
             // Constraint: gradient_op must be false for identity matmul
@@ -2954,7 +3059,7 @@ void netlist_parser::verify_complex_settings() {
                 log_assert(
                     op_info.gradient_op == 0,
                     "gradient accumulation for idenity matmul is not supported");
-            }    
+            }
 
             if(is_valid_matmul_op(op_info.type) and op_info.attributes.identity) {
 
@@ -2973,20 +3078,20 @@ void netlist_parser::verify_complex_settings() {
                                     "Matmul identity encoding input 2 supports only broadcast tm with kernel broadcast attribute!");
 
                             }
-                        }    
-                    }    
-                }    
+                        }
+                    }
+                }
             }
 
             if(is_valid_reduce_op(op_info.type) and (op_info.attributes.reduce_dim == Dim::Z)) {
                 log_assert(
                     op_info.input_data_formats.at(0) == op_info.intermed_data_format,
-                    "Reduce Z dim does not support data format conversions, input df = {}, intermed df = {}, must set both to the same format", 
+                    "Reduce Z dim does not support data format conversions, input df = {}, intermed df = {}, must set both to the same format",
                     op_info.input_data_formats.at(0), op_info.intermed_data_format);
 
                 log_assert(
                     op_info.output_data_format == op_info.intermed_data_format,
-                    "Reduce Z dim does not support data format conversions, output df = {}, intermed df = {}, must set both to the same format", 
+                    "Reduce Z dim does not support data format conversions, output df = {}, intermed df = {}, must set both to the same format",
                     op_info.output_data_format, op_info.intermed_data_format);
             }
 
@@ -2994,11 +3099,11 @@ void netlist_parser::verify_complex_settings() {
                 for (uint i = 1; i < op_info.input_data_formats.size(); i++) {
                     log_assert(
                         op_info.input_data_formats.at(i-1) == op_info.input_data_formats.at(i),
-                        "Splice op does not support data format conversions, input {} df = {}, input {} df = {}, must set both to the same format", 
+                        "Splice op does not support data format conversions, input {} df = {}, input {} df = {}, must set both to the same format",
                         i-1, op_info.input_data_formats.at(i-1), i, op_info.input_data_formats.at(i));
                 }
             }
-	    
+
             //WHB0: Add asserts for matmul l1 acc kernel
             if (op_info.attributes.l1_acc) {
                 log_assert(device_info.arch != tt::ARCH::GRAYSKULL,
@@ -3112,7 +3217,7 @@ void netlist_parser::verify_complex_settings() {
                     log_assert(
                         op_info.input_data_formats[1] == DataFormat::Int8 || op_info.input_data_formats[0] == DataFormat::UInt8,
                         "Matmul with int inputs must have input 1 in Int8 or UInt8 format.");
-                    
+
                     log_assert(!op_info.attributes.l1_acc, "Matmul with int inputs can't use l1 accumulation.");
                     if (op_info.attributes.bias) {
                         log_assert(
@@ -3150,7 +3255,7 @@ void netlist_parser::verify_complex_settings() {
                 }
             } else {
                 log_assert(
-                    op_info.dest_accumulate_data_format != DataFormat::Int32 || is_quant || is_fused_op,
+                    op_info.dest_accumulate_data_format != DataFormat::Int32 || is_quant || is_fused_op || op_info.type == "nop",
                     "Dest accumulation format (acc_df) can be Int32 only if input format is Int8 or Int32 or op is "
                     "quantization or fused_op");
                 log_assert(
@@ -3589,28 +3694,28 @@ void netlist_parser::verify_complex_settings() {
     for (const auto &graph_it : graph_map) {
         for (const auto &op_it : graph_it.second.op_map) {
             if (netlist_utils::is_valid_embedding_op(op_it.second.type)) {
-                // Check num_indices need to be aligned to 32. 
+                // Check num_indices need to be aligned to 32.
                 log_assert(
                     (op_it.second.attributes.num_indices % 32) == 0,
-                    "graph={}, op={} is an embedding op where num_indices={} is not aligned to multiples of 32", 
-                    graph_it.second.name, 
-                    op_it.second.name, 
+                    "graph={}, op={} is an embedding op where num_indices={} is not aligned to multiples of 32",
+                    graph_it.second.name,
+                    op_it.second.name,
                     op_it.second.attributes.num_indices
                 );
-                // Check ublock_rt must be 1 to avoid complex reblock 
+                // Check ublock_rt must be 1 to avoid complex reblock
                 log_assert(
                     op_it.second.output_dim.ublock_rt == 1,
-                    "graph={}, op={} is an embedding op and must have output ublock_rt={} equal 1 to avoid complex reblock", 
-                    graph_it.second.name, 
-                    op_it.second.name, 
+                    "graph={}, op={} is an embedding op and must have output ublock_rt={} equal 1 to avoid complex reblock",
+                    graph_it.second.name,
+                    op_it.second.name,
                     op_it.second.output_dim.ublock_rt
                 );
-                // Check ublock_rt must be 1 to avoid complex reblock 
+                // Check ublock_rt must be 1 to avoid complex reblock
                 log_assert(
                     (op_it.second.attributes.num_indices / 32) == op_it.second.output_dim.mblock_m,
-                    "graph={}, op={} is an embedding op and must have output num_indices={}/32 == mblock_m={}", 
-                    graph_it.second.name, 
-                    op_it.second.name, 
+                    "graph={}, op={} is an embedding op and must have output num_indices={}/32 == mblock_m={}",
+                    graph_it.second.name,
+                    op_it.second.name,
                     op_it.second.attributes.num_indices,
                     op_it.second.output_dim.mblock_m
                 );
@@ -3637,10 +3742,10 @@ void netlist_parser::verify_complex_settings() {
                 if (in0.ublock_rt > 1 || out.ublock_rt > 1) {
                     log_assert(
                         out.ublock_rt == in0.ublock_rt && out.ublock_ct == in0.ublock_ct,
-                        "graph={}, op={} for tilizer op input and output ublock dim has to match when ublock_rt>1, input ublock[rt,ct]=[{},{}] != output ublock[rt,ct]=[{},{}]", 
+                        "graph={}, op={} for tilizer op input and output ublock dim has to match when ublock_rt>1, input ublock[rt,ct]=[{},{}] != output ublock[rt,ct]=[{},{}]",
                         graph_name, op_name, in0.ublock_rt, in0.ublock_ct, out.ublock_rt, out.ublock_ct
                     );
-                }    
+                }
             }
         }
     }
@@ -3654,12 +3759,12 @@ void netlist_parser::verify_complex_settings() {
                 const tt_op_info& op_info = op_it.second;
                 if (netlist_utils::is_valid_depthwise_op(op_info.type)) {
                     log_assert(op_info.attributes.u_kt == 1,
-                        "graph={}, op={} is a depthwise op and must have u_kt == 1", 
-                        graph_info.name, 
+                        "graph={}, op={} is a depthwise op and must have u_kt == 1",
+                        graph_info.name,
                         op_info.name);
                     log_assert(op_info.attributes.m_k > 0,
-                        "graph={}, op={} is a depthwise op and must have m_k > 0", 
-                        graph_info.name, 
+                        "graph={}, op={} is a depthwise op and must have m_k > 0",
+                        graph_info.name,
                         op_info.name);
                 }
             }
@@ -3671,21 +3776,21 @@ void netlist_parser::verify_complex_settings() {
     for (const auto &graph_it : graph_map) {
         for (const auto &op_it : graph_it.second.op_map) {
             if (netlist_utils::is_valid_matmul_op(op_it.second.type) and op_it.second.attributes.identity) {
-                // Check third input and df is raw. 
+                // Check third input and df is raw.
                 log_assert(
                     op_it.second.input_names.size() >= 3,
-                    "graph={}, op={} is a matmul identity op where num_inputs={} is < 3", 
-                    graph_it.second.name, 
-                    op_it.second.name, 
+                    "graph={}, op={} is a matmul identity op where num_inputs={} is < 3",
+                    graph_it.second.name,
+                    op_it.second.name,
                     op_it.second.input_names.size()
                 );
                 log_assert(
-                    (op_it.second.input_data_formats.at(2) == DataFormat::RawUInt8) or 
-                    (op_it.second.input_data_formats.at(2) == DataFormat::RawUInt16) or 
+                    (op_it.second.input_data_formats.at(2) == DataFormat::RawUInt8) or
+                    (op_it.second.input_data_formats.at(2) == DataFormat::RawUInt16) or
                     (op_it.second.input_data_formats.at(2) == DataFormat::RawUInt32),
-                    "graph={}, op={} is a matmul identity op where encodings df={} is not RawUInt8/RawUInt16/RawUInt32", 
-                    graph_it.second.name, 
-                    op_it.second.name, 
+                    "graph={}, op={} is a matmul identity op where encodings df={} is not RawUInt8/RawUInt16/RawUInt32",
+                    graph_it.second.name,
+                    op_it.second.name,
                     op_it.second.input_data_formats.at(2)
                 );
             }
@@ -3708,7 +3813,21 @@ void netlist_parser::verify_complex_settings() {
                         const tt_op_info& op_info = graph_map.at(consumer_op_graph).op_map.at(consumer_op_name);
                         // buffered queue can be only one input of the op
                         if (std::count(op_info.input_names.begin(), op_info.input_names.end(), queue_name) == 1) {
-                            const std::string& producer_op_graph = op_graph_map.at(queue_info.input);
+                            //const std::string& producer_op_graph;
+                            std::string producer_op_graph;
+                            if (op_graph_map.find(queue_info.input) != op_graph_map.end()) {
+                                producer_op_graph = op_graph_map.at(queue_info.input);
+                            } else {
+                                std::string dot_dev = "." + std::to_string(queue_info.target_device);
+                                size_t p = queue_info.input.find(dot_dev);
+                                if (p != std::string::npos) {
+                                    std::string q_input_wo_device = queue_info.input.substr(0, queue_info.input.size() - dot_dev.size());
+                                    if (op_graph_map.find(q_input_wo_device) != op_graph_map.end()) {
+                                        producer_op_graph = op_graph_map.at(q_input_wo_device);
+                                    }
+                                }
+                                continue;
+                            }
                             const auto& producer_temporal_id = get_temporal_graph_of_graph(producer_op_graph);
                             const auto& consumer_temporal_id = get_temporal_graph_of_graph(consumer_op_graph);
                             if (producer_temporal_id == consumer_temporal_id) {

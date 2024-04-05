@@ -122,6 +122,7 @@ class netlist_parser {
     void derive_vector_mode_for_ops();
     void derive_input_tile_dims_for_ops();
     void derive_temporal_graphs();
+    std::vector<string> expand_multi_instance_queues();
     void expand_multi_instance_structures();
     void compress_temporal_graph_ids();
     void verify_ublock_fits_into_dest(const string& op_name, const tt_dim_info& op_output_dim, DataFormat op_dest_accumulate_data_format, bool full_sync_mode, tt::ARCH arch);
