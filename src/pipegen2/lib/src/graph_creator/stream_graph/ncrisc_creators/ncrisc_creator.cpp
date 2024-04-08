@@ -469,10 +469,23 @@ namespace pipegen2
         // Assert that this input is scatter
         // In old pipegen this chunk is calculated only for dram IO & dram prefetch scatter POST TM
         // which by any means must be scatter.
-        const unsigned int phase_tiles = data_flow_info.get_max_num_tiles_per_phase(dram_input_node);
+
+        // TODO: To get the same result as pipegen v1, we have calculate max tiles per phase in the same way.
+        // This makes testing easier, otherwise we sometimes compute different chunk size. This affects streams that are
+        // allocated later and testing becomes a pain. Once we get to the point where pipegen v2 works, we can change
+        // this back to the initial (commented) version and test it on silicon.
+        //
+        // const unsigned int phase_tiles = data_flow_info.get_max_num_tiles_per_phase(dram_input_node);
+        unsigned int clear_granularity = 0;
+
         const RGBasePipe* rg_pipe = dram_input_node->get_output_pipe();
 
-        std::optional<unsigned int> chunk_size;
+        // Start from the pipe and go down the graph until reaching a buffer.
+        get_clear_granularity_of_downstream_buffers(rg_pipe, nullptr /* rg_node */, &clear_granularity);
+        const unsigned int phase_tiles =
+            (constants::general_max_num_tiles_per_phase / clear_granularity) * clear_granularity;
+
+        unsigned int chunk_size = phase_tiles;
         unsigned int min_chunk_size = std::numeric_limits<unsigned int>::max();
 
         const DramParallelForkPipe* dram_fork_pipe = dynamic_cast<const DramParallelForkPipe*>(rg_pipe);
@@ -484,39 +497,31 @@ namespace pipegen2
             // purposes we must obey to it.
             // TODO: After pipegen v2 reaches point of working for all the cases, we should inspect if we can
             // get rid of this complexity.
-            const std::vector<const RGBaseNode*>& fork_virtual_nodes = dram_fork_pipe->get_output_nodes();
-            log_assert(fork_virtual_nodes.size() > 0, "Expecting at least one output fork virtual node.");
-
-            for (unsigned int i = 0; i < fork_virtual_nodes.size(); ++i)
+            for (const RGBaseNode* v_node : dram_fork_pipe->get_output_nodes())
             {
-                const RGBasePipe* out_pipe = fork_virtual_nodes[i]->get_output_pipe();
-                const unsigned int chunk_size_per_fork = calculate_max_chunk_size_for_pipe(
-                    out_pipe, data_flow_info, phase_tiles);
-
-                chunk_size = std::gcd(chunk_size.value_or(chunk_size_per_fork), chunk_size_per_fork);
+                const RGBasePipe* out_pipe = v_node->get_output_pipe();
+                chunk_size = std::gcd(chunk_size, out_pipe->get_num_tiles_to_transfer(data_flow_info));
                 min_chunk_size = std::min(min_chunk_size, out_pipe->get_min_num_tiles_to_transfer(data_flow_info));
             }
         }
         else
         {
-            chunk_size = calculate_max_chunk_size_for_pipe(rg_pipe, data_flow_info, phase_tiles);
+            chunk_size = std::gcd(chunk_size, rg_pipe->get_num_tiles_to_transfer(data_flow_info));
             min_chunk_size = rg_pipe->get_min_num_tiles_to_transfer(data_flow_info);
         }
 
-        log_assert(chunk_size.has_value(), "Failed to compute valid read_chunk_size_tiles");
-
-        chunk_size = std::lcm(chunk_size.value(), min_chunk_size);
+        chunk_size = std::lcm(chunk_size, min_chunk_size);
 
         const unsigned int tile_size = dram_input_node->get_tile_size();
         const unsigned int max_transfer_size_bytes =
             get_dram_read_max_transfer_size_bytes(tile_size, max_dram_input_buffer_size_tiles);
 
         chunk_size = get_transfer_chunk_size_tiles(
-            chunk_size.value(), min_chunk_size, tile_size, constants::dram_input_stream_max_pending_read_tiles,
+            chunk_size, min_chunk_size, tile_size, constants::dram_input_stream_max_pending_read_tiles,
             max_transfer_size_bytes);
-        log_assert(chunk_size.value() > 0, "Failed to compute valid read_chunk_size_tiles");
+        log_assert(chunk_size > 0, "Failed to compute valid read_chunk_size_tiles");
 
-        return chunk_size.value();
+        return chunk_size;
     }
 
     unsigned int NcriscCreator::calculate_max_chunk_size_for_pipe(const RGBasePipe* rg_pipe,
@@ -542,6 +547,38 @@ namespace pipegen2
 
         return std::min(constants::dram_input_stream_max_pending_read_bytes,
                         max_dram_input_buffer_size_tiles * dram_input_node_tile_size);
+    }
+
+    void NcriscCreator::get_clear_granularity_of_downstream_buffers(const RGBasePipe* rg_pipe,
+                                                                    const RGBaseNode* rg_node,
+                                                                    unsigned int* clear_granularity)
+    {
+        if (rg_pipe)
+        {
+            for (const RGBaseNode* output_node : rg_pipe->get_output_nodes())
+            {
+                get_clear_granularity_of_downstream_buffers(nullptr /* rg_pipe */, output_node, clear_granularity);
+            }
+            return;
+        }
+
+        // If we have a virtual node, get its parent RG node. Otherwise, use the RG node directly. Ultimately, we want
+        // to get to the output node. If cast to output node fails, we have a virtual node that is not associated with
+        // an output node. In this case, we skip it.
+        const VirtualNode* v_node = dynamic_cast<const VirtualNode*>(rg_node);
+        const RGBaseNode* non_virt_node = v_node ? v_node->get_parent_rg_node() : rg_node;
+        const BaseOutputNode* out_node = dynamic_cast<const BaseOutputNode*>(non_virt_node);
+
+        if (!out_node)
+        {
+            log_assert(v_node, "Expected virtual node in case when rg_node is not an output node");
+            // Skip virtual nodes that are not associated with an output node.
+            get_clear_granularity_of_downstream_buffers(
+                v_node->get_output_pipe(), nullptr /* rg_node */, clear_granularity);
+            return;
+        }
+
+        *clear_granularity = std::gcd(*clear_granularity, out_node->get_transfer_granularity());
     }
 
     NcriscConfig NcriscCreator::create_dram_ncrisc_read_config(const RGBaseNode* input_node,

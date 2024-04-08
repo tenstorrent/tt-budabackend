@@ -148,6 +148,11 @@ namespace pipegen2
                                                           const DramInputNode* dram_input_node,
                                                           const unsigned int max_dram_input_buffer_size_tiles);
 
+        // Calculates GCD of all non-virtual buffers that are downstream of the given pipe.
+        void get_clear_granularity_of_downstream_buffers(const RGBasePipe* rg_pipe,
+                                                         const RGBaseNode* rg_node,
+                                                         unsigned int* clear_granularity);
+
         // Calculates max chunk of data a pipe can read from dram at a time.
         unsigned int calculate_max_chunk_size_for_pipe(const RGBasePipe* rg_pipe,
                                                        const DataFlowInfo& data_flow_info,

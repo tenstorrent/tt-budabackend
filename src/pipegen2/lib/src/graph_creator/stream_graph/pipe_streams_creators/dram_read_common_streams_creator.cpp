@@ -534,16 +534,8 @@ namespace pipegen2
                                                                       unsigned int max_dram_input_buffer_size_tiles)
     {
         const unsigned int base_buffer_size_bytes = stream->get_base_config().get_buffer_size().value();
-
-        // If the pipe transfers less than max_num_tiles_per_phase tiles per input tensor, then there is no need to 
-        // ensure divisibiilty between the total max_num_tiles_per_phase and the size in tiles of scale up dram buffer.
-        // We only need to ensure divisibility between the total number of tiles that is being transferred and the 
-        // scaled up buffer.
-        const unsigned int total_tiles_transfered_per_phase_cap = std::min(
-            max_num_tiles_per_phase, pipe->get_num_tiles_to_transfer(data_flow_info));
             
-        const unsigned int max_num_tiles_per_phase_bytes = total_tiles_transfered_per_phase_cap * 
-                                                           dram_input_node_tile_size_bytes;
+        const unsigned int max_num_tiles_per_phase_bytes = max_num_tiles_per_phase * dram_input_node_tile_size_bytes;
 
         unsigned int scale_factor = 1;
 
