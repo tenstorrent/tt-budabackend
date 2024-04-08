@@ -4,6 +4,26 @@
 # SPDX-License-Identifier: Apache-2.0
 """
 Collects netlists in a given folder recursively, that pass net2pipe successfully.
+
+Example vscode launch config:
+{
+    "name": "Python netlist collector",
+    "type": "python",
+    "request": "launch",
+    "python": "${workspaceFolder}/verif/pipegen_tests/env/bin/python",
+    "program": "verif/pipegen_tests/netlist_collector.py",
+    "console": "integratedTerminal",
+    "args": [
+        "--out-dir",
+        "out/output_netlist_collector",
+        "--builds-dir",
+        "build_archs",
+        // "--num-threads",
+        // "8"
+    ]
+}
+Example command line:
+    python3 verif/pipegen_tests/netlist_collector.py --out-dir out/output_netlist_collector --builds-dir build_archs
 """
 from __future__ import annotations
 
@@ -14,7 +34,7 @@ import random
 import threading
 import time
 
-from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_net2pipe import Net2PipeRunner
 from verif.common.test_utils import (
     DeviceArchs,
     get_netlist_arch,
@@ -46,7 +66,9 @@ def validate_netlist(
     # Expecting to find subfolders for different architectures inside builds_dir.
     bin_dir = f"{builds_dir}/{arch}/bin"
     assert os.path.exists(bin_dir)
-    net2pipe_retcode, _ = run_net2pipe(netlist_path, out_dir, arch, bin_dir)
+    net2pipe_retcode, _ = Net2PipeRunner.run_net2pipe(
+        netlist_path, out_dir, arch, bin_dir
+    )
     os.system(f"rm -rf {out_dir}/*")
     return net2pipe_retcode == 0
 

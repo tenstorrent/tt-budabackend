@@ -58,6 +58,8 @@ def setup_logger(log_file_path: str):
         "%(asctime)s - %(filename)s:%(lineno)s - %(levelname)s - %(process)d - %(message)s"
     )
 
+    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+
     # Set up file logging for DEBUG level.
     fh = logging.FileHandler(log_file_path)
     fh.setLevel(logging.DEBUG)

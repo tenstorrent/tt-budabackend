@@ -8,12 +8,12 @@ from typing import Dict, List, Tuple
 from blob_comparator import BlobComparator
 from ruamel.yaml import YAML
 
-from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_net2pipe import Net2PipeRunner
 from verif.common.runner_pipegen import (
     PIPEGEN_MASTER_BIN_NAME,
     PerfDumpLevel,
     PerfDumpMode,
-    run_pipegen,
+    PipegenRunner,
 )
 from verif.common.runner_utils import (
     DEFAULT_BIN_DIR,
@@ -132,7 +132,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
 
     log_path = setup_logging(out_dir)
 
-    run_net2pipe(netlist, out_dir, arch, throw_if_error=True)
+    Net2PipeRunner.run_net2pipe(netlist, out_dir, arch, throw_if_error=True)
 
     pipegen_yaml_path = os.path.join(get_epoch_dir(out_dir, EPOCH_ID), "pipegen.yaml")
 
@@ -150,7 +150,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                 blob1_path = os.path.join(out_dir, f"{blob_prefix}_blob1.yaml")
                 blob2_path = os.path.join(out_dir, f"{blob_prefix}_blob2.yaml")
 
-                run_pipegen(
+                PipegenRunner.run_pipegen(
                     pipegen_yaml_path,
                     blob1_path,
                     arch,
@@ -161,7 +161,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                     pipegen_path=os.path.join(DEFAULT_BIN_DIR, PIPEGEN_MASTER_BIN_NAME),
                     throw_if_error=True,
                 )
-                run_pipegen(
+                PipegenRunner.run_pipegen(
                     pipegen_yaml_path,
                     blob2_path,
                     arch,

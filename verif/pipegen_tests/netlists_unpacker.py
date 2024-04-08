@@ -5,6 +5,22 @@
 """
 Finds all netlist zips starting from a given folder recursively,
 and unzips them to specified output folder.
+
+Example vscode launch config:
+{
+    "name": "Python netlist unpacker",
+    "type": "python",
+    "request": "launch",
+    "python": "${workspaceFolder}/verif/pipegen_tests/env/bin/python",
+    "program": "verif/pipegen_tests/netlists_unpacker.py",
+    "console": "integratedTerminal",
+    "args": [
+        "--out-dir",
+        "out/extracted_netlists"
+    ]
+}
+Example command line:
+    python3 verif/pipegen_tests/netlists_unpacker.py --out-dir out/extracted_netlists
 """
 from __future__ import annotations
 

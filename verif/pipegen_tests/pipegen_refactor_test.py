@@ -32,14 +32,14 @@ from blob_comparator import BlobComparator, StreamGraphComparisonStrategy
 from ruamel.yaml import YAML
 
 from verif.common.pipegen_yaml_filter import FilterType
-from verif.common.runner_net2pipe import generate_net2pipe_outputs
+from verif.common.runner_net2pipe import Net2PipeRunner
 from verif.common.runner_pipegen import (
     PIPEGEN_BIN_NAME,
     PIPEGEN_MASTER_BIN_NAME,
+    PipegenRunner,
     PipegenWorkerConfig,
-    run_pipegen_worker,
 )
-from verif.common.runner_pipegen_filter import filter_pipegen_yamls
+from verif.common.runner_pipegen_filter import PipegenFilterRunner
 from verif.common.runner_utils import (
     DEFAULT_BIN_DIR,
     DEFAULT_TOP_LEVEL_BUILD_DIR,
@@ -113,7 +113,7 @@ def run_pipegens(
     ]
 
     execute_in_parallel(
-        run_pipegen_worker,
+        PipegenRunner.run_pipegen_worker,
         worker_configs,
         log_file=os.path.join(results_dir, "pipegen_commands.log"),
     )
@@ -128,9 +128,9 @@ def filter_yamls(
     num_samples: int,
 ):
     net2pipe_out_dir = os.path.join(out_dir, NET2PIPE_OUT_DIR_NAME)
-    generate_net2pipe_outputs(netlists_dir, net2pipe_out_dir, builds_dir)
+    Net2PipeRunner.generate_net2pipe_outputs(netlists_dir, net2pipe_out_dir, builds_dir)
 
-    filter_pipegen_yamls(
+    PipegenFilterRunner.filter_pipegen_yamls(
         net2pipe_out_dir,
         os.path.join(out_dir, filtered_yamls_dir_name),
         filter_type,
@@ -303,7 +303,7 @@ def compare_pipegens_on_yamls(
     sg_comparison_strategy: StreamGraphComparisonStrategy,
 ) -> bool:
     timestamp = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
-    results_dir = f"{out}/{timestamp}"
+    results_dir = os.path.join(out, timestamp)
     os.makedirs(results_dir)
 
     logger.info(
@@ -406,8 +406,7 @@ if __name__ == "__main__":
 
     # Set up logger.
     os.makedirs(args.out, exist_ok=True)
-    log_file_path = f"{args.out}/pipegen_{args.command}.log"
-    setup_logger(log_file_path=log_file_path)
+    setup_logger(os.path.join(args.out, f"pipegen_{args.command}.log"))
 
     # TODO switch prints to logger for filtering mode too.
     if args.command == "filter":

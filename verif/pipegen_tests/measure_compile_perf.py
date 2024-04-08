@@ -16,7 +16,7 @@ from datetime import datetime
 from verif.common.runner_pipegen import (
     PIPEGEN_BIN_NAME,
     PIPEGEN_MASTER_BIN_NAME,
-    run_pipegen,
+    PipegenRunner,
 )
 from verif.common.runner_utils import DEFAULT_BIN_DIR, DeviceArchs
 from verif.common.test_utils import get_epoch_dir, get_logger, setup_logger
@@ -55,7 +55,7 @@ def measure_pipegen_time(
     blob_yaml_path = f"{out_dir}/blob.yaml"
 
     pipegen_start_time = time.perf_counter()
-    retcode, _ = run_pipegen(
+    retcode, _ = PipegenRunner.run_pipegen(
         pipegen_yaml,
         blob_yaml_path,
         arch,

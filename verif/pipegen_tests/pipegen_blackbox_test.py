@@ -26,8 +26,8 @@ import yaml
 project_root_path = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.append(project_root_path)
 
-from verif.common.runner_net2pipe import run_net2pipe
-from verif.common.runner_pipegen import run_pipegen
+from verif.common.runner_net2pipe import Net2PipeRunner
+from verif.common.runner_pipegen import PipegenRunner
 from verif.common.test_utils import (
     DeviceArchs,
     create_dir_if_not_exist,
@@ -331,14 +331,14 @@ def get_overlay_output_hash(netlist_path: str, temp_dir: str, arch_name: str) ->
         Netlist overlay result hash.
     """
     # Running net2pipe
-    run_net2pipe(netlist_path, temp_dir, arch_name, throw_if_error=True)
+    Net2PipeRunner.run_net2pipe(netlist_path, temp_dir, arch_name, throw_if_error=True)
     # Running pipegen
     epoch_id = 0
     epoch_dir = get_epoch_dir(temp_dir, epoch_id)
     while os.path.isdir(epoch_dir):
         pipegen_yaml_path = f"{epoch_dir}/pipegen.yaml"
         blob_yaml_path = f"{epoch_dir}/blob.yaml"
-        run_pipegen(
+        PipegenRunner.run_pipegen(
             pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id, throw_if_error=True
         )
         epoch_id = epoch_id + 1

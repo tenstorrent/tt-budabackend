@@ -31,7 +31,7 @@ from test_modules.common.compilation_pipeline_runner import (
     PipelineCompilationResult,
 )
 
-from verif.common.runner_net2pipe import run_net2pipe
+from verif.common.runner_net2pipe import Net2PipeRunner
 
 
 def lcm(a, b):
@@ -210,7 +210,7 @@ def run_fix_kernel_broadcast_factor_worker(
     # Optimization: skip net2pipe run if possible.
     if not os.path.exists(netlist_out_path):
         os.makedirs(netlist_out_path)
-        run_net2pipe(netlist_path, netlist_out_path, arch)
+        Net2PipeRunner.run_net2pipe(netlist_path, netlist_out_path, arch)
 
     pipegen_yaml_path = os.path.join(
         netlist_out_path, "temporal_epoch_0", "overlay", "pipegen.yaml"

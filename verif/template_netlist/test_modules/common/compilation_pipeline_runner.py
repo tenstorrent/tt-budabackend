@@ -11,9 +11,9 @@ from typing import Dict, List, Tuple
 
 from util import get_git_root
 
-from verif.common.runner_blobgen import BLOBGEN_RB_PATH, run_blobgen
-from verif.common.runner_net2pipe import run_net2pipe
-from verif.common.runner_pipegen import run_pipegen
+from verif.common.runner_blobgen import BLOBGEN_RB_PATH, BlobgenRunner
+from verif.common.runner_net2pipe import Net2PipeRunner
+from verif.common.runner_pipegen import PipegenRunner
 from verif.template_netlist.scripts.utility.generate_netlists_from_configs import (
     generate_netlists_from_configs,
 )
@@ -151,7 +151,7 @@ class CompilationPipelineRunner:
             # Run blobgen on the results
             netlist_folder = os.path.join(out_dir, f"netlist_{test_id}")
             build_graph_dir = os.path.join(netlist_folder, "temporal_epoch_0/overlay")
-            run_blobgen(
+            BlobgenRunner.run_blobgen(
                 BLOBGEN_RB_PATH,
                 build_graph_dir,
                 os.path.join(build_graph_dir, "blob.yaml"),
@@ -173,11 +173,11 @@ class CompilationPipelineRunner:
             netlist_out_dir = os.path.join(out_dir, f"netlist_{netlist_id}")
             os.makedirs(netlist_out_dir, exist_ok=True)
 
-            run_net2pipe(
+            Net2PipeRunner.run_net2pipe(
                 netlist_path=netlist_path, out_dir=netlist_out_dir, arch=arch, throw_if_error=True
             )
 
-            run_pipegen(
+            PipegenRunner.run_pipegen(
                 pipegen_yaml_path=os.path.join(
                     netlist_out_dir, "temporal_epoch_0", "overlay", "pipegen.yaml"
                 ),

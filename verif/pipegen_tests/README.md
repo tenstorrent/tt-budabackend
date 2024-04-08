@@ -17,6 +17,101 @@ Add the following snippet:
 "isort.args":["--profile", "black"],
 ```
 
+# Net2Pipe, Pipegen and Blobgen output comparison
+
+Often we make changes which we don't expect to produce any functional difference in any of these components.
+Following is a set of instructions on how to compare two binaries on a set of netlists.
+
+## Obtain netlists
+
+Run these commands to build binaries and python env:
+```
+verif/pipegen_tests/build_all_archs.sh
+verif/pipegen_tests/create_env.sh
+source verif/pipegen_tests/env/bin/activate
+```
+
+You can use only a few netlists if that's enough for your use case. In that case 
+Otherwise, you can use these commands to fetch all the available netlists from the repo:
+```
+python3 verif/pipegen_tests/netlists_unpacker.py \
+--out-dir out/extracted_netlists
+python3 verif/pipegen_tests/netlist_collector.py \
+--out-dir /localdev/$USER/work/output_netlist_collector \
+--builds-dir build_archs
+```
+
+Note that the output of netlists_unpacker.py has to be somewhere in the repo, so that netlist_collector will find those netlists.
+
+## Generate Blobgen outputs
+
+Use the following command to run whole backend compilation:
+```
+python3 verif/pipegen_tests/run_backend_compile_many_files.py \
+--builds_dir build_archs \
+--log_out_root out \
+--netlists /localdev/$USER/work/output_netlist_collector \
+--out_net2pipe /localdev/$USER/work/output_net2pipe \
+--out_pipegen /localdev/$USER/work/output_pipegen \
+--out_blobgen /localdev/$USER/work/output_blobgen \
+--blobgen_path ./src/overlay/blob_gen.rb
+```
+
+You can add --overwrite parameter to overwrite output folders.
+The default behavior is to skip each of the steps for which the output folder already exists.
+You can take advantage of this behavior if you're changing (for example) only pipegen, and know that net2pipe binaries and their outputs are exactly the same.
+In that case, you can just use the same --out_net2pipe location in the following command for generating the other set of files.
+
+## Generate Blobgen master outputs
+
+If you are on a branch with your local changes, and want to generate outputs from code present on master branch
+```
+git checkout master
+verif/pipegen_tests/build_all_archs.sh build_master
+python3 verif/pipegen_tests/run_backend_compile_many_files.py \
+--builds_dir build_master \
+--log_out_root out \
+--netlists /localdev/$USER/work/output_netlist_collector \
+--out_net2pipe /localdev/$USER/work/output_net2pipe_master \
+--out_pipegen /localdev/$USER/work/output_pipegen_master \
+--out_blobgen /localdev/$USER/work/output_blobgen_master \
+--blobgen_path ./src/overlay/blob_gen.rb
+```
+
+## Generate just Net2Pipe or just Pipegen outputs
+
+If you need just blob.yamls, you can remove --out_blobgen and --blobgen_path to skip running blobgen.
+If you need just pipegen.yamls, you can further remove --out-pipegen to skip running pipegen.
+
+## Compare outputs
+
+To test blobgen changes and compare generated blobs (hex files), you can use this command:
+```
+python3 verif/pipegen_tests/run_compare_many_files.py \
+--log_out_root out  \
+--original_dir /localdev/$USER/work/output_blobgen_master \
+--new_dir /localdev/$USER/work/output_blobgen \
+--filename_filter "*.hex"
+```
+
+To test pipegen changes and compare generated blob.yamls, you can use this command:
+```
+python3 verif/pipegen_tests/run_compare_many_files.py \
+--log_out_root out  \
+--original_dir /localdev/$USER/work/output_pipegen_master \
+--new_dir /localdev/$USER/work/output_pipegen \
+--filename_filter "*blob_[0-9]*.yaml"
+```
+
+To test net2pipe changes and compare generated pipegen.yamls, you can use this command:
+```
+python3 verif/pipegen_tests/run_compare_many_files.py \
+--log_out_root out  \
+--original_dir /localdev/$USER/work/output_net2pipe_master \
+--new_dir /localdev/$USER/work/output_net2pipe \
+--filename_filter "*pipegen.yaml"
+```
+
 # Net2Pipe and Pipegen Blackbox Testing
 
 This test executes  [net2pipe](#net2pipe) and [pipegen2](#pipegen) on a set of predefined netlists. Netlists and their baseline overlay results are stored in zip files located at: `verif/pipegen_tests/netlists/{ARCH_NAME}/{push|nightly}/baseline.zip"`.
@@ -55,6 +150,8 @@ It will unpack the baseline file into `out_dir`, generate overlay results with y
 You can pass the `--num-cores X` argument to specify the number of cores used (by default it will use all CPU cores available).
 
 ## Updating baseline zip
+
+Use `regenerate_blackbox_tests.sh` to easily regenerate all baselines. A more detailed and manual steps are following:
 
 To create new baseline binary, you can run the following command:
 ```
