@@ -120,6 +120,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
       }
       bool last_out = strip_info_ptr->f.last_strip_in_row;
       bool last_strip_in_tile = strip_info_ptr->f.last_strip_in_tile;
+      bool should_pack_in_the_last_out = last_out and !gradient_op and !bias and (!shared_buffer or shared_buffer and relu_en);
 
       // Disable l1 acc for last output unless we are adding bias or doing gradient accumulation
       if (last_out and !gradient_op and !bias) {
@@ -189,8 +190,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
          }   
 
          for (int out_c = 0; out_c < outer_c; out_c++) {
-
-            if (!left_ublock_zero or !enable_reload or (last_out and !gradient_op and !bias)) {
+            if (!left_ublock_zero or !enable_reload or should_pack_in_the_last_out) {
                hlk_acquire_dst(core_ptr);
             }
 
@@ -202,8 +202,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
             if (enable_reload) {
                hlk_wait_tiles(core_ptr, HlkOperand::intermed0, out_block_tile_cnt);
                if (!l1_acc) {
-                  if(!left_ublock_zero ||
-                    (last_out and !gradient_op and !bias)) {
+                  if(!left_ublock_zero or should_pack_in_the_last_out) {
                      hlk_reconfig_unpacker_df(core_ptr, HlkOperand::in1, HlkOperand::intermed0, HlkOperand::in0, HlkOperand::in0); //reconfig df for src A register, in1 = srcA
                      hlk_copy_tile_to_dst_init_short(core_ptr, HlkOperand::intermed0, !adv_features_en, false);
                      for (int i = 0; i < out_block_tile_cnt; i++) {
@@ -253,8 +252,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                    hlk_relu_config(core_ptr, args->relu_config);
                }
                hlk_wait_for_free_tiles(core_ptr, HlkOperand::out0, out_block_tile_cnt);
-               if(!left_ublock_zero or !enable_reload ||
-                    (last_out and !gradient_op and !bias)) {
+               if(!left_ublock_zero or !enable_reload or should_pack_in_the_last_out) {
                   for (int i = 0; i < out_block_tile_cnt; i++) {
                      hlk_pack_tile_to_stream(core_ptr, i, HlkOperand::out0);
                   }
@@ -274,7 +272,7 @@ TT_HLK_ALWAYS_INLINE void hlk_process_single_input(tt_core *core_ptr, const hlk_
                hlk_push_tiles(core_ptr, HlkOperand::intermed0, out_block_tile_cnt);
             }
 
-            if (!left_ublock_zero or !enable_reload || (last_out and !gradient_op and !bias)) {
+            if (!left_ublock_zero or !enable_reload or should_pack_in_the_last_out) {
                hlk_release_dst(core_ptr);
             } 
          }
