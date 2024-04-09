@@ -7,9 +7,11 @@
 #include <stdexcept>
 
 #include "device/core_resources.h"
+#include "device/fork_join_paths_checker.h"
 #include "device/perf_info_manager.h"
 #include "device/resource_manager.h"
 #include "device/soc_info.h"
+#include "graph_creator/fork_join_graph/fork_join_graph_creator.h"
 #include "graph_creator/pipe_graph/pipe_graph_creator.h"
 #include "graph_creator/rational_graph/rational_graph_creator.h"
 #include "graph_creator/stream_graph/stream_graph_creator.h"
@@ -31,12 +33,26 @@ std::unique_ptr<StreamGraphCollection> Pipegen2::create_stream_graphs(const std:
     create_pipe_graph(pipegen_yaml_path);
     create_resource_manager();
     create_rational_graphs();
-    return create_stream_graphs(epoch_num);
+    create_stream_graphs(epoch_num);
+    analyze_fork_join_graphs();
+    return std::move(m_stream_graphs);
 }
 
 void Pipegen2::create_pipe_graph(const std::string& pipegen_yaml_path) {
     PipeGraphCreator pipe_graph_creator;
     m_pipe_graph = pipe_graph_creator.create_pipe_graph(pipegen_yaml_path);
+}
+
+std::unique_ptr<ForkJoinGraphCollection> Pipegen2::create_fork_join_graphs() {
+    ForkJoinGraphCreator fork_join_graph_creator;
+    return fork_join_graph_creator.create_fork_join_graphs(m_pipe_graph.get(), m_stream_graphs.get(),
+                                                           m_resource_manager.get());
+}
+
+void Pipegen2::analyze_fork_join_graphs() {
+    ForkJoinPathsChecker fork_join_paths_checker;
+    std::unique_ptr<ForkJoinGraphCollection> fork_join_graph_collection = create_fork_join_graphs();
+    fork_join_paths_checker.check_fork_join_hangs(fork_join_graph_collection.get());
 }
 
 void Pipegen2::create_resource_manager() {
@@ -55,9 +71,9 @@ void Pipegen2::create_rational_graphs() {
     m_rational_graphs = rational_graph_creator.create_rational_graphs(*m_pipe_graph, m_resource_manager.get());
 }
 
-std::unique_ptr<StreamGraphCollection> Pipegen2::create_stream_graphs(const int epoch_num) {
+void Pipegen2::create_stream_graphs(const int epoch_num) {
     StreamGraphCreator stream_graph_creator;
-    return stream_graph_creator.create_stream_graphs(m_rational_graphs, m_resource_manager.get(), epoch_num);
+    m_stream_graphs = stream_graph_creator.create_stream_graphs(m_rational_graphs, m_resource_manager.get(), epoch_num);
 }
 
 void Pipegen2::output_blob_yaml(const StreamGraphCollection* stream_graph_collection, const std::string& blob_yaml_path,

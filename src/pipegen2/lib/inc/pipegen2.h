@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "device/l1_memory_allocation.h"
+#include "device/tt_xy_pair.h"
+#include "model/fork_join_graph/fork_join_graph_collection.h"
 #include "model/stream_graph/stream_graph_collection.h"
 namespace pipegen2 {
 class PipeGraph;
@@ -52,6 +54,9 @@ class Pipegen2 {
     // Creates pipe graph from the input net2pipe pipegen yaml.
     void create_pipe_graph(const std::string& pipegen_yaml_path);
 
+    // Creates a fork-join graph graphs from the pipe_graph and stream graphs.
+    std::unique_ptr<ForkJoinGraphCollection> create_fork_join_graphs();
+
     // Creates resource manager for the device.
     void create_resource_manager();
 
@@ -59,7 +64,10 @@ class Pipegen2 {
     void create_rational_graphs();
 
     // Creates stream graph from the rational graphs.
-    std::unique_ptr<StreamGraphCollection> create_stream_graphs(const int epoch_num);
+    void create_stream_graphs(const int epoch_num);
+
+    // Analyzes the created fork-join graphs for hangs.
+    void analyze_fork_join_graphs();
 
     // Device resources manager.
     std::unique_ptr<ResourceManager> m_resource_manager;
@@ -72,6 +80,9 @@ class Pipegen2 {
 
     // Created stream graphs for each rational graph.
     std::unique_ptr<StreamGraphCollection> m_stream_graphs;
+
+    // Creator fork-join op cycles for the graph.
+    std::unique_ptr<ForkJoinGraphCollection> m_fork_join_graphs;
 
     // Path to SOC descriptors yaml.
     std::string m_soc_descriptors_yaml_path;

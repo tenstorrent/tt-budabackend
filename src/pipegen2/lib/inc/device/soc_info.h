@@ -9,10 +9,9 @@
 #include <string>
 #include <vector>
 
+#include "common/base_types.hpp"
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
-#include "base_types.hpp"
-
 #include "model/typedefs.h"
 
 class buda_SocDescriptor;
