@@ -270,7 +270,7 @@ class BlobgenRunner:
         Example command
         ---------------
         ruby ./src/overlay/blob_gen.rb
-            --blob_out_dir out/a/output_blobgen2/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile
+            --blob_out_dir out/a/output_blobgen/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile
             --graph_yaml 1
             --graph_input_file out/a/output_pipegen/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml
             --graph_name pipegen_epoch0
