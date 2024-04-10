@@ -871,6 +871,13 @@ end
 # Add default settings to graph
 phase_info = $tt_stream_seq[graph_name]
 
+# sort streams by stream_id for each chip
+# won't be needed when we invert blob.yaml so that we have phases by stream not streams by phase.
+phase_info.each do |yx_label, streams|
+  streams = streams.sort_by { |stream_id, _| stream_id }
+  phase_info[yx_label] = streams.to_h
+end
+
 if $verbose == 2
   puts "%%%%%%%%%%%%%%%%"
   pp phase_info
