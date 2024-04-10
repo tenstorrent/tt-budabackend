@@ -234,22 +234,39 @@ enum class COMPILE_FAILURE {
     BlobGen = 5,
     L1Size = 6,
     OverlaySize = 7,
+    Firmware = 8,
     Invalid = 0xFFFF,
 };
 std::string get_string(COMPILE_FAILURE compile_failure);
 
 /**
- * @brief Compile failure result info
+ * @brief Base compile result struct
  */
-struct tt_compile_result {
+struct tt_base_compile_result {
     bool success = true;
     // Failure info
     COMPILE_FAILURE failure_type = COMPILE_FAILURE::Invalid;
     std::string failure_message = "";
     std::string failure_target = "";
-    // Reports space used by overlay blob across cores (str(x, y)) across temporal epochs
-    std::unordered_map<std::uint32_t, std::unordered_map<std::string, std::uint32_t>> blob_usage_per_epoch_per_core = {};
-    // Compilation info
+
+protected:
+    virtual std::string get_string() const = 0;
+};
+
+/**
+ * @brief Compile result struct for firmware
+ */
+struct tt_fw_compile_result : tt_base_compile_result {
+    // TODO: expand this class when interface for FW compilation is expanded
+    std::string get_string() const override;
+};
+
+/**
+ * @brief Compile result struct for single epoch
+ */
+struct tt_compile_result_per_epoch : public tt_base_compile_result {
+    std::string get_string() const override;
+
     uint32_t device_id = 0;
     uint32_t temporal_epoch_id = 0;
     uint32_t logical_core_x = 0;
@@ -259,7 +276,50 @@ struct tt_compile_result {
     uint32_t extra_size_bytes = 0;
     std::string graph_name;
 };
-std::string get_string(const tt_compile_result& result);
+
+/**
+ * @brief Compile result struct for overlay compilation
+ */
+struct tt_overlay_compile_result : tt_base_compile_result {
+    std::string get_string() const override;
+
+    // Reports space used by overlay blob across cores (str(x, y)) across temporal epochs
+    std::unordered_map<std::uint32_t, std::unordered_map<std::string, std::uint32_t>> blob_usage_per_epoch_per_core = {};
+
+    // Failed epoch compile results from pipegen
+    std::vector<tt_compile_result_per_epoch> failed_compile_results_per_epoch;
+};
+
+/**
+ * @brief Compile result struct returned from tt_runtime
+ */
+struct tt_compile_result : tt_base_compile_result {
+    // TODO : Remove these legacy fields. These fields are here because old tt_compile_result had it as well. We need to 
+    // keep these fields in order to not break PyBuda pipeline. As soon as PyBuda fixes things on their 
+    // side (use new fields), we will remove these fields.
+    uint32_t device_id = 0;
+    uint32_t temporal_epoch_id = 0;
+    uint32_t logical_core_x = 0;
+    uint32_t logical_core_y = 0;
+    uint32_t maximum_size_bytes = 0;
+    uint32_t allocated_size_bytes = 0;
+    uint32_t extra_size_bytes = 0;
+    std::string graph_name;
+    // Reports space used by overlay blob across cores (str(x, y)) across temporal epochs.
+    std::unordered_map<std::uint32_t, std::unordered_map<std::string, std::uint32_t>> blob_usage_per_epoch_per_core = {};
+    // TODO : end of legacy fields, remove everything above this line when PyBuda fixes things on their side.
+
+    // TODO : these are the new fields
+    // just leave these fields inside tt_compile_result when PyBuda fixes things on their side.
+    std::string get_string() const override;
+
+    tt_fw_compile_result fw_compile_result;
+
+    tt_overlay_compile_result overlay_compile_result;
+};
+// TODO this function is here to keep compatibility with old interface
+// same as old fields in this struct marked with comment to remove it
+std::string get_string(const tt_compile_result& compile_result);
 
 /**
  * @brief Backend Configuration

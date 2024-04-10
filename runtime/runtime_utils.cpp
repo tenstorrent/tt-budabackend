@@ -26,32 +26,37 @@ string get_overlay_output_dir(const string& build_dir_path, int temporal_epoch_i
     return build_dir_path + "/temporal_epoch_" + std::to_string(temporal_epoch_index) + "/overlay/";
 }
 
-void generate_pipegen_spec(const string &netlist, const string &build_dir_path, const int global_epoch_start, const string &soc_descriptor_path, const string &network_desc_path) {
-    PROFILE_SCOPE_MS();
-    string root = buda_home();
-    bool verbose = parse_env("TT_BACKEND_PRINT_PIPEGEN", false);
-    stringstream net2pipe_cmd;
-    string net2pipe_path = "build/bin/net2pipe ";
-    string net2pipe_log = build_dir_path + "/net2pipe.log";
-    string net2pipe_err = build_dir_path + "/net2pipe.err";
+void run_net2pipe(const string &netlist, const string &build_dir_path, const int global_epoch_start, const string &soc_descriptor_path, const string &network_desc_path,
+                  tt_overlay_compile_result& overlay_compile_result) {
+    try {
+        PROFILE_SCOPE_MS();
+        string root = buda_home();
+        bool verbose = parse_env("TT_BACKEND_PRINT_PIPEGEN", false);
+        stringstream net2pipe_cmd;
+        string net2pipe_path = "build/bin/net2pipe ";
+        string net2pipe_log = build_dir_path + "/net2pipe.log";
+        string net2pipe_err = build_dir_path + "/net2pipe.err";
 
-    net2pipe_cmd << root << net2pipe_path;
-    net2pipe_cmd << " " << netlist;
-    net2pipe_cmd << " " << build_dir_path;
-    net2pipe_cmd << " " << global_epoch_start;
-    net2pipe_cmd << " " << soc_descriptor_path;
-    net2pipe_cmd << " " << network_desc_path;
+        net2pipe_cmd << root << net2pipe_path;
+        net2pipe_cmd << " " << netlist;
+        net2pipe_cmd << " " << build_dir_path;
+        net2pipe_cmd << " " << global_epoch_start;
+        net2pipe_cmd << " " << soc_descriptor_path;
+        net2pipe_cmd << " " << network_desc_path;
 
-    stringstream net2pipe_out;
-    net2pipe_out << "Run net2pipe" << endl << net2pipe_cmd.str();
-    log_debug(tt::LogRuntime, "{}", net2pipe_out.str());
+        stringstream net2pipe_out;
+        net2pipe_out << "Run net2pipe" << endl << net2pipe_cmd.str();
+        log_debug(tt::LogRuntime, "{}", net2pipe_out.str());
 
-    if (!fs::exists(build_dir_path)) {
-        fs::create_directories(build_dir_path);
-    }
-    auto result = tt::run_command(net2pipe_cmd.str(), net2pipe_log, net2pipe_err);
-    if (!result.success) {
-        log_fatal("Running net2pipe command failed: {}, error_message: {}", net2pipe_cmd.str(), result.message);
+        if (!fs::exists(build_dir_path)) {
+            fs::create_directories(build_dir_path);
+        }
+        auto result = tt::run_command(net2pipe_cmd.str(), net2pipe_log, net2pipe_err);
+        if (!result.success) {
+            log_fatal("Running net2pipe command failed: {}, error_message: {}", net2pipe_cmd.str(), result.message);
+        }
+    } catch (std::exception& e) {
+        populate_compile_result_from_string_net2pipe(&overlay_compile_result, e.what());
     }
 }
 
@@ -101,8 +106,9 @@ void run_pipegen(
     const perf::PerfDesc &perf_desc,
     const string &desc_name,
     const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-    tt_compile_result &compile_result,
-    perf::MemoryProfiler* memory_profiler) {
+    tt_compile_result_per_epoch &compile_result,
+    perf::MemoryProfiler* memory_profiler,
+    const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph) {
 
     string root = buda_home();
     string build_graph_dir = get_overlay_output_dir(build_dir_path, temporal_epoch);
@@ -121,7 +127,11 @@ void run_pipegen(
 
     // Blobgen should be ran only if pipegen was run successfully.
     if (compile_result.success) {
-        run_blobgen(root, build_graph_dir, build_dir_path, temporal_epoch, chip_ids, sdesc_per_chip);
+        try {
+            run_blobgen(root, build_graph_dir, build_dir_path, temporal_epoch, chip_ids, sdesc_per_chip);
+        } catch(std::exception& e) {
+            populate_compile_result_from_string_blobgen(&compile_result, e.what(), global_epoch_device_to_graph);
+        }
     }
 }
 
@@ -132,7 +142,7 @@ void run_pipegen2(const string &desc_name,
                   const string &blob_yaml_path,
                   const uint32_t perf_dump_info,
                   const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-                  tt_compile_result &compile_result,
+                  tt_compile_result_per_epoch &compile_result,
                   perf::MemoryProfiler* memory_profiler) {
 
     try {
@@ -164,10 +174,13 @@ void run_pipegen2(const string &desc_name,
             profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
         }
     } catch (const pipegen2::BasePipegen2CompileException &ex) {
+        log_error("Pipegen2 compile exception : {}", ex.what());
         handle_pipegen2_compile_exception(ex, graph_name, temporal_epoch, sdesc_per_chip, compile_result);
     } catch (const pipegen2::BasePipegen2IOException &ex) {
+        log_error("Pipegen2 IO exception : {}", ex.what());
         handle_pipegen2_io_exception(ex, graph_name, temporal_epoch, compile_result);
     } catch (const std::exception &ex) {
+        log_error("Pipegen2 internal error : {}", ex.what());
         handle_pipegen2_internal_error(ex, graph_name, temporal_epoch, compile_result);
     }
 }
@@ -193,7 +206,7 @@ void handle_pipegen2_compile_exception(
     const std::string &graph_name,
     const int temporal_epoch,
     const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-    tt_compile_result &compile_result) {
+    tt_compile_result_per_epoch &compile_result) {
 
     populate_common_pipegen_error_info(graph_name, temporal_epoch, compile_result);
 
@@ -202,7 +215,7 @@ void handle_pipegen2_compile_exception(
     compile_result.logical_core_x = logical_error_core.x;
     compile_result.logical_core_y = logical_error_core.y;
 
-    compile_result.failure_message = ex.to_string();
+    compile_result.failure_message = "Pipegen compile exception: " + ex.to_string();
 }
 
 tt_cxy_pair get_pipegen2_exception_logical_core(
@@ -223,18 +236,18 @@ void handle_pipegen2_io_exception(
     const pipegen2::BasePipegen2IOException &ex,
     const std::string &graph_name,
     const int temporal_epoch,
-    tt_compile_result &compile_result) {
+    tt_compile_result_per_epoch &compile_result) {
 
     populate_common_pipegen_error_info(graph_name, temporal_epoch, compile_result);
 
-    compile_result.failure_message = ex.to_string();
+    compile_result.failure_message = "Pipegen IO exception: " + ex.to_string();
 }
 
 void handle_pipegen2_internal_error(
     const std::exception &ex,
     const std::string &graph_name,
     const int temporal_epoch,
-    tt_compile_result &compile_result) {
+    tt_compile_result_per_epoch &compile_result) {
 
     populate_common_pipegen_error_info(graph_name, temporal_epoch, compile_result);
 
@@ -248,7 +261,7 @@ void handle_pipegen2_internal_error(
 void populate_common_pipegen_error_info(
     const std::string &graph_name,
     const int temporal_epoch,
-    tt_compile_result &compile_result) {
+    tt_compile_result_per_epoch &compile_result) {
 
     compile_result.success = false;
     compile_result.failure_type = COMPILE_FAILURE::PipeGen;
@@ -1068,30 +1081,49 @@ vector<uint32_t> pad_entry_to_padding_blob(const YAML::Node& pad_entry) {
     return padding_entry_blob;
 }
 
-void populate_result_from_string(tt_compile_result *r, const std::string &e, const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph) {
-    tt_compile_result &result = *r;
+void match_failure_target(std::string& failure_target, const std::string& e) {
     std::smatch match;
     std::regex regex;
+    // Parse the failure command
+    regex = std::regex("failed: ([^,]*)\\s*,");
+    if (std::regex_search(e, match, regex) && match.size() > 1) {
+        failure_target = match[1].str();
+    }
+}
 
-    // Set failure status if exception exists
-    if (e == "") {
-        result.success = true;
-        return;
+void populate_compile_result_from_string_net2pipe(tt_overlay_compile_result* r, const std::string &e) {
+    tt_overlay_compile_result &result = *r;
+    
+    result.success = false;
+    result.failure_message = e;
+
+    if(e.find("net2pipe command failed") != std::string::npos) {
+        result.failure_type = COMPILE_FAILURE::Net2Pipe;
     } else {
         result.success = false;
-        result.failure_message = e;
+        result.failure_type = COMPILE_FAILURE::Invalid;
+        result.failure_message = "Populating compile result from net2pipe exception failed. Expected message with "
+                                 "\"net2pipe command failed\", got error message \"" + e + "\". "
+                                 "This message indicates bug in compilation process";
     }
 
+    match_failure_target(result.failure_target, e);
+}
+
+void populate_compile_result_from_string_blobgen(tt_compile_result_per_epoch *r, const std::string &e, const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph) {
+    tt_compile_result_per_epoch &result = *r;
+
+    result.success = false;
+    result.failure_message = e;
+
     // Parse the failure type specific info
-    if (e.find("net2pipe command failed") != std::string::npos) {
-        result.failure_type = COMPILE_FAILURE::Net2Pipe;
-    } else if (e.find("pipegen command failed") != std::string::npos) {
-        result.failure_type = COMPILE_FAILURE::PipeGen;
-    } else if (e.find("blob command failed") != std::string::npos) {
+    if (e.find("blob command failed") != std::string::npos) {
         result.failure_type = COMPILE_FAILURE::BlobGen;
         // Overlay Blob Size Failure
         if (e.find("The overlay blob") != std::string::npos) {
             result.failure_type = COMPILE_FAILURE::OverlaySize;
+            std::smatch match;
+            std::regex regex;
             regex = std::regex("we tried to allocate (\\d+)");
             // Parse the extra size required
             if (std::regex_search(e, match, regex) && match.size() > 1) {
@@ -1124,13 +1156,15 @@ void populate_result_from_string(tt_compile_result *r, const std::string &e, con
                 }
             }
         }
+    } else {
+        result.success = false;
+        result.failure_type = COMPILE_FAILURE::Invalid;
+        result.failure_message = "Populating compile result from blogen exception failed. Expected message with "
+                                  "\"blob command failed\", got error message \"" + e + "\". "
+                                  "This message indicates bug in compilation process";
     }
 
-    // Parse the failure command
-    regex = std::regex("failed: ([^,]*)\\s*,");
-    if (std::regex_search(e, match, regex) && match.size() > 1) {
-        result.failure_target = match[1].str();
-    }
+    match_failure_target(result.failure_target, e);
 }
 
 void populate_compile_stats_from_logs(tt_compile_result *result, const std::string& output_dir, uint num_temporal_epochs, uint global_epoch_start_id) {
@@ -1152,7 +1186,7 @@ void populate_compile_stats_from_logs(tt_compile_result *result, const std::stri
                     log_assert(blobgen_epoch_id == global_epoch_id, "Unexpected epoch {} in blobgen.log that doesn't match epoch of overlay output dir {}", blobgen_epoch_id, overlay_output_dir);
                     chip_core_xy = matches[2].str() + "-" + matches[4].str() + "-" + matches[3].str();
                     blob_size = stoi(matches[5]);
-                    result->blob_usage_per_epoch_per_core[blobgen_epoch_id][chip_core_xy] = blob_size;
+                    result->overlay_compile_result.blob_usage_per_epoch_per_core[blobgen_epoch_id][chip_core_xy] = blob_size;
                 }
             }
         }
@@ -1168,7 +1202,7 @@ std::vector<std::string> retrieve_compile_stats_info(tt_compile_result* result, 
     std::smatch chip_core_match;
     bool found_chip_core_match;
     const std::regex chip_core_re("^(\\d+)-(\\d+)-(\\d+)$");
-    for (const auto& epoch_it : result->blob_usage_per_epoch_per_core) {
+    for (const auto& epoch_it : result->overlay_compile_result.blob_usage_per_epoch_per_core) {
         global_epoch_id = epoch_it.first;
         for (const auto& core_it : epoch_it.second) {
             device_core_xy = core_it.first;

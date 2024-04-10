@@ -92,10 +92,10 @@ class tt_runtime : public tt_backend
     void verify_eth_fw_version();
     void create_graphs_and_init_queues();
     void create_graph_program(const tt_graph_info &graph_info);
-    tt_compile_result create_graph_overlay_binaries();
+    tt_overlay_compile_result create_graph_overlay_binaries();
     void update_graph_overlay_binaries();
     std::unordered_map<chip_id_t, buda_soc_description> load_soc_descriptors_per_chip(bool runtime_descriptor = false) const;
-    void create_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip, tt_compile_result& compile_result);
+    void create_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip, tt_compile_result_per_epoch& compile_result);
     void update_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip);
     void load_parameter_and_constant_queues();
     
@@ -146,7 +146,10 @@ class tt_runtime : public tt_backend
     void cleanup_runtime_and_close_device();
     void enable_loop_on_device_if_eligible(netlist_program &program, int loop_count);
     void check_for_dual_view_ram_rd_wr_overlap_in_graph(std::string &graph_name);
-    void merge_into_compile_result(const tt_compile_result &other_result);
+    void merge_compile_results(tt_compile_result* result, const tt_fw_compile_result& fw_compile_result,
+                               const tt_overlay_compile_result& overlay_compile_result);
+    void compile_firmware(tt_fw_compile_result& fw_compile_result);
+    void compile_overlay(tt_overlay_compile_result& overlay_compile_result);
     public:
     std::unique_ptr<tt_cluster> cluster;
     std::unique_ptr<tt_epoch_loader> loader;

@@ -267,27 +267,65 @@ std::string get_string(COMPILE_FAILURE compile_failure) {
         case COMPILE_FAILURE::BlobGen: return "BlobGen"; break;
         case COMPILE_FAILURE::L1Size: return "L1Size"; break;
         case COMPILE_FAILURE::OverlaySize: return "OverlayBlobTooBig"; break;
+        case COMPILE_FAILURE::Firmware: return "Firmware"; break;
         default: return "undefined"; break;
     }
 }
 
-std::string get_string(const tt_compile_result& result) {
-    std::string out = result.success ? "SUCCESS" : "FAILURE";
-    if (!result.success) {
-        out += ", failure_type: " + get_string(result.failure_type);
-        out += ", device_id: " + std::to_string(result.device_id);
-        out += ", temporal_epoch_id: " + std::to_string(result.temporal_epoch_id);
-        out += ", graph: " + result.graph_name;
-        out += ", logical_core_x: " + std::to_string(result.logical_core_x);
-        out += ", logical_core_y: " + std::to_string(result.logical_core_y);
-        if (result.failure_type == COMPILE_FAILURE::OverlaySize) {
-            out += ", maximum_size_bytes: " + std::to_string(result.maximum_size_bytes);
-            out += ", allocated_size_bytes: " + std::to_string(result.allocated_size_bytes);
-            out += ", aligned_extra_size_bytes: " + std::to_string(result.extra_size_bytes);
-        }
-        out += ", failure_target: " + result.failure_target;
+std::string tt_base_compile_result::get_string() const {
+    std::stringstream out;
+    out << (success ? "SUCCESS" : "FAILURE");
+    out << ", failure_message: " << failure_message;
+    out << ", failure_type: " << tt::get_string(failure_type);
+    out << ", failure_target: " << failure_target;
+    return out.str();
+}
+
+std::string tt_fw_compile_result::get_string() const {
+    std::stringstream out;
+    out << tt_base_compile_result::get_string();
+    // TODO : add new fields from tt_fw_compile_result struct to the string when new fields are added
+    return out.str();
+}
+
+std::string tt_compile_result_per_epoch::get_string() const {
+    std::stringstream out;
+    out << tt_base_compile_result::get_string();
+    out << ", device_id: " << std::to_string(device_id);
+    out << ", temporal_epoch_id: " << std::to_string(temporal_epoch_id);
+    out << ", graph: " << graph_name;
+    out << ", logical_core_x: " << std::to_string(logical_core_x);
+    out << ", logical_core_y: " << std::to_string(logical_core_y);
+    if (failure_type == COMPILE_FAILURE::OverlaySize) {
+        out << ", maximum_size_bytes: " << std::to_string(maximum_size_bytes);
+        out << ", allocated_size_bytes: " << std::to_string(allocated_size_bytes);
+        out << ", aligned_extra_size_bytes: " << std::to_string(extra_size_bytes);
     }
-    return out;
+    return out.str();
+}
+
+std::string tt_overlay_compile_result::get_string() const {
+    std::stringstream out;
+    out << tt_base_compile_result::get_string();
+    for(const tt_compile_result_per_epoch& result_epoch : failed_compile_results_per_epoch) {
+        out << ", { " << result_epoch.get_string() << " }";
+    }
+    return out.str();
+}
+
+std::string tt_compile_result::get_string() const {
+    std::stringstream out;
+    out << tt_base_compile_result::get_string();
+    out << ", firmware compile result : { " << fw_compile_result.get_string() << " }";
+    out << ", overlay compile result : { " << overlay_compile_result.get_string() << " }";
+    return out.str();
+}
+
+// TODO : remove this functions when old fields are removed from tt_compile_result
+// function is also part of the old code we are keeping until PyBuda is updated 
+// to use new fields and functions
+std::string get_string(const tt_compile_result& compile_result) {
+    return compile_result.get_string();
 }
 
 std::string get_string(const IO_TYPE &io_type) {

@@ -323,6 +323,12 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize() {
 tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
     PROFILE_SCOPE_MS();
     try {
+        if (result) {
+            // Make sure the result success and failure type are properly initialized before compilation.
+            result->success = true;
+            result->failure_type = COMPILE_FAILURE::Invalid;
+        }
+
         log_debug(tt::LogRuntime, "runtime initialize called (skip_device_init={}) on pid {}", config.skip_device_init, getpid());
         // Initialize profiler
         if (!config.skip_device_init) {
@@ -346,71 +352,39 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         if(config.do_compile() or config.perf_desc.always_compile() or need_overlay_recompile_during_run or need_risc_recompile_during_run) {
             log_info(tt::LogRuntime, "Compiling Firmware for TT device");
         }
-        // Parallelize compile steps (further nested parallellism occurs within each thread)
-        int num_threads = 2;
-        std::vector<std::thread> compile_threads;
-        std::vector<exception_ptr> exceptions_all_threads(num_threads, nullptr);
-        std::vector<tt_compile_result> compile_results_all_threads(num_threads);
 
-        compile_threads.push_back(std::thread([&] {
-            try {
-                if (config.do_compile() or config.perf_desc.always_compile() or need_risc_recompile_during_run) {
-                    // When (re)compiling RISC binaries, we aren't compiling for perf decoupling runs.
-                    bool compile_for_perf_only = !(need_risc_recompile_during_run || config.do_compile());
-                    generate_all_fw(
-                        workload,
-                        get_arch_str(arch_name),
-                        config.perf_desc,
-                        compile_for_perf_only,
-                        config.output_dir);
+        // Firmware compilation data (thread, compile_result).
+        std::thread fw_compilation_thread;
+        tt_fw_compile_result fw_compile_result;
 
-                    // Perf descriptor might have been modified inside generate_all_fw
-                    if (cluster) {
-                        cluster->perf_state.set_perf_desc(config.perf_desc);
-                    }
+        fw_compilation_thread = std::thread([&] {
+            compile_firmware(fw_compile_result);
+        });
+        
+        // Overlay compilation data (thread, compile_result).
+        std::thread overlay_compilation_thread;
+        tt_overlay_compile_result overlay_compile_result;
 
-                }
-            } catch (std::exception &e) {
-                exceptions_all_threads.at(0) = std::current_exception();
-            }
-        }));
-        compile_threads.push_back(std::thread([&] {
-            try {
-                // Static compile of firmware/kernel binaries and overlay
-                if (config.do_compile() or need_overlay_recompile_during_run) {
-                    // (Re)compile overlay binaries
-                    // For Grayskull, pass in the full device descriptor (net2pipe will not allocate any memory/structures outside of op grid, which is guaranteed to fit inside the harvested grid)
-                    // For multichip WH, pass in SOC descriptors per chip (similar to Pipegen). Net2pipe can allocate ethernet relay buffers outside of op grid and needs accurate SOC dimensions here.
-                    std::string n2p_soc_desc_for_harvested_wh = config.output_dir + "/device_descs_for_net2pipe.yaml";
-                    std::string n2p_soc_desc_for_unharvested_wh_or_gs = config.output_dir + "/device_desc.yaml";
-                    string sdesc_to_use = (arch_name == tt::ARCH::GRAYSKULL or !fs::exists(n2p_soc_desc_for_harvested_wh)) ? n2p_soc_desc_for_unharvested_wh_or_gs : n2p_soc_desc_for_harvested_wh;
-                    generate_pipegen_spec(netlist_path, config.output_dir, compiled_epochs, sdesc_to_use, cluster_descriptor_path);
-                    // `pipegen_compile_result` will hold either the compile result of the first epoch which failed
-                    // pipegen compilation or success compile result object of last epoch if all epochs passed
-                    // compilation.
-                    tt_compile_result pipegen_compile_result = create_graph_overlay_binaries();
-                    compile_results_all_threads.at(1) = pipegen_compile_result;
-                    log_debug(
-                        tt::LogRuntime, "Compile result returned from pipegen: {}", get_string(pipegen_compile_result));
+        overlay_compilation_thread = std::thread([&] {
+            compile_overlay(overlay_compile_result);
+        });
 
-                    if (!pipegen_compile_result.success) {
-                        log_fatal("Running pipegen command failed: {}", pipegen_compile_result.failure_message);
-                    }
-                }
-                assign_global_epoch_ids(true);
-            } catch (std::exception &e) {
-                exceptions_all_threads.at(1) = std::current_exception();
-            }
-        }));
-        for (auto th = 0; th < compile_threads.size(); th++) {
-            compile_threads.at(th).join();
+        fw_compilation_thread.join();
+
+        overlay_compilation_thread.join();
+
+        merge_compile_results(result, fw_compile_result, overlay_compile_result);
+
+        if (fw_compile_result.success) {
+            log_debug(tt::LogRuntime, "Firmware compile result : {}", fw_compile_result.get_string());
+        } else {
+            log_fatal("Firmware compilation failed: {}", fw_compile_result.get_string());
         }
-        for (auto th = 0; th < num_threads; th++) {
-            merge_into_compile_result(compile_results_all_threads.at(th));
-            if (exceptions_all_threads.at(th)) {
-                std::rethrow_exception(exceptions_all_threads.at(th));
-                return tt::DEVICE_STATUS_CODE::RuntimeError;
-            }
+
+        if (overlay_compile_result.success) {
+            log_debug(tt::LogRuntime, "Overlay compile result : {}", overlay_compile_result.get_string());
+        } else {
+            log_fatal("Overlay compilation failed: {}", overlay_compile_result.get_string());
         }
 
         if (result) {
@@ -463,15 +437,13 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         export_runtime_data_to_yaml();
         return tt::DEVICE_STATUS_CODE::Success;
     }  catch (const std::exception &e) {
-        if (!compile_result.success) {
-            log_info(tt::LogRuntime, "Compile result: {}", get_string(compile_result));
-            if (result) *result = compile_result;
-        }
-        // currently only pipegen failures are captured in compile_result
-        // for other errors, still need to parse error log to generate the compile result
-        else if (result) {
-            populate_result_from_string(result, e.what(), this->global_epoch_device_to_graph);
-            log_info(tt::LogRuntime, "Compile result: {}", get_string(*result));
+        // If result success hasn't been set to false, but we have an exception, we have to
+        // still set success to false and copy exception message to compile result.
+        if (result && result->success) {
+            result->success = false;
+            result->failure_type = COMPILE_FAILURE::Invalid;
+            result->failure_message = e.what();
+            match_failure_target(result->failure_target, e.what());
         }
         log_error("{}", e.what());
         cleanup_runtime_and_close_device();
@@ -696,7 +668,7 @@ void tt_runtime::create_graph_program(const tt_graph_info &graph_info) {
     loader->insert_epoch_program(std::move(epoch_info));
 }
 
-tt_compile_result tt_runtime::create_graph_overlay_binaries() {
+tt_overlay_compile_result tt_runtime::create_graph_overlay_binaries() {
     int num_threads = tt::cpuset::get_allowed_num_threads();
     log_debug(tt::LogRuntime, "create_graph_overlay_binaries() -- num_threads: {}", num_threads);
 
@@ -705,22 +677,29 @@ tt_compile_result tt_runtime::create_graph_overlay_binaries() {
     perf::ScopedEventProfiler profile(perf::HostEventType::PIPEGEN_RUNTIME);
     std::unordered_map<chip_id_t, buda_soc_description> sdesc_per_chip = load_soc_descriptors_per_chip();
 
-    std::vector<tt_compile_result> compile_result_per_epoch(num_temporal_epochs);
-    tt::parallel_for(0, num_temporal_epochs, [=, &sdesc_per_chip, &compile_result_per_epoch](int temporal_epoch) {
-        tt_compile_result &compile_result_for_current_epoch = compile_result_per_epoch[temporal_epoch];
+    std::vector<tt_compile_result_per_epoch> compile_results_per_epoch(num_temporal_epochs);
+    tt::parallel_for(0, num_temporal_epochs, [=, &sdesc_per_chip, &compile_results_per_epoch](int temporal_epoch) {
+        tt_compile_result_per_epoch &compile_result_for_current_epoch = compile_results_per_epoch[temporal_epoch];
         this->create_temporal_epoch_overlay_binaries(temporal_epoch, sdesc_per_chip, compile_result_for_current_epoch);
     }, num_threads);
 
-    // Return the first epoch which failed pipegen compilation.
-    for (const tt_compile_result& compile_result : compile_result_per_epoch) {
-        if (!compile_result.success) {
-            return compile_result;
+    tt_overlay_compile_result compile_result;
+    compile_result.failed_compile_results_per_epoch.clear();
+
+    for (tt_compile_result_per_epoch& compile_result_epoch : compile_results_per_epoch) {
+        if (!compile_result_epoch.success) {
+            compile_result.failed_compile_results_per_epoch.push_back(compile_result_epoch);
         }
     }
 
-    // If all epochs passed pipegen compilation, return the last compile result (it is not relevant which compile
-    // result object is returned as they all indicate successfull compilation).
-    return compile_result_per_epoch.back();
+    if (!compile_result.failed_compile_results_per_epoch.empty()) {
+        compile_result.success = false;
+        compile_result.failure_message = "Overlay compilation failed";
+        compile_result.failure_type = compile_result.failed_compile_results_per_epoch[0].failure_type;
+        compile_result.failure_target = compile_result.failed_compile_results_per_epoch[0].failure_target;
+    }
+
+    return compile_result;
 }
 
 void tt_runtime::update_graph_overlay_binaries() {
@@ -750,7 +729,7 @@ std::unordered_map<chip_id_t, buda_soc_description> tt_runtime::load_soc_descrip
 void tt_runtime::create_temporal_epoch_overlay_binaries(
     int temporal_epoch,
     const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip,
-    tt_compile_result& compile_result) {
+    tt_compile_result_per_epoch& compile_result) {
 
     // compute global epoch id from workload's local epoch id
     int global_epoch_id = compiled_epochs + temporal_epoch;
@@ -773,7 +752,7 @@ void tt_runtime::create_temporal_epoch_overlay_binaries(
                          soc_descriptor_path;
 
     run_pipegen(config.output_dir, *(graph_names.begin()), global_epoch_id, chip_ids, config.perf_desc,
-                file_to_use, sdesc_per_chip, compile_result, memory_profiler.get());
+                file_to_use, sdesc_per_chip, compile_result, memory_profiler.get(), this->global_epoch_device_to_graph);
 }
 
 void tt_runtime::update_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip) {
@@ -2394,13 +2373,94 @@ void tt_runtime::check_for_dual_view_ram_rd_wr_overlap_in_graph(std::string &gra
     }
 }
 
-void tt_runtime::merge_into_compile_result(const tt_compile_result &other_result) {
-    // if the compile result is already capturing an error, return immediately
-    if (!this->compile_result.success) {
+void tt_runtime::merge_compile_results(tt_compile_result* result, const tt_fw_compile_result& fw_compile_result,
+                                       const tt_overlay_compile_result& overlay_compile_result) {
+    if (!result) {
         return;
     }
-    // if the result to be merged is capturing an error, copy it over
-    else if (!other_result.success) {
-        this->compile_result = other_result;
+    result->overlay_compile_result = overlay_compile_result;
+    result->fw_compile_result = fw_compile_result;
+    if (!fw_compile_result.success) {
+        result->success = false;
+        result->failure_type = fw_compile_result.failure_type;
+        result->failure_message = fw_compile_result.failure_message;
+    } else if (!overlay_compile_result.success) {
+        result->success = false;
+        result->failure_type = overlay_compile_result.failure_type;
+        result->failure_message = overlay_compile_result.failure_message;
+        result->failure_target = overlay_compile_result.failure_target;
+
+        // TODO : remove copying of legacy fields once PyByda side is
+        // updated and no longer uses them.
+        result->blob_usage_per_epoch_per_core = overlay_compile_result.blob_usage_per_epoch_per_core;
+        if (!overlay_compile_result.failed_compile_results_per_epoch.empty()) {
+            const tt_compile_result_per_epoch& failed_compile_result_epoch = overlay_compile_result.failed_compile_results_per_epoch[0];
+            result->failure_type = failed_compile_result_epoch.failure_type;
+            result->failure_message = failed_compile_result_epoch.failure_message;
+            result->failure_target = failed_compile_result_epoch.failure_target;
+            result->device_id = failed_compile_result_epoch.device_id;
+            result->temporal_epoch_id = failed_compile_result_epoch.temporal_epoch_id;
+            result->logical_core_x = failed_compile_result_epoch.logical_core_x;
+            result->logical_core_y = failed_compile_result_epoch.logical_core_y;
+            result->maximum_size_bytes = failed_compile_result_epoch.maximum_size_bytes;
+            result->allocated_size_bytes = failed_compile_result_epoch.allocated_size_bytes;
+            result->extra_size_bytes = failed_compile_result_epoch.extra_size_bytes;
+            result->graph_name = failed_compile_result_epoch.graph_name;
+        }
+    }
+}
+
+void tt_runtime::compile_firmware(tt_fw_compile_result& fw_compile_result) {
+    try {
+        if (!(config.do_compile() or config.perf_desc.always_compile() or need_risc_recompile_during_run)) {
+            return;
+        }
+        // When (re)compiling RISC binaries, we aren't compiling for perf decoupling runs.
+        bool compile_for_perf_only = !(need_risc_recompile_during_run || config.do_compile());
+        generate_all_fw(
+            workload,
+            get_arch_str(arch_name),
+            config.perf_desc,
+            compile_for_perf_only,
+            config.output_dir);
+
+        // Perf descriptor might have been modified inside generate_all_fw
+        if (cluster) {
+            cluster->perf_state.set_perf_desc(config.perf_desc);
+        }
+    } catch (std::exception &e) {
+        fw_compile_result.success = false;
+        fw_compile_result.failure_type = COMPILE_FAILURE::Firmware;
+        fw_compile_result.failure_message = e.what();
+    }
+}
+
+void tt_runtime::compile_overlay(tt_overlay_compile_result& overlay_compile_result) {
+    try {
+        // Static compile of firmware/kernel binaries and overlay
+        if (config.do_compile() or need_overlay_recompile_during_run) {
+            // (Re)compile overlay binaries
+            // For Grayskull, pass in the full device descriptor (net2pipe will not allocate any memory/structures outside of op grid, which is guaranteed to fit inside the harvested grid)
+            // For multichip WH, pass in SOC descriptors per chip (similar to Pipegen). Net2pipe can allocate ethernet relay buffers outside of op grid and needs accurate SOC dimensions here.
+            std::string n2p_soc_desc_for_harvested_wh = config.output_dir + "/device_descs_for_net2pipe.yaml";
+            std::string n2p_soc_desc_for_unharvested_wh_or_gs = config.output_dir + "/device_desc.yaml";
+            string sdesc_to_use = (arch_name == tt::ARCH::GRAYSKULL or !fs::exists(n2p_soc_desc_for_harvested_wh)) ? n2p_soc_desc_for_unharvested_wh_or_gs : n2p_soc_desc_for_harvested_wh;
+            run_net2pipe(netlist_path, config.output_dir, compiled_epochs, sdesc_to_use, cluster_descriptor_path, overlay_compile_result);
+            
+            if (!overlay_compile_result.success) {
+                // net2pipe compilation failed, we don't want to proceed further
+                return;
+            }
+
+            overlay_compile_result = create_graph_overlay_binaries();
+        } 
+        assign_global_epoch_ids(true);
+    } catch (const std::exception &e) {
+        // We are only going to catch exceptions here that are not something we 
+        // expected - net2pipe, pipegen and blobgen runs should fill the structure
+        // overlay_compile_result properly even in case of exception
+        overlay_compile_result.success = false;
+        overlay_compile_result.failure_type = COMPILE_FAILURE::Invalid;
+        overlay_compile_result.failure_message = e.what();
     }
 }
