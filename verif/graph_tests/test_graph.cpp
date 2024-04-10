@@ -18,6 +18,8 @@ using namespace verif::comparison;
 using namespace verif::stimulus;
 using namespace verif::random;
 
+extern perf::tt_backend_perf backend_profiler;
+
 // Meant for communication between the worker thread spawned and the main thread which checks this.
 std::atomic<bool> done(false);
 std::atomic<bool> pass(true);
@@ -817,6 +819,9 @@ void run_test(test_args args)
         dump_performance_summary(target_backend, args.perf_thresh);
     }
 
+    // since we're initializing backend on a different thread, we need to explicitly call finish on the profiler on this thread
+    backend_profiler.finish_host_perf_profiler(false);
+    
     done = true;
 }
 
