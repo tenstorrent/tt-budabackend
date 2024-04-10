@@ -277,6 +277,7 @@ namespace pipegen2
 
         ncrisc_config.dram_streaming = true;
         ncrisc_config.dram_streaming_downstream = pcie_streaming_node->is_streaming_downstream();
+        ncrisc_config.pcie_streaming_node = pcie_streaming_node;
 
         return ncrisc_config;
     }
@@ -395,6 +396,7 @@ namespace pipegen2
 
         ncrisc_config.dram_streaming = true;
         ncrisc_config.dram_streaming_downstream = pcie_streaming_node->is_streaming_downstream();
+        ncrisc_config.pcie_streaming_node = pcie_streaming_node;
 
         return ncrisc_config;
     }

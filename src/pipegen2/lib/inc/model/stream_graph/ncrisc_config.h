@@ -12,6 +12,7 @@
 namespace pipegen2
 {
     class StreamNode;
+    class PCIeStreamingNode;
 
     // TODO add header comments and setters/getters
     class NcriscConfig
@@ -58,6 +59,8 @@ namespace pipegen2
         std::optional<bool> dram_streaming;
 
         std::optional<bool> dram_streaming_downstream;
+
+        std::optional<const PCIeStreamingNode*> pcie_streaming_node;
 
         std::optional<StreamNode*> dram_streaming_dest;
 

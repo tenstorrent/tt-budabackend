@@ -1019,7 +1019,8 @@ namespace pipegen2
             created_rg_pipes_from_subgraph_pipe,
             rational_graph_nodes,
             rational_graph_pipes,
-            pg_pipe_dest_list_to_rg_pipe);
+            pg_pipe_dest_list_to_rg_pipe,
+            scatter_index);
 
         created_rg_pipes_from_subgraph_pipe->insert(pipe_sending_to_pcie.get());
         rational_graph_pipes.push_back(std::move(pipe_sending_to_pcie));
@@ -1035,7 +1036,7 @@ namespace pipegen2
         connect_pipe_reading_from_pcie_to_streaming_node(
             pipe_reading_from_pcie.get(), tile_size, epoch_tiles, src_size_tiles, dest_size_tiles,
             mmio_pipe->is_mmio_pipe_downstream(), mmio_pipe_outputs[0]->get_logical_location().chip,
-            rational_graph_nodes);
+            rational_graph_nodes, scatter_index, mmio_pipe->get_id());
         created_rg_pipes_from_subgraph_pipe->insert(pipe_reading_from_pcie.get());
         rational_graph_pipes.push_back(std::move(pipe_reading_from_pcie));
     }
@@ -1097,7 +1098,8 @@ namespace pipegen2
         std::unordered_set<RGBasePipe*>* created_rg_pipes_from_subgraph_pipe,
         std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
         std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
-        std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe)
+        std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
+        const unsigned int scatter_index)
     {
         if (mmio_pipe->has_output_list_duplicates())
         {
@@ -1113,12 +1115,14 @@ namespace pipegen2
                                                               created_rg_pipes_from_subgraph_pipe,
                                                               rational_graph_nodes,
                                                               rational_graph_pipes,
-                                                              pg_pipe_dest_list_to_rg_pipe);
+                                                              pg_pipe_dest_list_to_rg_pipe,
+                                                              scatter_index);
         }
         else
         {
             std::unique_ptr<PCIeStreamingNode> pcie_streaming_node = std::make_unique<PCIeStreamingNode>(
-                chip_id, src_size_tiles, dest_size_tiles, tile_size, epoch_tiles, is_streaming_downstream);
+                chip_id, src_size_tiles, dest_size_tiles, tile_size, epoch_tiles, is_streaming_downstream,
+                scatter_index, mmio_pipe->get_id());
 
             connect_rg_pipe_with_output_node(pipe_sending_to_pcie, pcie_streaming_node.get());
             rational_graph_nodes.push_back(std::move(pcie_streaming_node));
@@ -1140,7 +1144,8 @@ namespace pipegen2
         std::unordered_set<RGBasePipe*>* created_rg_pipes_from_subgraph_pipe,
         std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
         std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
-        std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe)
+        std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
+        const unsigned int scatter_index)
     {
         bool new_pcie_streaming_node_created = false;
         RGBasePipe* union_pipe_ptr = get_union_pipe_sending_to_pcie_streaming_node(
@@ -1156,7 +1161,8 @@ namespace pipegen2
             rational_graph_nodes,
             rational_graph_pipes,
             pg_pipe_dest_list_to_rg_pipe,
-            new_pcie_streaming_node_created);
+            new_pcie_streaming_node_created,
+            scatter_index);
 
         std::unique_ptr<VirtualNode> input_virt_node = std::make_unique<VirtualNode>(
             pipe_sending_to_pcie->get_physical_location(),
@@ -1186,7 +1192,8 @@ namespace pipegen2
         std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
         std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
         std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
-        bool& new_pcie_streaming_node_created)
+        bool& new_pcie_streaming_node_created,
+        const unsigned int scatter_index)
     {
         auto it = pg_pipe_dest_list_to_rg_pipe.find(mmio_pipe_outputs);
         if (it != pg_pipe_dest_list_to_rg_pipe.end())
@@ -1196,7 +1203,8 @@ namespace pipegen2
         }
 
         std::unique_ptr<PCIeStreamingNode> pcie_streaming_node = std::make_unique<PCIeStreamingNode>(
-            chip_id, src_size_tiles, dest_size_tiles, tile_size, epoch_tiles, is_streaming_downstream);
+            chip_id, src_size_tiles, dest_size_tiles, tile_size, epoch_tiles, is_streaming_downstream,
+            scatter_index, mmio_pipe->get_id());
 
         create_union_pipe_for_rg_node(pcie_streaming_node.get(),
                                       created_rg_pipes_from_subgraph_pipe,
@@ -1277,7 +1285,9 @@ namespace pipegen2
         const unsigned int dest_size_tiles,
         const bool is_streaming_downstream,
         const ChipId chip_id,
-        std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes)
+        std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
+        const unsigned int scatter_index,
+        const NodeId mmio_pipe_id)
     {
         std::unique_ptr<PCIeStreamingNode> pcie_streaming_node = std::make_unique<PCIeStreamingNode>(
             chip_id,
@@ -1285,7 +1295,9 @@ namespace pipegen2
             dest_size_tiles,
             tile_size,
             epoch_tiles,
-            is_streaming_downstream);
+            is_streaming_downstream,
+            scatter_index,
+            mmio_pipe_id);
 
         pipe_reading_from_pcie->add_input_node(pcie_streaming_node.get());
         pcie_streaming_node->add_output_pipe(pipe_reading_from_pcie);

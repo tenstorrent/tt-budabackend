@@ -39,14 +39,14 @@ namespace pipegen2
         {
             std::unique_ptr<StreamGraph> stream_graph = std::make_unique<StreamGraph>();
 
-            // CAUTION: This map contains all the streams that have been created for each pipe in rational graph, but
-            // some of those streams might have been softly deleted during creation of successive pipes and not added to
-            // the stream graph. Use with caution!
-            std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>> streams_per_pipe =
-                create_streams_per_pipe(rational_graph.get(), &pipe_streams_creator_factory, resource_manager,
+
+            create_streams_per_pipe(rational_graph.get(), &pipe_streams_creator_factory, resource_manager,
                                         &virt_node_to_stream_node, stream_graph.get());
 
-            connect_pcie_streams(rational_graph.get(), streams_per_pipe, virt_node_to_stream_node);
+            if (rational_graph->is_doing_pcie_transfer())
+            {
+                connect_pcie_streams(stream_graph.get());
+            }
             connect_streams_sharing_same_buffer(stream_graph.get());
 
             stream_graphs.push_back(std::move(stream_graph));
@@ -118,8 +118,48 @@ namespace pipegen2
         return equal_or_higher;
     }
 
-    std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>
-    StreamGraphCreator::create_streams_per_pipe(
+    void StreamGraphCreator::connect_pcie_streams(const StreamGraph* stream_graph)
+    {
+        // Using map instead of unordered_map because there is no default hash implementation for pair.
+        // It is not because we need keys to be sorted.
+        std::map<std::pair<NodeId, unsigned int>, StreamNode*> pcie_streaming_node_id_to_stream_node;
+        for (const std::unique_ptr<StreamNode>& stream_node : stream_graph->get_streams())
+        {
+            if (!stream_node->is_ncrisc_reader_or_writer() ||
+                !stream_node->get_base_ncrisc_config().pcie_streaming_node.has_value())
+            {
+                continue;
+            }
+
+            const PCIeStreamingNode* pcie_streaming_node =
+                stream_node->get_base_ncrisc_config().pcie_streaming_node.value();
+            auto it = pcie_streaming_node_id_to_stream_node.find(
+                std::make_pair(pcie_streaming_node->get_mmio_pipe_id(), 
+                               pcie_streaming_node->get_mmio_pipe_scatter_index()));
+
+            if (it == pcie_streaming_node_id_to_stream_node.end())
+            {
+                pcie_streaming_node_id_to_stream_node.emplace(
+                    std::make_pair(pcie_streaming_node->get_mmio_pipe_id(), 
+                                   pcie_streaming_node->get_mmio_pipe_scatter_index()),
+                    stream_node.get());
+            }
+            else if (pcie_streaming_node->is_pcie_writer())
+            {
+                stream_node->get_base_ncrisc_config().dram_streaming_dest = it->second;
+                m_pcie_writing_streams.emplace_back(stream_node.get());
+            }
+            else
+            {
+                log_assert(pcie_streaming_node->is_pcie_reader(), "We expect PCIeStreaming node to be either writer or reader");
+                StreamNode* pcie_stream_node_writer = it->second;
+                pcie_stream_node_writer->get_base_ncrisc_config().dram_streaming_dest = stream_node.get();
+                m_pcie_writing_streams.emplace_back(pcie_stream_node_writer);
+            }
+        }
+    }
+
+    void StreamGraphCreator::create_streams_per_pipe(
         const RationalGraph* rational_graph,
         PipeStreamsCreatorFactory* pipe_streams_creator_factory,
         ResourceManager* resource_manager,
@@ -132,7 +172,6 @@ namespace pipegen2
         virt_node_to_stream_node->clear();
 
         std::vector<std::unique_ptr<StreamNode>> created_streams;
-        std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>> streams_per_pipe;
 
         for (const RGBasePipe* pipe : rational_graph->get_pipes_in_topological_order())
         {
@@ -142,117 +181,12 @@ namespace pipegen2
             std::vector<std::unique_ptr<StreamNode>> pipe_streams = streams_creator->create_streams(
                 pipe, data_flow_info);
 
-            add_created_streams_to_streams_per_pipe(pipe, pipe_streams, streams_per_pipe);
-
             // We can't add created streams to stream graph right away because they might be softly deleted during
             // creation of streams for another pipe after this.
             std::move(pipe_streams.begin(), pipe_streams.end(), std::back_inserter(created_streams));
         }
 
         move_created_streams_to_graph(created_streams, stream_graph);
-
-        return streams_per_pipe;
-    }
-
-    void StreamGraphCreator::connect_pcie_streams(
-        const RationalGraph* rational_graph,
-        const std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>& streams_per_pipe,
-        const std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>& virt_node_to_stream_node)
-    {
-        if (!rational_graph->is_doing_pcie_transfer())
-        {
-            return;
-        }
-
-        // This logic assumes that pipes and streaming nodes doing one PCIe write/read are added in the same order to
-        // the rational graph, since they are added during decomposition of one MMIO pipe.
-
-        std::vector<const RGBasePipe*> pipes_writing_to_pcie;
-        std::vector<const RGBasePipe*> pipes_reading_from_pcie;
-        find_pipes_doing_pcie_transfer(rational_graph, pipes_writing_to_pcie, pipes_reading_from_pcie);
-
-        log_assert(pipes_writing_to_pcie.size() == pipes_reading_from_pcie.size(),
-                   "Expected to find the same number of pipes writing and reading from PCIe in one rational graph");
-
-        for (std::size_t i = 0; i < pipes_writing_to_pcie.size(); ++i)
-        {
-            StreamNode* stream_writing_to_pcie =
-                find_stream_writing_to_pcie(pipes_writing_to_pcie[i], streams_per_pipe.at(pipes_writing_to_pcie[i]),
-                                            virt_node_to_stream_node);
-            log_assert(stream_writing_to_pcie,
-                       "Expected to find NCRISC config in one of the streams created for pipe writing to PCIe.");
-
-            StreamNode* stream_reading_from_pcie =
-                find_first_stream_with_ncrisc_config(streams_per_pipe.at(pipes_reading_from_pcie[i]));
-            log_assert(stream_reading_from_pcie,
-                       "Expected to find NCRISC config in one of the streams created for pipe reading from PCIe.");
-
-            stream_writing_to_pcie->get_base_ncrisc_config().dram_streaming_dest = stream_reading_from_pcie;
-
-            m_pcie_writing_streams.emplace_back(stream_writing_to_pcie);
-        }
-    }
-
-    void StreamGraphCreator::find_pipes_doing_pcie_transfer(const RationalGraph* rational_graph,
-                                                            std::vector<const RGBasePipe*>& pipes_writing_to_pcie,
-                                                            std::vector<const RGBasePipe*>& pipes_reading_from_pcie)
-    {
-        for (const std::unique_ptr<RGBaseNode>& node : rational_graph->get_nodes())
-        {
-            const PCIeStreamingNode* pcie_streaming_node = dynamic_cast<const PCIeStreamingNode*>(node.get());
-            if (pcie_streaming_node == nullptr)
-            {
-                continue;
-            }
-
-            if (pcie_streaming_node->get_output_pipes().empty())
-            {
-                log_assert(pcie_streaming_node->get_input_pipe(),
-                           "PCIe streaming node has to have either input or output pipe.");
-                pipes_writing_to_pcie.push_back(pcie_streaming_node->get_input_pipe());
-            }
-            else
-            {
-                pipes_reading_from_pcie.push_back(pcie_streaming_node->get_output_pipe());
-            }
-        }
-    }
-
-    StreamNode* StreamGraphCreator::find_stream_writing_to_pcie(
-        const RGBasePipe* pipe_writing_to_pcie,
-        const std::vector<StreamNode*>& pipe_streams,
-        const std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>& virt_node_to_stream_node)
-    {
-        StreamNode* stream_writing_to_pcie = find_first_stream_with_ncrisc_config(pipe_streams);
-
-        if (stream_writing_to_pcie)
-        {
-            return stream_writing_to_pcie;
-        }
-
-        // This means that stream was created for some of the previous pipes and is connected to the virtual
-        // node at the pipe input.
-        const VirtualNode* virtual_input_node =
-            dynamic_cast<const VirtualNode*>(pipe_writing_to_pcie->get_inputs()[0].get_node());
-        log_assert(virtual_input_node, "Expected to find virtual node at the input of the pipe");
-
-        auto it = virt_node_to_stream_node.find(virtual_input_node);
-        log_assert(it != virt_node_to_stream_node.end(), "Expected to find stream node assigned to virtual node");
-
-        return it->second.get_stream_node();
-    }
-
-    StreamNode* StreamGraphCreator::find_first_stream_with_ncrisc_config(const std::vector<StreamNode*>& streams)
-    {
-        for (StreamNode* stream : streams)
-        {
-            if (!stream->get_ncrisc_configs().empty())
-            {
-                return stream;
-            }
-        }
-
-        return nullptr;
     }
 
     void StreamGraphCreator::connect_streams_sharing_same_buffer(const StreamGraph* stream_graph)
@@ -315,19 +249,6 @@ namespace pipegen2
         }
 
         return buf_node_id_to_stream_node;
-    }
-
-    void StreamGraphCreator::add_created_streams_to_streams_per_pipe(
-        const RGBasePipe* pipe,
-        const std::vector<std::unique_ptr<StreamNode>>& pipe_streams,
-        std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>& streams_per_pipe)
-    {
-        std::vector<StreamNode*> raw_pipe_streams;
-        raw_pipe_streams.reserve(pipe_streams.size());
-        std::transform(pipe_streams.begin(), pipe_streams.end(), std::back_inserter(raw_pipe_streams),
-                       [](const std::unique_ptr<StreamNode>& stream_node){ return stream_node.get(); });
-
-        streams_per_pipe.emplace(pipe, std::move(raw_pipe_streams));
     }
 
     void StreamGraphCreator::move_created_streams_to_graph(std::vector<std::unique_ptr<StreamNode>>& created_streams,

@@ -215,7 +215,8 @@ namespace pipegen2
             std::unordered_set<RGBasePipe*>* created_rg_pipes_from_subgraph_pipe,
             std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
             std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
-            std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe);
+            std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
+            const unsigned int scatter_index);
 
         // Connects pipe sending to pcie to a union pipe which feeds the pcie streaming node, by creating a virtual
         // node in between the two pipes. Returns true if new union pipe PCIe streaming node is created, false
@@ -233,7 +234,8 @@ namespace pipegen2
             std::unordered_set<RGBasePipe*>* created_rg_pipes_from_subgraph_pipe,
             std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
             std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
-            std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe);
+            std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
+            const unsigned int scatter_index);
 
         // Returns a union pipe for a corresponding pcie streaming node if it is already created, otherwise it creates
         // the new pipe and connects it to the pcie streaming node.
@@ -250,7 +252,8 @@ namespace pipegen2
             std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
             std::vector<std::unique_ptr<RGBasePipe>>& rational_graph_pipes,
             std::map<std::vector<PGBuffer*>, RGBasePipe*>& pg_pipe_dest_list_to_rg_pipe,
-            bool& new_pcie_streaming_node_created);
+            bool& new_pcie_streaming_node_created,
+            const unsigned int scatter_index);
 
         // Creates MMIO pipe reading from PCIe on another chip.
         std::unique_ptr<RGBasePipe> create_pipe_reading_from_pcie(
@@ -274,7 +277,9 @@ namespace pipegen2
             const unsigned int dest_size_tiles,
             const bool is_streaming_downstream,
             const ChipId chip_id,
-            std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes);
+            std::vector<std::unique_ptr<RGBaseNode>>& rational_graph_nodes,
+            const unsigned int scatter_index,
+            const NodeId mmio_pipe_id);
 
         // Connects rational graph pipe with its input nodes.
         void connect_rg_pipe_with_input_nodes(RGBasePipe* rg_pipe,

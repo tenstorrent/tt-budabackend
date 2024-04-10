@@ -38,8 +38,7 @@ namespace pipegen2
 
     private:
         // Creates streams for each pipe in a rational graph.
-        std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>
-        create_streams_per_pipe(
+        void create_streams_per_pipe(
             const RationalGraph* rational_graph,
             PipeStreamsCreatorFactory* pipe_streams_creator_factory,
             ResourceManager* resource_manager,
@@ -47,24 +46,7 @@ namespace pipegen2
             StreamGraph* stream_graph);
 
         // Connects streams streaming data over same PCIe node.
-        void connect_pcie_streams(
-            const RationalGraph* rational_graph,
-            const std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>& streams_per_pipe,
-            const std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>& virt_node_to_stream_node);
-
-        // Finds pipes in a rational graph doing transfer through PCIe.
-        static void find_pipes_doing_pcie_transfer(const RationalGraph* rational_graph,
-                                                   std::vector<const RGBasePipe*>& pipes_writing_to_pcie,
-                                                   std::vector<const RGBasePipe*>& pipes_reading_from_pcie);
-
-        // Finds stream writing to PCIe created for given pipe.
-        static StreamNode* find_stream_writing_to_pcie(
-            const RGBasePipe* pipe_writing_to_pcie,
-            const std::vector<StreamNode*>& pipe_streams,
-            const std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>& virt_node_to_stream_node);
-
-        // Finds first stream in a vector of streams which has NCRISC config set.
-        static StreamNode* find_first_stream_with_ncrisc_config(const std::vector<StreamNode*>& streams);
+        void connect_pcie_streams(const StreamGraph* stream_graph);
 
         // Connects streams that share the same buffer.
         static void connect_streams_sharing_same_buffer(const StreamGraph* stream_graph);
@@ -73,12 +55,6 @@ namespace pipegen2
         // streams. It's guaranteed that streams with buf_id set are unique.
         static std::unordered_map<NodeId, StreamNode*> create_node_id_to_stream_mapping(
             const StreamGraph* stream_graph);
-
-        // Adds created pipe streams to map of streams per pipe.
-        static void add_created_streams_to_streams_per_pipe(
-            const RGBasePipe* pipe,
-            const std::vector<std::unique_ptr<StreamNode>>& pipe_streams,
-            std::unordered_map<const RGBasePipe*, std::vector<StreamNode*>>& streams_per_pipe);
 
         // Moves created streams to stream graph.
         static void move_created_streams_to_graph(std::vector<std::unique_ptr<StreamNode>>& created_streams,
