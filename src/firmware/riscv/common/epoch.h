@@ -90,23 +90,46 @@ const uint32_t ETH_EPOCH_RUNTIME_CONFIG_B = eth_l1_mem::address_map::EPOCH_RUNTI
 #define DRAM_IO_STATE_RD_SEC 0
 #define DRAM_IO_STATE_WR_SEC 8
 
+// Pointers on our RISCV C++ compiler are 4 bytes. By default, our backend compiler has 8 byte pointers.
+// When compiling for backend compiler, use uint32_t which would point to address on the blob itself.
+#ifdef TENSIX_FIRMWARE
+// Forward declaration is needed.
+struct scatter_pipe_blob_t;
+struct scatter_pipe_state_t;
+struct dram_io_scatter_state_t;
+struct dram_io_state_t;
+struct epoch_stream_dram_io_info_t;
+struct epoch_stream_info_t;
+using scatter_pipe_blob_t_ptr = scatter_pipe_blob_t tt_l1_ptr *;
+using scatter_pipe_state_t_ptr = scatter_pipe_state_t tt_l1_ptr *;
+using scatter_offsets_ptr = volatile tt_uint64_t tt_l1_ptr *;
+using dram_io_scatter_state_t_ptr = dram_io_scatter_state_t tt_l1_ptr *;
+using dram_io_state_ptr = dram_io_state_t tt_l1_ptr *;
+using dram_io_state_ptr_volatile = volatile dram_io_state_t tt_l1_ptr *;
+using epoch_stream_dram_io_info_t_ptr = epoch_stream_dram_io_info_t tt_l1_ptr *;
+using epoch_stream_info_t_ptr = epoch_stream_info_t tt_l1_ptr *;
+#else
+using scatter_pipe_blob_t_ptr = uint32_t;
+using scatter_pipe_state_t_ptr = uint32_t;
+using scatter_offsets_ptr = uint32_t;
+using dram_io_scatter_state_t_ptr = uint32_t;
+using dram_io_state_ptr = uint32_t;
+using dram_io_state_ptr_volatile = uint32_t;
+using epoch_stream_dram_io_info_t_ptr = uint32_t;
+using epoch_stream_info_t_ptr = uint32_t;
+#endif
+
 struct scatter_pipe_blob_t {
     uint32_t scatter_blob_base_addr;
     uint32_t start_scatter_blob_num_cfg_regs;
-}; 
-
-static_assert(sizeof(scatter_pipe_blob_t) == (8)); // if changing this, you need to change GetPipeScatterStateSize() and code block with "scatter_pipe_state_t_array_base" in blob_gen.rb
-static_assert(sizeof(scatter_pipe_blob_t*) == 4);
+};
 
 struct scatter_pipe_state_t {
   uint32_t curr_unroll;
   uint32_t max_unroll;
   uint32_t unused0;
-  scatter_pipe_blob_t tt_l1_ptr * unroll_blobs;
+  scatter_pipe_blob_t_ptr unroll_blobs;
 };
-
-static_assert(sizeof(scatter_pipe_state_t) == (16)); // if changing this, you need to change GetPipeScatterStateSize() and code block with "scatter_pipe_state_t_array_base" in blob_gen.rb
-static_assert(sizeof(scatter_pipe_state_t*) == 4);
 
 struct alignas(NOC_ADDRESS_ALIGNMENT) dram_io_scatter_state_t {
   uint32_t unused1;
@@ -116,11 +139,8 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) dram_io_scatter_state_t {
   uint32_t scatter_chunk_size_tiles;
   uint32_t unused2;
   uint32_t unused3;
-  volatile tt_uint64_t tt_l1_ptr * scatter_offsets;
+  scatter_offsets_ptr scatter_offsets;
 };
-static_assert((alignof(dram_io_scatter_state_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_scatter_state_t size misaligned");
-static_assert(sizeof(dram_io_scatter_state_t) == (1 * NOC_ADDRESS_ALIGNMENT));
-static_assert(sizeof(dram_io_scatter_state_t*) == 4);
 
 struct alignas(NOC_ADDRESS_ALIGNMENT) dram_io_state_t {
   // Section for dram to l1 traffic
@@ -187,18 +207,12 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) dram_io_state_t {
                             // as dram has been decoupled for this op.
                             // This flag is set by ncrisc in risc_dram_stream_handler_init_l1( )
     uint8_t stride_wrap;
-    dram_io_scatter_state_t tt_l1_ptr * dram_io_scatter_state;
-    dram_io_state_t tt_l1_ptr * next;
+    dram_io_scatter_state_t_ptr dram_io_scatter_state;
+    dram_io_state_ptr next;
     // if NOC_ADDRESS_ALIGNMENT==32, the size of this structure is 32 bytes, and all fields have been utilized.
     // if NOC_ADDRESS_ALIGNMENT==64, the size of this structure is 64 bytes, and there are unused 32bytes.
   } local;
 };
-
-static_assert((alignof(dram_io_state_t::dram_to_l1_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t::dram_to_l1_t size misaligned");
-static_assert((alignof(dram_io_state_t::l1_to_dram_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t::l1_to_dram_t size misaligned");
-static_assert(sizeof(dram_io_state_t::dram_to_l1_t) == NOC_ADDRESS_ALIGNMENT, "dram_io_state_t::dram_to_l1_t size larger than expected. Please ensure you are doing the right thing.");
-static_assert(sizeof(dram_io_state_t::l1_to_dram_t) == NOC_ADDRESS_ALIGNMENT, "dram_io_state_t::l1_to_dram_t size larger than expected. Please ensure you are doing the right thing.");
-static_assert(sizeof(dram_io_state_t*) == 4);
 
 struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_stream_dram_io_info_t {
   uint32_t dram_q_slot_size_bytes;
@@ -220,12 +234,8 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_stream_dram_io_info_t {
   uint16_t dram_embeddings_row_tiles;
   uint8_t dram_writes_with_cmd_buf;
   uint8_t hw_tilize;
-  volatile dram_io_state_t tt_l1_ptr* dram_io_state;
+  dram_io_state_ptr_volatile dram_io_state;
 };
-
-static_assert(sizeof(epoch_stream_dram_io_info_t) == (1 * NOC_ADDRESS_ALIGNMENT));
-static_assert(sizeof(epoch_stream_dram_io_info_t*) == 4);
-
 
 struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_stream_info_t {
 
@@ -264,7 +274,7 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_stream_info_t {
   };
   union{
     uint32_t skip_col_tile_row_bytes;
-    scatter_pipe_state_t tt_l1_ptr * scatter_pipe_state;
+    scatter_pipe_state_t_ptr scatter_pipe_state;
   };
   union{
     uint32_t skip_col_row_bytes;
@@ -296,14 +306,11 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_stream_info_t {
   uint8_t untilize_copy_iters;
   uint8_t log_2x_untilize_copy_iters;
   uint16_t num_dram_io_bufs;
-  epoch_stream_dram_io_info_t tt_l1_ptr * dram_io_info;
+  epoch_stream_dram_io_info_t_ptr dram_io_info;
   uint16_t num_fork_streams;
   uint16_t scatter_order_size;
   uint8_t fork_idxs[EPOCH_MAX_OUTPUT_FORKS];
 };
-
-static_assert((alignof(epoch_stream_info_t) == NOC_ADDRESS_ALIGNMENT), "epoch_stream_info_t size misaligned");
-static_assert(sizeof(epoch_stream_info_t*) == 4);
 
 struct tile_clear_blob_t {
   uint32_t blob_words[16][6];
@@ -323,9 +330,9 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_t {
   uint32_t tile_size_words[EPOCH_MAX_NUM_TILE_SIZES];
   uint32_t tile_size_header_buf_addr[EPOCH_MAX_NUM_TILE_SIZES];
 
-  epoch_stream_info_t tt_l1_ptr * tt_l1_ptr inputs[EPOCH_MAX_INPUTS];
-  epoch_stream_info_t tt_l1_ptr * tt_l1_ptr outputs[EPOCH_MAX_OUTPUTS_ETH];
-  epoch_stream_info_t tt_l1_ptr * tt_l1_ptr active_streams[NOC_NUM_STREAMS];
+  epoch_stream_info_t_ptr inputs[EPOCH_MAX_INPUTS];
+  epoch_stream_info_t_ptr outputs[EPOCH_MAX_OUTPUTS_ETH];
+  epoch_stream_info_t_ptr active_streams[NOC_NUM_STREAMS];
 
   uint32_t perf_dram_copy_req[l1_mem::address_map::PERF_NUM_THREADS];
   uint32_t perf_dram_copy_ack[l1_mem::address_map::PERF_NUM_THREADS];
@@ -357,21 +364,34 @@ struct alignas(NOC_ADDRESS_ALIGNMENT) epoch_t {
   uint32_t overlay_blob_extra_size; // This is read part of dummy phase header but the bits should be ignored by streams, so they are repurposed for fw
 };
 
-static_assert((alignof(epoch_t) == NOC_ADDRESS_ALIGNMENT), "epoch_t size misaligned");
-
-// checking if the epoch_t size is as expected
-#if NOC_ADDRESS_ALIGNMENT == 32
-static_assert(sizeof(epoch_t) == 1056, "epoch_t size missmatch");
-#elif NOC_ADDRESS_ALIGNMENT == 64
-static_assert(sizeof(epoch_t) == 1088, "epoch_t size missmatch");
-#else
-#warning "NOC_ADDRESS_ALIGNMENT not supported. Please add the size of epoch_t for the new alignment if you need it."
-#endif
-
 // checking if the dummy_phase_tile_header_and_data is at the end of the epoch_t
-static_assert((offsetof(epoch_t, 
-  epoch_t::dummy_phase_tile_header_and_data) == sizeof(epoch_t) - (sizeof(epoch_t::dummy_phase_tile_header_and_data) + sizeof(epoch_t::overlay_blob_extra_size))), 
-  "dummy_phase_tile_header_and_data wrong possition");
+static_assert(
+    (offsetof(epoch_t, epoch_t::dummy_phase_tile_header_and_data) ==
+     sizeof(epoch_t) - (sizeof(epoch_t::dummy_phase_tile_header_and_data) + sizeof(epoch_t::overlay_blob_extra_size))),
+    "dummy_phase_tile_header_and_data wrong position");
+
+static_assert(sizeof(epoch_stream_info_t_ptr) == 4);
+static_assert(sizeof(epoch_stream_dram_io_info_t_ptr) == 4);
+static_assert(sizeof(dram_io_state_ptr_volatile) == 4);
+static_assert(sizeof(dram_io_state_ptr) == 4);
+static_assert(sizeof(dram_io_scatter_state_t_ptr) == 4);
+static_assert(sizeof(scatter_offsets_ptr) == 4);
+static_assert(sizeof(scatter_pipe_state_t_ptr) == 4);
+static_assert(sizeof(scatter_pipe_blob_t_ptr) == 4);
+
+static_assert((alignof(epoch_t) == NOC_ADDRESS_ALIGNMENT), "epoch_t size misaligned");
+static_assert((alignof(epoch_stream_info_t) == NOC_ADDRESS_ALIGNMENT), "epoch_stream_info_t size misaligned");
+static_assert(
+    (alignof(epoch_stream_dram_io_info_t) == NOC_ADDRESS_ALIGNMENT), "epoch_stream_dram_io_info_t size misaligned");
+static_assert(
+    (alignof(dram_io_state_t::dram_to_l1_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t::dram_to_l1_t size misaligned");
+static_assert(
+    (alignof(dram_io_state_t::l1_to_dram_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t::l1_to_dram_t size misaligned");
+static_assert((alignof(dram_io_state_t::local_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t::local_t size misaligned");
+static_assert((alignof(dram_io_state_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_state_t size misaligned");
+static_assert((alignof(dram_io_scatter_state_t) == NOC_ADDRESS_ALIGNMENT), "dram_io_scatter_state_t size misaligned");
+// scatter_pipe_state_t is not aligned to NOC_ADDRESS_ALIGNMENT.
+// scatter_pipe_blob_t is not aligned to NOC_ADDRESS_ALIGNMENT.
 
 #pragma pack(pop)
 
