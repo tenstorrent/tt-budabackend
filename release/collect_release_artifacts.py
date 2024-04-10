@@ -140,6 +140,14 @@ bbe_files = {
     "versim_lib": { # TODO, remove
         "path": "common_lib",
         "files": "*",
+    },
+    "sfpi-compiler": {
+        "path": "third_party/sfpi",
+        "files": "*" 
+    },
+    "llk": {
+        "path": "third_party/tt_llk_" + os.environ["ARCH_NAME"],
+        "files": "*" 
     }
 }
 
