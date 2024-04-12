@@ -15,14 +15,6 @@
 #define MAX_TILES_MSG_INFO_BUF_PER_PHASE 2048
 #define USE_2K_TILE_HEADER_BUFFER_RESET
 
-inline uint32_t NOC1_X_ID(uint32_t x) {
-  return NOC_X_SIZE - 1 - x;
-}
-
-inline uint32_t NOC1_Y_ID(uint32_t y) {
-  return NOC_Y_SIZE - 1 - y;
-}
-
 
 inline __attribute__((always_inline)) void stream_phase_blob_run(uint32_t stream_id, uint32_t blob_start_addr, uint32_t start_phase_num_cfg_regs) {
 #ifdef RISC_B0_HW

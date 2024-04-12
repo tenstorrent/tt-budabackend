@@ -4,14 +4,6 @@
 #ifndef _NOC_PARAMETERS_H_
 #define _NOC_PARAMETERS_H_
 
-#ifndef NOC_X_SIZE
-#define NOC_X_SIZE 1
-#endif
-
-#ifndef NOC_Y_SIZE
-#define NOC_Y_SIZE 1
-#endif
-
 #define NUM_NOCS 2
 #define NUM_TENSIXES 80
 

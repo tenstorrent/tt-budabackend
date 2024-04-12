@@ -16,14 +16,6 @@
 #define USE_2K_TILE_HEADER_BUFFER_RESET
 #define MULTI_MSG_TILES_STREAM_THESH 12 // Note streams 6 and 7 are not capable of multi-msg tiles, so dont use them for inputs
 
-inline uint32_t NOC1_X_ID(uint32_t x) {
-  return NOC_X_SIZE - 1 - x;
-}
-
-inline uint32_t NOC1_Y_ID(uint32_t y) {
-  return NOC_Y_SIZE - 1 - y;
-}
-
 
 inline __attribute__((always_inline)) void stream_phase_blob_run(uint32_t stream_id, uint32_t blob_start_addr, uint32_t start_phase_num_cfg_regs) {
   NOC_STREAM_WRITE_REG(stream_id, STREAM_MULTI_MSG_CLEAR_REG_INDEX, 0); // Prevent accidental clearing
