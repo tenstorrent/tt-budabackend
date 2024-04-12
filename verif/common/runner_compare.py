@@ -26,7 +26,7 @@ class CompareFilesRunner:
 
     def compare_all_outputs(
         original_dir: str, new_dir: str, filename_filter: str, num_samples: int = -1
-    ):
+    ) -> bool:
         """Compares files found in original_dir and new_dir, on all levels, matching filename_filter.
         Parameters
         ----------
@@ -38,6 +38,11 @@ class CompareFilesRunner:
             Filter to be used with fnmatch module for filenames to compare.
         num_samples : int
             Number of file pairs to compare. -1 will compare all files.
+
+        Returns
+        -------
+        bool
+            True if all compared files are the same, False otherwise.
         """
         all_original_files = find_all_files_in_dir(original_dir, filename_filter)
         all_new_files = find_all_files_in_dir(new_dir, filename_filter)
@@ -50,13 +55,13 @@ class CompareFilesRunner:
                 f"Number of files are different! There are {len(all_original_files)}"
                 f" in {original_dir} and {len(all_new_files)} in {new_dir}."
             )
-            return
+            return False
 
         if all_original_files != all_new_files:
             logger.fatal(
                 f"List of files in {original_dir} and {new_dir} are different!"
             )
-            return
+            return False
 
         all_worker_args = []
         for original_file_name in all_original_files:
@@ -68,13 +73,15 @@ class CompareFilesRunner:
             all_worker_args = all_worker_args[:num_samples]
             logger.info(f"Selected first {num_samples} files to compare.")
 
-        execute_in_parallel(
-            CompareFilesRunner.__compare_file_worker,
+        results = execute_in_parallel(
+            CompareFilesRunner.compare_file_worker,
             all_worker_args,
             log_file=os.path.join(new_dir, "runner_compare.log"),
         )
 
-    def __compare_file_worker(worker_config: CompareFilesWorkerConfig):
+        return all(result.error_code == 0 for result in results)
+
+    def compare_file_worker(worker_config: CompareFilesWorkerConfig):
         files_same = cmp(
             worker_config.original_file, worker_config.new_file, shallow=False
         )

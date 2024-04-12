@@ -48,7 +48,7 @@ class Net2PipeRunner:
         num_samples: int = -1,
         netlists_to_skip: list = [],
         overwrite: bool = False,
-    ):
+    ) -> bool:
         """Runs net2pipe in parallel on all netlists in netlists_dir.
 
         Parameters
@@ -67,6 +67,11 @@ class Net2PipeRunner:
             List of netlist names to skip explicitly.
         overwrite: bool
             Overwrite existing net2pipe outputs, even if the output folder exists.
+
+        Returns
+        -------
+        bool
+            True if all the workers succeeded, False otherwise.
 
         Example of expected input and directory structures
         --------------------------------------------------
@@ -127,7 +132,7 @@ class Net2PipeRunner:
             logger.warning(
                 f"Skipping net2pipe workers, outputs already exist at {net2pipe_out_dir}"
             )
-            return
+            return True
         logger.info("Running net2pipe workers")
 
         verify_builds_dir(builds_all_archs_dir)
@@ -165,11 +170,14 @@ class Net2PipeRunner:
                 f"Choosing randomized {num_samples} netlists to run net2pipe on."
             )
 
-        execute_in_parallel(
+        results = execute_in_parallel(
             Net2PipeRunner.run_net2pipe_worker,
             all_worker_args,
             log_file=f"{net2pipe_out_dir}/net2pipe.log",
+            heavy_workload=True,
         )
+
+        return all(result.error_code == 0 for result in results)
 
     def run_net2pipe_worker(worker_config: Net2PipeWorkerConfig):
         archs = get_netlist_arch(worker_config.netlist_path)

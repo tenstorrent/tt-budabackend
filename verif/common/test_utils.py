@@ -156,6 +156,7 @@ def get_netlist_arch(netlist_path: str) -> list[str]:
     """Parses architecture names from given netlist."""
     try:
         with open(netlist_path, "r") as input_yaml_file:
+            # It's very slow to load the whole yaml file just to read the supported archs.
             yaml_dict = yaml.safe_load(input_yaml_file.read())
             devices_key = "devices"
             arch_key = "arch"

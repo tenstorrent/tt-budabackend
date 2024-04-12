@@ -46,7 +46,7 @@ class BlobgenRunner:
         blobgen_rb_path: str = BLOBGEN_RB_PATH,
         num_samples: int = -1,
         overwrite: bool = False,
-    ):
+    ) -> bool:
         """Runs blobgen in parallel on all blob.yamls in blob_yaml_path dir.
 
         Parameters
@@ -62,6 +62,11 @@ class BlobgenRunner:
             -1 will process all yamls.
         overwrite: bool
             Overwrite existing blobgen outputs, even if the output folder exists.
+
+        Returns
+        -------
+        bool
+            True if all the workers succeeded, False otherwise.
 
         Example of expected input and directory structures
         --------------------------------------------------
@@ -121,12 +126,12 @@ class BlobgenRunner:
             logger.warning(
                 f"Skipping blobgen, outputs already exist at {blobgen_out_dir}"
             )
-            return
+            return True
         logger.info("Running blobgen workers")
 
         worker_configs = []
 
-        all_blob_yamls = find_all_files_in_dir(blob_yaml_path, "*/blob*.yaml")
+        all_blob_yamls = find_all_files_in_dir(blob_yaml_path, "*/blob_[0-9]*.yaml")
         for blob_relpath in all_blob_yamls:
             # Split into dirname and basename
             blob_reldir, blob_yaml_name = os.path.split(blob_relpath)
@@ -153,11 +158,14 @@ class BlobgenRunner:
                 f"Choosing first {num_samples} pipegen.yamls to run pipegen on."
             )
 
-        execute_in_parallel(
+        results = execute_in_parallel(
             BlobgenRunner.run_blobgen_worker,
             worker_configs,
             log_file=f"{blobgen_out_dir}/blobgen.log",
+            heavy_workload=True,
         )
+
+        return all(result.error_code == 0 for result in results)
 
     def run_blobgen(
         blob_rb_path: str,
@@ -232,6 +240,15 @@ class BlobgenRunner:
 
         blobgen_cmd.replace("\n", " ")
         result = run_cmd(blobgen_cmd, "", timeout=300)
+        if result.returncode != 0:
+            # Remove files produced for this epoch since they are not valid.
+            files_relative = find_all_files_in_dir(
+                blob_out_dir, f"*/pipegen_epoch{epoch_id}_*.hex"
+            )
+
+            for file in files_relative:
+                os.remove(os.path.join(blob_out_dir, file))
+
         if result.returncode != 0 and throw_if_error:
             raise RuntimeError(f"Running blobgen on {blob_yaml_path} failed: {result}")
         return result.returncode, blobgen_cmd

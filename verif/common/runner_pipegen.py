@@ -67,7 +67,7 @@ class PipegenRunner:
         builds_all_archs_dir: str,
         num_samples: int = -1,
         overwrite: bool = False,
-    ):
+    ) -> bool:
         """Runs pipegen in parallel on all pipegen.yamls found in pipegen_yamls_dir.
 
         Parameters
@@ -86,6 +86,11 @@ class PipegenRunner:
             -1 will process all yamls.
         overwrite: bool
             Overwrite existing pipegen outputs, even if the output folder exists.
+
+        Returns
+        -------
+        bool
+            True if all the workers succeeded, False otherwise.
 
         Example of expected input and directory structures v1
         --------------------------------------------------
@@ -191,7 +196,7 @@ class PipegenRunner:
             logger.warning(
                 f"Skipping pipegen, outputs already exist at {pipegen_out_dir}"
             )
-            return
+            return True
         logger.info("Running pipegen workers")
 
         worker_configs = []
@@ -238,11 +243,14 @@ class PipegenRunner:
                 f"Choosing first {num_samples} pipegen.yamls to run pipegen on."
             )
 
-        execute_in_parallel(
+        results = execute_in_parallel(
             PipegenRunner.run_pipegen_worker,
             worker_configs,
             log_file=f"{pipegen_out_dir}/pipegen.log",
+            heavy_workload=True,
         )
+
+        return all(result.error_code == 0 for result in results)
 
     def run_pipegen_worker(worker_config: PipegenWorkerConfig):
         err, cmd = PipegenRunner.run_pipegen(

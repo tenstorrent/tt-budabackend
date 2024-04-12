@@ -12,6 +12,7 @@ import subprocess
 from dataclasses import dataclass
 from itertools import repeat
 from subprocess import TimeoutExpired
+from typing import List
 
 from verif.common.test_utils import DeviceArchs, get_logger
 
@@ -139,6 +140,7 @@ def execute_in_parallel(
     initializer_var: mp.Value = None,
     serialize_for_debug: bool = False,
     log_file: str = None,
+    heavy_workload: bool = False,
 ):
     """Execute a function in parallel using 'multiprocessing' library.
 
@@ -157,6 +159,11 @@ def execute_in_parallel(
         This can be used for easier debugging of worker functions.
     log_file: str
         Log file to write command logs to.
+    heavy_workload: bool
+        If this is set to True, the chunksize for the parallel execution will be set to 1.
+        In general, when jobs are light (like comparing files), it is better not to set this flag.
+        In that case, starmap will use its own heuristics to set chunksize to a larger value.
+        For longer jobs, enabling this flag can lead to better overall performance.
     """
     total_run_count = len(args)
     run_count_sync_var = mp.Value("i", 0)
@@ -168,6 +175,7 @@ def execute_in_parallel(
             results = pool.starmap(
                 __single_worker_with_logging,
                 zip(repeat(func), args, repeat(total_run_count)),
+                chunksize=1 if heavy_workload else None,
             )
     else:
         __init_parallel_run_sync_var(
