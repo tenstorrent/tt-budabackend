@@ -1688,7 +1688,7 @@ phase_info.each do |yx_label, streams|
         log_2x_untilize_copy_iters = Math.log2(stream_info[:tile_dim_r]).round
       end
       stream_info_dws << ((num_dram_bufs << 16) | (log_2x_untilize_copy_iters << 8) | (untilize_copy_iters << 0))
-      stream_info_dws << epoch_info_stream_addr[stream_id] + $epoch_stream_info_t_struct_padded_size + blob_scatter_offsets_size
+      stream_info_dws << (stream_info[:dram_stream] ? epoch_info_stream_addr[stream_id] + $epoch_stream_info_t_struct_padded_size + blob_scatter_offsets_size : 0)
       stream_info_dws << ((stream_info[:num_fork_streams] ? stream_info[:num_fork_streams] : 0) | (stream_info[:padding_scatter_order_size] ? stream_info[:padding_scatter_order_size] << 16 : 0))
       if (stream_info[:fork_stream_ids] && stream_info[:fork_stream_ids].length > $epoch_max_output_forks)
         abort("Error! fork_stream_ids exceeds max fork allowed for #{yx_label}, stream_id=#{stream_id}")
@@ -1880,7 +1880,8 @@ phase_info.each do |yx_label, streams|
           dram_scatter_offset_ptr = curr_dram_state_ptr + $dram_io_state_t_struct_padded_size + $dram_io_scatter_state_t_struct_padded_size
           dram_scatter_offsets_size_bytes = GetDramScatterOffsetsListPaddedSize(dram_buf[:dram_scatter_offsets].length())
           if (dram_buf_id == stream_info[:dram_stream_buf_list].length()-1)
-            curr_dram_state_ptr = start_dram_state_ptr
+            # There is no next dram_io_state_t
+            curr_dram_state_ptr = 0
           else
             curr_dram_state_ptr += $dram_io_state_t_struct_padded_size + (dram_buf[:dram_scatter_offsets].length() > 0 ? dram_scatter_offsets_size_bytes + $dram_io_scatter_state_t_struct_padded_size : 0)
           end
