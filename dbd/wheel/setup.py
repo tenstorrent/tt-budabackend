@@ -19,6 +19,7 @@ debuda_files = {
         "files": [
             "debuda.py",
             "tt_buffer.py",
+            "tt_commands.py",
             "tt_coordinate.py",
             "tt_debuda_server.py",
             "tt_debug_risc.py",

@@ -122,12 +122,24 @@ class MY_CU:
 
         IMPROVE: What if there are multiple dies to return?
         """
-        for DIE in self.iter_DIEs():
-            if "DW_AT_specification" in DIE.attributes:
-                if DIE.attributes["DW_AT_specification"].value == die.offset:
-                    return DIE
+        for dwarf_cu in self.dwarf_cu.dwarfinfo.iter_CUs():
+            for DIE in dwarf_cu.iter_DIEs():
+                if "DW_AT_specification" in DIE.attributes:
+                    if DIE.attributes["DW_AT_specification"].value == die.offset:
+                        return MY_DIE(dwarf_cu, DIE)
+                if "DW_AT_abstract_origin" in DIE.attributes:
+                    if DIE.attributes["DW_AT_abstract_origin"].value == die.offset:
+                        return MY_DIE(dwarf_cu, DIE)
         return None
 
+# We only care about the stuff we can use for probing the memory
+IGNORE_TAGS = set(
+    [
+        "DW_TAG_compile_unit",
+        "DW_TAG_formal_parameter",
+        "DW_TAG_unspecified_parameters",
+    ]
+)
 
 class MY_DIE:
     """
@@ -160,16 +172,6 @@ class MY_DIE:
     def local_offset(self):
         return self.attributes["DW_AT_type"].value
 
-    # We only care about the stuff we can use for probing the memory
-    IGNORE_TAGS = set(
-        [
-            "DW_TAG_compile_unit",
-            "DW_TAG_subprogram",
-            "DW_TAG_formal_parameter",
-            "DW_TAG_unspecified_parameters",
-        ]
-    )
-
     @cached_property
     def category(self):
         """
@@ -183,7 +185,9 @@ class MY_DIE:
             return "variable"
         elif self.tag == "DW_TAG_member":
             return "member"
-        elif self.tag in self.IGNORE_TAGS:
+        elif self.tag == "DW_TAG_subprogram":
+            return "subprogram"
+        elif self.tag in IGNORE_TAGS:
             pass  # Just skip these tags
         elif self.tag == "DW_TAG_namespace":
             return "type"
@@ -192,6 +196,7 @@ class MY_DIE:
             or self.tag == "DW_TAG_imported_module"
             or self.tag == "DW_TAG_template_type_param"
             or self.tag == "DW_TAG_template_value_param"
+            or self.tag == "DW_TAG_lexical_block"
         ):
             return None
         else:
@@ -423,6 +428,33 @@ def recurse_DIE(DIE: MY_DIE, recurse_dict, r_depth=0):
         if recurse_down:
             recurse_DIE(child, recurse_dict, r_depth + 1)
 
+def decode_file_line(dwarfinfo):
+    PC_to_fileline_map = {}
+    for CU in dwarfinfo.iter_CUs():
+        lineprog = dwarfinfo.line_program_for_CU(CU)
+        delta = 1 if lineprog.header.version < 5 else 0
+        prevstate = None
+        for entry in lineprog.get_entries():
+            if entry.state is None:
+                continue
+            filename = lineprog['file_entry'][entry.state.file - delta].name
+            line = entry.state.line
+            PC_to_fileline_map[entry.state.address] = (filename, line)
+    return PC_to_fileline_map
+
+def decode_symbols(elf_file):
+    functions = {}
+    for section in elf_file.iter_sections():
+            # Check if it's a symbol table section
+            if section.name == '.symtab':
+                # Iterate through symbols
+                for symbol in section.iter_symbols():
+                    # Check if it's a label symbol
+                    if symbol['st_info']['type'] == 'STT_NOTYPE' and symbol.name:
+                        functions[symbol.name] = symbol['st_value']
+                    if symbol['st_info']['type'] == 'STT_FUNC':
+                        functions[symbol.name] = symbol['st_value']
+    return functions
 
 def parse_dwarf(dwarf):
     """
@@ -432,12 +464,14 @@ def parse_dwarf(dwarf):
         'type' - all the types
         'member' - all the members of structures etc
         'enumerator' - all the enumerators in the DWARF info
+        'PC' - mappings between PC values and source code locations
     """
     recurse_dict = {
         "variable": dict(),
         "type": dict(),
         "member": dict(),
         "enumerator": dict(),
+        "file-line": dict(),
     }
 
     for dwarf_cu in dwarf.iter_CUs():
@@ -448,14 +482,18 @@ def parse_dwarf(dwarf):
             cu_name = top_DIE.attributes["DW_AT_name"].value.decode("utf-8")
         debug(f"CU: {cu_name}")
 
+        # Process the names etc
         recurse_DIE(top_DIE, recurse_dict)
+
+        # Process the PC (program counter) values so we can map them to source code
+        recurse_dict["file-line"] = decode_file_line(dwarf)
 
     return recurse_dict
 
 
 def read_elf(elf_file_path):
     """
-    Reads the ELF file and returns the symbol and type tables
+    Reads the ELF file and returns a dictionary with the DWARF info
     """
     with open(elf_file_path, "rb") as f:
         elf = ELFFile(f)
@@ -468,8 +506,9 @@ def read_elf(elf_file_path):
         dwarf = elf.get_dwarf_info()
 
         recurse_dict = parse_dwarf(dwarf)
-    return recurse_dict
 
+        recurse_dict["symbols"] = decode_symbols(elf)
+    return recurse_dict
 
 #
 # Access path parsing / processing

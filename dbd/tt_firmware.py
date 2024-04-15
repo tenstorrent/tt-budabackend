@@ -6,7 +6,7 @@ This module is used to represent the firmware
 """
 
 import time
-import tt_parse_elf as elf
+import tt_parse_elf
 import tt_util as util
 import os, re
 from fuzzywuzzy import process, fuzz
@@ -14,7 +14,7 @@ from fuzzywuzzy import process, fuzz
 # This is a list of firmware variables that do not make it to the ELF file (e.g. they
 # are hard-coded through #define). We need to 'inject' them into the symbol table with
 # the correct type to have the lookup work.
-FW_VARS = {
+BUDA_FW_VARS = {
     "EPOCH_INFO_PTR": {
         "offset": "EPOCH_INFO_ADDR",  # The address of the variable. If string, it is looked up in the ELF
         # If int, it is used as is
@@ -22,7 +22,6 @@ FW_VARS = {
     },
     "ETH_EPOCH_INFO_PTR": {"offset": "ETH_EPOCH_INFO_ADDR", "type": "epoch_t"},
 }
-
 
 class FAKE_DIE(object):
     """
@@ -43,7 +42,7 @@ class ELF:
     This class wraps around a list of ELF files and provides a unified interface to them.
     """
 
-    def __init__(self, filemap) -> None:
+    def __init__(self, filemap, extra_vars=None) -> None:
         """
         Given a filemap "prefix" -> "filename", load all the ELF files and store them in
         self.names. For example, if filemap is { "brisc" : "./debuda_test/brisc/brisc.elf" }
@@ -57,19 +56,21 @@ class ELF:
             abspath = os.path.abspath(filename)
             util.INFO(f"Loading ELF file: '{abspath}'", end="")
             start_time = time.time()
-            self.names[prefix] = elf.read_elf(abspath)
+            self.names[prefix] = tt_parse_elf.read_elf(abspath)
             util.INFO(
                 f" ({os.path.getsize(abspath)} bytes loaded in {time.time() - start_time:.2f}s)"
             )
             self.name_word_pattern = re.compile(r"[_@.a-zA-Z]+")
-            # Inject the variables that are not in the ELF
-            self._process_extra_vars(prefix)
 
-    def _process_extra_vars(self, prefix):
+            # Inject the variables that are not in the ELF
+            if extra_vars:
+                self._process_extra_vars(prefix, extra_vars)
+
+    def _process_extra_vars(self, prefix, extra_vars):
         """
         Given a prefix, inject the variables that are not in the ELF
         """
-        for var_name, var in FW_VARS.items():
+        for var_name, var in extra_vars.items():
             if var_name in self.names[prefix]["variable"]:
                 util.INFO(f"Variable '{var_name}' already in ELF. Skipping")
                 continue
@@ -179,7 +180,7 @@ class ELF:
         def my_mem_reader(addr, size_bytes):
             pass
 
-        _, ret_addr, ret_size_bytes, type_die = elf.mem_access(
+        _, ret_addr, ret_size_bytes, type_die = tt_parse_elf.mem_access(
             self.names[elf_name], var_name, my_mem_reader
         )
         return ret_addr, ret_size_bytes, type_die
@@ -214,7 +215,7 @@ class ELF:
         if path_str.startswith("@"):
             path_str = path_str[1:]
         elf_name, var_name = self._get_prefix_and_suffix(path_str)
-        data, ret_addr, ret_size_bytes, type_die = elf.mem_access(
+        data, ret_addr, ret_size_bytes, type_die = tt_parse_elf.mem_access(
             self.names[elf_name], var_name, mem_reader
         )
         return data

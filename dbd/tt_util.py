@@ -13,29 +13,42 @@ import ryml, yaml
 def notify_exception(exc_type, exc_value, tb):
     rows = []
     ss_list = traceback.extract_tb(tb)
-    cwd_path = os.path.abspath(os.getcwd()) + os.sep
     indent = 0
     fn = "-"
     line_number = "-"
     for ss in ss_list:
         file_name, line_number, func_name, text = ss
         abs_filename = os.path.abspath(file_name)
-        fn = os.path.relpath(abs_filename)
-        row = [
-            f"{fn}:{line_number}",
-            func_name,
-            f"{CLR_BLUE}{'  '*indent}{text}{CLR_END}",
-        ]
-        rows.append(row)
-        if indent < 10:
-            indent += 1
+
+        # Exceptions thrown from importlib might not have a file in all stack frames
+        if os.path.exists(abs_filename):
+            fn = os.path.relpath(abs_filename)
+            row = [
+                f"{fn}:{line_number}",
+                func_name,
+                f"{CLR_BLUE}{'  '*indent}{text}{CLR_END}",
+            ]
+            rows.append(row)
+            if indent < 10:
+                indent += 1
+
     rows.append(
         [
             f"{CLR_RED}{fn}:{line_number}{CLR_END}",
             f"{CLR_RED}{func_name}{CLR_END}",
             f"{CLR_RED}{exc_type.__name__}: {exc_value}{CLR_END}",
-        ]
-    )
+        ])
+
+    # Exceptions thrown from importlib set these
+    if hasattr(exc_value, "filename") and hasattr(exc_value, "lineno"):
+        rows.append(
+            [
+                f"{CLR_RED}{os.path.relpath(exc_value.filename)}:{exc_value.lineno}{CLR_END}",
+                f"{CLR_RED}{func_name}{CLR_END}",
+                f"{CLR_RED}{exc_type.__name__}: {exc_value.text}{CLR_END}",
+            ]
+        )
+
     print(tabulate(rows))
 
 

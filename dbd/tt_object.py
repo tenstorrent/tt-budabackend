@@ -95,3 +95,27 @@ class DataArray(TTObject):
             )
         self.bytes_per_entry = bytes_per_entry
         self.cell_formatter = util.CELLFMT.hex(self.bytes_per_entry)
+
+    def from_bytes (self, bytes):
+        """
+        Initiliaze the data array from a byte array
+        """
+        self.data = []
+        for i in range(0, len(bytes), self.bytes_per_entry):
+            self.data.append(
+                int.from_bytes(bytes[i : i + self.bytes_per_entry], byteorder="little")
+            )
+        return self
+
+    def bytes (self):
+        """
+        Return the data array as a byte array
+        """
+        dest = bytes()
+        for v in self.data:
+            dest += int.to_bytes(v, length=self.bytes_per_entry, byteorder="little")
+        return dest
+
+    # subsript operator
+    def __getitem__(self, key):
+        return self.data[key]

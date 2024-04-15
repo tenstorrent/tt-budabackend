@@ -14,6 +14,7 @@ from tt_coordinate import OnChipCoordinate, CoordinateTranslationError
 from collections import namedtuple
 from abc import ABC, abstractmethod
 from typing import Dict
+from tt_debug_risc import get_risc_reset_shift, get_risc_id
 
 #
 # Communication with Buda (or debuda-server) over sockets (ZMQ).
@@ -658,7 +659,7 @@ class Device(TTObject):
             self._harvesting = None
         else:
             raise util.TTFatalException(
-                f"Cluster description is not valid. It reads: {harvesting_desc}"
+                f"Cluster description is not valid. 'harvesting_desc' reads: {harvesting_desc}"
             )
 
         self._create_harvesting_maps()
@@ -1572,6 +1573,27 @@ class Device(TTObject):
         return SERVER_IFC.pci_read_tile(
             self.id(), x, y, z, reg_addr, msg_size, data_format
         )
+
+    def all_riscs_assert_soft_reset(self) -> None:
+        """
+        Put all risc cores under reset. Nothing will run until the reset is deasserted.
+        """
+        RISC_SOFT_RESET_0_ADDR = 0xffb121b0
+
+        ALL_SOFT_RESET = 0
+        for risc_id in range(5):
+            ALL_SOFT_RESET = ALL_SOFT_RESET | (1 << get_risc_reset_shift(risc_id))
+        noc_id = 0
+
+        for loc in self.get_block_locations(block_type="functional_workers"):
+            self.pci_write_xy(*loc.to("nocVirt"), noc_id, RISC_SOFT_RESET_0_ADDR, ALL_SOFT_RESET)
+
+            # Check what we wrote
+            rst_reg = self.pci_read_xy(*loc.to("nocVirt"), noc_id, RISC_SOFT_RESET_0_ADDR)
+            if rst_reg != ALL_SOFT_RESET:
+                util.ERROR (f"Expected to write {ALL_SOFT_RESET:x} to {loc.to_str()} but read {rst_reg:x}")
+
+# end of class Device
 
 
 # Initialize communication with the device. If the server is not running, it will be spawned.

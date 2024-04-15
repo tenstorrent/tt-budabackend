@@ -49,11 +49,11 @@ def application_path():
 
 sys.path.append(application_path())
 
+from tt_commands import find_command
 from tt_debuda_server import debuda_server_not_supported
 from tt_coordinate import OnChipCoordinate
 import tt_util as util, tt_device, tt_netlist
-import tt_firmware as fw
-
+from tt_firmware import ELF, BUDA_FW_VARS
 
 class DebudaCompleter(Completer):
     def __init__(self, commands, context):
@@ -130,14 +130,6 @@ def format_commands(commands, type, specific_cmd=None, verbose=False):
                 ]
                 rows.append(row)
     return rows
-
-
-def find_command(commands, name):
-    for c in commands:
-        if c["long"] == name or c["short"] == name:
-            return c
-    return None
-
 
 # Print all commands (help)
 def print_help(commands, cmd):
@@ -352,7 +344,8 @@ class Context:
         if self.arch.lower() != "grayskull":
             elf_files_to_load["erisc_app"] = f"{self._run_dirpath}/erisc/erisc_app.elf"
 
-        return fw.ELF(elf_files_to_load)
+        extra_vars = BUDA_FW_VARS if self.is_buda else None
+        return ELF(elf_files_to_load, extra_vars=extra_vars)
 
     @cached_property
     def epoch_id_address(self):
@@ -360,7 +353,7 @@ class Context:
         if address is None:
             raise util.TTException(f"Could not find address of epoch_id field in ELF file.")
         return address
-    
+
     @cached_property
     def eth_epoch_id_address(self):
         if self.arch.lower() == "grayskull":
@@ -420,6 +413,7 @@ def main_loop(args, context):
     cmd_raw = ""
 
     commands = import_commands()
+    context.commands = commands # Set the commands in the context so we can call commands from other commands
 
     # Create prompt object.
     context.prompt_session = PromptSession(completer=DebudaCompleter(commands, context)) if sys.stdin.isatty() else SimplePromptSession()
@@ -471,7 +465,10 @@ def main_loop(args, context):
                     epoch_id = context.netlist.graph_name_to_epoch_id(ui_state.current_graph_name)
                 else:
                     epoch_id = None
-                my_prompt = f"Current epoch:{util.CLR_PROMPT}{epoch_id}{util.CLR_PROMPT_END}({ui_state.current_graph_name}) device:{util.CLR_PROMPT}{ui_state.current_device_id}{util.CLR_PROMPT_END} {ui_state.current_prompt}> "
+                my_prompt = f"Current epoch:{util.CLR_PROMPT}{epoch_id}{util.CLR_PROMPT_END}({ui_state.current_graph_name}) "
+                my_prompt += f"device:{util.CLR_PROMPT}{ui_state.current_device_id}{util.CLR_PROMPT_END} "
+                my_prompt += f"loc:{util.CLR_PROMPT}{current_loc.to_str()}{util.CLR_PROMPT_END} "
+                my_prompt += f"{ui_state.current_prompt}> "
                 cmd_raw = context.prompt_session.prompt(HTML(my_prompt))
 
             cmd_int = try_int(cmd_raw)

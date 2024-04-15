@@ -27,7 +27,7 @@ class DbdOutputVerifier:
         pass
 
 class UmdDbdOutputVerifier(DbdOutputVerifier):
-    prompt_regex = r"^Current epoch:None\(None\) device:\d > $"
+    prompt_regex = r"^Current epoch:None\(None\) device:\d+ loc:\d+-\d+ > $"
     cluster_desc_regex = r"Loading yaml file: '(\/tmp\/debuda_server_\w+\/)cluster_desc\.yaml'"
 
     def __init__(self):
