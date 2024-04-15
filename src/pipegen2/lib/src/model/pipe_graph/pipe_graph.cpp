@@ -103,6 +103,14 @@ namespace pipegen2
         m_pipes = std::move(remaining_pipes);
     }
 
+    void PipeGraph::add_pipes(std::vector<std::unique_ptr<PGPipe>>& pipes_to_add)
+    {
+        for (std::unique_ptr<PGPipe>& pg_pipe : pipes_to_add)
+        {
+            m_pipes.push_back(std::move(pg_pipe));
+        }
+    }
+
 #ifdef TT_DEBUG
     std::string PipeGraph::to_json() const
     {

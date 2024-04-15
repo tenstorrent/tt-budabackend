@@ -33,7 +33,9 @@ private:
 
     // Decomposes a single Post-TM multicast pipe into multiple unicast pipes, each prefetching input to one of the 
     // destination cores.
-    void decompose_post_tm_multicast_pipe(PipeGraph& pipe_graph, PGPipe* prefetch_post_tm_pipe);
+    void decompose_post_tm_multicast_pipe(PipeGraph& pipe_graph, 
+                                          PGPipe* prefetch_post_tm_pipe, 
+                                          std::vector<std::unique_ptr<PGPipe>>& pipes_to_add);
 };
 
 } // namespace pipegen2

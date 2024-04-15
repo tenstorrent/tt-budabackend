@@ -13,6 +13,7 @@ void PostTMPipeHandler::handle(PipeGraph& pipe_graph)
     // If graph is eligible for optimization, some buffers and pipes will be removed from it.
     std::unordered_set<PGPipe*> pipes_to_remove;
     std::unordered_set<PGBuffer*> buffers_to_remove;
+    std::vector<std::unique_ptr<PGPipe>> pipes_to_add;
 
     for (std::unique_ptr<PGPipe>& pipe : pipe_graph.get_pipes())
     {
@@ -38,7 +39,7 @@ void PostTMPipeHandler::handle(PipeGraph& pipe_graph)
 
         if (can_decompose_post_tm_multicast_pipe(relay_pipe))
         {
-            decompose_post_tm_multicast_pipe(pipe_graph, relay_pipe);
+            decompose_post_tm_multicast_pipe(pipe_graph, relay_pipe, pipes_to_add);
 
             // Remove the decomposed pipe.
             pipes_to_remove.insert(relay_pipe);
@@ -48,6 +49,9 @@ void PostTMPipeHandler::handle(PipeGraph& pipe_graph)
     // Remove all source pipes and relay buffers from graph that were optimized away in previous optimizations.
     pipe_graph.remove_pipes(pipes_to_remove);
     pipe_graph.remove_buffers(buffers_to_remove);
+
+    // Add the pipes that were newly formed.
+    pipe_graph.add_pipes(pipes_to_add);
 }
 
 bool PostTMPipeHandler::can_decompose_post_tm_multicast_pipe(const PGPipe* prefetch_post_tm_pipe)
@@ -121,7 +125,10 @@ void PostTMPipeHandler::detach_inputs(PGPipe* original_pipe, PGPipe* new_pipe)
     }
 }
 
-void PostTMPipeHandler::decompose_post_tm_multicast_pipe(PipeGraph& pipe_graph, PGPipe* prefetch_post_tm_pipe)
+void PostTMPipeHandler::decompose_post_tm_multicast_pipe(
+    PipeGraph& pipe_graph, 
+    PGPipe* prefetch_post_tm_pipe, 
+    std::vector<std::unique_ptr<PGPipe>>& pipes_to_add)
 {
     // Make a new post TM prefetch pipe for every output buffer.
     for (unsigned int output_buffer_index = 0; 
@@ -137,7 +144,7 @@ void PostTMPipeHandler::decompose_post_tm_multicast_pipe(PipeGraph& pipe_graph, 
         copy_original_post_tm_pipe_attributes(prefetch_post_tm_pipe, new_post_tm_prefetch_pipe.get());
         new_post_tm_prefetch_pipe->add_mcast_core_logical_location(
                                                                 tt_cxy_pair((output_buffer->get_logical_location())));
-        pipe_graph.add_pipe(std::move(new_post_tm_prefetch_pipe));
+        pipes_to_add.push_back(std::move(new_post_tm_prefetch_pipe));
     }
 }
 

@@ -30,6 +30,8 @@ namespace pipegen2
 
         void remove_buffers(const std::unordered_set<PGBuffer*>& buffers_to_remove);
 
+        void add_pipes(std::vector<std::unique_ptr<PGPipe>>& pipes_to_add);
+
         const std::vector<std::unique_ptr<PGPipe>>& get_pipes() const { return m_pipes; }
 
         std::vector<std::unique_ptr<PGPipe>>& get_pipes() { return m_pipes; }
