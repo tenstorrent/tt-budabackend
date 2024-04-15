@@ -2,34 +2,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
-#include <iostream>
 #include <cstdint>
-#include <string>
-#include <fstream>
 #include <vector>
-#include <map>
-#include <limits.h>
 #include "model/model.hpp"
 #include "scratch_api.h"
 
 #include "l1_address_map.h"
-#include "dram_address_map.h"
 #include "host_mem_address_map.h"
 #include "common/base.hpp"
-#include "perf_descriptor.hpp"
 #include "common/tt_queue_ptr.hpp"
 #include "common/buda_soc_descriptor.h"
 #include "perf_base.hpp"
+#include "perf_descriptor.hpp"
 #include "perf_state.hpp"
-
-#include "third_party/json/json.hpp"
-
-namespace fs = std::experimental::filesystem;
-
-using digraph = boost::adjacency_list<boost::listS, boost::vecS, boost::bidirectionalS, tt_digraph_node_struct, tt_digraph_edge_struct>;
-using vertex_t = boost::graph_traits<digraph>::vertex_descriptor;
-using edge_t = boost::graph_traits<digraph>::edge_descriptor;
-using json = nlohmann::json;
 
 namespace postprocess {
 
@@ -423,11 +408,6 @@ string decode_host_event_name(uint64_t event_id, int pid, uint thread_id, const 
 string decode_ncrisc_event_name(int event_id);
 string decode_brisc_event_name(int event_id);
 
-// TODO: Move these to create_report.hpp
-void print_perf_info_all_epochs(bool print_to_file, const string& output_dir, const PerfState &perf_state);
-void create_epoch_info_report(const vector<tt::EpochPerfInfo>& all_epochs_info, const int &input_count, const string& output_path);
-vector<EpochPerfInfo> get_epoch_info(const vector<InstructionInfo> &all_instructions_info);
-
 struct EventProperties {
     uint outer_loop_idx;
     uint event_type;
@@ -474,9 +454,69 @@ struct BriscEventProperties {
 ////////////////////////////////////////////////////////
 //////////// Perf-Postprocess apis
 ////////////////////////////////////////////////////////
+void set_core_id(core_events &current_core, const string& core_id_str);
+bool is_core_id(const string &current_line);
+bool is_thread_id(const string &current_line);
+pair<uint64_t, uint64_t> get_epoch_q_empty_largest_delay(const json& all_events);
+uint64_t find_stream_handler_loop_event_val(const vector<uint32_t> &current_thread_events);
+void process_new_thread(thread_events& current_thread, string current_line, bool &skip_to_next_thread);
+void process_thread_main(vector<uint32_t> &current_thread_events, thread_events &current_thread, bool concurrent);
+void process_thread_end(
+    thread_events &current_thread,
+    core_events &current_core,
+    vector<core_events> &all_core_events,
+    vector<string> & all_core_ids,
+    vector<uint32_t> &current_thread_events,
+    const string &core_id_str,
+    const perf::PerfDesc& perf_desc,
+    bool &skip_to_next_core,
+    bool &skip_to_next_thread,
+    bool modify_skip_flags,
+    bool out_of_memory);
+void process_new_core(core_events &current_core, string core_id_str, const unordered_map<string, core_descriptor> &cores_to_ops, ofstream &output_log, bool &skip_to_next_core, bool &skip_to_next_thread);
+void check_end_time_recorded(core_events &current_core, const perf::PerfDesc &perf_desc);
+void check_end_time_recorded_host(thread_events &current_thread);
+void combine_ncrisc_events(thread_events &thread_events);
+uint32_t get_dram_perf_buf_inc(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core);
+uint32_t get_num_max_trisc_dram_reqs(const buda_SocDescriptor *soc_descriptor, tt_xy_pair dram_core, const PerfDesc& perf_desc);
+uint32_t get_dram_thread_inc(const buda_SocDescriptor *soc_descriptor, tt_xy_pair dram_core, const PerfDesc& perf_desc, int thread_id);
+uint32_t get_num_events_to_skip_between_threads(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const perf::PerfDesc &perf_desc, int thread_id);
+uint32_t get_num_events_to_skip_between_workers(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const perf::PerfDesc &perf_desc);
+uint32_t get_num_events_per_threads_in_dram(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const perf::PerfDesc &perf_desc, int thread_id);
+uint32_t get_l1_perf_buf_size_each_dump(const PerfDesc& perf_desc, int thread_id);
+uint find_beginning_of_next_l1_dump(uint thread_event_idx, uint num_events_per_thread, const perf::PerfDesc& perf_desc, int thread_id);
+unordered_map<tt_xy_pair, vector<int>> get_cores_to_instr_idx_from_model(const vector<InstructionInfo*> &instructions_on_device, const buda_SocDescriptor* soc_descriptor);
+void set_number_of_inputs_recorded(core_events &current_core);
+void calculate_first_to_last_outer_loop_cycles(core_events &current_core);
+void calculate_brisc_bw_info(core_events &current_core);
+void set_unpack_pack_num_tiles(core_events& current_core);
+
 // Device postprocess
-bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, PerfState &perf_state, const string& output_dir, std::shared_ptr<tt_device> device, const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip);
+vector<InstructionInfo> populate_all_instructions(PerfState &perf_state, const string& perf_out_dir, std::shared_ptr<tt_device> device);
+unordered_map<string, std::shared_ptr<stringstream>> extract_core_events_from_device_dram_dump(
+    const vector<const InstructionInfo*> &instructions_on_device, 
+    const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, 
+    const perf::PerfDesc &perf_desc, 
+    const buda_SocDescriptor* soc_descriptor
+);
+void populate_output_directory_paths(vector<InstructionInfo> &all_instructions, const perf::PerfDesc &perf_desc, const string& output_dir);
+void parse_intermed_dump_and_create_reports(stringstream &intermed_dump, InstructionInfo &instr, const PerfState &perf_state, bool versim);
+void process_all_instructions_and_create_reports(
+    vector<InstructionInfo> &all_instructions,
+    const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events,
+    const PerfState &perf_state,
+    const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip,
+    bool versim
+);
+void dump_perf_graphviz(const boost::adjacency_list<boost::listS, boost::vecS, boost::bidirectionalS, tt_digraph_node_struct, tt_digraph_edge_struct> &graph, const string &path);
+void generate_graphs(const vector<InstructionInfo> &all_instructions);
+vector<EpochPerfInfo> get_epoch_info(const vector<InstructionInfo> &all_instructions_info);
+bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, PerfState &perf_state, const string& output_dir, std::shared_ptr<tt_device> device, const std::unordered_map<chip_id_t, buda_SocDescriptor> &sdesc_per_chip);
+
 // Host postprocess
+uint64_t convert_device_to_host_timestamp(const uint64_t &device_timestamp_rebiased, const PerfState &perf_state, const uint &device_id);
+host_global_events populate_host_global_events(const thread_events& thread);
+void append_epoch_runtime_to_host_profiler(const PerfState &perf_state);
 void run_host_perf_postprocess(
     const vector<uint64_t> &target_buffer,
     const vector<string> &all_labels,
@@ -484,9 +524,12 @@ void run_host_perf_postprocess(
     const string &perf_output_dir,
     const pid_t &process_id,
     const bool &dump_device_alignment,
-    const int &total_input_count);
+    const int &total_input_count
+);
+    
 // Concurrent postprocess
 thread_events run_postprocessor_single_thread_epoch(perf::PerfDumpHeader header, vector<uint32_t> perf_data);
+
 // Analyzer: Runs the python postprocessor
 void run_performance_analyzer(const PerfState &device_perf_state, const string &test_output_dir);
 

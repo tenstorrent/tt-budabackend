@@ -26,7 +26,7 @@ void PerfState::update_perf_check(bool check) {
     perf_check_passed = perf_check_passed && check;
 }
 
-void PerfState::update_device_to_first_core(uint device_id, tt_xy_pair core_coord) {
+void PerfState::update_device_to_first_core(uint device_id, const tt_xy_pair &core_coord) {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     if (device_to_first_core.find(device_id) == device_to_first_core.end()) {
         device_to_first_core.insert({device_id, core_coord});
@@ -113,11 +113,11 @@ void PerfState::update_device_alignment_info_end(const int &device_id, const uin
     device_alignment_info.device_id_to_host_end_cycle.insert({device_id, host_end});
 }
 
-
-void PerfState::set_perf_desc(perf::PerfDesc new_perf_desc) {
+void PerfState::set_perf_desc(const perf::PerfDesc &new_perf_desc) {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     perf_desc = new_perf_desc;
 }
+
 void PerfState::update_total_input_count(int num_inputs) {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     total_input_count = num_inputs;
@@ -156,11 +156,10 @@ void PerfState::update_op_to_model_desc(const tt_digraph &graph) {
 PostprocessModelDesc PerfState::get_op_perf_model_desc(const string &op_name) const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     log_assert(op_to_perf_model_desc.find(op_name) != op_to_perf_model_desc.end(), "perf model for op {} does not exist", op_name);
-    PostprocessModelDesc model_desc = op_to_perf_model_desc.at(op_name);
     return op_to_perf_model_desc.at(op_name);
 }
 
-std::unordered_map<string, PostprocessModelDesc> PerfState::get_all_perf_model_desc() const {
+const std::unordered_map<string, PostprocessModelDesc> &PerfState::get_all_perf_model_desc() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return op_to_perf_model_desc;
 }
@@ -282,12 +281,12 @@ bool PerfState::is_queue(const string &queue_name) const {
     return queues.find(queue_name) != queues.end();
 }
 
-vector<EpochPerfInfo> PerfState::get_all_epochs_perf_info() const {
+const vector<EpochPerfInfo> &PerfState::get_all_epochs_perf_info() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return all_epochs_perf_info;
 }
 
-tt_perf_device_alignment PerfState::get_device_alignment_info() const {
+const tt_perf_device_alignment &PerfState::get_device_alignment_info() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return device_alignment_info;
 }
@@ -303,7 +302,7 @@ uint PerfState::get_num_instructions_executed(const uint &program_id) const {
     return program_id_to_num_instructions_executed.at(program_id);
 }
 
-std::vector<instruction_info_wrapper> PerfState::get_executed_instr() const {
+const std::vector<instruction_info_wrapper> &PerfState::get_executed_instr() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return executed_instr;
 }
@@ -320,21 +319,21 @@ unordered_set<string> PerfState::get_outputs_for_op(const string &op_name) const
     return op_to_outputs.at(op_name);
 }
 
-unordered_map<string, core_descriptor> PerfState::get_core_to_desc_map(const string &graph_name) const {
+const unordered_map<string, core_descriptor> &PerfState::get_core_to_desc_map(const string &graph_name) const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     log_assert(graph_wrappers.find(graph_name) != graph_wrappers.end(), "Core descriptor does not exist for graph {}", graph_name);
     return graph_wrappers.at(graph_name)->core_to_descriptor;
 }
 
-core_descriptor PerfState::get_core_desc(const string &graph_name, const tt_xy_pair &core) const {
+const core_descriptor &PerfState::get_core_desc(const string &graph_name, const tt_xy_pair &core) const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     string core_label = to_string(core.x) + "-" + to_string(core.y);
-    unordered_map<string, core_descriptor> core_to_desc = get_core_to_desc_map(graph_name);
+    const unordered_map<string, core_descriptor> &core_to_desc = get_core_to_desc_map(graph_name);
     log_assert(core_to_desc.find(core_label) != core_to_desc.end(), "core descriptor for physical core {} does not exist under graph {} in device perf state", core_label, graph_name);
     return core_to_desc.at(core_label);
 }
 
-buda_SocDescriptor PerfState::get_sdesc_for_device(const int device_id) const {
+const buda_SocDescriptor &PerfState::get_sdesc_for_device(const int device_id) const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     log_assert(chip_id_to_sdesc.find(device_id) != chip_id_to_sdesc.end(), "soc descriptor for device id {} does not exist", device_id);
     return chip_id_to_sdesc.at(device_id);
@@ -346,7 +345,7 @@ std::shared_ptr<tt_perf_digraph_wrapper> PerfState::get_graph_wrapper(const stri
     return graph_wrappers.at(graph_name);
 }
 
-tt_digraph PerfState::get_graph(const string &graph_name) const {
+const tt_digraph &PerfState::get_graph(const string &graph_name) const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     std::shared_ptr<tt_perf_digraph_wrapper> graph_wrapper = get_graph_wrapper(graph_name);
     return graph_wrapper->graph;
@@ -363,7 +362,7 @@ int PerfState::get_total_input_count() const {
     return total_input_count;
 }
 
-perf::PerfDesc PerfState::get_perf_desc() const {
+const perf::PerfDesc &PerfState::get_perf_desc() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return perf_desc;
 }
@@ -378,7 +377,7 @@ std::pair<uint32_t, const instruction_info_wrapper> PerfState::get_global_epoch_
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     uint instr_idx = 0;
     uint instr_active_idx = 0;
-    for (const auto instr_wrap: get_executed_instr()) {
+    for (const auto &instr_wrap : get_executed_instr()) {
 
         string graph_name = instr_wrap.instr->graph_name;
         const tt_digraph &graph = get_graph(graph_name);
@@ -406,18 +405,18 @@ std::pair<uint32_t, const instruction_info_wrapper> PerfState::get_global_epoch_
 std::unordered_map<string, tt_digraph> PerfState::get_all_graphs() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     std::unordered_map<string, tt_digraph> all_graphs;
-    for (auto graph_it: graph_wrappers) {
+    for (const auto &graph_it: graph_wrappers) {
         all_graphs.insert({graph_it.first, graph_it.second->graph});
     }
     return all_graphs;
 }
 
-std::unordered_map<string, tt_queue_wrap> PerfState::get_all_queues() const {
+const std::unordered_map<string, tt_queue_wrap> &PerfState::get_all_queues() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return queues;
 }
 
-string PerfState::get_test_output_dir() const {
+const string &PerfState::get_test_output_dir() const {
     const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
     return test_output_dir;
 }
@@ -444,4 +443,11 @@ uint PerfState::get_epoch_id_for_device_id(uint device_id) const {
     return device_to_epoch_id.at(device_id);
 }
 
+tt::TargetDevice PerfState::get_target_device_type() const {
+    const std::lock_guard<std::recursive_mutex> lock(perf_state_mutex);
+    log_assert(target_device_type != tt::TargetDevice::Invalid, "target device type is not initialized in device perf state");
+    return target_device_type;
 }
+
+} // namespace postprocess
+

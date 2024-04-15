@@ -149,7 +149,7 @@ bool run_infra_overhead_test(const TestArgs &test_args) {
             tt_runtime runtime(config.netlist_path, config);
 
             // Start device and statically assemble binaries
-            log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+            log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
             bool force_sw_tilize = true;
 
@@ -318,7 +318,7 @@ bool run_kernel_delay_test(const TestArgs &test_args) {
         /////////////////////////////////////////////////////////////////
         tt_runtime runtime(config.netlist_path, config);
         // Start device and statically assemble binaries
-        log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+        log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
         bool force_sw_tilize = true;
         vector<tt_dram_io_desc> input_io_desc = runtime.get_host_input_io_desc();
         tt::io::push_host_inputs(input_io_desc, &get_tilized_tensor, -1, force_sw_tilize);

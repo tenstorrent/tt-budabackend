@@ -479,7 +479,7 @@ int main(int argc, char** argv)
     tt_runtime runtime(netlist_path, config);
     tt_runtime_workload &workload = *runtime.get_workload();
 
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     // Generate input tensors up front - needed, to use wrapper API for hw/sw tilize when it inspects data format.
     std::vector<tt_tensor> input_tensors;

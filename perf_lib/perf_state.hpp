@@ -2,22 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
-#include <iostream>
 #include <cstdint>
-#include <string>
-#include <fstream>
 #include <vector>
 #include <map>
-#include <limits.h>
 #include "perf_base.hpp"
-#include "perf_descriptor.hpp"
 #include "common/buda_soc_descriptor.h"
-#include "device/tt_device.h"
+#include "perf_descriptor.hpp"
 
 namespace postprocess {
 
 extern std::recursive_mutex perf_state_mutex;
-using namespace perf;
+
+using perf::instruction_info_wrapper;
+using perf::tt_perf_digraph_wrapper;
+using perf::PostprocessModelDesc;
+using perf::core_descriptor;
+using perf::tt_perf_device_alignment;
 
 // Records the runtime state that performance infra is sensitive to.
 // This struct needs to be THREAD SAFE
@@ -27,6 +27,7 @@ using namespace perf;
 struct PerfState {
 
 private:
+    tt::TargetDevice target_device_type;
     perf::PerfDesc perf_desc;
     // vector of all the instructions that are executed so far
     // Only the pointer to the instruction will be stored plus some information on program/graph id
@@ -73,8 +74,8 @@ private:
 public:
 
 
-    PerfState() {}
-    PerfState(const string &test_output_dir, const perf::PerfDesc &perf_desc): test_output_dir(test_output_dir), perf_desc(perf_desc) {
+    PerfState(): target_device_type() {}
+    PerfState(const string &test_output_dir, const perf::PerfDesc &perf_desc, const tt::TargetDevice &device_type): test_output_dir(test_output_dir), perf_desc(perf_desc), target_device_type(device_type) {
         log_debug(tt::LogPerfInfra, "Running device_perf_light constructor");
     }
 
@@ -94,7 +95,7 @@ public:
     void update_chip_id_to_sdesc(const uint &chip_id, const buda_SocDescriptor &soc_descriptor);
     void update_chip_id_to_aiclk(const uint &chip_id, const uint &aiclk);
     void update_op_to_outputs(const string &op_name, const unordered_set<string> &outputs);
-    void set_perf_desc(perf::PerfDesc new_perf_desc);
+    void set_perf_desc(const perf::PerfDesc &new_perf_desc);
     void update_total_input_count(int num_inputs);
     void update_queues(const string &queue_name, const tt_queue_wrap &queue);
     void set_postprocessor_executed();
@@ -106,7 +107,7 @@ public:
     void update_op_to_model_desc(const tt_digraph &graph);
     void update_num_instructions_processed(const uint new_instructions_processed);
     void update_perf_check(bool check);
-    void update_device_to_first_core(uint device_id, tt_xy_pair core_coord);
+    void update_device_to_first_core(uint device_id, const tt_xy_pair &core_coord);
     void update_device_to_epoch_id(uint device_id, uint epoch_id);
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -115,33 +116,34 @@ public:
     ////////////////////////////////////////////////////////////////////////////////
     std::pair<uint32_t, const instruction_info_wrapper> get_global_epoch_idx_and_instr_for_core(perf::PerfDumpHeader header) const;
     bool is_physical_core_active_in_graph(const string &graph_name, const tt_xy_pair &core) const;
-    unordered_map<string, core_descriptor> get_core_to_desc_map(const string &graph_name) const;
-    core_descriptor get_core_desc(const string &graph_name, const tt_xy_pair &core) const;
-    buda_SocDescriptor get_sdesc_for_device(const int device_id) const;
+    const unordered_map<string, core_descriptor> &get_core_to_desc_map(const string &graph_name) const;
+    const core_descriptor &get_core_desc(const string &graph_name, const tt_xy_pair &core) const;
+    const buda_SocDescriptor &get_sdesc_for_device(const int device_id) const;
     std::shared_ptr<tt_perf_digraph_wrapper> get_graph_wrapper(const string &graph_name) const;
-    std::unordered_map<string, tt_queue_wrap> get_all_queues() const;
+    const std::unordered_map<string, tt_queue_wrap> &get_all_queues() const;
     std::unordered_map<string, tt_digraph> get_all_graphs() const;
-    tt_digraph get_graph(const string &graph_name) const;
+    const tt_digraph &get_graph(const string &graph_name) const;
     uint get_aiclk(const uint &target_device) const;
     int get_total_input_count() const;
-    perf::PerfDesc get_perf_desc() const;
+    const perf::PerfDesc &get_perf_desc() const;
     bool is_postprocessor_executed() const;
     tt_queue_wrap get_queue(const string &queue_name) const;
     bool is_queue(const string &queue_name) const;
-    vector<EpochPerfInfo> get_all_epochs_perf_info() const;
-    tt_perf_device_alignment get_device_alignment_info() const;
+    const vector<EpochPerfInfo> &get_all_epochs_perf_info() const;
+    const tt_perf_device_alignment &get_device_alignment_info() const;
     unordered_map<tt_xy_pair, vector<uint64_t>> get_last_epoch_kernel_runtime() const;
     uint get_num_instructions_executed(const uint &program_id) const;
-    std::vector<instruction_info_wrapper> get_executed_instr() const;
+    const std::vector<instruction_info_wrapper> &get_executed_instr() const;
     std::vector<instruction_info_wrapper> get_unprocessed_executed_instr() const;
     unordered_set<string> get_outputs_for_op(const string &op_name) const;
-    string get_test_output_dir() const;
-    std::unordered_map<string, PostprocessModelDesc> get_all_perf_model_desc() const;
+    const string &get_test_output_dir() const;
+    const std::unordered_map<string, PostprocessModelDesc> &get_all_perf_model_desc() const;
     PostprocessModelDesc get_op_perf_model_desc(const string &op_name) const;
     uint get_num_instructions_processed() const;
     bool get_perf_check() const;
     tt_xy_pair get_first_core_for_device_id(uint device_id) const;
     uint get_epoch_id_for_device_id(uint device_id) const;
+    tt::TargetDevice get_target_device_type() const;
 };
 
 }

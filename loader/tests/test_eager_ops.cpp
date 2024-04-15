@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
         // Pop netlist to netlist queues or output queues for golden
         populate_intermed_tensors_for_golden(golden_tensors, workload, golden_backend, output_qs);
 
-        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden backend to be closed succesfully");
+        log_assert(golden_backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected golden backend to be closed successfully");
         // Pop outputs for last op
         if (last_op) {
             for (const auto &io_name : output_qs) {
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
             // -----------------------------------------------
             // Backend Runtime API - destroy the backend
             // -----------------------------------------------
-            log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected device to be closed succesfully");
+            log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected device to be closed successfully");
         }
 
     }

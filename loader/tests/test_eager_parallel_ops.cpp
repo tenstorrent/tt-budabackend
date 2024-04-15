@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     // -----------------------------------------------
     // Backend Runtime API - compile netlist
     // -----------------------------------------------
-    log_assert(backend->compile_netlist(netlist) == tt::DEVICE_STATUS_CODE::Success, "Expected netlist to be compiled succesfully.");
+    log_assert(backend->compile_netlist(netlist) == tt::DEVICE_STATUS_CODE::Success, "Expected netlist to be compiled successfully.");
 
     for (const auto &name : input_qs) {
         for (int d : target_devices) {
@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
     // -----------------------------------------------
     // Backend Runtime API - destroy the backend
     // -----------------------------------------------
-    log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected device to be closed succesfully");
+    log_assert(backend->finish() == tt::DEVICE_STATUS_CODE::Success, "Expected device to be closed successfully");
 
     // Verify outputs against golden
     VerifComparisonConfig comp_config = get_comp_config();

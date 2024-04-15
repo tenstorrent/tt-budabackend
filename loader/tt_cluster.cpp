@@ -398,6 +398,7 @@ tt_xy_pair tt_cluster::get_first_active_worker(const chip_id_t &device_id) {
 void tt_cluster::record_device_runtime_start(int device_id) {
     uint64_t host_current_timestamp = backend_profiler.get_current_timestamp();
     uint64_t device_current_timestamp = get_core_timestamp(tt_cxy_pair(device_id, get_first_active_worker(device_id)));
+    // log_info(tt::LogAlways, "Device current timestamp: {}", device_current_timestamp);
     backend_profiler.record_device_start(host_current_timestamp, device_current_timestamp, device_id);
     perf_state.update_device_alignment_info_start(device_id, device_current_timestamp, host_current_timestamp);
 }

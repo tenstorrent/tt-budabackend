@@ -571,170 +571,65 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     }
 }
 
-string get_visited_ops_str(const set<string>& visited_ops) {
-    string str;
-    int index = 0;
-    for (const auto& visited: visited_ops) {
-        str += visited;
-        if (index < visited_ops.size() - 1) {
-            str += " -> ";
-        }
-        index++;
-    }
-    return str;
-}
-
-bool decouple_all_operands(const tt_op_info &op_info) {
-    string op_type = op_info.type;
-    if (op_type == "matmul" && op_info.attributes.identity) {
-        return true;
-    } else {
+bool PerfDesc::is_normal_perf_mode() const {
+    if (!triplet_modes.empty()) {
         return false;
     }
-}
-
-void decouple_op_and_check_links(
-    perf::PerfDesc &perf_desc,
-    const tt_digraph &graph,
-    const netlist_workload_data &workload,
-    const string &op_name,
-    set<string> visited_ops,
-    const string &triplet_name,
-    bool reset,
-    bool is_input,
-    int current_iter,
-    const int max_iter) {
-    
-    // cout << "KD-current iter = " << current_iter << " op-name = " << op_name << endl;
-    // for (auto visited: visited_ops) {
-    //     cout << "KD-Visited ops = " << visited << endl;
-    // }
-
-    // If maximum number recursions has been reached assert
-    // Do not add any decouplings for the op that is being put in triplet mode
-    log_assert(current_iter < max_iter, "Maximum depth reached for decoupling.");
-    if (visited_ops.find(op_name) != visited_ops.end()) {
-        return;
-    }
-
-    const map<string, tt_op_info> &op_map = graph.my_graph_info.op_map;
-    log_assert(op_map.find(op_name) != op_map.end(), "Could not find op in op_map");
-
-    // If the op is the input to the target op it should be math-pack decoupled
-    // All its output nodes (other than the target op) should be unpack-math decoupled
-    if (is_input || decouple_all_operands(op_map.at(op_name))) {
-        bool decoupling_exists_for_op = perf_desc.trisc_decouplings.find(op_name) != perf_desc.trisc_decouplings.end();
-        if (!decoupling_exists_for_op) {
-            perf_desc.trisc_decouplings.insert({op_name, {}});
-        }
-        if (reset) {
-            log_info(tt::LogCompileTrisc, "Resetting decoupling mode of op {} because op {} is put in triplet mode. Decoupling path: {}", op_name, triplet_name, get_visited_ops_str(visited_ops));
-            perf_desc.trisc_decouplings.at(op_name).insert(PerfTriscDecoupleMode::None);
-        } else {
-            log_info(tt::LogCompileTrisc, "Adding decoupling mode MathPack to op {} because op {} is put in triplet mode. Decoupling path: {}", op_name, triplet_name, get_visited_ops_str(visited_ops));
-            perf_desc.trisc_decouplings.at(op_name).insert(PerfTriscDecoupleMode::MathPack);
-        }
-        log_assert(workload.op_to_outputs.find(op_name) != workload.op_to_outputs.end(), "Could not find op in op_to_outputs map");
-        for (const string &output_node: workload.op_to_outputs.at(op_name)) {
-            bool is_queue_output = workload.queues.find(output_node) != workload.queues.end();
-            if (!is_queue_output && visited_ops.find(output_node) == visited_ops.end()) {
-                int next_iter = current_iter + 1;
-                set<string> visited_ops_update = visited_ops;
-                visited_ops_update.insert(op_name);
-                decouple_op_and_check_links(perf_desc, graph, workload, output_node, visited_ops_update, triplet_name, reset, false, next_iter, max_iter);
-            }
-        }
-    // If this op is the output of the target op it should be unpack-math decoupled
-    // All its input nodes (other than the target op) should be math-pack decoupled
-    }
-    if (!is_input || decouple_all_operands(op_map.at(op_name))) {
-        bool decoupling_exists_for_op = perf_desc.trisc_decouplings.find(op_name) != perf_desc.trisc_decouplings.end();
-        if (!decoupling_exists_for_op) {
-            perf_desc.trisc_decouplings.insert({op_name, {}});
-        }
-        if (reset) {
-            log_info(tt::LogCompileTrisc, "Resetting decoupling mode of op {} because op {} is put in triplet mode. Decoupling path: {}", op_name, triplet_name, get_visited_ops_str(visited_ops));
-            perf_desc.trisc_decouplings.at(op_name).insert(PerfTriscDecoupleMode::None);
-        } else {
-            log_info(tt::LogCompileTrisc, "Adding decoupling mode UnpMath to op {} because op {} is put in triplet mode. Decoupling path: {}", op_name, triplet_name, get_visited_ops_str(visited_ops));
-            perf_desc.trisc_decouplings.at(op_name).insert(PerfTriscDecoupleMode::UnpMath);
-        }
-        const vector<string> input_names = op_map.at(op_name).input_names;
-        for (const string &input_name: input_names) {
-            bool is_queue_input = workload.queues.find(input_name) != workload.queues.end();
-            if (visited_ops.find(input_name) == visited_ops.end()) {
-                if (!is_queue_input) {
-                    int next_iter = current_iter + 1;
-                    set<string> visited_ops_update = visited_ops;
-                    visited_ops_update.insert(op_name);
-                    decouple_op_and_check_links(perf_desc, graph, workload, input_name, visited_ops_update, triplet_name, reset, true, next_iter, max_iter);
-                } else {
-                    string queue_input_name = workload.queues.at(input_name).my_queue_info.input;
-                    if (op_map.find(queue_input_name) != op_map.end() && visited_ops.find(queue_input_name) == visited_ops.end()) {
-                        int next_iter = current_iter + 1;
-                        set<string> visited_ops_update = visited_ops;
-                        visited_ops_update.insert(op_name);
-                        decouple_op_and_check_links(perf_desc, graph, workload, queue_input_name, visited_ops_update, triplet_name, reset, true, next_iter, max_iter);
-                    }
-                }
+    for (const auto &[op_name, op_decouplings] : initial_trisc_decouplings) {
+        for (const PerfTriscDecoupleMode& decouple: op_decouplings) {
+            if (decouple != PerfTriscDecoupleMode::None) {
+                return false;
             }
         }
     }
+    return true;
 }
 
-// Find feeders of each op in triplet mode and decouple its math/pack
-// Find drainer of each op in triplet mode and decouple its unpack/math
-// reset: This option is for recompiling the ops that were affected in the previous run's triplet modes
-// This feature is needed, since in sweeps over all ops where each op is put in triplet mode, to accelarate the compilation, we only will compile the ops that are in triplet mode
-void append_single_triplet_mode_to_decouplings(perf::PerfDesc &perf_desc, const netlist_workload_data &workload, const string& graph_name, bool reset) {
-    
-    vector<string> triplet_modes = reset ? perf_desc.reset_triplet_modes: perf_desc.triplet_modes;
-    const tt_digraph &graph = workload.graphs.at(graph_name);
-    const map<string, tt_op_info> &op_map = graph.my_graph_info.op_map;
-
-    int max_iter = 20;
-
-    for (const auto& triplet: triplet_modes) {
-       if (op_map.find(triplet) == op_map.end()) {
-            continue;
-        }
-
-        tt_op_info op_info = op_map.at(triplet);
-        // Find the feeder ops and decouple math-pack
-        for (int input_idx = 0; input_idx < op_info.input_names.size(); input_idx++) {
-            string input_name = op_info.input_names.at(input_idx);
-            bool is_queue_input = workload.queues.find(input_name) != workload.queues.end();
-            if (!is_queue_input) {
-                decouple_op_and_check_links(perf_desc, graph, workload, input_name, {triplet}, triplet, reset, true, 0, max_iter);
-            } else {
-                string queue_input_name = workload.queues.at(input_name).my_queue_info.input;
-                if (op_map.find(queue_input_name) != op_map.end()) {
-                    decouple_op_and_check_links(perf_desc, graph, workload, queue_input_name, {triplet}, triplet, reset, true, 0, max_iter);
-                }
+string PerfDesc::get_decouple_mode_name() const {
+    string decouple_str;
+    uint op_id = 0;
+    if (is_normal_perf_mode()) {
+        decouple_str += "device";
+    }
+    else {
+        for (const auto &[op_name, op_decouplings] : initial_trisc_decouplings) {
+            // If the op decoupling is in mode "None" skip it in generating the name for this mode.
+            if (op_decouplings.find(PerfTriscDecoupleMode::None) != op_decouplings.end()) {
+                continue;
             }
-        }
-        // Find the drainer ops and decouple both unpackers and math
-        log_assert(workload.op_to_outputs.find(op_info.name) != workload.op_to_outputs.end(), "Could not find op_info in op_to_outputs maps");
-        unordered_set<string> output_nodes = workload.op_to_outputs.at(op_info.name);
-        for (const auto& output_node: output_nodes) {
-            bool is_queue_output = workload.queues.find(output_node) != workload.queues.end();
-            if (!is_queue_output) {
-                decouple_op_and_check_links(perf_desc, graph, workload, output_node, {triplet}, triplet, reset, false, 0, max_iter);
+            if (op_id > 0) {
+                decouple_str += "\n";
             }
+            decouple_str += "- decoupling_op_" + op_name;
+            uint decouple_id = 0;
+            for (const PerfTriscDecoupleMode& config: op_decouplings) {
+                decouple_str +=  "_" + PerfTriscDecoupleModetoString(config);
+                decouple_id++;
+            }
+            op_id++;
+        }
+        int triplet_idx = 0;
+        for (const string &triplet: triplet_modes) {
+            if (!decouple_str.empty() or triplet_idx > 0) {
+                decouple_str += "\n";
+            }
+            decouple_str += "- triplet_" + triplet;
+            triplet_idx++;
         }
     }
+    return decouple_str;
 }
 
-void append_triplet_modes_to_decouplings(perf::PerfDesc &perf_desc, const netlist_workload_data &workload, const string& graph_name) {
-
-    if (perf_desc.device_perf_mode == perf::PerfDumpMode::Disable) {
-        return;
+string PerfDesc::get_overlay_decouple_string() const {
+    std::stringstream ss;
+    for(const auto &[op_name, overlay_decouple_config] : overlay_decouplings) {
+        ss << op_name << ": ";
+        ss << overlay_decouple_config << "\n";
     }
-    append_single_triplet_mode_to_decouplings(perf_desc, workload, graph_name, true);
-    append_single_triplet_mode_to_decouplings(perf_desc, workload, graph_name, false);
+    return ss.str();
 }
 
-void print_epoch_perf_table(vector<EpochPerfInfo> all_epochs, string output_path, bool steady_state) {
+void print_epoch_perf_table(const vector<EpochPerfInfo> &all_epochs, const string &output_path, bool steady_state) {
     bool report_exists = fs::exists(output_path);
     std::ofstream output_file(output_path, std::ios::app);
     if (report_exists) {
@@ -871,12 +766,12 @@ void tt_backend_perf::set_total_input_count(int total_sample_count) {
     total_input_count = total_sample_count;
 }
 
-ScopedEventProfiler::ScopedEventProfiler(const string& event_label) {
+ScopedEventProfiler::ScopedEventProfiler(const string &event_label) {
     this->profiler_func = [event_label]() { backend_profiler.record_loader_event(event_label); };
     this->profiler_func();
 }
 
-ScopedEventProfiler::ScopedEventProfiler(const string& event_label, uint64_t event_value) {
+ScopedEventProfiler::ScopedEventProfiler(const string &event_label, uint64_t event_value) {
     this->profiler_func = [event_label, event_value]() { backend_profiler.record_loader_event(event_label, event_value); };
     this->profiler_func();
 }
@@ -891,22 +786,22 @@ ScopedEventProfiler::ScopedEventProfiler(uint64_t event_id, uint64_t event_value
     this->profiler_func();
 }
 
-ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType& event) {
+ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType &event) {
     this->profiler_func = [event]() { backend_profiler.record_loader_event(event); };
     this->profiler_func();
 }
 
-ScopedEventProfiler::ScopedEventProfiler( const perf::HostEventType& event, uint device_id) {
+ScopedEventProfiler::ScopedEventProfiler( const perf::HostEventType &event, uint device_id) {
     this->profiler_func = [event, device_id]() { backend_profiler.record_loader_event(event, device_id); };
     this->profiler_func();
 }
 
-ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType& event, uint device_id, uint epoch_id) {
+ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType &event, uint device_id, uint epoch_id) {
     this->profiler_func = [event, device_id, epoch_id]() { backend_profiler.record_loader_event(event, device_id, epoch_id); };
     this->profiler_func();
 }
 
-ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType& event, uint device_id, uint epoch_id, uint program_id) {
+ScopedEventProfiler::ScopedEventProfiler(const perf::HostEventType &event, uint device_id, uint epoch_id, uint program_id) {
     this->profiler_func = [event, device_id, epoch_id, program_id]() {backend_profiler.record_loader_event(event, device_id, epoch_id, program_id); };
     this->profiler_func();
 }

@@ -34,20 +34,20 @@ constexpr uint32_t PERF_DUMP_END_SIGNAL = 0xbeeff00d;
 constexpr uint32_t PERF_DUMP_PADDING = 0xdeadbead;
 
 #if PERF_DUMP_CONCURRENT
-constexpr uint8_t reserve_sapce_for_header = 1;
+constexpr uint8_t reserve_space_for_header = 1;
 #else
-constexpr uint8_t reserve_sapce_for_header = 0;
+constexpr uint8_t reserve_space_for_header = 0;
 #endif
 
-constexpr uint32_t EPOCH_START_OFFSET = 1 + reserve_sapce_for_header;
-constexpr uint32_t EPOCH_END_OFFSET = 4 + reserve_sapce_for_header;
-constexpr uint32_t STREAM_HANDLER_START_OFFSET = 7 + reserve_sapce_for_header;
-constexpr uint32_t STREAM_HANDLER_END_OFFSET = 10 + reserve_sapce_for_header;
-constexpr uint32_t EPILOGUE_START_OFFSET = 13 + reserve_sapce_for_header;
-constexpr uint32_t EPILOGUE_END_OFFSET = 16 + reserve_sapce_for_header;
-constexpr uint32_t PROLOGUE_START_OFFSET = 19 + reserve_sapce_for_header;
-constexpr uint32_t PROLOGUE_END_OFFSET = 22 + reserve_sapce_for_header;
-constexpr uint32_t PERF_START_OFFSET = 25 + reserve_sapce_for_header;
+constexpr uint32_t EPOCH_START_OFFSET = 1 + reserve_space_for_header;
+constexpr uint32_t EPOCH_END_OFFSET = 4 + reserve_space_for_header;
+constexpr uint32_t STREAM_HANDLER_START_OFFSET = 7 + reserve_space_for_header;
+constexpr uint32_t STREAM_HANDLER_END_OFFSET = 10 + reserve_space_for_header;
+constexpr uint32_t EPILOGUE_START_OFFSET = 13 + reserve_space_for_header;
+constexpr uint32_t EPILOGUE_END_OFFSET = 16 + reserve_space_for_header;
+constexpr uint32_t PROLOGUE_START_OFFSET = 19 + reserve_space_for_header;
+constexpr uint32_t PROLOGUE_END_OFFSET = 22 + reserve_space_for_header;
+constexpr uint32_t PERF_START_OFFSET = 25 + reserve_space_for_header;
 
 extern uint32_t perf_end;
 extern volatile uint32_t tt_l1_ptr *perf_double_buf_base[2];

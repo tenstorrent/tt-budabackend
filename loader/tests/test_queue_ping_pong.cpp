@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     tt_runtime runtime(netlist_path, config);
     tt_runtime_workload &workload = *runtime.get_workload();
  
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     vector<tt_dram_io_desc> input_io_desc = runtime.get_host_input_io_desc();
     vector<tt_dram_io_desc> output_io_desc = runtime.get_device_output_io_desc();

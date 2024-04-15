@@ -58,7 +58,7 @@ void tt_runtime::generate_soc_descriptor() {
 }
 
 void tt_runtime::initialize_concurrent_perf_mode() {
-    cluster->perf_state = postprocess::PerfState(config.output_dir, config.perf_desc);
+    cluster->perf_state = postprocess::PerfState(config.output_dir, config.perf_desc, target_type);
     uint32_t thread_dump_size = config.perf_desc.get_host_thread_dump_size();
     uint16_t host_channel = 0; // This must be 0
     std::function<void(tt_cxy_pair, vector<uint32_t>)> update_host_queue_ptr = [this](tt_cxy_pair core, vector<uint32_t> vec) {
@@ -68,8 +68,7 @@ void tt_runtime::initialize_concurrent_perf_mode() {
     std::unordered_map<uint, set<uint> > mmio_device_to_mapped_devices;
     const std::unordered_map<chip_id_t, buda_SocDescriptor> &device_id_to_sdesc = cluster->get_sdesc_for_all_devices();
     tt_ClusterDescriptor *cluster_desc = cluster->get_cluster_desc();
-    for (const auto &sdesc_it: device_id_to_sdesc) {
-        uint device_id = sdesc_it.first;
+    for (const auto &[device_id, sdesc]: device_id_to_sdesc) {
         uint mapped_chip_id;
         if (cluster_desc->is_chip_mmio_capable(device_id)) {
             mapped_chip_id = device_id;
@@ -99,9 +98,9 @@ void tt_runtime::initialize_concurrent_perf_mode() {
 void tt_runtime::initialize_perf_state() {
     if (config.perf_desc.device_perf_mode == perf::PerfDumpMode::Concurrent) {
         initialize_concurrent_perf_mode();
-    } else if (config.perf_desc.device_perf_mode == perf::PerfDumpMode::SingleDumpPerEpoch ||
-            config.perf_desc.device_perf_mode == perf::PerfDumpMode::IntermediateDump) {
-        cluster->perf_state = postprocess::PerfState(config.output_dir, config.perf_desc);
+    } 
+    else if (config.perf_desc.device_perf_mode == perf::PerfDumpMode::SingleDumpPerEpoch or config.perf_desc.device_perf_mode == perf::PerfDumpMode::IntermediateDump) {
+        cluster->perf_state = postprocess::PerfState(config.output_dir, config.perf_desc, target_type);
     }
 }
 
@@ -604,9 +603,7 @@ void tt_runtime::start_device_cluster() {
         config.device_params.init_device = false;
     }
     cmd_result_t result = run_function_with_timeout([&](){ cluster->start_device(config.device_params); }, get_api_timeout(tt_timeout_api_type::StartDevice), false);
-    if (!result.success) {
-        log_fatal("{}: {}", __FUNCTION__, result.message);
-    }
+    log_assert(result.success, "{}: {}", __FUNCTION__, result.message);
 }
 
 tt::DEVICE_STATUS_CODE tt_runtime::compile_netlist(const std::string &netlist_path) {
@@ -1122,9 +1119,7 @@ void tt_runtime::close_device() {
         }
         else {
             cmd_result_t result = run_function_with_timeout(handle_close_device, get_api_timeout(tt_timeout_api_type::CloseDevice), false);
-            if (!result.success) {
-                log_fatal("{}: {}", __FUNCTION__, result.message);
-            }
+            log_assert(result.success, "{}: {}", __FUNCTION__, result.message);
         }
     }
 }

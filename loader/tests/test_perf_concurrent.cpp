@@ -343,7 +343,7 @@ int main(int argc, char** argv)
     tt_rnd_set_seed(seed);
     tt_runtime runtime(config.netlist_path, config);
     // runtime.config.mode = DEVICE_MODE::CompileOnly;
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     unordered_set<uint> all_device_ids;
 

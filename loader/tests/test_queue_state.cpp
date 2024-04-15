@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     tt_runtime runtime(netlist_path, config);
 
     // Runtime run all programs
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     bool force_sw_tilize = true;
 

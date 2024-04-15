@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 
     // Runtime run all programs
     tt_device_params device_params;
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     vector<tt_dram_io_desc> input_io_desc = runtime.get_host_input_io_desc();
     tt::io::push_host_inputs(input_io_desc, &tt::io::default_debug_tensor);

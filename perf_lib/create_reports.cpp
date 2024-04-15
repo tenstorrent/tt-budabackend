@@ -2,28 +2,30 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "create_reports.hpp"
-#include "utils.hpp"
+#include "perf_utils.hpp"
 #include "third_party/json/json.hpp"
-#include "yaml-cpp/yaml.h"
+#include "perf_base.hpp"
+#include "perf_descriptor.hpp"
+#include "postprocess.hpp"
 
 using namespace perf;
 namespace postprocess {
 
-uint64_t get_rebiased_value(const tt_perf_device_alignment &device_alignment, const InstructionInfo &instr, uint64_t original_value) {
+uint64_t get_rebiased_value(const tt_perf_device_alignment &device_alignment, const InstructionInfo &instr, uint64_t original_value, bool versim) {
     log_assert(device_alignment.device_id_to_start_cycle.find(instr.device_id) != device_alignment.device_id_to_start_cycle.end(),
             "Device start time not recorded for perf alignment");
     uint64_t device_start_cycle = device_alignment.device_id_to_start_cycle.at(instr.device_id);
-    
-    if (original_value >= device_start_cycle) {
-        return original_value - device_start_cycle;
-    } else {
+    // event timestamps are not aligned with device_start_cycle when running on versim
+    if (versim) {
         return UINT64_MAX - (device_start_cycle - original_value);
     }
+    log_assert(original_value >= device_start_cycle, "Unexpected timestamp {} smaller than device start cycle {}", original_value, device_start_cycle);
+    return original_value - device_start_cycle;
 }
 
-uint64_t get_cycle(const tt_perf_device_alignment &device_alignment, const InstructionInfo &instr, uint64_t original_value, bool align_devices) {
+uint64_t get_cycle(const tt_perf_device_alignment &device_alignment, const InstructionInfo &instr, uint64_t original_value, bool align_devices, bool versim) {
     if (align_devices) {
-        return get_rebiased_value(device_alignment, instr, original_value);
+        return get_rebiased_value(device_alignment, instr, original_value, versim);
     } else {
         return original_value;
     }
@@ -46,25 +48,25 @@ bool is_op_decoupled(const PerfDesc &perf_desc, const string& op_name) {
             perf_desc.trisc_decouplings.at(op_name).find(PerfTriscDecoupleMode::UnpMath)  != perf_desc.trisc_decouplings.at(op_name).end());
 }
 
-inline void check_and_populate_per_thread_events(json &per_thread_events_map, const core_events& core, const tt_perf_device_alignment &device_alignment_info, const PerfDesc &perf_desc, const InstructionInfo &instr, map<uint, pair<string, uint64_t>>& input_to_longest_op, bool align_devices) {
+inline void check_and_populate_per_thread_events(json &per_thread_events_map, const core_events& core, const tt_perf_device_alignment &device_alignment_info, const PerfDesc &perf_desc, const InstructionInfo &instr, map<uint, pair<string, uint64_t>>& input_to_longest_op, bool align_devices, bool versim) {
     
     map<uint, outer_loop_events> all_outer_loop_events = core.all_outer_loop_events;
     for (const auto& outer_loop_to_event:all_outer_loop_events) {
         string input_key = "input-" + to_string(outer_loop_to_event.first);
         if (outer_loop_to_event.second.unpack_first_instruction != ULLONG_MAX) {
-            per_thread_events_map[input_key]["unpack-first-block-data-available"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices);
+            per_thread_events_map[input_key]["unpack-first-block-data-available"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices, versim);
         } else {
             per_thread_events_map[input_key]["unpack-first-block-data-available"] = "N/A";
         }
 
         if (outer_loop_to_event.second.pack_first_start != ULLONG_MAX) {
-            per_thread_events_map[input_key]["pack-start-outer-loop"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_first_start, align_devices);
+            per_thread_events_map[input_key]["pack-start-outer-loop"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_first_start, align_devices, versim);
         } else {
             per_thread_events_map[input_key]["pack-start-outer-loop"] = "N/A";
         }
 
         if (outer_loop_to_event.second.pack_last_end != ULLONG_MAX) {
-            per_thread_events_map[input_key]["pack-end-outer-loop"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices);
+            per_thread_events_map[input_key]["pack-end-outer-loop"] = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices, versim);
         } else {
             per_thread_events_map[input_key]["pack-end-outer-loop"] = "N/A";
         }
@@ -127,8 +129,8 @@ inline void check_and_populate_per_thread_events(json &per_thread_events_map, co
         }
 
         if (pack_start_exist && pack_end_exist) {
-            uint64_t pack_start = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_first_start, align_devices);
-            uint64_t pack_end = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices);
+            uint64_t pack_start = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_first_start, align_devices, versim);
+            uint64_t pack_end = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices, versim);
             if (pack_start != ULLONG_MAX && pack_end != ULLONG_MAX) {
                 per_thread_events_map[input_key]["pack-runtime"] = pack_end - pack_start;
             }
@@ -166,14 +168,16 @@ inline void check_and_populate_per_thread_events(json &per_thread_events_map, co
 }
 
 void calculate_and_populate_average_utilization_and_total_runtime(
-        const core_events &core,
-        json &inputs_common_events,
-        const tt_perf_device_alignment &device_alignment_info,
-        const PerfDesc &perf_desc,
-        const tt_digraph &graph,
-        const InstructionInfo &instr,
-        const PostprocessModelDesc &perf_model_desc,
-        bool align_devices) {
+    const core_events &core,
+    json &inputs_common_events,
+    const tt_perf_device_alignment &device_alignment_info,
+    const PerfDesc &perf_desc,
+    const tt_digraph &graph,
+    const InstructionInfo &instr,
+    const PostprocessModelDesc &perf_model_desc,
+    bool align_devices,
+    bool versim
+) {
     
     string math_thread_name = thread_names.at(1);
     uint64_t first_unpack_first_input = ULLONG_MAX;
@@ -200,12 +204,12 @@ void calculate_and_populate_average_utilization_and_total_runtime(
                                 first_and_last_inputs.second != -1;
     if (both_inputs_populated) {
         if (core.all_outer_loop_events.find(first_and_last_inputs.first) != core.all_outer_loop_events.end()) {
-            first_unpack_first_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.first).unpack_first_instruction, align_devices);
-            last_pack_first_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.first).pack_last_end, align_devices);
+            first_unpack_first_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.first).unpack_first_instruction, align_devices, versim);
+            last_pack_first_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.first).pack_last_end, align_devices, versim);
         }
         if (core.all_outer_loop_events.find(first_and_last_inputs.second) != core.all_outer_loop_events.end()) {
-            first_unpack_last_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.second).unpack_first_instruction, align_devices);
-            last_pack_last_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.second).pack_last_end, align_devices);
+            first_unpack_last_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.second).unpack_first_instruction, align_devices, versim);
+            last_pack_last_input =  get_cycle(device_alignment_info, instr, core.all_outer_loop_events.at(first_and_last_inputs.second).pack_last_end, align_devices, versim);
         }
     }
     bool total_runtime_available = first_unpack_first_input != ULLONG_MAX &&
@@ -372,137 +376,158 @@ void write_json_report_to_file(const json &report, const string& output_path) {
 }
 
 json create_postprocess_report(
-        const vector<core_events> &all_cores,
-        const vector<string>& all_core_ids,
-        InstructionInfo &instr,
-        const PerfDesc &perf_desc,
-        const tt_perf_device_alignment &device_alignment_info,
-        const tt_digraph &graph,
-        const std::unordered_map<string, PostprocessModelDesc> &op_to_perf_model_desc,
-        bool align_devices) {
+    const vector<core_events> &all_cores,
+    const vector<string>& all_core_ids,
+    InstructionInfo &instr,
+    const PerfDesc &perf_desc,
+    const tt_perf_device_alignment &device_alignment_info,
+    const tt_digraph &graph,
+    const std::unordered_map<string, PostprocessModelDesc> &op_to_perf_model_desc,
+    bool align_devices,
+    bool versim
+) {
     json core_map;
     int core_idx = 0;
     map<uint, pair<tt_xy_pair, uint64_t>> input_to_last_pack;
     map<uint, pair<tt_xy_pair, uint64_t>> input_to_first_unpack;
     map<uint, pair<string, uint64_t>> input_to_longest_op;
     uint64_t largest_wait_for_q_empty = 0;
-    for (const auto &core: all_cores) {
+    const std::unordered_set<uint> trisc_single_value_non_timestamp_events = {
+        uint(perf::EventType::NUM_TILES_UNPACK),
+        uint(perf::EventType::NUM_TILES_PACK),
+        uint(perf::EventType::OUTPUT_NUM_TILES),
+    };
+    for (const core_events &core: all_cores) {
         string core_label = all_core_ids[core_idx];
         json thread_map;
-        for (auto &thread: core.threads) {
-            string thread_id = thread.first;
+        for (const std::pair<string, thread_events> &thread_name_and_events: core.threads) {
             json events_map;
-            for (auto &event_id: thread.second.events) {
-                string event_description = event_id.second[0].description;
+            const string &thread_name = thread_name_and_events.first;
+            const thread_events &core_thread = thread_name_and_events.second;
+            for (const std::pair<uint64_t, vector<device_perf_event>> &event_id_and_events : core_thread.events) {
+                const uint64_t &event_id = event_id_and_events.first;
+                const vector<device_perf_event> &perf_events_with_same_id = event_id_and_events.second;
+                const string &event_description = perf_events_with_same_id.at(0).description;
                 bool is_single_value_event = false;
-                if (thread.second.thread_id < 3) {
-                    EventProperties event_properties(event_id.first);
+                if (thread_name == "T0" or thread_name == "T1" or thread_name == "T2") {
+                    EventProperties event_properties(event_id);
                     is_single_value_event = perf::single_value_events.find(event_properties.event_type) != perf::single_value_events.end();
                 }
-                if (thread.second.thread_id == 4) {
-                    BriscEventProperties event_properties(event_id.first);
+                else if (thread_name == "BRISC") {
+                    BriscEventProperties event_properties(event_id);
                     is_single_value_event = perf::brisc_single_value_events.find(event_properties.event_type) != perf::brisc_single_value_events.end();
                 }
                 // single event is only supported for trisc currently
                 vector<uint64_t> all_first_values, all_second_values, all_diffs, all_single_values;
                 vector<float> single_event_type_math_util;
-                for (auto &events_with_same_id: event_id.second) {
+
+                // loop through all events of this id, calculate their aligned cycles and diffs
+                for (const device_perf_event &perf_event : perf_events_with_same_id) {
                     if (is_single_value_event) {
-                        if (thread.second.thread_id < 3) {
-                            EventProperties event_properties(event_id.first);
+                        if (thread_name == "T0" or thread_name == "T1" or thread_name == "T2") {
+                            EventProperties event_properties(event_id);
                             uint outer_loop = event_properties.outer_loop_idx;
-                            if (event_properties.event_type == uint(perf::EventType::NUM_TILES_UNPACK) || event_properties.event_type == uint(perf::EventType::NUM_TILES_PACK)) {
-                                all_single_values.push_back(events_with_same_id.first_val);
-                            } 
-                            else {
-                                all_single_values.push_back(get_cycle(device_alignment_info, instr, events_with_same_id.first_val, align_devices));
+                            if (trisc_single_value_non_timestamp_events.find(event_properties.event_type) != trisc_single_value_non_timestamp_events.end()) {
+                                all_single_values.push_back(perf_event.first_val);
                             }
-                        } else if (thread.second.thread_id == 4) {
-                            all_single_values.push_back(events_with_same_id.first_val);
+                            else {
+                                all_single_values.push_back(get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
+                            }
+                        } 
+                        else if (thread_name == "BRISC") {
+                            all_single_values.push_back(perf_event.first_val);
                         }
-                    } else {
-                        if (thread_id == "T0" || thread_id == "T2" || thread_id == "NCRISC" || thread_id == "BRISC") {
-                            all_first_values.push_back(get_cycle(device_alignment_info, instr, events_with_same_id.first_val, align_devices));
-                            all_second_values.push_back(get_cycle(device_alignment_info, instr, events_with_same_id.second_val, align_devices));
+                    } 
+                    else {
+                        if (thread_name == "T0" or thread_name == "T2" or thread_name == "NCRISC" or thread_name == "BRISC") {
+                            all_first_values.push_back(get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
+                            all_second_values.push_back(get_cycle(device_alignment_info, instr, perf_event.second_val, align_devices, versim));
                             all_diffs.push_back(
-                                get_cycle(device_alignment_info, instr, events_with_same_id.second_val, align_devices) - get_cycle(device_alignment_info, instr, events_with_same_id.first_val, align_devices));
-                        } else {
-                            all_first_values.push_back(events_with_same_id.first_val);
-                            all_second_values.push_back(events_with_same_id.second_val);
-                            float math_util = float(events_with_same_id.second_val) / events_with_same_id.first_val;
+                                get_cycle(device_alignment_info, instr, perf_event.second_val, align_devices, versim) - get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
+                        } 
+                        else {
+                            all_first_values.push_back(perf_event.first_val);
+                            all_second_values.push_back(perf_event.second_val);
+                            float math_util = float(perf_event.second_val) / perf_event.first_val;
                             single_event_type_math_util.push_back(math_util);
                         }
                     }
                 }
+
+                // add event numbers to json reports
                 if (is_single_value_event) {
                     events_map[event_description]["value"] = all_single_values;
                 } 
-                else {
-                    string first_val_key;
-                    string second_val_key;
-
-                    if (thread_id == "NCRISC" && ((uint)perf::NcriscEventType::DRAM_READ_ISSUED == perf::get_ncrisc_event_type(event_id.first))) {
-                        first_val_key   = "chunk-read-issued";
-                        second_val_key  = "tiles-flushed";
-                    }
-                    else if (thread_id == "NCRISC" && (((uint)perf::NcriscEventType::DRAM_IO_Q_STATUS == perf::get_ncrisc_event_type(event_id.first)))) {
-                        first_val_key   = "q-available";
-                        second_val_key  = "q-empty";
-                    }
-                    else if (thread_id == "NCRISC" && (((uint)perf::NcriscEventType::STREAM_BUF_STATUS == perf::get_ncrisc_event_type(event_id.first)))) {
-                        first_val_key   = "buf-available";
-                        second_val_key  = "buf-full";
-                    }
-                    else if (thread_id == "NCRISC" && (((uint)perf::NcriscEventType::EPOCH_Q_EMPTY == perf::get_ncrisc_event_type(event_id.first)))) {
-                        first_val_key   = "q-empty";
-                        second_val_key  = "q-available";
-                    }
-                    else if (thread_id == "NCRISC" && (((uint)perf::NcriscEventType::STREAM_MISC_INFO == perf::get_ncrisc_event_type(event_id.first)))) {
-                        first_val_key   = "time";
-                        second_val_key  = "data";
-                        all_diffs.clear();
-                    }
-                    else {
-                        first_val_key   = (thread_id == "T1") ? "total-period"      : "start";
-                        second_val_key  = (thread_id == "T1") ? "math-activity"     : "end";
-                    }
-                    string third_val_key   = (thread_id == "T1") ? "math-utilization"  : "diff";
-
-                    if (thread_id == "NCRISC" && ((uint)perf::NcriscEventType::STREAM_INFO == perf::get_ncrisc_event_type(event_id.first))) {
-                        string fourth_val_key;
-                        string fifth_val_key;
-                        string sixth_val_key;
-                        first_val_key  = "flags";
-                        second_val_key = "epoch-iterations-remaining";
-                        third_val_key  = "epoch-q-slots-remaining";
-                        fourth_val_key = "q-slot-size-tiles";
-                        fifth_val_key  = "data-chunk-size-tiles";
-                        sixth_val_key  = "data-chunk-size-bytes";
-                        events_map[event_description][first_val_key] = event_id.second[0].first_val;
-                        events_map[event_description][second_val_key] = event_id.second[0].second_val;
-                        events_map[event_description][third_val_key] = event_id.second[0].extra_val[0];
-                        events_map[event_description][fourth_val_key] = event_id.second[0].extra_val[1];
-                        events_map[event_description][fifth_val_key] = event_id.second[0].extra_val[2];
-                        events_map[event_description][sixth_val_key] = event_id.second[0].extra_val[3];
-                    }
-                    else {
-                        events_map[event_description][first_val_key] = all_first_values;
-                        events_map[event_description][second_val_key] = all_second_values;
-                        if (thread_id == "T1") {
-                            events_map[event_description][third_val_key] = single_event_type_math_util;
-                        } else {
-                            events_map[event_description][third_val_key] = all_diffs;
+                else if (!is_single_value_event) {
+                    vector<string> event_json_keys = {
+                        (thread_name == "T1") ? "total-period"      : "start",
+                        (thread_name == "T1") ? "math-activity"     : "end",
+                        (thread_name == "T1") ? "math-utilization"  : "diff"
+                    };
+                    if (thread_name == "NCRISC") {
+                        uint ncrisc_event_type = perf::get_ncrisc_event_type(event_id);
+                        if (ncrisc_event_type == (uint)perf::NcriscEventType::DRAM_READ_ISSUED) {
+                            event_json_keys = { "chunk-read-issued", "tiles-flushed", "diff" };
                         }
+                        else if (ncrisc_event_type == (uint)perf::NcriscEventType::DRAM_IO_Q_STATUS) {
+                            event_json_keys = { "q-available", "q-empty", "diff" };
+                        }
+                        else if (ncrisc_event_type == (uint)perf::NcriscEventType::STREAM_BUF_STATUS) {
+                            event_json_keys = { "buf-available", "buf-full", "diff" };
+                        }
+                        else if (ncrisc_event_type == (uint)perf::NcriscEventType::EPOCH_Q_EMPTY) {
+                            event_json_keys = { "q-empty", "q-available", "diff" };
+                        }
+                        else if (ncrisc_event_type == (uint)perf::NcriscEventType::STREAM_MISC_INFO) {
+                            event_json_keys = { "time", "data", "diff" };
+                            all_diffs.clear();
+                        }                        
+                        else if (ncrisc_event_type == (uint)perf::NcriscEventType::STREAM_INFO) {
+                            event_json_keys = {
+                                "flags",
+                                "epoch-iterations-remaining",
+                                "epoch-q-slots-remaining",
+                                "q-slot-size-tiles",
+                                "data-chunk-size-tiles",
+                                "data-chunk-size-bytes"
+                            };
+                        }
+                    }
+
+                    if (thread_name == "NCRISC" and ((uint)perf::NcriscEventType::STREAM_INFO == perf::get_ncrisc_event_type(event_id))) {
+                        for (int i = 0; i < event_json_keys.size(); i++) {
+                            const string &key = event_json_keys[i];
+                            if (i == 0) {
+                                events_map[event_description][key] = perf_events_with_same_id.at(0).first_val;
+                            }
+                            else if (i == 1) {
+                                events_map[event_description][key] = perf_events_with_same_id.at(0).second_val;
+                            }
+                            else {
+                                events_map[event_description][key] = perf_events_with_same_id.at(0).extra_val.at(i - 2);
+                            }
+                        }
+                    }
+                    else {
+                        events_map[event_description][event_json_keys.at(0)] = all_first_values;
+                        events_map[event_description][event_json_keys.at(1)] = all_second_values;
+                        if (thread_name == "T1") {
+                            events_map[event_description][event_json_keys.at(2)] = single_event_type_math_util;
+                        } 
+                        else {
+                            events_map[event_description][event_json_keys.at(2)] = all_diffs;
+                        }
+                        
                     }
                 }
             }
-            events_map["out-of-memory"] = thread.second.out_of_memory ? "true" : "false";
-            thread_map[thread_id] = events_map;
+            events_map["out-of-memory"] = core_thread.out_of_memory ? "true" : "false";
+            thread_map[thread_name] = events_map;
         }
 
         json per_thread_events_map;
         
-        check_and_populate_per_thread_events(per_thread_events_map, core, device_alignment_info, perf_desc, instr, input_to_longest_op, align_devices);
+        check_and_populate_per_thread_events(per_thread_events_map, core, device_alignment_info, perf_desc, instr, input_to_longest_op, align_devices, versim);
         
         for (const auto& outer_loop_to_event: core.all_outer_loop_events) {
             
@@ -512,23 +537,23 @@ json create_postprocess_report(
             if (pack_end_exist) {
                 if (input_to_last_pack.find(input_idx) != input_to_last_pack.end()) {
                     uint64_t last_pack = input_to_last_pack.at(input_idx).second;
-                    if (last_pack < get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices)) {
-                        input_to_last_pack.at(input_idx).second = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices);
+                    if (last_pack < get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices, versim)) {
+                        input_to_last_pack.at(input_idx).second = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices, versim);
                         input_to_last_pack.at(input_idx).first = tt_xy_pair(core.core_x, core.core_y);
                     }
                 } else {
-                    input_to_last_pack.insert({input_idx, {tt_xy_pair(core.core_x, core.core_y), get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices)}});
+                    input_to_last_pack.insert({input_idx, {tt_xy_pair(core.core_x, core.core_y), get_cycle(device_alignment_info, instr, outer_loop_to_event.second.pack_last_end, align_devices, versim)}});
                 }
             }
             if (unpack_start_exist) {
                 if (input_to_first_unpack.find(input_idx) != input_to_first_unpack.end()) {
                     uint64_t first_unpack = input_to_first_unpack.at(input_idx).second;
-                    if (first_unpack > get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices)) {
-                        input_to_first_unpack.at(input_idx).second = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices);
+                    if (first_unpack > get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices, versim)) {
+                        input_to_first_unpack.at(input_idx).second = get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices, versim);
                         input_to_first_unpack.at(input_idx).first = tt_xy_pair(core.core_x, core.core_y);
                     }
                 } else {
-                    input_to_first_unpack.insert({input_idx, {tt_xy_pair(core.core_x, core.core_y), get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices)}});
+                    input_to_first_unpack.insert({input_idx, {tt_xy_pair(core.core_x, core.core_y), get_cycle(device_alignment_info, instr, outer_loop_to_event.second.unpack_first_instruction, align_devices, versim)}});
                 }
             }
         }
@@ -539,7 +564,7 @@ json create_postprocess_report(
         
         log_assert(op_to_perf_model_desc.find(core.descriptor.op_name) != op_to_perf_model_desc.end(), "Performance model descriptor is not initialized for op {}", core.descriptor.op_name);
         const PostprocessModelDesc &perf_model_desc = op_to_perf_model_desc.at(core.descriptor.op_name);
-        calculate_and_populate_average_utilization_and_total_runtime(core, inputs_common_events, device_alignment_info, perf_desc, graph, instr, perf_model_desc, align_devices);
+        calculate_and_populate_average_utilization_and_total_runtime(core, inputs_common_events, device_alignment_info, perf_desc, graph, instr, perf_model_desc, align_devices, versim);
         thread_map["per-thread-events"] = per_thread_events_map;
         thread_map["inputs-common-events"] = inputs_common_events;
         core_map[core_label] = thread_map;
@@ -1043,21 +1068,22 @@ json create_host_postprocess_report(
     const string &postprocess_report_path,
     const int &total_input_count,
     bool device_alignment_report) {
-
     const uint thread_id = perf::get_thread_id();
     json events_map;
-    for (auto &event_id: current_thread.events) {
-        string event_description = event_id.second[0].description;
-        HostEventProperties event_properties(event_id.first);
+    for (const std::pair<uint64_t, vector<device_perf_event>> &event_id_and_events: current_thread.events) {
+        const uint64_t &event_id = event_id_and_events.first;
+        const vector<device_perf_event> &perf_events_with_same_id = event_id_and_events.second;
+        string event_description = perf_events_with_same_id.at(0).description;
+        HostEventProperties event_properties(event_id);
         bool is_single_value = perf::host_single_value_events.find(event_properties.event_type) != perf::host_single_value_events.end();
         vector<uint64_t> all_first_values, all_second_values, all_diffs, all_single_values;
-        for (auto &events_with_same_id: event_id.second) {
+        for (const device_perf_event &perf_event : perf_events_with_same_id) {
             if (!is_single_value) {
-                all_first_values.push_back(events_with_same_id.first_val);
-                all_second_values.push_back(events_with_same_id.second_val);
-                all_diffs.push_back(events_with_same_id.second_val - events_with_same_id.first_val);
+                all_first_values.push_back(perf_event.first_val);
+                all_second_values.push_back(perf_event.second_val);
+                all_diffs.push_back(perf_event.second_val - perf_event.first_val);
             } else {
-                all_single_values.push_back(events_with_same_id.first_val);
+                all_single_values.push_back(perf_event.first_val);
             }
         }
         if (!is_single_value) {
@@ -1143,7 +1169,7 @@ void create_summary_report(const InstructionInfo &instr, const string& perf_out_
     bool report_file_exists = fs::exists(report_path);
     ofstream report_file;
     json report;
-    string current_mode = get_decouple_mode_name(perf_desc);
+    string current_mode = perf_desc.get_decouple_mode_name();
     if (report_file_exists) {
         ifstream ifs(report_path);
         json report_existing = json::parse(ifs);
@@ -1448,6 +1474,26 @@ void generate_metadata_reports(
     graph_metadata_file << std::setw(4) << metadata_json;
     graph_metadata_file.close();
 
+}
+
+void print_perf_info_all_epochs(const string& output_dir, const PerfState &perf_state, bool print_to_file) {
+    if (print_to_file) {
+        log_assert(fs::exists(output_dir), "Perf output directory does not exist");
+    }
+    string perf_output_path = get_perf_out_directory(output_dir, perf_state.get_perf_desc().override_perf_output_dir, false);
+    string output_path = perf_output_path + perf_info_all_epochs_yaml_name;
+    string output_path_csv = perf_output_path + perf_info_all_epochs_csv_name;
+    if (perf_state.is_postprocessor_executed()) {
+        // for (perf::EpochPerfInfo epoch_info: perf_state.all_epochs_perf_info) {
+        //     epoch_info.print();
+        // }
+        print_epoch_perf_table(perf_state.get_all_epochs_perf_info(), output_path_csv, perf_state.get_perf_desc().measure_steady_state_perf);
+        if (print_to_file) {
+            create_all_epochs_perf_info_report(perf_state.get_all_epochs_perf_info(), perf_state.get_total_input_count(), output_path);
+        }
+    } else {
+        log_error("Attempting to read perf info but Perf-Postprocessor has not been executed");
+    }
 }
 
 }

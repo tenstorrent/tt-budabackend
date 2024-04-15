@@ -167,6 +167,10 @@ struct PerfDesc {
     PerfDesc();
     PerfDesc(vector<string> &args, string netlist_path);
 
+    bool is_normal_perf_mode() const;
+    string get_decouple_mode_name() const;
+    string get_overlay_decouple_string() const;
+    
     // Returns the performance buffer size in l1 based on the perf-level and thread-id
     inline int32_t get_perf_buf_size(int thread_id) const {
         if (thread_id == 0 || thread_id == 2) {
@@ -268,10 +272,6 @@ struct PerfDesc {
     }
 };
 
-// This api will decode the triplet mode decouplings:
-// Generates the appropriate decouplings for the surrounding ops, to isolate the op from the rest of the graph
-void append_triplet_modes_to_decouplings(perf::PerfDesc &perf_desc, const netlist_workload_data &workload, const string& graph_name);
-
 inline uint64_t get_event_id(HostEventType event_type, uint device_id = 0, uint epoch_id = 0, uint program_id = 0, uint custom_label_idx = 0) {
     uint64_t event_id;
     event_id  = (uint(event_type) & 0xff);
@@ -290,7 +290,7 @@ inline uint64_t events_32b_to_64b(uint32_t event_32b_h, uint32_t event_32b_l) {
     return (uint64_t(event_32b_h) << 32) | event_32b_l;
 }
 
-void print_epoch_perf_table(vector<EpochPerfInfo> all_epochs, string output_path, bool steady_state);
+void print_epoch_perf_table(const vector<EpochPerfInfo> &all_epochs, const string &output_path, bool steady_state);
 
 inline uint64_t get_timestamp() {
     auto current_timestamp = LoaderClock::now();
@@ -461,21 +461,21 @@ struct ScopedEventProfiler {
     std::function<void()> profiler_func;
     
     public:
-    ScopedEventProfiler(const string& event_label);
+    ScopedEventProfiler(const string &event_label);
 
-    ScopedEventProfiler(const string& event_label, uint64_t event_value);
+    ScopedEventProfiler(const string &event_label, uint64_t event_value);
 
     ScopedEventProfiler(uint64_t event_id);
 
     ScopedEventProfiler(uint64_t event_id, uint64_t event_value);
 
-    ScopedEventProfiler(const perf::HostEventType& event);
+    ScopedEventProfiler(const perf::HostEventType &event);
 
-    ScopedEventProfiler(const perf::HostEventType& event, uint device_id);
+    ScopedEventProfiler(const perf::HostEventType &event, uint device_id);
 
-    ScopedEventProfiler(const perf::HostEventType& event, uint device_id, uint epoch_id);
+    ScopedEventProfiler(const perf::HostEventType &event, uint device_id, uint epoch_id);
 
-    ScopedEventProfiler(const perf::HostEventType& event, uint device_id, uint epoch_id, uint program_id);
+    ScopedEventProfiler(const perf::HostEventType &event, uint device_id, uint epoch_id, uint program_id);
 
 
     ~ScopedEventProfiler() {

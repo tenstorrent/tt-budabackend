@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
     // Runtime init
     tt_device_params device_params;
-    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized succesfully");
+    log_assert(runtime.initialize() == tt::DEVICE_STATUS_CODE::Success, "Expected Target Backend to be initialized successfully");
 
     // Host fast tilize and push
     int input_index = 0;

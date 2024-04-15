@@ -424,7 +424,7 @@ void upsize_sorted_buffers_by_attribute_on_core(
         for (int i = valid_sizes.size() - 1; !upsize_successful && i >= 0; i--) {
             upsize_successful = upsize_relay_buffer_if_enough_space(id, valid_sizes[i], router, buffer_size_change_in_tiles_and_bytes);
             if (upsize_successful) {
-                log_debug(tt::LogRouter, "\tSuccesfully upsized to {} tiles", valid_sizes[i]);
+                log_debug(tt::LogRouter, "\tSuccessfully upsized to {} tiles", valid_sizes[i]);
             }
         }
     } else {

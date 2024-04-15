@@ -10,7 +10,7 @@ PERF_LIB_CFLAGS = $(CFLAGS) -Wno-terminate
 PERF_LIB_SRCS = \
 	perf_lib/postprocess.cpp \
 	perf_lib/create_reports.cpp \
-	perf_lib/utils.cpp \
+	perf_lib/perf_utils.cpp \
 	perf_lib/perf_descriptor.cpp \
 	perf_lib/perf_state.cpp \
 	perf_lib/perf_base.cpp \

@@ -8,8 +8,8 @@ namespace postprocess {
 
     using perf::PerfComparisonConfig;
 
-    bool is_check_enabled_for_instruction(const InstructionInfo& instr, const vector<PerfComparisonConfig>& comparison_config, PerfComparisonConfig &target_config) {
-        for (const auto& config: comparison_config) {
+    bool is_check_enabled_for_instruction(const InstructionInfo &instr, const vector<PerfComparisonConfig>& comparison_config, PerfComparisonConfig &target_config) {
+        for (const PerfComparisonConfig &config : comparison_config) {
             if (config.graph_name == instr.graph_name && config.program_name == instr.program_name) {
                 target_config = config;
                 return true;
@@ -18,7 +18,7 @@ namespace postprocess {
         return false;
     }
 
-    bool is_host_event_check(const PerfComparisonConfig& comparison_config) {
+    bool is_host_event_check(const PerfComparisonConfig &comparison_config) {
 
         return comparison_config.backend_samples_per_second.en;
     }
@@ -42,14 +42,14 @@ namespace postprocess {
     }
 
     template<typename T>
-    bool check_perf_value(float observed_value, const perf::PerfCheckValue<T>& expected_perf) {
+    bool check_perf_value(float observed_value, const perf::PerfCheckValue<T> &expected_perf) {
         if(expected_perf.using_expected_value) return check_with_expected_perf(observed_value, expected_perf.target_value, expected_perf.rtol, expected_perf.override_target_value);
         else if(expected_perf.using_min_bound) return check_with_perf_min_bound(observed_value, expected_perf.target_value, expected_perf.override_target_value);
         else log_assert(false, "Must use either 'min_bound' or 'expected' target value during performance checking.");
         return false;
     }
     template<typename T>
-    string get_perf_comparison_message(float observed, const perf::PerfCheckValue<T>& expected, bool lower_is_better){
+    string get_perf_comparison_message(float observed, const perf::PerfCheckValue<T> &expected, bool lower_is_better){
         T target_value = expected.target_value;
         if (expected.en && expected.target_value == 0) {
             target_value = expected.override_target_value;
@@ -71,7 +71,7 @@ namespace postprocess {
         }
         return message;
     }
-    vector<string> find_core_label_from_op_name(const json& runtime_table, const string& target_op_name) {
+    vector<string> find_core_label_from_op_name(const json &runtime_table, const string &target_op_name) {
         vector<string> all_core_labels;
         for (auto &core_info: runtime_table.items()) {
             string core_label = core_info.key();
@@ -84,7 +84,7 @@ namespace postprocess {
         return all_core_labels;
     }
 
-    string find_core_label_from_core_id(const json& runtime_table, const tt_xy_pair& target_core_id) {
+    string find_core_label_from_core_id(const json &runtime_table, const tt_xy_pair& target_core_id) {
         for (auto &core_info: runtime_table.items()) {
             string core_label = core_info.key();
             string target_core_id_label = to_string(target_core_id.x) + "-" + to_string(target_core_id.y);
@@ -95,7 +95,7 @@ namespace postprocess {
         return "";
     }
 
-    string get_input_label_from_input_idx(const json& runtime_table, const string& core_label, int input_idx) {
+    string get_input_label_from_input_idx(const json &runtime_table, const string &core_label, int input_idx) {
         string input_label = "input-" + to_string(input_idx);
         if (runtime_table.at(core_label).contains(input_label)) {
             return input_label;
@@ -114,7 +114,7 @@ namespace postprocess {
         return value;
     }
 
-    bool extract_observed_values_and_compare(const json& runtime_table, const PerfComparisonConfig& comparison_config, const string& core_label, const string& input_label) {
+    bool extract_observed_values_and_compare(const json &runtime_table, const PerfComparisonConfig &comparison_config, const string &core_label, const string &input_label) {
 
         bool all_passed = true;
 
@@ -211,7 +211,7 @@ namespace postprocess {
         return all_passed;
     }
 
-    bool check_instruction_perf(const InstructionInfo& instr, const PerfComparisonConfig& comparison_config) {
+    bool check_instruction_perf(const InstructionInfo &instr, const PerfComparisonConfig &comparison_config) {
         
         log_assert(instr.output_dir_path != "", "Output directory of each instruction must have been poplated by postprocessor");
         bool all_passed = true;
@@ -221,7 +221,7 @@ namespace postprocess {
 
         log_info(tt::LogPerfCheck, "Starting performance check for program {} with id {}, and graph {} with id {}",
                 instr.program_name, instr.program_id, instr.graph_name, instr.instr_id_local);
-        for (tt_xy_pair target_core: comparison_config.target_cores) {
+        for (const tt_xy_pair &target_core: comparison_config.target_cores) {
             string core_label = find_core_label_from_core_id(runtime_table, target_core);
             if (core_label == "") {
                 log_error("Skipping perf check for core core-id {} since entry was not found in perf runtime report", target_core.str());
@@ -237,7 +237,7 @@ namespace postprocess {
                 all_passed &= extract_observed_values_and_compare(runtime_table, comparison_config, core_label, input_label);
             }
         }
-        for (string target_op_name: comparison_config.target_ops) {
+        for (const string &target_op_name: comparison_config.target_ops) {
             vector<string> all_core_labels = find_core_label_from_op_name(runtime_table, target_op_name);
             for (string core_label: all_core_labels) {
                 if (core_label == "") {
@@ -290,7 +290,7 @@ namespace postprocess {
             log_warning(tt::LogPerfCheck, "Skipping device performance check since --skip-perf-check is set");
             return true;
         }
-        for (const auto& instr: all_instructions) {
+        for (const InstructionInfo &instr: all_instructions) {
             PerfComparisonConfig target_config;
             if (!is_check_enabled_for_instruction(instr, perf_desc.comparison_configs, target_config)) {
                 continue;
@@ -305,7 +305,7 @@ namespace postprocess {
         return all_passed;
     }
 
-    bool check_performance_host_events(const string& output_dir, const PerfState &perf_state) {
+    bool check_performance_host_events(const string &output_dir, const PerfState &perf_state) {
         log_info(tt::LogPerfCheck, "Starting performance check for host events");
         const int thread_id = perf::get_thread_id();
         if (perf_state.get_perf_desc().skip_perf_check) {
@@ -313,7 +313,7 @@ namespace postprocess {
             return true;
         }
         bool all_passed = true;
-        for (const auto& comparison_config: perf_state.get_perf_desc().comparison_configs) {
+        for (const PerfComparisonConfig &comparison_config: perf_state.get_perf_desc().comparison_configs) {
             if (is_host_event_check(comparison_config)) {
                 if (comparison_config.backend_samples_per_second.en) {
                     string perf_report_path = postprocess::get_perf_out_directory(output_dir, perf_state.get_perf_desc().override_perf_output_dir, false) + "/perf_info_all_epochs.yaml";

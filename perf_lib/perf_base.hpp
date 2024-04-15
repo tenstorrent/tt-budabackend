@@ -180,6 +180,15 @@ enum class HostEventType {
     CUSTOM,
 };
 
+enum class ThreadType {
+    UNPACK = 0,
+    MATH = 1,
+    PACK = 2,
+    NCRISC = 3,
+    BRISC = 4,
+    INVALID = 0xFF,
+};
+
 const unordered_set<uint> host_single_value_events = {
     uint(HostEventType::DEVICE_START_CYCLE),
     uint(HostEventType::DEVICE_END_CYCLE),
@@ -232,8 +241,9 @@ const unordered_map<int, string> event_labels = {
     {uint(EventType::MATH_PERF_COUNTERS), "math-perf-counter"},
     {uint(EventType::UNPACK_FIRST_INSTRUCTION), "unpack-first-instruction"},
     {uint(EventType::STALL_TRISC_FOR_DRAM_PERF_DUMP), "trisc-stall-on-dram-perf-dump"},
-    {uint(EventType::NUM_TILES_UNPACK), "num-tiles-input"},
-    {uint(EventType::NUM_TILES_PACK), "num-tiles-output"},
+    {uint(EventType::NUM_TILES_UNPACK), "num-tiles-unpacked"},
+    {uint(EventType::NUM_TILES_PACK), "num-tiles-packed"},
+    {uint(EventType::OUTPUT_NUM_TILES), "overlay-decouple-num-tiles-pushed-to-output"}
 
 };
 
@@ -248,9 +258,9 @@ const map<int, string> brisc_event_labels = {
 
 const unordered_map<int, string> ncrisc_event_labels = {
     {uint(NcriscEventType::EPOCH), "epoch"},
-    {uint(NcriscEventType::STREAM_HANDLER_INIT), "epoch-prologue"},
     {uint(NcriscEventType::STREAM_HANDLER_LOOP), "epoch-loop"},
     {uint(NcriscEventType::EPOCH_EPILOGUE), "epoch-epilogue"},
+    {uint(NcriscEventType::STREAM_HANDLER_INIT), "epoch-prologue"},
     {uint(NcriscEventType::EPOCH_Q_SLOT_COMPLETE), "epoch-q-slot-complete"},
     {uint(NcriscEventType::DRAM_READ_ISSUED), "dram-read"},
     {uint(NcriscEventType::DRAM_READ_TILE_FLUSHED), "dram-read-tile-flushed"},
@@ -264,20 +274,33 @@ const unordered_map<int, string> ncrisc_event_labels = {
     {uint(NcriscEventType::STREAM_MISC_INFO), "misc-info"},
 };
 
+// Contains the number of values an event has
+// for example: epoch_epilogue has 3 (32-bit) values, event_id, timestamp top 32, timestamp low 32
+const unordered_map<uint, uint> ncrisc_event_to_num_values = {
+    {uint(NcriscEventType::EPOCH), 3},
+    {uint(NcriscEventType::STREAM_HANDLER_LOOP), 3},
+    {uint(NcriscEventType::EPOCH_EPILOGUE), 3},
+    {uint(NcriscEventType::STREAM_HANDLER_INIT), 3},
+    {uint(NcriscEventType::EPOCH_Q_SLOT_COMPLETE), 2},
+    {uint(NcriscEventType::WALL_CLOCK_TOP_32B), 2},
+    {uint(NcriscEventType::DRAM_READ_ISSUED), 2},
+    {uint(NcriscEventType::DRAM_READ_TILE_FLUSHED), 2},
+    {uint(NcriscEventType::DRAM_WRITE_SENT), 2},
+    {uint(NcriscEventType::DRAM_WRITE_TILES_CLEARED), 2},
+    {uint(NcriscEventType::DRAM_IO_Q_STATUS), 2},
+    {uint(NcriscEventType::STREAM_RESTART), 2},
+    {uint(NcriscEventType::STREAM_INFO), 7},
+    {uint(NcriscEventType::STREAM_BUF_STATUS), 2},
+    {uint(NcriscEventType::EPOCH_Q_EMPTY), 2},
+    {uint(NcriscEventType::STREAM_MISC_INFO), 3},
+};
+
 /////////////////////////////////////////////////////////////////////////
 //////////////// Custom data structures and classes
 /////////////////////////////////////////////////////////////////////////
 struct host_global_events {
     uint64_t first_program_start = ULLONG_MAX;
     uint64_t last_output_pop_end = ULLONG_MAX;
-};
-
-struct event {
-    uint64_t id;
-    string description;
-    uint64_t first_val = ULLONG_MAX;
-    uint64_t second_val = ULLONG_MAX;
-    vector<uint32_t> extra_val;
 };
 
 struct core_descriptor {
@@ -310,12 +333,20 @@ struct core_descriptor {
 
 };
 
+struct device_perf_event {
+    uint64_t id;
+    string description;
+    uint64_t first_val = ULLONG_MAX;
+    uint64_t second_val = ULLONG_MAX;
+    vector<uint32_t> extra_val;
+};
+
 struct thread_events {
-    int thread_id = -1;
+    ThreadType thread_type = ThreadType::INVALID;
     perf::PerfDumpHeader header;
     bool out_of_memory = false;
     int num_inputs_recorded = -1;
-    map<uint64_t, vector<event>> events;
+    map<uint64_t, vector<device_perf_event>> events;
 
     void set_out_of_memory() {
         out_of_memory = true;
@@ -330,19 +361,6 @@ struct outer_loop_events {
     uint64_t total_wait_for_free_tiles_after_first_unpack   = 0; // Sum of all wait-for-free-tiles on packer side, after the first block of data is available
     uint64_t total_trisc0_stalled_on_ncrisc = 0;
     uint64_t total_trisc2_stalled_on_ncrisc = 0;
-};
-
-struct tt_perf_device_alignment {
-    map<int, uint64_t> device_id_to_start_cycle;
-    map<int, uint64_t> device_id_to_end_cycle;
-    map<int, uint64_t> device_id_to_host_start_cycle;
-    map<int, uint64_t> device_id_to_host_end_cycle;
-};
-
-struct PostprocessModelDesc {
-    tt_op_model_desc model_desc;
-    const tt_op_info *op_info;
-    bool valid;
 };
 
 struct core_events {
@@ -371,6 +389,20 @@ struct core_events {
     }
 };
 
+struct tt_perf_device_alignment {
+    map<int, uint64_t> device_id_to_start_cycle;
+    map<int, uint64_t> device_id_to_end_cycle;
+    map<int, uint64_t> device_id_to_host_start_cycle;
+    map<int, uint64_t> device_id_to_host_end_cycle;
+};
+
+struct PostprocessModelDesc {
+    tt_op_model_desc model_desc;
+    const tt_op_info *op_info;
+    bool valid;
+};
+
+
 struct instruction_info_wrapper {
     const std::shared_ptr<tt_instruction_info> instr;
     uint program_id;
@@ -393,7 +425,15 @@ struct epoch_events {
     const uint num_epochs_current_program;
     const perf::tt_perf_device_alignment device_alignment_info;
     const std::unordered_map<string, PostprocessModelDesc> op_to_perf_model_desc;
-
+    epoch_events(): instr_wrap(), graph_wrapper(nullptr), aiclk(0), num_epochs_current_program(0), device_alignment_info(), op_to_perf_model_desc() {}
+    epoch_events(const instruction_info_wrapper &instr_wrap, 
+        const std::shared_ptr<tt_perf_digraph_wrapper> &graph_wrapper, 
+        const std::unordered_map<string, PostprocessModelDesc> &op_to_perf_model_desc, 
+        const perf::tt_perf_device_alignment &device_alignment_info,
+        const uint aiclk, 
+        const uint num_epochs_current_program
+    ): instr_wrap(instr_wrap), graph_wrapper(graph_wrapper), aiclk(aiclk), num_epochs_current_program(num_epochs_current_program), device_alignment_info(device_alignment_info), op_to_perf_model_desc(op_to_perf_model_desc) {
+    }
     inline const uint get_num_active_cores() const {
         return graph_wrapper->core_to_descriptor.size();
     }
@@ -426,7 +466,7 @@ struct InstructionInfo {
     int input_count;
     tt_digraph netlist_graph;
 
-    string intermed_file_path = "";
+    string intermed_dump_key = "";
     string output_dir_path = "";
 
     pair<int, int> first_and_last_inputs_recorded = {-1,-1};
@@ -459,10 +499,10 @@ struct InstructionInfo {
         graph_name(graph_name), device_id(device_id), netlist_graph(netlist_graph),
         aiclk(aiclk), input_count(input_count) {
         
-        set_intermed_file_name(perf_out_dir);
+        set_intermed_dump_key(perf_out_dir);
     }
-    string get_intermed_file_name();
-    void set_intermed_file_name(const string& perf_out_dir);
+    string construct_intermed_dump_key() const;
+    void set_intermed_dump_key(const string& perf_out_dir);
     const string get_output_dir_name() const;
     string get_program_dir_name();
     void set_output_dir_path(const string& perf_out_dir);
@@ -626,3 +666,5 @@ struct std::hash<perf::PerfComparisonConfig>
         return hash_value;
     }
 };
+
+std::ostream &operator<<(std::ostream &os, const perf::device_perf_event &perf_event);

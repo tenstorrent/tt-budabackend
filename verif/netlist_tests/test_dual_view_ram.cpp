@@ -300,11 +300,11 @@ int main(int argc, char** argv) {
         // Single program/graph mode added here after finding this is what FE is using. Limited testing, but helped to find/fix a checker bug.
         if (single_program_mode) {
 
-            log_assert(target_backend->run_program("write_read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_read_cache to execute succesfully on target device");
+            log_assert(target_backend->run_program("write_read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_read_cache to execute successfully on target device");
 
             // GENERATE EXPECTED OR RUN_PROGRAM FOR COMPARE_TO
             if (compare_to_backend) {
-                log_assert(compare_to_backend->run_program("write_read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_read_cache to execute succesfully on golden device");
+                log_assert(compare_to_backend->run_program("write_read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_read_cache to execute successfully on golden device");
             } else {
                 log_fatal("Must use --compare-to for single-program mode. Expected output calc not implemented");
             }
@@ -339,11 +339,11 @@ int main(int argc, char** argv) {
 
         } else {
 
-            log_assert(target_backend->run_program("write_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_cache to execute succesfully on target device");
+            log_assert(target_backend->run_program("write_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_cache to execute successfully on target device");
 
             // GENERATE EXPECTED OR RUN_PROGRAM FOR COMPARE_TO
             if (compare_to_backend) {
-                log_assert(compare_to_backend->run_program("write_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_cache to execute succesfully on golden device");
+                log_assert(compare_to_backend->run_program("write_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program write_cache to execute successfully on golden device");
             } else {
                 for (int b = 0; b < batch_size; ++b) {
                     // Each input in batch_size uses same offset
@@ -391,10 +391,10 @@ int main(int argc, char** argv) {
             }
 
             target_backend->wait_for_idle();
-            log_assert(target_backend->run_program("read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program read_cache to execute succesfully on target device");
+            log_assert(target_backend->run_program("read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program read_cache to execute successfully on target device");
             // GENERATE EXPECTED OR RUN_PROGRAM FOR COMPARE_TO
             if (compare_to_backend) {
-                log_assert(compare_to_backend->run_program("read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program read_cache to execute succesfully on golden device");
+                log_assert(compare_to_backend->run_program("read_cache", program_parameters) == tt::DEVICE_STATUS_CODE::Success, "Expected program read_cache to execute successfully on golden device");
             } else {
                 for (int b = 0; b < batch_size; ++b) {
                     expected_tile_offset = num_tiles_per_cache_idx * write_cache_idx;

@@ -227,8 +227,8 @@ void record_timestamp_l1(uint32_t event_id) {
 void record_timestamp_at_offset(uint32_t event_id, uint32_t offset) {
   uint32_t low;
   uint32_t high;
-  low = reg_read_barrier_l1(RISCV_DEBUG_REG_WALL_CLOCK_L);
-  high = reg_read_barrier_l1(RISCV_DEBUG_REG_WALL_CLOCK_H);
+  low = reg_read_barrier(RISCV_DEBUG_REG_WALL_CLOCK_L);
+  high = reg_read_barrier(RISCV_DEBUG_REG_WALL_CLOCK_H);
   record_perf_value_at_offset(event_id, low, high, offset);
   
 }
@@ -236,8 +236,8 @@ void record_timestamp_at_offset(uint32_t event_id, uint32_t offset) {
 void record_timestamp_at_offset_l1(uint32_t event_id, uint32_t offset) {
   uint32_t low;
   uint32_t high;
-  low = reg_read_barrier(RISCV_DEBUG_REG_WALL_CLOCK_L);
-  high = reg_read_barrier(RISCV_DEBUG_REG_WALL_CLOCK_H);
+  low = reg_read_barrier_l1(RISCV_DEBUG_REG_WALL_CLOCK_L);
+  high = reg_read_barrier_l1(RISCV_DEBUG_REG_WALL_CLOCK_H);
   record_perf_value_at_offset(event_id, low, high, offset);
   
 }

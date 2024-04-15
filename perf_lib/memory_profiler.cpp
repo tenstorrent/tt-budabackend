@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+#include <sstream>
 #include "memory_profiler.hpp"
-#include "perf_lib/utils.hpp"
+#include "perf_lib/perf_utils.hpp"
 
 using json = nlohmann::json;
+using std::stringstream;
+
 namespace perf {
 
 string to_hex(uint64_t num, uint8_t num_digits) {

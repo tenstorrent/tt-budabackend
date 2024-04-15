@@ -2,21 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "postprocess.hpp"
-#include "utils.hpp"
+#include "perf_utils.hpp"
 #include "create_reports.hpp"
-#include "third_party/json/json.hpp"
 #include "analyse.hpp"
 #include "common/env_lib.hpp"
+#include "common/model/tt_core.hpp"
+#include "utils/scoped_timer.hpp"
+#include "netlist/netlist_utils.hpp"
 
 extern perf::tt_backend_perf backend_profiler;
-using namespace perf;
-namespace postprocess {
 
+namespace postprocess {
 std::recursive_mutex perf_state_mutex;
 std::recursive_mutex postprocessor_queue_mutex;
 std::recursive_mutex report_generator_queue_mutex;
 
-string decode_event_name(int event_id, int thread_id) {
+string decode_event_name(int event_id, ThreadType thread_type) {
 
     EventProperties event_properties(event_id);
 
@@ -27,11 +28,15 @@ string decode_event_name(int event_id, int thread_id) {
     string event_description = iter->second;
     
     event_description += "-outer-loop-" + to_string(event_properties.outer_loop_idx);
-    if (thread_id == 0 || thread_id == 2) {
-        if (event_properties.event_type != uint(EventType::PACK_EACH_INPUT) &&
-            event_properties.event_type != uint(EventType::UNPACK_FIRST_INSTRUCTION) &&
-            event_properties.event_type != uint(EventType::NUM_TILES_PACK)) {
+    if (thread_type == ThreadType::UNPACK or thread_type == ThreadType::PACK) {
+        const std::unordered_set<uint> events_without_operand_ids = {
+            uint(EventType::PACK_EACH_INPUT),
+            uint(EventType::UNPACK_FIRST_INSTRUCTION),
+            uint(EventType::NUM_TILES_PACK)
+        };
+        if (events_without_operand_ids.find(event_properties.event_type) == events_without_operand_ids.end()) {
             event_description += "-operand-" + to_string(event_properties.operand_idx);
+            // include -num-tiles- in the description if event is not NUM_TILES_UNPACK
             if (event_properties.event_type != uint(EventType::NUM_TILES_UNPACK)) {
                 event_description += "-num-tiles-" + to_string(event_properties.num_tiles);
             }
@@ -150,8 +155,8 @@ string get_perf_out_directory(const string& test_output_dir, const string& overr
 string get_device_perf_out_directory(const string& test_output_dir, const PerfDesc& perf_desc, bool clean) {
 
     string perf_lib_dir = get_perf_out_directory(test_output_dir, perf_desc.override_perf_output_dir, false);
-    string trisc_decouple_str = get_decouple_mode_name(perf_desc);
-    string overlay_decouple_str = get_overlay_decouple_string(perf_desc);
+    string trisc_decouple_str = perf_desc.get_decouple_mode_name();
+    string overlay_decouple_str = perf_desc.get_overlay_decouple_string();
     string device_perf_dir = perf_lib_dir + "device/";
     if (clean) {
         if (fs::exists(device_perf_dir)) {
@@ -254,6 +259,941 @@ void remove_perf_output_directory(const string& output_dir, const string& overri
     }
 }
 
+void set_core_id(core_events &current_core, const string& core_id_str) {
+    auto delimiter_pos = core_id_str.find('-');
+    log_assert (delimiter_pos != string::npos, "Could not find '-' in core descriptor");
+    current_core.core_x = std::stoi(core_id_str.substr(0, delimiter_pos));
+    int core_y_dim_num_chars = core_id_str.size() - 1 - delimiter_pos;
+    current_core.core_y = std::stoi(core_id_str.substr(delimiter_pos + 1, core_y_dim_num_chars));
+}
+
+// In the current yaml from versim/silicon, only the core-id's have both '-' and ':' character
+// TODO: Properly detect #-# sequence to verify this is a core-id, regex is too slow
+bool is_core_id(const string &current_line) {
+    bool dash_exists = current_line.find('-') != string::npos;
+    bool colon_exists = current_line.find(':') != string::npos;
+    return dash_exists and colon_exists;
+}
+
+bool is_thread_id(const string &current_line) {
+    for (const string &thread_name : thread_names) {
+        if (current_line.find(thread_name) != string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pair<uint64_t, uint64_t> get_epoch_q_empty_largest_delay(const json &all_events) {
+    uint64_t largest_delay = 0;
+    uint64_t largest_delay_start = 0;
+    uint64_t largest_delay_end = 0;
+
+    for (auto &core_label: all_events.items()) {
+        auto core_label_value = core_label.value();
+        if (core_label.key() != "per-epoch-events") {
+            if (core_label_value.at("NCRISC").contains("epoch-q-empty")) {
+                // string error_msg = "NCRISC epoch-q-empty event does not exist for core " + core_label.key() + " for json file " + all_events_path;
+                // log_assert(false, error_msg);
+                uint64_t diff_current_core = core_label_value["NCRISC"]["epoch-q-empty"]["diff"].at(0).get<uint64_t>();
+                if (largest_delay == 0 or largest_delay < diff_current_core) {
+                    largest_delay = diff_current_core;
+                    largest_delay_start = core_label_value["NCRISC"]["epoch-q-empty"]["q-empty"].at(0).get<uint64_t>();
+                    largest_delay_end = core_label_value["NCRISC"]["epoch-q-empty"]["q-available"].at(0).get<uint64_t>();
+                }
+            }
+        }
+    }
+    return pair<uint64_t, uint64_t>(largest_delay_start, largest_delay_end);
+}
+
+uint64_t find_stream_handler_loop_event_val(const vector<uint32_t> &current_thread_events) {
+    int i = 0;
+    while (i < current_thread_events.size()) {
+        uint event_id = current_thread_events.at(i);
+        if (event_id == PerfValPadding) {
+            i++;
+            continue;
+        }
+        if (perf::get_ncrisc_event_type(current_thread_events.at(i)) == (uint)perf::NcriscEventType::STREAM_HANDLER_LOOP) {
+            if ((i + 2) < current_thread_events.size()) {
+                return perf::events_32b_to_64b(current_thread_events.at(i + 2), current_thread_events.at(i + 1));
+            }
+            return UINT64_MAX;
+        }
+        uint event_type = perf::get_ncrisc_event_type(event_id);
+        log_assert(ncrisc_event_to_num_values.find(event_type) != ncrisc_event_to_num_values.end(), "Event type {} not found in ncrisc_event_to_num_values", event_type);
+        uint increment_to_next_event = ncrisc_event_to_num_values.at(event_type);
+        i += increment_to_next_event;
+    }
+    return UINT64_MAX;
+}
+
+void process_new_thread(thread_events& current_thread, string current_line, bool &skip_to_next_thread) {
+
+    current_thread = thread_events();
+    current_line.pop_back();
+    int thread_id = -1;
+    for (int i = 0; i < thread_names.size(); i++) {
+        if (current_line.find(thread_names.at(i)) != string::npos) {
+            thread_id = i;
+            break;
+        }
+    }
+    log_assert(thread_id >= 0 and thread_id < thread_names.size(), "thread_id out of range");
+
+    current_thread.thread_type = ThreadType(thread_id);
+    skip_to_next_thread = false;
+}
+
+// Populates <current_thread> with events we extracted from device dram stored in <current_thread_events>
+void process_thread_main(vector<uint32_t> &current_thread_events, thread_events &current_thread, bool concurrent) {
+    
+    ThreadType thread_type = current_thread.thread_type;
+
+    if (concurrent) {
+        if (thread_type == ThreadType::MATH) {
+            for (int i = 0; i < 2; i++) {
+                log_assert(current_thread_events.at(i) == 0xffffffff, "The words 0 and 1 after header in math thread perf dump must be set to 0xffffffff");
+            }
+            current_thread_events.erase(current_thread_events.begin(), current_thread_events.begin() + 2);
+        }
+    }
+
+    log_assert(int(thread_type) >= 0 and int(thread_type) < thread_names.size(), "Invalid thread type {}", int(thread_type));
+    int default_num_values_per_event;
+    if (thread_type == ThreadType::MATH) {
+        default_num_values_per_event = NumValuesPerEventMath;
+    } else if (thread_type == ThreadType::NCRISC) {
+        default_num_values_per_event = NumValuesPerEventNcrisc;
+    } else {
+        default_num_values_per_event = NumValuesPerEventUnpackPack;
+    }
+    uint initial_math_perf_counter_value = 0;
+    uint32_t clock_top_32h = 0;
+    uint64_t ncrisc_loop = UINT64_MAX;
+    uint64_t ncrisc_first_write = 0;
+
+    uint i = 0;
+    uint increment_to_next_event;
+    while (i < current_thread_events.size()) {
+        increment_to_next_event = default_num_values_per_event;
+        if (i + default_num_values_per_event > current_thread_events.size()) { 
+            break; 
+        }
+
+        if (concurrent and current_thread_events.at(i) == PerfValLast) {
+            break;
+        }
+
+        // If we hit 0xffffffff in concurrent mode, only increment i by 1 for the next iteration of the loop
+        if (concurrent and current_thread_events.at(i) == 0xffffffff and (thread_type == ThreadType::UNPACK or thread_type == ThreadType::PACK)) {
+            i++;
+            continue;
+        }
+        // Process Unpack, Pack, Brisc events
+        if (thread_type == ThreadType::UNPACK or thread_type == ThreadType::PACK or thread_type == ThreadType::BRISC) {
+            uint event_type;
+            uint event_id = current_thread_events.at(i);
+            auto event_iterator = current_thread.events.find(event_id);
+            if (event_iterator == current_thread.events.end()) {
+                uint64_t event_val_64b = perf::events_32b_to_64b(current_thread_events.at(i + 1), current_thread_events.at(i + 2));
+                device_perf_event current_event = {.id = event_id, .first_val = event_val_64b};
+                current_event.description = (thread_type == ThreadType::BRISC) ? decode_brisc_event_name(event_id) : decode_event_name(event_id, thread_type);
+                current_thread.events.emplace(event_id, vector<device_perf_event>{current_event});
+            }
+            // If the current event-id exists in the current thread:
+            // Check the last event recorded with this id in the current thread:
+            // Add a new event if all previous events already have both first-val and second-vals populated.
+            // Otherwise populate the second-val of the last event.
+            else if (event_iterator != current_thread.events.end()) {
+                vector<device_perf_event> &events_vec = event_iterator->second;
+                if (events_vec.back().second_val == ULLONG_MAX) {
+                    events_vec.back().second_val = perf::events_32b_to_64b(current_thread_events.at(i + 1), current_thread_events.at(i + 2));
+                }
+                else if (events_vec.back().second_val != ULLONG_MAX) {
+                    uint64_t event_val_64b = perf::events_32b_to_64b(current_thread_events.at(i + 1), current_thread_events.at(i + 2));
+                    device_perf_event new_event = {.id = event_id, .first_val = event_val_64b};
+                    new_event.description = (thread_type == ThreadType::BRISC) ? decode_brisc_event_name(event_id) : decode_event_name(event_id, thread_type);
+                    events_vec.push_back(new_event);
+                }
+            }
+        }
+        // Process Math Events
+        else if (thread_type == ThreadType::MATH) {
+            if (i == 0) {
+                // Read the dummy perf event we always dump to get the initial perf counter value.
+                initial_math_perf_counter_value = current_thread_events.at(i + 1);
+                i += default_num_values_per_event;
+                continue;
+            }
+            uint event_id = 0; // Hardcoding event id to 0
+            // The math cycle counter (second value) does not get reset between records.
+            // So we need to subtract each counter from its previous value.
+            uint second_val = current_thread_events.at(i + 1);
+            uint previous_math_perf_counter_value = i >= default_num_values_per_event ? current_thread_events.at(i - 3) : initial_math_perf_counter_value;
+            second_val -= previous_math_perf_counter_value;
+            device_perf_event current_event = {.id = event_id, .first_val = current_thread_events.at(i), .second_val = second_val};
+            current_event.description = decode_event_name(event_id, thread_type);
+
+            auto event_iterator = current_thread.events.find(event_id);
+            if (event_iterator == current_thread.events.end()) {
+                current_thread.events.emplace(event_id, vector<device_perf_event>{current_event});
+            } 
+            else if (event_iterator != current_thread.events.end()) {
+                event_iterator->second.push_back(current_event);
+            }
+        }
+        // Process NCRISC events
+        else if (thread_type == ThreadType::NCRISC) {
+            uint event_id = current_thread_events.at(i);
+            // ncrisc inserts padding in case we are at half buffer end and we do not have space to log full event.
+            // keep skipping words that contain PerfValPadding value.
+            if (event_id == PerfValPadding) {
+                i++;
+                continue;
+            }
+            // If the event is for the timestamp top 32b, record the new value and skip this event.
+            else if (perf::get_ncrisc_event_type(event_id) == (uint)perf::NcriscEventType::WALL_CLOCK_TOP_32B) {
+                clock_top_32h = current_thread_events.at(i + 1);
+                i += default_num_values_per_event;
+                continue;
+            }
+            auto event_iterator = current_thread.events.find(event_id);
+            uint event_type = perf::get_ncrisc_event_type(event_id);
+            log_assert(ncrisc_event_to_num_values.find(event_type) != ncrisc_event_to_num_values.end(), "Event type {} not found in ncrisc_event_to_num_values", event_type);
+            increment_to_next_event = ncrisc_event_to_num_values.at(event_type);
+            if (i + increment_to_next_event > current_thread_events.size()) {
+                break;
+            }
+            // If the current event-id does not exist in the current thread's map of all events.
+            // Add this event-id and actual event.
+            if (event_iterator == current_thread.events.end()) {
+                uint64_t event_val_64b;
+                if (event_type == (uint)perf::NcriscEventType::EPOCH or event_type == (uint)perf::NcriscEventType::STREAM_HANDLER_LOOP or
+                    event_type == (uint)perf::NcriscEventType::EPOCH_EPILOGUE or event_type == (uint)perf::NcriscEventType::STREAM_HANDLER_INIT) {
+                    //these events contain 64-bit timestamp.
+                    event_val_64b = perf::events_32b_to_64b(current_thread_events.at(i + 2), current_thread_events.at(i + 1));
+                }
+                else {
+                    event_val_64b = perf::events_32b_to_64b(clock_top_32h, current_thread_events.at(i + 1));
+                }
+                device_perf_event new_ncrisc_event = {.id = event_id, .first_val = event_val_64b};
+                if (event_type == (uint)perf::NcriscEventType::STREAM_INFO) {
+                    //stream info event has 5 d-words that contain stream information.
+                    new_ncrisc_event.first_val = current_thread_events.at(i + 1);
+                    new_ncrisc_event.second_val = current_thread_events.at(i + 2);
+                    new_ncrisc_event.extra_val.push_back(current_thread_events.at(i + 3));
+                    new_ncrisc_event.extra_val.push_back(current_thread_events.at(i + 4));
+                    new_ncrisc_event.extra_val.push_back(current_thread_events.at(i + 5));
+                    new_ncrisc_event.extra_val.push_back(current_thread_events.at(i + 6));
+                }
+                else if (event_type == (uint)perf::NcriscEventType::STREAM_MISC_INFO) {
+                    new_ncrisc_event.first_val = event_val_64b;
+                    new_ncrisc_event.second_val = current_thread_events.at(i + 2);
+                }
+                else if (event_type == (uint)perf::NcriscEventType::STREAM_HANDLER_LOOP) {
+                    ncrisc_loop = event_val_64b;
+                }
+                else if (event_type == (uint)perf::NcriscEventType::EPOCH_Q_SLOT_COMPLETE or event_type == (uint)perf::NcriscEventType::DRAM_WRITE_SENT or
+                         event_type == (uint)perf::NcriscEventType::DRAM_WRITE_TILES_CLEARED) {
+                    // in concurrent mode, we store stream handler loop event in epoch_perf_scratch buffer, then spill it into the perf buffer at the end 
+                    // therefore stream handler loop event could be parsed out of order (after the events it should precede in the perf buffer like DRAM_WRITE_SENT)
+                    // risc_perf.h:record_perf_value_at_offset, risc_perf.cc:spill_risc_epoch_perf_scratch
+                    // therefore, we need to find the stream handler loop event before populating the first_val of the current event
+                    if (ncrisc_loop == UINT64_MAX) {
+                        log_assert(concurrent, "Stream handler loop event should be out of order only in concurrent mode");
+                        ncrisc_loop = find_stream_handler_loop_event_val(current_thread_events);
+                        log_assert(ncrisc_loop != UINT64_MAX, "Stream handler loop event not found");
+                        log_assert(ncrisc_loop <= event_val_64b, "Stream handler loop event should have smaller timestamp than the current event");
+                    }
+                    new_ncrisc_event.first_val = ncrisc_loop;
+                    if (event_type == (uint)perf::NcriscEventType::DRAM_WRITE_SENT) {
+                        ncrisc_first_write = event_val_64b;
+                    }
+                    else if (event_type == (uint)perf::NcriscEventType::DRAM_WRITE_TILES_CLEARED) {
+                        new_ncrisc_event.first_val = ncrisc_first_write;
+                    }
+                    new_ncrisc_event.second_val = event_val_64b;
+                }
+                //else if (event_type == (uint)perf::NcriscEventType::STREAM_RESTART) {
+                //    current_event.second_val = current_event.first_val;
+                //}
+                new_ncrisc_event.description = decode_ncrisc_event_name(event_id);
+                current_thread.events.emplace(event_id, vector<device_perf_event>{new_ncrisc_event});
+            }
+            // If the current event-id exists in the current thread:
+            // Check the last event recorded with this id in the current thread:
+            // Add a new event if all previous events already have both first-val and second-vals populated.
+            // Otherwise populate the second-val of the last event.
+            else if (event_iterator != current_thread.events.end()) {
+                vector<device_perf_event> &events_vec = event_iterator->second;
+                // populate the second-val of the last event if it hasn't yet been populated
+                if (events_vec.back().second_val == ULLONG_MAX) {
+                    uint64_t event_val_64b;
+                    if (event_type == (uint)perf::NcriscEventType::EPOCH or event_type == (uint)perf::NcriscEventType::STREAM_HANDLER_LOOP or
+                        event_type == (uint)perf::NcriscEventType::EPOCH_EPILOGUE or event_type == (uint)perf::NcriscEventType::STREAM_HANDLER_INIT) {
+                        //these events contain 64-bit timestamp, thus each event has 3 values instead of 2
+                        event_val_64b = perf::events_32b_to_64b(current_thread_events.at(i + 2), current_thread_events.at(i + 1));
+                    }
+                    else {
+                        event_val_64b = perf::events_32b_to_64b(clock_top_32h, current_thread_events.at(i + 1));
+                    }
+                    events_vec.back().second_val = event_val_64b;
+                }
+
+                else if (events_vec.back().second_val != ULLONG_MAX) {
+                    device_perf_event new_ncrisc_event= {.id = event_id};
+                    // Misc info events have 3 values
+                    if (event_type == (uint)perf::NcriscEventType::STREAM_MISC_INFO) {
+                        new_ncrisc_event.first_val = perf::events_32b_to_64b(clock_top_32h, current_thread_events.at(i + 1));
+                        new_ncrisc_event.second_val = current_thread_events.at(i + 2);
+                    }
+                    // Record singular timestamps as the first val for these events
+                    else if (event_type == (uint)perf::NcriscEventType::DRAM_IO_Q_STATUS or event_type == (uint)perf::NcriscEventType::STREAM_RESTART or
+                             event_type == (uint)perf::NcriscEventType::STREAM_BUF_STATUS or event_type == (uint)perf::NcriscEventType::EPOCH_Q_EMPTY) {
+                        new_ncrisc_event.first_val = perf::events_32b_to_64b(clock_top_32h, current_thread_events.at(i + 1));
+                        new_ncrisc_event.second_val = ULLONG_MAX;
+                    } 
+                    // use the finishing timestamp of the previous event as the starting timestamp of this event
+                    else {
+                        new_ncrisc_event.first_val = events_vec.back().second_val;
+                        new_ncrisc_event.second_val = perf::events_32b_to_64b(clock_top_32h, current_thread_events.at(i + 1));
+                    }
+
+                    new_ncrisc_event.description = decode_ncrisc_event_name(event_id);
+                    events_vec.push_back(new_ncrisc_event);
+                }
+            }
+        }
+        i += increment_to_next_event;
+    }
+}
+
+void process_thread_end(
+    thread_events &current_thread,
+    core_events &current_core,
+    vector<core_events> &all_core_events,
+    vector<string> &all_core_ids,
+    vector<uint32_t> &current_thread_events,
+    const string &core_id_str,
+    const PerfDesc &perf_desc,
+    bool &skip_to_next_core,
+    bool &skip_to_next_thread,
+    bool modify_skip_flags,
+    bool out_of_memory
+) {
+    ThreadType thread_type = current_thread.thread_type;
+    log_assert(int(thread_type) >= 0 and int(thread_type) < thread_names.size(), "thread_id out of range");
+    if (out_of_memory) {
+        perf_warning(perf_desc, tt::LogPerfPostProcess, "Setting out-of-memory flag for thread {} core {}", int(thread_type), core_id_str);
+        current_thread.set_out_of_memory();
+    }
+    process_thread_main(current_thread_events, current_thread, false);
+    if (thread_type == ThreadType::NCRISC) {
+        combine_ncrisc_events(current_thread);
+    }
+    thread_events current_thread_copy = current_thread;
+    current_core.threads.insert(pair<string, thread_events>(thread_names.at(int(thread_type)), current_thread_copy));
+    current_thread_events.clear();
+    bool is_last_thread = int(thread_type) == thread_names.size() - 1;
+    if (is_last_thread) {
+        if (modify_skip_flags) {
+            skip_to_next_core = true;
+            skip_to_next_thread = false;
+        }
+        check_end_time_recorded(current_core, perf_desc);
+        calculate_first_to_last_outer_loop_cycles(current_core);
+        calculate_brisc_bw_info(current_core);
+        set_unpack_pack_num_tiles(current_core);
+        current_core.check_and_set_out_of_memory();
+        core_events current_core_copy = current_core;
+        all_core_events.push_back(current_core_copy);
+        all_core_ids.push_back(core_id_str + "-" + current_core_copy.descriptor.op_name);
+    } else {
+        if (modify_skip_flags) {
+            skip_to_next_core = false;
+            skip_to_next_thread = true;
+        }
+    }
+
+}
+
+void process_new_core(core_events &current_core, string core_id_str, const unordered_map<string, core_descriptor> &cores_to_ops, ofstream &output_log, bool &skip_to_next_core, bool &skip_to_next_thread) {
+    current_core = core_events();
+    core_id_str.pop_back(); // Last character is a ':'
+    set_core_id(current_core, core_id_str);
+
+    string op_name;
+    if (cores_to_ops.find(core_id_str) != cores_to_ops.end()) {
+        output_log << "Processing core\t(x=" << current_core.core_x << ", y=" << current_core.core_y << ") with op-name = " << op_name << endl;
+        skip_to_next_core = false;
+        skip_to_next_thread = true;
+        current_core.descriptor = cores_to_ops.at(core_id_str);
+    } else {
+        op_name = "op-name-not-found";
+        output_log << "Skipping core\t(x=" << current_core.core_x << ", y=" << current_core.core_y << ") op-name not found." << endl;
+        skip_to_next_core = true;
+    }
+}
+
+void check_end_time_recorded(core_events &current_core, const PerfDesc &perf_desc) {
+    for (auto &[thread_name, events_in_thread] : current_core.threads) {
+        vector<uint64_t> empty_event_ids;
+        for (auto &[event_id, perf_events_with_same_id] : events_in_thread.events) {
+            if (events_in_thread.thread_type < ThreadType::NCRISC) {
+                EventProperties properties(event_id);
+                // Keep the single-value trisc events
+                if (perf::single_value_events.find(properties.event_type) != perf::single_value_events.end()) {
+                    continue;
+                }
+            }
+            else if (events_in_thread.thread_type == ThreadType::BRISC) {
+                BriscEventProperties properties(event_id);
+                if (perf::brisc_single_value_events.find(properties.event_type) != perf::brisc_single_value_events.end()) {
+                    continue;
+                }
+            }
+            string event_description = perf_events_with_same_id.at(0).description;
+            int i = 0;
+            while (i < perf_events_with_same_id.size()) {
+                device_perf_event event = perf_events_with_same_id.at(i);
+                if (event.first_val == ULLONG_MAX) {
+                    std::stringstream ss;
+                    ss << "Removing event with description " << event_description << " from core " << current_core.core_x << "," << current_core.core_y << " in thread " << thread_name << " because first_value is not found";
+                    perf_warning(perf_desc, tt::LogPerfPostProcess, "{}", ss.str());
+                    perf_events_with_same_id.erase(perf_events_with_same_id.begin() + i);
+                } else if (event.second_val == ULLONG_MAX) {
+                    std::stringstream ss;
+                    if ((event.id >> 24) == (uint)perf::NcriscEventType::DRAM_IO_Q_STATUS)
+                    {
+                        ss << "Patching event with description " << event_description << " with id " << perf_events_with_same_id.at(i).id << " from core " << current_core.core_x << "," << current_core.core_y << " in thread " << thread_name << " because second_value is not found";
+                        perf_warning(perf_desc, tt::LogPerfPostProcess, "{}", ss.str());
+                        perf_events_with_same_id.at(i).second_val = event.first_val + 1000;
+                    }
+                    else
+                    {
+                        ss << "Removing event with description " << event_description << " with id " << perf_events_with_same_id.at(i).id << " from core " << current_core.core_x << "," << current_core.core_y << " in thread " << thread_name << " because second_value is not found";
+                        perf_warning(perf_desc, tt::LogPerfPostProcess, "{}", ss.str());
+                        perf_events_with_same_id.erase(perf_events_with_same_id.begin() + i);
+                    }
+                } else {
+                    i++;
+                }
+            }
+            if (perf_events_with_same_id.size() == 0) {
+                empty_event_ids.push_back(event_id);
+            }
+        }
+        // After removing individual events from list of event ids, remove ids that no longer have any events associated with them.
+        for (const auto &event_id: empty_event_ids) {
+            events_in_thread.events.erase(event_id);
+        }
+    }
+}
+
+void check_end_time_recorded_host(thread_events &current_thread) {
+    vector<uint64_t> empty_event_ids;
+    for (auto &event_vec_item: current_thread.events) {
+        HostEventProperties properties(event_vec_item.first);
+        string event_description = event_vec_item.second.at(0).description;
+        if (perf::host_single_value_events.find(properties.event_type) != perf::host_single_value_events.end()) {
+            continue;
+        }
+        for (int i = 0; i < event_vec_item.second.size(); /*i++*/) {
+            auto event = event_vec_item.second.at(i);
+            if (event.first_val == ULLONG_MAX) {
+                std::stringstream ss;
+                ss << "Removing host event with description " << event_description << " because first_value is not found";
+                log_warning(tt::LogPerfPostProcess, "{}", ss.str());
+                event_vec_item.second.erase(event_vec_item.second.begin() + i);
+            } else if (event.second_val == ULLONG_MAX) {
+                std::stringstream ss;
+                ss << "Removing host event with description " << event_description << " because second_value is not found";
+                log_warning(tt::LogPerfPostProcess, "{}", ss.str());
+                event_vec_item.second.erase(event_vec_item.second.begin() + i);
+            } else {
+                i++;
+            }
+        }
+        if (event_vec_item.second.size() == 0) {
+            empty_event_ids.push_back(event_vec_item.first);
+        }
+        
+    }
+
+    // After removing individual events from list of event ids, remove ids that no longer have any events associated with them.
+    for (auto &event_id: empty_event_ids) {
+        current_thread.events.erase(event_id);
+    }
+    
+}
+
+void combine_ncrisc_events(thread_events &thread_events) {
+    log_debug(tt::LogPerfPostProcess, "Running combine_ncrisc_events");
+    for (auto &event_vec_item: thread_events.events) {
+        string event_description = event_vec_item.second.at(0).description;
+        uint event_id = event_vec_item.first;
+        uint event_type = perf::get_ncrisc_event_type(event_id);
+        if (event_type == (uint)perf::NcriscEventType::DRAM_READ_ISSUED) {
+            uint dram_read_tile_flushed_event = (event_id & 0xFFFFFF) | ((uint)perf::NcriscEventType::DRAM_READ_TILE_FLUSHED << 24);
+            auto event_ref = thread_events.events.find(dram_read_tile_flushed_event);
+
+            if (event_vec_item.second.back().second_val != UINT_MAX) {
+                device_perf_event last_read_event = {.id = event_id, .first_val = event_vec_item.second.back().second_val};
+                last_read_event.description = event_description;
+                event_vec_item.second.push_back(last_read_event);
+            }
+            if (event_ref != thread_events.events.end()) {
+                device_perf_event last_flush_event = {.id = dram_read_tile_flushed_event, .first_val = event_ref->second.back().second_val};
+                last_flush_event.description = event_ref->second.at(0).description;
+                event_ref->second.push_back(last_flush_event);
+                for (int i = 0; i < min(event_vec_item.second.size(), event_ref->second.size()); i++)
+                {
+                    event_vec_item.second.at(i).second_val = event_ref->second.at(i).first_val;
+                }
+                thread_events.events.erase(dram_read_tile_flushed_event);
+            }
+        }
+    }
+}
+
+// Buffer size for each worker is 32B aligned
+// The buffer space for every worker allocated in dram
+uint32_t get_dram_perf_buf_inc(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core) {
+
+    std::unordered_map<tt_xy_pair, vector<tt_xy_pair>> dram_core_to_workers = soc_descriptor->get_perf_dram_bank_to_workers();
+
+    log_assert(dram_core_to_workers.find(dram_core) != dram_core_to_workers.end(), "DRAM core not found");
+
+    int num_workers_current_dram_core = dram_core_to_workers.at(dram_core).size();
+    int num_threads = thread_names.size();
+    //perf_buf_inc should be 32-byte aligned.
+    uint32_t perf_buf_inc = num_workers_current_dram_core ? (dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_SIZE/num_workers_current_dram_core) & 0xFFFFFFE0 : 0;
+    return perf_buf_inc;
+
+}
+
+// Returns the number of times ncrisc will copy l1-buffers to dram for a single thread of a single core.
+// Ncrisc dumps buffers in chunks of 2KB.
+// Therefore, the total space allocated to each worker core should be a multiple of number_of_threads * half_l1_buffer_size.
+uint32_t get_num_max_trisc_dram_reqs(const buda_SocDescriptor *soc_descriptor, tt_xy_pair dram_core, const PerfDesc& perf_desc) {
+    uint32_t total_buf_size = 0;
+    for (uint thread_idx = 0; thread_idx < l1_mem::address_map::PERF_NUM_THREADS; thread_idx++) {
+        total_buf_size += perf_desc.get_perf_buf_size(thread_idx) / 2;
+    }
+    uint32_t perf_buf_max_req = get_dram_perf_buf_inc(soc_descriptor, dram_core) / total_buf_size;
+    // Always have space for two consecutive dumps
+    perf_buf_max_req -= (perf_buf_max_req % 2);
+    log_assert(perf_buf_max_req >= 2, "We should always have enough space for at least two dumps");
+    log_assert(perf_buf_max_req >= 2, "We should at least have space for 2 request to dump perf buffer");
+    return perf_buf_max_req;
+}
+
+// Buffer size for each thread is 32B aligned
+// perf_buf_size must already be 32B aligned
+uint32_t get_dram_thread_inc(const buda_SocDescriptor *soc_descriptor, tt_xy_pair dram_core, const PerfDesc& perf_desc, int thread_id) {
+    uint32_t perf_buf_size = perf_desc.get_perf_buf_size(thread_id)/2;
+    log_assert(perf_buf_size % 32 == 0, "Perf buffer size {} must be 32B aligned", perf_buf_size);
+    uint32_t max_reqs = get_num_max_trisc_dram_reqs(soc_descriptor, dram_core, perf_desc);
+    return perf_buf_size * max_reqs;
+}
+
+uint32_t get_num_events_to_skip_between_threads(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const PerfDesc &perf_desc, int thread_id) {
+
+    // Perf buffer base and addresses must be aligned. So there should not be any paddings between threads
+    return 0;
+    // uint32_t perf_buf_max_req = get_num_max_trisc_dram_reqs(soc_descriptor, dram_core, perf_desc);
+    // uint32_t thread_actual_dump_bytes = perf_buf_max_req * (perf_desc.get_perf_buf_size(thread_id)/2);
+    // uint32_t thread_inc = get_dram_thread_inc(soc_descriptor, dram_core, perf_desc, thread_id);
+    // log_assert(thread_inc >= thread_actual_dump_bytes);
+    // log_assert((thread_inc - thread_actual_dump_bytes) % NumBytesPerEvent == 0);
+    // return ((thread_inc - thread_actual_dump_bytes) / NumBytesPerEvent);
+}
+
+uint32_t get_num_events_to_skip_between_workers(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const PerfDesc &perf_desc) {
+
+    uint32_t thread_inc_all = 0;
+    for (uint thread_id = 0; thread_id < l1_mem::address_map::PERF_NUM_THREADS; thread_id++) {
+        thread_inc_all += get_dram_thread_inc(soc_descriptor, dram_core, perf_desc, thread_id);
+    }
+    uint32_t perf_buf_inc = get_dram_perf_buf_inc(soc_descriptor, dram_core);
+
+    log_assert(perf_buf_inc >= thread_inc_all, "Expected perf_buf_inc >= thread_inc_all");
+    log_assert((perf_buf_inc - thread_inc_all) % NumBytesPerEvent == 0, "Expected difference between buf_inc and thread_inc to be NumBytesPerEvent aligned");
+    return ((perf_buf_inc - thread_inc_all) / NumBytesPerEvent);
+}
+
+uint32_t get_num_events_per_threads_in_dram(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core, const PerfDesc &perf_desc, int thread_id) {
+    uint32_t total_space_per_thread = get_dram_thread_inc(soc_descriptor, dram_core, perf_desc, thread_id);
+    int total_num_events_per_thread = total_space_per_thread / NumBytesPerEvent;
+    return total_num_events_per_thread;
+}
+
+uint32_t get_l1_perf_buf_size_each_dump(const PerfDesc& perf_desc, int thread_id) {
+    if (perf_desc.device_perf_mode == PerfDumpMode::IntermediateDump) {
+        return perf_desc.get_perf_buf_size(thread_id)/2;
+    } else {
+        return perf_desc.get_perf_buf_size(thread_id);
+    }
+}
+
+// Each l1 dump into dram is l1_mem::address_map::TRISC_PERF_BUF_SIZE / 2.
+// When PerfValLast is seen before an event aligned to this value, to go to next epoch,
+// we need to skip to the beginning of next dump.
+// Following function returns the smallest event_idx aligned to l1-dump that is larger than thread_event_idx.
+uint find_beginning_of_next_l1_dump(uint thread_event_idx, uint num_events_per_thread, const PerfDesc& perf_desc, int thread_id) {
+    uint num_events_each_dump = (get_l1_perf_buf_size_each_dump(perf_desc, thread_id)) / NumBytesPerEvent;
+    log_assert(num_events_per_thread % num_events_each_dump == 0, "Unexpected num_events_per_thread");
+    log_assert(thread_event_idx < num_events_per_thread, "thread_event_idx is out of bounds");
+    int smallest_aligned_event = 0;
+    while (smallest_aligned_event <= num_events_per_thread) {
+        if (smallest_aligned_event >= thread_event_idx) {
+            break;
+        } else {
+            smallest_aligned_event += num_events_each_dump;
+        }
+    }
+    log_assert (smallest_aligned_event <= num_events_per_thread and smallest_aligned_event >= num_events_each_dump, "Incorrect value for smallest_aligned_event");
+    return smallest_aligned_event;
+}
+
+// generates map of each physical core to vector of instruction ids for which they are active
+unordered_map<tt_xy_pair, vector<int>> get_cores_to_instr_idx_from_model(const vector<InstructionInfo*> &instructions_on_device, const buda_SocDescriptor* soc_descriptor) {
+    if (instructions_on_device.empty()) {
+        log_debug(tt::LogPerfInfra, "No instructions found on device");
+        return {};
+    } 
+    unordered_map<tt_xy_pair, vector<int>> core_to_instr_idx;
+    int instr_idx = 0;
+    int target_device_id = instructions_on_device.at(0)->device_id;
+    for (const InstructionInfo* instr: instructions_on_device) {
+        log_assert(instr->device_id == target_device_id, "Expected all instructions to be on the same device {}", target_device_id);
+        string program_name = instr->program_name;
+        string graph_name = instr->graph_name;
+        const tt_graph_info &graph_info = instr->netlist_graph.my_graph_info;
+
+        for (const auto &op_it: graph_info.op_map) {
+            string op_name = op_it.first;
+            std::shared_ptr<tt_op> op = op_it.second.my_op;
+            log_assert(op != nullptr, "Expected op to be populated");
+            if (netlist_utils::is_non_tensix_op(op->type)) {
+                continue;
+            }
+            int grid_shape_y = op->grid_shape.at(0);
+            int grid_shape_x = op->grid_shape.at(1);
+            for (int x = 0; x < grid_shape_x; x++) {
+                for (int y = 0; y < grid_shape_y; y++) {
+                    int core_y_id = op->cores.at(y).at(x)->get_logical_absolute_row_id();
+                    int core_x_id = op->cores.at(y).at(x)->get_logical_absolute_col_id();
+                    int physical_core_y;
+                    int physical_core_x;
+                    if (soc_descriptor == nullptr) {
+                        log_error("soc-descriptor not initialized before dumping cores_to_ops for perf dump post-process");
+                        int physical_core_y = -1;
+                        int physical_core_x = -1;
+                    } else {
+                        physical_core_y = soc_descriptor->worker_log_to_routing_y.at(core_y_id);
+                        physical_core_x = soc_descriptor->worker_log_to_routing_x.at(core_x_id);
+                        tt_xy_pair core_coord = tt_xy_pair(physical_core_x, physical_core_y);
+                        if (core_to_instr_idx.find(core_coord) != core_to_instr_idx.end()) {
+                            core_to_instr_idx.at(core_coord).push_back(instr_idx);
+                        } else {
+                            core_to_instr_idx.insert({core_coord, {instr_idx}});
+                        }
+                    }
+                }
+            }
+        }
+        instr_idx++;
+    }
+    return core_to_instr_idx;
+}
+
+// This function must be called after calculate_first_to_last_outer_loop_cycles.
+void set_number_of_inputs_recorded(core_events &current_core) {
+
+    int num_inputs = 0;
+
+    
+    int num_unpack_first_block = 0;
+    int num_unpack_last_block = 0;
+    
+    int num_pack_start = 0;
+    int num_pack_end = 0;
+
+    for (const auto& outer_loop_to_event: current_core.all_outer_loop_events) {
+        if (outer_loop_to_event.second.unpack_first_instruction                     != ULLONG_MAX) { num_unpack_first_block++   ; }
+        
+        if (outer_loop_to_event.second.pack_first_start                             != ULLONG_MAX) { num_pack_start++       ; }
+        if (outer_loop_to_event.second.pack_last_end                                != ULLONG_MAX) { num_pack_end++         ; }
+    }
+    
+    
+    int num_unpacker_inputs = num_unpack_first_block;
+
+    string error_str = "Failed for core " + to_string(current_core.core_x) + "-" + to_string(current_core.core_y) + " ";
+    current_core.threads.at("T0").num_inputs_recorded = num_unpacker_inputs;
+
+    int num_pack_inputs = num_pack_start;
+    current_core.threads.at("T2").num_inputs_recorded = num_pack_inputs;
+
+    if (!current_core.threads.at("T2").out_of_memory) {
+        log_assert(num_pack_inputs == num_pack_end, "Failed for core {} Number of pack end events {} must be equal to number of inputs {} if there is no out of memory errors",
+            tt_xy_pair(current_core.core_x, current_core.core_y).str(), num_pack_end, num_pack_inputs);
+    }
+
+    if (!current_core.threads.at("T0").out_of_memory and !current_core.threads.at("T2").out_of_memory) {
+        log_assert(num_unpacker_inputs == num_pack_inputs, "Failed for core {} Number of inputs recorded for unpacker {} and packer {} must be the same if there is no out of memory errors.",
+            tt_xy_pair(current_core.core_x, current_core.core_y).str(), num_unpacker_inputs, num_pack_inputs);
+    }
+}
+
+// This pass calculates and populates most of per thread events.
+// All the fields in outer_loop_events will be populated
+void calculate_first_to_last_outer_loop_cycles(core_events &current_core) {
+
+    auto unpack_thread_it = current_core.threads.find("T0");
+    // Total wait for tile in the unpacker and wait for free space in the packer after the first block of data has arrived.
+    map<uint, uint64_t> outer_loop_to_total_wait_time;
+    if (unpack_thread_it != current_core.threads.end()) {
+        for (auto &event_id: unpack_thread_it->second.events) {
+            EventProperties event_prop(event_id.first);
+            
+            // Add new outer loop entry if already doesn't exists
+            if (current_core.all_outer_loop_events.find(event_prop.outer_loop_idx) == current_core.all_outer_loop_events.end()) {
+                current_core.all_outer_loop_events.insert({event_prop.outer_loop_idx, outer_loop_events()});
+            }
+            
+            // If no events are recorded. Continue to next one
+            if (event_id.second.size() == 0) {
+                continue;
+            }
+
+            uint64_t new_event_start_val = event_id.second.at(0).first_val;
+            uint64_t new_event_end_val = event_id.second.at(0).second_val;
+            
+            if (event_prop.event_type == uint(perf::EventType::UNPACK_FIRST_INSTRUCTION)) {
+                uint64_t current_unpack_end_val = current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).unpack_first_instruction;
+                log_assert(current_unpack_end_val == ULLONG_MAX, "There should be a single first-unpack-instruction event recorded per-input");
+                current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).unpack_first_instruction = new_event_start_val;            
+            } else if (event_prop.event_type == uint(perf::EventType::STALL_TRISC_FOR_DRAM_PERF_DUMP)) {
+                for (int i = 0; i < event_id.second.size(); i++) {
+                    uint64_t event_first_val = event_id.second.at(i).first_val;
+                    uint64_t event_second_val = event_id.second.at(i).second_val;
+                    current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).total_trisc0_stalled_on_ncrisc += (event_second_val - event_first_val);
+                }
+            }
+        }
+
+        for (auto &event_id: unpack_thread_it->second.events) {
+            EventProperties event_prop(event_id.first);
+            log_assert(current_core.all_outer_loop_events.find(event_prop.outer_loop_idx) != current_core.all_outer_loop_events.end(), "All input entries must have been created in previous loop");
+            if (event_prop.event_type == uint(perf::EventType::WAIT_FOR_INCOMING_TILES)) {
+                for (int i = 0; i < event_id.second.size(); i++) {
+                    if (event_id.second.at(i).first_val > current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).unpack_first_instruction) {
+                        uint64_t wait_for_tile_diff = (event_id.second.at(i).second_val - event_id.second.at(i).first_val);
+                        current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).total_wait_for_tile_after_first_unpack += wait_for_tile_diff;
+                    }
+                }                
+            }
+        }
+    }
+
+    auto math_thread_it = current_core.threads.find("T1");
+    if (math_thread_it != current_core.threads.end()) {
+        for (auto &event_id: math_thread_it->second.events) {
+            uint64_t event_first_val = event_id.second.at(0).first_val;
+            uint64_t event_second_val = event_id.second.at(0).second_val;
+            uint64_t previous_math_activity = current_core.math_activity;
+            if (previous_math_activity != ULLONG_MAX) {
+                log_assert(previous_math_activity == event_second_val, "Math activity must be the same across all inputs.");
+            } else {
+                current_core.math_activity = event_second_val;
+            }
+        }
+    }
+
+    auto pack_thread_it = current_core.threads.find("T2");
+    if (pack_thread_it != current_core.threads.end()) {
+        for (auto &event_id: pack_thread_it->second.events) {
+            EventProperties event_prop(event_id.first);
+            if (event_prop.event_type == uint(perf::EventType::OUTPUT_NUM_TILES)) {
+                current_core.packer_num_tiles = event_id.second.at(0).first_val;
+            }
+            if (event_prop.event_type == uint(perf::EventType::OUTPUT_TIMESTAMP)) {
+                current_core.packer_push_runtime = event_id.second.at(0).second_val - event_id.second.at(0).first_val;
+            }
+            // Add new outer loop entry if already doesn't exists
+            if (current_core.all_outer_loop_events.find(event_prop.outer_loop_idx) == current_core.all_outer_loop_events.end()) {
+                current_core.all_outer_loop_events.insert({event_prop.outer_loop_idx, outer_loop_events()});
+            }
+            if (event_prop.event_type == uint(perf::EventType::PACK_EACH_INPUT)) {
+                uint64_t event_first_val = event_id.second.at(0).first_val;
+                uint64_t event_second_val = event_id.second.at(0).second_val;
+                // event last_event_with_this_type = event_id.second.back();
+                current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).pack_first_start = event_first_val;
+                current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).pack_last_end = event_second_val;
+            } else if (event_prop.event_type == uint(perf::EventType::WAIT_FOR_FREE_TILES)) {
+                for (int i = 0; i < event_id.second.size(); i++) {
+                    uint64_t event_first_val = event_id.second.at(i).first_val;
+                    uint64_t event_second_val = event_id.second.at(i).second_val;
+                    uint64_t first_block_available = current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).unpack_first_instruction;
+                    if (event_second_val >= first_block_available) {
+                        uint64_t wait_free_tile_start = (event_first_val > first_block_available) ? event_first_val : first_block_available;
+                        current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).total_wait_for_free_tiles_after_first_unpack += (event_second_val - wait_free_tile_start);
+                    }
+                }
+            } else if (event_prop.event_type == uint(perf::EventType::STALL_TRISC_FOR_DRAM_PERF_DUMP)) {
+                for (int i = 0; i < event_id.second.size(); i++) {
+                    uint64_t event_first_val = event_id.second.at(i).first_val;
+                    uint64_t event_second_val = event_id.second.at(i).second_val;
+                    current_core.all_outer_loop_events.at(event_prop.outer_loop_idx).total_trisc2_stalled_on_ncrisc += (event_second_val - event_first_val);
+                }
+            }
+        }
+    }
+    set_number_of_inputs_recorded(current_core);
+}
+
+void calculate_brisc_bw_info(core_events &current_core) {
+    auto brisc_thread_it = current_core.threads.find("BRISC");
+    if (brisc_thread_it != current_core.threads.end()) {
+        for (auto &event_it: brisc_thread_it->second.events) {
+            BriscEventProperties event_prop(event_it.first);
+            if (event_prop.event_type == uint(BriscEventType::INPUT_NUM_TILES)) {
+                uint operand_idx = event_prop.operand_idx;
+                log_assert(event_it.second.size() == 1, "Only a single event must be recorded for operand idx {} input num_tiles, op_name {}", operand_idx, current_core.descriptor.op_name);
+                uint64_t num_tiles = event_it.second.at(0).first_val;
+                current_core.brisc_operand_to_num_tiles.insert({operand_idx, num_tiles});
+            } else if (event_prop.event_type == uint(BriscEventType::INPUT_TILE_POP)) {
+                uint operand_idx = event_prop.operand_idx;
+                log_assert(event_it.second.size() == 1, "Only a single event must be recorded for operand idx {} input tile timestamp, op_name {}", operand_idx, current_core.descriptor.op_name);
+                uint64_t start_timestamp = event_it.second.at(0).first_val;
+                uint64_t end_timestamp = event_it.second.at(0).second_val;
+                current_core.brisc_operand_to_pop_tiles_num_cycles.insert({operand_idx, end_timestamp - start_timestamp});
+            } else if (event_prop.event_type == uint(BriscEventType::OUTPUT_NUM_TILES)) {
+                log_assert(event_prop.operand_idx == 0, "Currently only a single output operand is supported");
+                uint operand_idx = event_prop.operand_idx + PERF_MAX_NUM_INPUTS;
+                log_assert(event_it.second.size() == 1, "Only a single event must be recorded for operand idx {} output num_tiles, op_name {}", operand_idx, current_core.descriptor.op_name);
+                uint64_t num_tiles = event_it.second.at(0).first_val;
+                current_core.brisc_operand_to_num_tiles.insert({operand_idx, num_tiles});
+            } else if (event_prop.event_type == uint(BriscEventType::OUTPUT_TILE_PUSH)) {
+                log_assert(event_prop.operand_idx == 0, "Currently only a single output operand is supported");
+                uint operand_idx = event_prop.operand_idx + PERF_MAX_NUM_INPUTS;
+                log_assert(event_it.second.size() == 1, "Only a single event must be recorded for operand idx {} output tile timestamp, op_name {}", operand_idx, current_core.descriptor.op_name);
+                uint64_t start_timestamp = event_it.second.at(0).first_val;
+                uint64_t end_timestamp = event_it.second.at(0).second_val;
+                current_core.brisc_operand_to_pop_tiles_num_cycles.insert({operand_idx, end_timestamp - start_timestamp});
+            }
+        }
+    }
+}
+
+void set_unpack_pack_num_tiles(core_events& current_core) {
+    if (current_core.threads.find("T0") != current_core.threads.end()) {
+        for (const auto& unpack_event_it : current_core.threads.at("T0").events) {
+            EventProperties event_prop(unpack_event_it.first);
+            if (event_prop.event_type == uint(perf::EventType::NUM_TILES_UNPACK)) {
+                current_core.trisc_operand_to_num_tiles[event_prop.operand_idx] = unpack_event_it.second.at(0).first_val;
+            }
+        }
+    }
+    
+    if (current_core.threads.find("T2") != current_core.threads.end()) {
+        for (const auto& pack_event_it : current_core.threads.at("T2").events) {
+            EventProperties event_prop(pack_event_it.first);
+            if (event_prop.event_type == uint(perf::EventType::NUM_TILES_PACK)) {
+                log_assert(event_prop.operand_idx == 0, "Currently only a single output operand is supported");
+                uint operand_idx = event_prop.operand_idx + PERF_MAX_NUM_INPUTS;
+                log_assert(pack_event_it.second.size() == 1, "Only a single event must be recorded for operand idx {} output num_tiles, op_name {}", operand_idx, current_core.descriptor.op_name);
+                current_core.trisc_operand_to_num_tiles[operand_idx] = pack_event_it.second.at(0).first_val;
+            }
+        }
+    }
+}
+
+vector<InstructionInfo> populate_all_instructions(PerfState &perf_state, const string& perf_out_dir, std::shared_ptr<tt_device> device) {
+    log_debug(tt::LogPerfPostProcess, "Populating InstructionInfo vector for all instructions executed.");
+    vector<InstructionInfo> all_instructions_info;
+
+    // Device ID to frequency map.
+    std::map<int, int> freq_all_devices = device->get_clocks();
+    set<int> mmio_devices;
+    set<int> active_devices;
+    for (const auto &it: freq_all_devices) {
+        mmio_devices.insert(it.first);
+    }
+    for (const auto &it: perf_state.get_device_alignment_info().device_id_to_start_cycle) {
+        active_devices.insert(it.first);
+    }
+
+    // Populate the aiclk freqs for versim
+    if (freq_all_devices.size() == 0){
+        for (const auto& device_id: active_devices){
+            freq_all_devices.insert({device_id, 500}); // Default freq.
+            mmio_devices.insert(device_id);
+        }
+    }
+
+    // Check for consistent clock across mmio devices, if non-mmio devices are used
+    if (mmio_devices.size() != active_devices.size()) {
+
+        log_assert(mmio_devices.size() > 0, "MMIO devices are empty");
+        
+        int last_device_id = -1;
+        for (const auto &device: mmio_devices) {
+            if (last_device_id != -1) {
+                log_assert(freq_all_devices.at(last_device_id) == freq_all_devices.at(device), "If we use non-mmio chips, the aiclk freq for all mmio devices must be the same");
+            }
+            last_device_id = device;
+        }
+        // After the check, add the same frequency for all the devices that netlist is using
+        for (int active_device: active_devices) {
+            if (mmio_devices.find(active_device) == mmio_devices.end()) {
+                freq_all_devices.insert({active_device, freq_all_devices.at(last_device_id)});
+            }
+        }
+    }
+
+    for (auto &device: freq_all_devices){
+        log_info(tt::LogPerfPostProcess, "Observed AICLK: {} for device_id: {}", device.second, device.first);
+    }
+
+    int global_idx = 0;
+    const vector<instruction_info_wrapper> &unprocessed_instrs = perf_state.get_unprocessed_executed_instr();
+    for (const instruction_info_wrapper &instr_wrap: unprocessed_instrs) {
+        const string &program_name = instr_wrap.program_name;
+        const string &graph_name = instr_wrap.instr->graph_name;
+        const tt_digraph &graph = perf_state.get_graph(graph_name);
+        const uint target_device = graph.my_graph_info.target_device;
+        const int &current_aiclk = freq_all_devices.at(target_device);
+
+        InstructionInfo info(
+            instr_wrap.program_id, instr_wrap.local_epoch_id, instr_wrap.global_epoch_id,
+            perf_state.get_num_instructions_executed(instr_wrap.program_id),
+            program_name, graph_name, target_device, graph, perf_out_dir, current_aiclk, graph.my_graph_info.input_count);
+        all_instructions_info.push_back(info);
+    }
+    perf_state.update_num_instructions_processed(unprocessed_instrs.size());
+    return all_instructions_info;
+}
+
+void populate_output_directory_paths(vector<InstructionInfo> &all_instructions, const perf::PerfDesc &perf_desc, const string& output_dir) {
+    log_debug(tt::LogPerfPostProcess, "Populating output directory paths for all instructions");
+    string perf_out_dir = get_device_perf_out_directory(
+        output_dir,
+        perf_desc,
+        false);
+
+    for (InstructionInfo &instr: all_instructions) {
+        instr.set_output_dir_path(perf_out_dir);
+        if (!fs::exists(instr.output_dir_path)) {
+            fs::create_directories(instr.output_dir_path);
+        }
+    }
+}
+
 // Parses the perf dump from dram and splits the events between worker cores, epochs and threads.
 // The events in dram are partitioned as follows:
 // The buffer size reserved for perf in each dram bank is DRAM_EACH_BANK_PERF_BUFFER_SIZE.
@@ -264,26 +1204,30 @@ void remove_perf_output_directory(const string& output_dir, const string& overri
 // Space allocated to each one of these threads is equal to perf-buffer-size-per-worker / 4.
 // Epochs are densely stored in this space. Each epoch starts with PerfValFirst and ends with PerfValLast.
 // If we run out of space in dram for each thread, the last PerfValLast might have not been recorded.
-
-// Input to this function is the file path which is either versim_perf_dump_dram.yaml or silicon_perf_dump_dram.yaml
-// This function will create num_total_epochs files with this format: silicon_perf_dump_epoch_{Epoch#}.yaml or versim_perf_dump_epoch_{Epoch#}.yaml
-void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, const vector<InstructionInfo>& all_instructions, const perf::PerfDesc &perf_desc, int device_id, vector<string> &output_file_paths, const buda_SocDescriptor* soc_descriptor) {
+unordered_map<string, std::shared_ptr<stringstream>> extract_core_events_from_device_dram_dump(const vector<InstructionInfo*> &instructions_on_device, const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, const perf::PerfDesc &perf_desc, const buda_SocDescriptor* soc_descriptor) {
+    if (instructions_on_device.empty()) {
+        return {};
+    }
+    int device_id = instructions_on_device.at(0)->device_id;
     log_debug(tt::LogPerfPostProcess, "Extracting worker core events from dram dump of device {}", device_id);
     std::unordered_map<tt_xy_pair, vector<tt_xy_pair>> dram_core_to_workers = soc_descriptor->get_perf_dram_bank_to_workers();
-
-    // We dump one output file for each epoch.
-    vector<ofstream> output_files;
-    log_debug(tt::LogPerfPostProcess, "Dumping the extracted perf events for each worker core to the following output files:");
-    for (uint i = 0; i < output_file_paths.size(); i++) {
-        log_debug(tt::LogPerfPostProcess, "    {}", output_file_paths.at(i));
-        ofstream output_file_each_instr(output_file_paths.at(i));
-        output_files.push_back(std::move(output_file_each_instr));
+    unordered_map<string, std::shared_ptr<stringstream>> device_intermed_dumps;
+    // We dump one output string stream for each epoch.
+    vector<std::shared_ptr<stringstream>> output_streams;
+    log_debug(tt::LogPerfPostProcess, "Dumping the extracted perf events for each worker core to the following output keys:");
+    for (const InstructionInfo* instr : instructions_on_device) {
+        log_assert(instr->device_id == device_id, "Expected all instructions to be on the same device {}", device_id);
+        log_debug(tt::LogPerfPostProcess, "    {}", instr->intermed_dump_key);
+        if (device_intermed_dumps.find(instr->intermed_dump_key) == device_intermed_dumps.end()) {
+            device_intermed_dumps.emplace(instr->intermed_dump_key, std::make_shared<stringstream>());
+        }
+        output_streams.push_back(device_intermed_dumps.at(instr->intermed_dump_key));
     }
 
     bool skip_to_next_dram_core = true;
 
-    map<tt_xy_pair, vector<int>> cores_to_instr = get_cores_to_instr_idx_from_model(all_instructions, device_id, soc_descriptor);
-    for (const auto& dram_events: all_dram_events) {
+    unordered_map<tt_xy_pair, vector<int>> cores_to_instr = get_cores_to_instr_idx_from_model(instructions_on_device, soc_descriptor);
+    for (const auto &dram_events: all_dram_events) {
         if (dram_events.first.chip != device_id) {
             continue;
         }
@@ -318,9 +1262,9 @@ void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>>
             uint num_instructions = dram_all_instructions.size();
             if (num_instructions > 0) {
                 log_debug(tt::LogPerfPostProcess, "Extracting events for worker core id: {} with active instructions:", worker_core_id);
-                for (const auto& instr_idx: dram_all_instructions) {
+                for (int instr_idx: dram_all_instructions) {
                     log_debug(tt::LogPerfPostProcess, "    {},", instr_idx);
-                    output_files.at(instr_idx) << worker_core_id << ":" << endl;
+                    *(output_streams.at(instr_idx)) << worker_core_id << ":" << endl;
                 }
             } else {
                 log_debug(tt::LogPerfPostProcess, "Skipping worker core id: {} since it is not active for any of the epochs", worker_core_id);
@@ -337,9 +1281,9 @@ void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>>
                 continue;
             }
             for (int thread_idx = 0; thread_idx < postprocess::thread_names.size(); thread_idx++) {
-                for (const auto& instr_idx: dram_all_instructions) {
+                for (int instr_idx: dram_all_instructions) {
                     string thread_name = postprocess::thread_names[thread_idx] + ":";
-                    output_files[instr_idx] << "    " << thread_name << endl;
+                    *(output_streams.at(instr_idx)) << "    " << thread_name << endl;
                 }
                 uint instr_idx = 0;
                 int thread_event_idx = 0;
@@ -355,20 +1299,20 @@ void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>>
                         event_idx++;
                         if (event_num != PerfValFirst) {
                             for (uint i = instr_idx; i < num_instructions; i++) {
-                                output_files[dram_all_instructions.at(i)] << "        " << "- 0" << endl;
+                                *(output_streams.at(dram_all_instructions.at(i))) << "        " << "- 0" << endl;
                             }
                             event_idx += num_events_per_thread[thread_idx] - thread_event_idx;
                             break;
                         } else {
                             log_assert(instr_idx < num_instructions, "instr_idx out of range");
-                            output_files[dram_all_instructions.at(instr_idx)] << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << event_num << endl;
+                            *(output_streams.at(dram_all_instructions.at(instr_idx))) << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << event_num << endl;
                             found_start_signal_epoch = true;
                         }
                     } else {
                         uint event_num = dram_events.second.at(event_idx);
                         event_idx++;
                         log_assert(instr_idx < num_instructions, "instr_idx out of range");
-                        output_files[dram_all_instructions.at(instr_idx)] << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << event_num << endl;
+                        *(output_streams.at(dram_all_instructions.at(instr_idx))) << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << event_num << endl;
                         if (event_num == PerfValLast) {
                             instr_idx++;
                             if (instr_idx == num_instructions) {
@@ -388,7 +1332,7 @@ void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>>
                 }
                 for (int epoch_with_no_dump = instr_idx; epoch_with_no_dump < num_instructions; epoch_with_no_dump++) {
                     if (thread_event_idx >= num_events_per_thread[thread_idx]) {
-                        output_files[dram_all_instructions.at(epoch_with_no_dump)] << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << PerfOutOfMem << endl;
+                        *(output_streams.at(dram_all_instructions.at(epoch_with_no_dump))) << "        " << "- 0x" << std::hex << std::setw(8) << std::setfill('0') << PerfOutOfMem << endl;
                     }
                 }
                 // Because ncrisc dumps 2KB chunks of perf buffers and also because of 32B alignment, there are paddings between threads and cores that ncrisc skips.
@@ -405,20 +1349,17 @@ void extract_core_events_from_dram_dump(const map<tt_cxy_pair, vector<uint32_t>>
         }
         skip_to_next_dram_core = true;
     }
-    for (uint i = 0; i < output_files.size(); i++) {
-        output_files[i].close();
-    }
+    return device_intermed_dumps;
 }
 
-string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *soc_descriptor, const PerfState &perf_state) {
+void parse_intermed_dump_and_create_reports(stringstream &intermed_dump, InstructionInfo &instr, const PerfState &perf_state, bool versim) {
     ofstream output_log(instr.output_dir_path + "/output_log.txt");
-    ifstream yaml_dump(instr.intermed_file_path);
-    output_log << "Reading perf events from " << instr.intermed_file_path << endl;
+    output_log << "Reading perf events from " << instr.intermed_dump_key << endl;
     output_log << "Dumping cores_to_ops_map into " << instr.output_dir_path + cores_to_ops_json_name << endl;
-    const PerfDesc perf_desc = perf_state.get_perf_desc();
-    const tt_digraph graph = perf_state.get_graph(instr.graph_name);
-    const std::unordered_map<string, PostprocessModelDesc> op_to_perf_model_desc = perf_state.get_all_perf_model_desc();
-    unordered_map<string, core_descriptor> cores_to_ops = perf_state.get_core_to_desc_map(graph.my_graph_info.name);
+    const PerfDesc &perf_desc = perf_state.get_perf_desc();
+    const tt_digraph &graph = perf_state.get_graph(instr.graph_name);
+    const unordered_map<string, PostprocessModelDesc> &op_to_perf_model_desc = perf_state.get_all_perf_model_desc();
+    const unordered_map<string, core_descriptor> &cores_to_ops = perf_state.get_core_to_desc_map(graph.my_graph_info.name);
 
     string current_line;
     core_events current_core;
@@ -461,7 +1402,7 @@ string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *
     //      The wrapping up of the thread includes:
     //      1- Inserting the current thread into the current core list of threads
     //      2- Pushing the current core into the vector of all the cores if all threads have been processed.
-    while (std::getline(yaml_dump, current_line)) {
+    while (std::getline(intermed_dump, current_line)) {
         line_idx++;
         // Only one of these flags must be set at any time.
         log_assert(!(skip_to_next_core && skip_to_next_thread), "cannot set skip_to_next_core and skip_to_next_thread simultaneously");
@@ -527,14 +1468,13 @@ string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *
                     continue;
                 }
                 // The first four events in the math thread should be skipped.
-                if (current_thread.thread_id == 1 && event_idx_within_thread <= 4) {
+                if (current_thread.thread_type == ThreadType::MATH and event_idx_within_thread <= 4) {
                     continue;
                 }
-                // The first two events in the unpacker/packer threads should be skipped.
-                if ((current_thread.thread_id == 0 || current_thread.thread_id == 2 || current_thread.thread_id == 4) && event_idx_within_thread <= 2) {
-                    continue;
-                }
-                if ((current_thread.thread_id == 0 || current_thread.thread_id == 2 || current_thread.thread_id == 4) && event_val == 0xffffffff) {
+                // The first two events in the unpacker/packer/brisc threads should be skipped.
+                // If event val is 0xffffffff, skip
+                if ((current_thread.thread_type == ThreadType::UNPACK or current_thread.thread_type == ThreadType::PACK or current_thread.thread_type == ThreadType::BRISC) 
+                    and (event_idx_within_thread <= 2 or event_val == 0xffffffff)) {
                     continue;
                 }
 
@@ -558,7 +1498,7 @@ string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *
         process_thread_end(
             current_thread, current_core, all_core_events, all_core_ids, current_thread_events, core_id_str, perf_desc, skip_to_next_core, skip_to_next_thread, false, false);
     }
-    json dump_events_aligned = create_postprocess_report(all_core_events, all_core_ids, instr, perf_desc, perf_state.get_device_alignment_info(), graph, op_to_perf_model_desc, true);
+    json dump_events_aligned = create_postprocess_report(all_core_events, all_core_ids, instr, perf_desc, perf_state.get_device_alignment_info(), graph, op_to_perf_model_desc, true, versim);
 
     pair<uint64_t, uint64_t> largest_delay_start_and_end = get_epoch_q_empty_largest_delay(dump_events_aligned);
 
@@ -572,7 +1512,7 @@ string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *
     output_file.close();
 
     if (perf_desc.generate_original_report) {
-        json dump_events = create_postprocess_report(all_core_events, all_core_ids, instr, perf_desc, perf_state.get_device_alignment_info(), graph, op_to_perf_model_desc, false);
+        json dump_events = create_postprocess_report(all_core_events, all_core_ids, instr, perf_desc, perf_state.get_device_alignment_info(), graph, op_to_perf_model_desc, false, versim);
         ofstream output_file(instr.output_dir_path + "/" + postprocess_original_json_name);
         output_log << "Writing the perf results in " << instr.output_dir_path + "/" + postprocess_original_json_name << endl;
         log_debug(tt::LogPerfPostProcess, "Writing the perf results in {} /{}", instr.output_dir_path, postprocess_original_json_name);
@@ -586,136 +1526,42 @@ string parse_perf_dump_common(InstructionInfo &instr, const buda_SocDescriptor *
     output_runtime_table << std::setw(4) << runtime_table;
     output_runtime_table.flush();
     output_runtime_table.close();
-    yaml_dump.close();
     output_log.close();
     create_op_report(runtime_table, instr.output_dir_path, perf_desc);
     create_runtime_table(runtime_table, instr.output_dir_path);
-    return instr.output_dir_path + "/" + postprocess_json_name;
 }
 
-void generate_intermediate_yaml_dumps(
+// For each device, we will extract all core events its perf buffers in dram 
+// then, we will create divide the raw dram perf dumps into intermediate dumps
+// intermediate dumps will be created for each instruction, and contain information about events of each worker core for that instruction
+// finally, we will parse the intermediate dumps and create reports (perf_postprocess.json, runtime_table.json etc.) for each instruction
+void process_all_instructions_and_create_reports(
+    vector<InstructionInfo> &all_instructions,
     const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events,
-    const vector<InstructionInfo>& all_instructions,
     const PerfState &perf_state,
-    const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip) {
-
+    const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip,
+    bool versim
+) {
     log_debug(tt::LogPerfPostProcess, "Extracting intermediate yamls from dram dump.");
-    for (auto it: perf_state.get_device_alignment_info().device_id_to_start_cycle) {
-        vector<string> device_intermed_path;
-        for (const InstructionInfo& instr: all_instructions) {
-            if (it.first != instr.device_id) {
+    log_info(tt::LogPerfPostProcess, "Processing all instructions...");
+    for (const auto &[device_id, device_start_cycle] : perf_state.get_device_alignment_info().device_id_to_start_cycle) {
+        vector<InstructionInfo*> device_instructions;
+        for (InstructionInfo &instr: all_instructions) {
+            if (instr.device_id != device_id) {
                 continue;
             }
-            string graph_name = instr.graph_name;
-            string program_name = instr.program_name;
-            string file_path = instr.intermed_file_path;
-            device_intermed_path.push_back(file_path);
+            device_instructions.push_back(&instr);
         }
-        
-        extract_core_events_from_dram_dump(all_dram_events, all_instructions, perf_state.get_perf_desc(), it.first, device_intermed_path, &sdesc_per_chip.at(it.first));
-    }
-}
-
-void populate_output_directory_paths(vector<InstructionInfo> &all_instructions, const perf::PerfDesc &perf_desc, const string& output_dir) {
-    log_debug(tt::LogPerfPostProcess, "Populating output directory paths for all instructions");
-    string perf_out_dir = get_device_perf_out_directory(
-        output_dir,
-        perf_desc,
-        false);
-
-    for (InstructionInfo &instr: all_instructions) {
-
-        instr.set_output_dir_path(perf_out_dir);
-        if (!fs::exists(instr.output_dir_path)) {
-            fs::create_directories(instr.output_dir_path);
+        log_assert(sdesc_per_chip.find(device_id) != sdesc_per_chip.end(), "Could not find soc descriptor for device id {}", device_id);
+        std::unordered_map<string, std::shared_ptr<stringstream>> device_intermed_dumps = extract_core_events_from_device_dram_dump(device_instructions, all_dram_events, perf_state.get_perf_desc(), &sdesc_per_chip.at(device_id));
+        for (InstructionInfo* instr : device_instructions) {
+            log_assert(instr->intermed_dump_key  != "", "All intermediate yaml files must be dumped.");
+            log_assert(instr->output_dir_path    != "", "All output directory paths must have been set.");
+            log_assert(device_intermed_dumps.find(instr->intermed_dump_key) != device_intermed_dumps.end(), "Could not find intermed dump for instruction {}", instr->intermed_dump_key);
+            parse_intermed_dump_and_create_reports(*(device_intermed_dumps.at(instr->intermed_dump_key)), *instr, perf_state, versim);
+            log_info(tt::LogPerfPostProcess, "Finished perf-postprocess for program {}, graph {}, epoch {}/{}", instr->program_name, instr->graph_name, instr->instr_id_global, all_instructions.size()-1);
         }
     }
-
-}
-
-void process_all_instructions(vector<InstructionInfo> &all_instructions, const PerfState &perf_state, const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip) {
-    log_info(tt::LogPerfPostProcess, "Processing all instructions...");
-
-    uint instr_idx = 0;
-    for (InstructionInfo &instr: all_instructions) {
-        // backend_profiler.record_loader_event(perf::HostEventType::PERF_PROCESS_SINGLE_EPOCH);
-        log_assert(instr.intermed_file_path  != "", "All intermediate yaml files must be dumped.");
-        log_assert(instr.output_dir_path     != "", "All output directory paths must have been set.");
-        log_assert(fs::exists(instr.intermed_file_path), "intermed file path for instrn does not exist");
-        log_debug(tt::LogPerfPostProcess, "Starting postprocess json generator for input file: {} and output_directory: {}", instr.intermed_file_path, instr.output_dir_path);
-        parse_perf_dump_common(instr, &sdesc_per_chip.at(instr.device_id), perf_state);
-        // fs::copy(instr.intermed_file_path, instr.output_dir_path + "/" + instr.get_intermed_file_name());
-        fs::remove(instr.intermed_file_path);
-        log_info(tt::LogPerfPostProcess, "Finished perf-postprocess for program {}, graph {}, epoch {}/{}", instr.program_name, instr.graph_name, instr_idx, all_instructions.size()-1);
-        instr_idx++;
-        // backend_profiler.record_loader_event(perf::HostEventType::PERF_PROCESS_SINGLE_EPOCH);
-    }
-}
-
-vector<InstructionInfo> populate_all_instructions(PerfState &perf_state, const string& perf_out_dir, std::shared_ptr<tt_device> device) {
-    log_debug(tt::LogPerfPostProcess, "Populating InstructionInfo vector for all instructions executed.");
-    vector<InstructionInfo> all_instructions_info;
-
-    // Device ID to frequency map.
-    std::map<int, int> freq_all_devices = device->get_clocks();
-    set<int> mmio_devices;
-    set<int> active_devices;
-    for (const auto &it: freq_all_devices) {
-        mmio_devices.insert(it.first);
-    }
-    for (const auto &it: perf_state.get_device_alignment_info().device_id_to_start_cycle) {
-        active_devices.insert(it.first);
-    }
-
-    // Populate the aiclk freqs for versim
-    if (freq_all_devices.size() == 0){
-        for (const auto& device_id: active_devices){
-            freq_all_devices.insert({device_id, 500}); // Default freq.
-            mmio_devices.insert(device_id);
-        }
-    }
-
-    // Check for consistent clock across mmio devices, if non-mmio devices are used
-    if (mmio_devices.size() != active_devices.size()) {
-
-        log_assert(mmio_devices.size() > 0, "MMIO devices are empty");
-        
-        int last_device_id = -1;
-        for (const auto &device: mmio_devices) {
-            if (last_device_id != -1) {
-                log_assert(freq_all_devices.at(last_device_id) == freq_all_devices.at(device), "If we use non-mmio chips, the aiclk freq for all mmio devices must be the same");
-            }
-            last_device_id = device;
-        }
-        // After the check, add the same frequency for all the devices that netlist is using
-        for (int active_device: active_devices) {
-            if (mmio_devices.find(active_device) == mmio_devices.end()) {
-                freq_all_devices.insert({active_device, freq_all_devices.at(last_device_id)});
-            }
-        }
-    }
-
-    for (auto &device: freq_all_devices){
-        log_info(tt::LogPerfPostProcess, "Observed AICLK: {} for device_id: {}", device.second, device.first);
-    }
-
-    int global_idx = 0;
-    const vector<instruction_info_wrapper> unprocessed_instrs = perf_state.get_unprocessed_executed_instr();
-    for (const instruction_info_wrapper &instr_wrap: unprocessed_instrs) {
-        const string &program_name = instr_wrap.program_name;
-        const string &graph_name = instr_wrap.instr->graph_name;
-        const tt_digraph &graph = perf_state.get_graph(graph_name);
-        const uint target_device = graph.my_graph_info.target_device;
-        const int &current_aiclk = freq_all_devices.at(target_device);
-
-        InstructionInfo info(
-            instr_wrap.program_id, instr_wrap.local_epoch_id, instr_wrap.global_epoch_id,
-            perf_state.get_num_instructions_executed(instr_wrap.program_id),
-            program_name, graph_name, target_device, graph, perf_out_dir, current_aiclk, graph.my_graph_info.input_count);
-        all_instructions_info.push_back(info);
-    }
-    perf_state.update_num_instructions_processed(unprocessed_instrs.size());
-    return all_instructions_info;
 }
 
 vector<EpochPerfInfo> get_epoch_info(const vector<InstructionInfo> &all_instructions_info) {
@@ -750,11 +1596,7 @@ vector<EpochPerfInfo> get_epoch_info(const vector<InstructionInfo> &all_instruct
     return all_epoch_perf_info;
 }
 
-void create_epoch_info_report(const vector<tt::EpochPerfInfo>& all_epochs_info, const int &input_count, const string& output_path) {
-    create_all_epochs_perf_info_report(all_epochs_info, input_count, output_path);
-}
-
-void dump_perf_graphviz(const digraph &graph, const string& path) {
+void dump_perf_graphviz(const boost::adjacency_list<boost::listS, boost::vecS, boost::bidirectionalS, tt_digraph_node_struct, tt_digraph_edge_struct> &graph, const string &path) {
     ofstream outfile;
     outfile.open(path);
     boost::write_graphviz(
@@ -770,26 +1612,6 @@ void generate_graphs(const vector<InstructionInfo> &all_instructions) {
         log_assert(instr.output_dir_path != "", "All output directory paths must have been set.");
         string path_to_graph = instr.output_dir_path + "/" + "perf_graph_" + instr.graph_name + ".dot";
         dump_perf_graphviz(instr.netlist_graph.graph, path_to_graph);
-    }
-}
-
-void print_perf_info_all_epochs(bool print_to_file, const string& output_dir, const PerfState &perf_state) {
-    if (print_to_file) {
-        log_assert(fs::exists(output_dir), "Perf output directory does not exist");
-    }
-    string perf_output_path = get_perf_out_directory(output_dir, perf_state.get_perf_desc().override_perf_output_dir, false);
-    string output_path = perf_output_path + perf_info_all_epochs_yaml_name;
-    string output_path_csv = perf_output_path + perf_info_all_epochs_csv_name;
-    if (perf_state.is_postprocessor_executed()) {
-        // for (perf::EpochPerfInfo epoch_info: perf_state.all_epochs_perf_info) {
-        //     epoch_info.print();
-        // }
-        print_epoch_perf_table(perf_state.get_all_epochs_perf_info(), output_path_csv, perf_state.get_perf_desc().measure_steady_state_perf);
-        if (print_to_file) {
-            create_epoch_info_report(perf_state.get_all_epochs_perf_info(), perf_state.get_total_input_count(), output_path);
-        }
-    } else {
-        log_error("Attempting to read perf info but Perf-Postprocessor has not been executed");
     }
 }
 
@@ -809,6 +1631,31 @@ uint64_t convert_device_to_host_timestamp(const uint64_t &device_timestamp_rebia
     // device_timestamp_rebiased is already the actual timestamp read from the device subtracted by the device start cycle
     uint64_t converted_val = host_start + (double(host_end - host_start) * double(device_timestamp_rebiased) / double(device_end - device_start));
     return converted_val;
+}
+
+host_global_events populate_host_global_events(const thread_events& thread) {
+    host_global_events global_events;
+    for (const auto& event_ref: thread.events) {
+        uint event_id = event_ref.first;
+        HostEventProperties event_properties(event_id);
+        if (event_properties.event_type == uint(HostEventType::RUN_PROGRAM)) {
+            for (const auto& each_event: event_ref.second) {
+                if (global_events.first_program_start == ULLONG_MAX or
+                    global_events.first_program_start > each_event.first_val) {
+                        global_events.first_program_start = each_event.first_val;
+                    }
+            }
+        }
+        if (event_properties.event_type == uint(HostEventType::POP_OUTPUT)) {
+            for (const auto& each_event: event_ref.second) {
+                if (global_events.last_output_pop_end == ULLONG_MAX or
+                    global_events.last_output_pop_end < each_event.second_val) {
+                        global_events.last_output_pop_end = each_event.second_val;
+                    }
+            }
+        }
+    }
+    return global_events;
 }
 
 void append_epoch_runtime_to_host_profiler(const PerfState &perf_state) {
@@ -848,29 +1695,25 @@ void append_epoch_runtime_to_host_profiler(const PerfState &perf_state) {
 // 3 - Analyses the perf dump and generates a json file containing detailed information on each
 //     core and each thread separately.
 // 4 - Analyses the per-thread data and calculates per-core events such as, runtime, math-util, ...
-bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, PerfState &perf_state, const string& output_dir, std::shared_ptr<tt_device> device, const std::unordered_map<chip_id_t, buda_SocDescriptor>& sdesc_per_chip) {
-
+bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_events, PerfState &perf_state, const string& output_dir, std::shared_ptr<tt_device> device, const std::unordered_map<chip_id_t, buda_SocDescriptor> &sdesc_per_chip) {
+    PROFILE_SCOPE_MS();
+    const bool versim = (perf_state.get_target_device_type() == tt::TargetDevice::Versim);
     bool perf_check_passed = true;
     perf::ScopedEventProfiler profile(perf::HostEventType::PERF_POSTPROCESSOR);
     log_info(tt::LogPerfPostProcess, "Starting perf postprocessor...");
-    const PerfDesc perf_desc = perf_state.get_perf_desc();
+    const PerfDesc &perf_desc = perf_state.get_perf_desc();
     string perf_out_dir = get_device_perf_out_directory(output_dir, perf_desc, false);
     log_info(tt::LogPerfPostProcess, "Setting perf postprocess output directory to {}", perf_out_dir);
     log_debug(tt::LogPerfPostProcess, "All instructions executed:");
     
-    vector<string> intermed_file_paths;
-
     // Take the instructions recorded in perf_state and create a vector of InstructionInfo which includes all instructions executed on all devices
     vector<InstructionInfo> all_instructions_info = populate_all_instructions(perf_state, perf_out_dir, device);
-    
-    // Using the order of instructions executed on each worker-core, parse the dram dump, and create a separate yaml file for each epoch
-    generate_intermediate_yaml_dumps(all_dram_events, all_instructions_info, perf_state, sdesc_per_chip);
 
     // Based on the perf view mode, populate the output directory names for each instruction
     populate_output_directory_paths(all_instructions_info, perf_desc, output_dir);
 
-    // Use the intermediate yaml as the input and the output directory path, to generate the postprocessor and runtime json files
-    process_all_instructions(all_instructions_info, perf_state, sdesc_per_chip);
+    // Process all dram events, extract events and timestamps and assign them to each instruction, and finally create reports for each instruction
+    process_all_instructions_and_create_reports(all_instructions_info, all_dram_events, perf_state, sdesc_per_chip, versim);
 
     // Generate graph dumps of instructions in the same directory as the postprocess and runtime json files
     generate_graphs(all_instructions_info);
@@ -882,7 +1725,7 @@ bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_eve
     }
     perf_state.set_postprocessor_executed();
     log_info(tt::LogPerfPostProcess, "Finished perf postprocessor successfully");
-    print_perf_info_all_epochs(true, output_dir, perf_state);
+    print_perf_info_all_epochs(output_dir, perf_state, true);
     if (perf_desc.append_device_runtime_to_host_report) {
         append_epoch_runtime_to_host_profiler(perf_state);
     }
@@ -894,7 +1737,7 @@ bool run_perf_postprocess(const map<tt_cxy_pair, vector<uint32_t>> &all_dram_eve
 
 void process_host_profiler_entry(uint64_t event_id, uint64_t event_val, thread_events &current_thread, uint process_id, uint thread_id, const vector<string> &all_labels) {
     auto event_ref = current_thread.events.find(event_id);
-    event current_event = {.id = event_id, .first_val = event_val};
+    device_perf_event current_event = {.id = event_id, .first_val = event_val};
     current_event.description = decode_host_event_name(event_id, process_id, thread_id, all_labels);
     if (event_ref == current_thread.events.end()) {
         
@@ -957,7 +1800,7 @@ thread_events run_postprocessor_single_thread_epoch(PerfDumpHeader header, vecto
     // log_debug(tt::LogPerfPostProcess, "Starting perf postprocess on a single perf thread dump with header:");
     // log_debug(tt::LogPerfPostProcess, "{}", get_perf_dump_header_ss(header).str());
     thread_events current_thread;
-    current_thread.thread_id = header.thread_id;
+    current_thread.thread_type = ThreadType(header.thread_id);
     current_thread.header = header;
     log_assert(perf_data.at(0) == valid_thread_dump_start_id, "Each thread dump must start with value {}", valid_thread_dump_start_id);
     log_assert(perf_data.back() == thread_dump_end_id, "Each thread dump must end with value {}", thread_dump_end_id);
@@ -1205,13 +2048,13 @@ void PerfHostGenerateReport::generate_all_reports() {
     
     vector<EpochPerfInfo> all_epoch_info = get_epoch_info(all_instruction_info);
     push_all_epoch_perf_info(all_epoch_info);
-    const PerfDesc perf_desc = perf_state->get_perf_desc();
+    const PerfDesc &perf_desc = perf_state->get_perf_desc();
     string perf_output_path = get_perf_out_directory(perf_state->get_test_output_dir(), perf_desc.override_perf_output_dir, false);
     string output_path_csv = perf_output_path + perf_info_all_epochs_csv_name;
     string output_path_yaml = perf_output_path + perf_info_all_epochs_yaml_name;
 
     print_epoch_perf_table(all_epoch_info, output_path_csv, perf_desc.measure_steady_state_perf);
-    create_epoch_info_report(all_epoch_info, perf_state->get_total_input_count(), output_path_yaml);
+    create_all_epochs_perf_info_report(all_epoch_info, perf_state->get_total_input_count(), output_path_yaml);
 }
 
 bool PerfHostGenerateReport::run_concurrent_performance_check() {
@@ -1244,7 +2087,7 @@ void PerfHostGenerateReport::create_postprocess_report_concurrent(const std::sha
     // uint64_t start = perf::get_timestamp();
 
     const uint &global_epoch_id = epoch_event->get_global_epoch_id();
-    const PerfDesc perf_desc = perf_state->get_perf_desc();
+    const PerfDesc &perf_desc = perf_state->get_perf_desc();
 
     const instruction_info_wrapper &instr_wrap = epoch_event->instr_wrap;
     const string &graph_name = instr_wrap.instr->graph_name;
@@ -1271,8 +2114,8 @@ void PerfHostGenerateReport::create_postprocess_report_concurrent(const std::sha
     }
     fs::create_directories(instr.output_dir_path);
 
-    const std::unordered_map<string, tt_digraph> graphs = {{graph_name, graph}};
-    json postprocess_report = create_postprocess_report(all_cores, all_core_ids, instr, perf_desc, epoch_event->device_alignment_info, epoch_event->graph_wrapper->graph, epoch_event->op_to_perf_model_desc, align_devices);
+    bool versim = (perf_state->get_target_device_type() == tt::TargetDevice::Versim);
+    json postprocess_report = create_postprocess_report(all_cores, all_core_ids, instr, perf_desc, epoch_event->device_alignment_info, epoch_event->graph_wrapper->graph, epoch_event->op_to_perf_model_desc, align_devices, versim);
     
     string output_file_name = instr.output_dir_path + postprocess_json_name;
     log_assert(!fs::exists(output_file_name), "Postprocessor report already exists under path {}", output_file_name);
@@ -1344,7 +2187,7 @@ void PerfHostPostprocessQueue::process_new_device_dump() {
         std::shared_ptr<uint32_t> first_word_ptr = q.front();
         log_assert(first_word_ptr.get()[0] == perf::valid_thread_dump_start_id, "Each device dump must start with value {}", perf::valid_thread_dump_start_id);
         
-        for (uint thread = 0; thread < host_mem::address_map::NUM_THREADS_IN_EACH_DEVICE_DUMP; thread++) {
+        for (uint thread_idx = 0; thread_idx < host_mem::address_map::NUM_THREADS_IN_EACH_DEVICE_DUMP; thread_idx++) {
 
             // log_debug(tt::LogPerfPostProcess, "PerfHostPostprocessQueue: Thread dump in postprocessor queue:");
             // log_debug(tt::LogPerfPostProcess, "{}", get_thread_dump_partial_ss(first_word_ptr + rd_ptr, single_thread_dump_size).str());
@@ -1396,7 +2239,7 @@ void PerfHostPostprocessQueue::process_new_device_dump() {
                     current_core.core_y = core_header.core_header.y;
                     partial_core_events.insert({core_header, current_core});
                 }
-                string thread_name = thread_names.at(header.thread_id);
+                const string &thread_name = thread_names.at(header.thread_id);
                 core_events &current_core = partial_core_events.at(core_header);
                 log_assert(current_core.threads.find(thread_name) == current_core.threads.end(),
                             "For the following core/epoch, the thread_events already exist: {}", get_perf_dump_header_ss(header).str());
@@ -1407,7 +2250,7 @@ void PerfHostPostprocessQueue::process_new_device_dump() {
                 if (all_threads_collected) {
                     total_num_full_core_received++;
                     auto instr_pair = perf_state->get_global_epoch_idx_and_instr_for_core(header);
-                    const instruction_info_wrapper instr_wrap = instr_pair.second;
+                    const instruction_info_wrapper &instr_wrap = instr_pair.second;
                     const uint32_t global_epoch_id = instr_pair.first;
                     const string &graph_name = instr_wrap.instr->graph_name;
                     current_core.descriptor = perf_state->get_core_desc(graph_name, tt_xy_pair(header.x, header.y));                    
@@ -1432,15 +2275,14 @@ void PerfHostPostprocessQueue::process_new_device_dump() {
                         const uint &aiclk = perf_state->get_aiclk(target_device);
                         uint num_epochs_this_program = 0;
                         num_epochs_this_program = perf_state->get_num_instructions_executed(instr_wrap.program_id);
-                        epoch_events new_epoch = {
-                                .all_core_events = {},
-                                .instr_wrap = instr_wrap,
-                                .graph_wrapper = perf_state->get_graph_wrapper(graph_name),
-                                .aiclk = aiclk,
-                                .num_epochs_current_program = num_epochs_this_program,
-                                .device_alignment_info = perf_state->get_device_alignment_info(),
-                                .op_to_perf_model_desc = perf_state->get_all_perf_model_desc()};
-                        std::shared_ptr<epoch_events> new_epoch_event = std::make_shared<epoch_events>(new_epoch);
+                        std::shared_ptr<epoch_events> new_epoch_event = std::make_shared<epoch_events>(
+                            instr_wrap,
+                            perf_state->get_graph_wrapper(graph_name),
+                            perf_state->get_all_perf_model_desc(),
+                            perf_state->get_device_alignment_info(),
+                            aiclk,
+                            num_epochs_this_program
+                        );
                         global_epoch_id_to_epoch_events.insert({
                             global_epoch_id,
                             new_epoch_event});

@@ -609,6 +609,7 @@ struct EpochPerfInfo {
     uint64_t last_pack_first_input = 0;
     uint64_t last_pack_last_input = 0;
 };
+
 /**
  * @brief Runtime Memory Barrier Types
  */
