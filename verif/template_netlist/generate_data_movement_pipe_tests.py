@@ -38,7 +38,8 @@ def generate_data_movement_pipe_tests(
     max_num_configs: int,
     output_dir: str,
     arch: str,
-    harvested_rows: int
+    harvested_rows: int,
+    run_compiler: bool
 ) -> None:
 
     assert (
@@ -56,13 +57,14 @@ def generate_data_movement_pipe_tests(
         verbose=True,
         log_to_file=False,
         clamp_num_configs=True,
-        dry_run=True,
         dump_config_yaml=True,
+        dry_run=True,
         timeout=0,
         num_retries_on_timeout=0,
         enable_strategy=False,
         use_hash=0,
-        harvested_rows=harvested_rows
+        harvested_rows=harvested_rows,
+        run_compiler=run_compiler
     )
 
 
@@ -90,6 +92,13 @@ if __name__ == "__main__":
         type=int,
         help="Maximum number of configs to generate"
     )
+    parser.add_argument(
+        "--run-compiler",
+        action="store_true",
+        default=False,
+        help="Run compiler to verify tests as part of test generation",
+    )
+
     args = parser.parse_args()
 
     assert args.pipe_type in DataMovementPipeTestType.__members__, f"Invalid pipe type: {args.pipe_type}"
@@ -99,5 +108,6 @@ if __name__ == "__main__":
         max_num_configs=args.max_num_configs,
         output_dir=args.output_dir,
         arch=args.arch,
-        harvested_rows=args.harvested_rows
+        harvested_rows=args.harvested_rows,
+        run_compiler=args.run_compiler
     )
