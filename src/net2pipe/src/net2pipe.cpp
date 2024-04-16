@@ -3835,7 +3835,10 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
             producer_output_row_major_ublock_scan_order(input_name, epoch_context));
 
         // Unpadding
-        input_src_tm = input_src_tm.unpad(op_info.input_unpadding.at(input_num).rt, op_info.input_unpadding.at(input_num).ct);
+        const auto& unpad_attribute = op_info.input_unpadding.at(input_num);
+        if (unpad_attribute.rt > 0 || unpad_attribute.ct > 0) {
+            input_src_tm = input_src_tm.unpad(unpad_attribute.rt, unpad_attribute.ct);
+        }
 
         // Apply TMs
         for (const auto& it : op_info.input_tm_ops[input_num]) {
@@ -3845,7 +3848,10 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
         }
         
         // Apply Padding
-        input_src_tm = input_src_tm.pad(op_info.input_padding.at(input_num).rt, op_info.input_padding.at(input_num).ct);
+        const auto& pad_attribute = op_info.input_padding.at(input_num);
+        if (pad_attribute.rt > 0 || pad_attribute.ct > 0) {
+            input_src_tm = input_src_tm.pad(pad_attribute.rt, pad_attribute.ct);
+        }
 
         // Verification / Assertions for post padding
         bool tm_padding = false;

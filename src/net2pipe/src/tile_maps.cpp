@@ -396,19 +396,24 @@ void three_d_array_tile_src_map::check_phased_stack(int& effective_c_stack_facto
 
   bool prev_vstack = false;
   bool prev_hstack = false;
+  bool prev_pad = false;
   bool stack_ok_for_single_t_buf = true;
   
   for (const std::string& tm_name : this->tm_sequence) {
     if (tm_name == "hstack") {
-      stack_ok_for_single_t_buf &= (!prev_hstack);
+      stack_ok_for_single_t_buf &= (!prev_hstack && !prev_pad);
       prev_hstack = true;
     }
     else if (tm_name == "vstack") {
-      stack_ok_for_single_t_buf &= (!prev_vstack);
+      stack_ok_for_single_t_buf &= (!prev_vstack && !prev_pad);
       prev_vstack = true;
     }
+    else if (tm_name == "pad") {
+      stack_ok_for_single_t_buf &= (!prev_pad);
+      prev_pad = true;
+    }
     else {
-      stack_ok_for_single_t_buf &= (!(prev_vstack || prev_hstack));
+      stack_ok_for_single_t_buf &= (!(prev_vstack || prev_hstack || prev_pad));
     }
   }
 
