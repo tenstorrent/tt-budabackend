@@ -125,7 +125,7 @@ else
 # Add AVX and FMA (Fused Multiply Add) flags for x86 compile
 CFLAGS ?= -MMD $(WARNINGS) -I. $(CONFIG_CFLAGS) -mavx2 -mfma -DBUILD_DIR=\"$(OUT)\" -DFMT_HEADER_ONLY -Ithird_party/fmt
 endif
-CXXFLAGS ?= --std=c++17 -fvisibility-inlines-hidden
+CXXFLAGS ?= --std=c++17 -fvisibility-inlines-hidden -Wno-stringop-overflow -Wno-unused-variable
 LDFLAGS ?= $(CONFIG_LDFLAGS) -Wl,-rpath,$(PREFIX)/lib -L$(LIBDIR) -ldl
 SHARED_LIB_FLAGS = -shared -fPIC
 STATIC_LIB_FLAGS = -fPIC
