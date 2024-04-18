@@ -235,7 +235,7 @@ inline uint16_t get_varinst_cmd_update_mask(const tt_varinst_queue_update_cmd_in
     log_assert(!((info.update_field_mask.has_field(Field::GlobalRdptr) || info.update_field_mask.has_field(Field::LocalRdptr))
     && info.update_field_mask.has_field(Field::GlobalWrptr)),
     "Cannot combine local/global rdptr update and global_wr_ptr update in EpochCmdVarinst currently.");
-    
+
     uint16_t update_mask =  (info.update_field_mask.has_field(Field::GlobalRdptr) << get_16b_header_position_for_field(Field::GlobalRdptr)) |
                             (info.update_field_mask.has_field(Field::GlobalWrptr) << get_16b_header_position_for_field(Field::GlobalWrptr)) |
                             (info.update_field_mask.has_field(Field::LocalRdptr)  << get_16b_header_position_for_field(Field::LocalRdptr))  |
@@ -250,28 +250,24 @@ inline std::string get_base_queue_name(const tt_queue_info &queue_info) {
     return queue_info.alias != "" ? queue_info.alias : queue_info.name;
 }
 
-} // namespace
-
 inline ostream& operator<<(ostream& os, const tt_varinst_queue_update_cmd_info& t) {
 
-    os << "tt_varinst_queue_update_cmd_info{ ";
-    os << ".valid_cmd = " << t.valid_cmd << ", ";
-    os << ".var_name = " << t.var_name << ", ";
-    os << ".opcode = " << t.opcode << ", ";
-    os << ".operand_0 = " << t.operand_0 << ", ";
-    os << ".operand_1 = " << t.operand_1 << ", ";
-    os << ".update_field_mask = " << (int) t.update_field_mask.value << ", ";
-    os << ".sync_type = " << (int) t.sync_type << ", ";
-    os << ".num_queues = " << t.queue_names.size() << ", ";
-    os << ".queue_names = {";
-    for (auto &queue_name: t.queue_names){
-        os << queue_name << ",";
-    }
-    os << "}";
-    os << "}";
-    return os;
+  os << "tt_varinst_queue_update_cmd_info{ ";
+  os << ".valid_cmd = " << t.valid_cmd << ", ";
+  os << ".var_name = " << t.var_name << ", ";
+  os << ".opcode = " << t.opcode << ", ";
+  os << ".operand_0 = " << t.operand_0 << ", ";
+  os << ".operand_1 = " << t.operand_1 << ", ";
+  os << ".update_field_mask = " << (int) t.update_field_mask.value << ", ";
+  os << ".sync_type = " << (int) t.sync_type << ", ";
+  os << ".num_queues = " << t.queue_names.size() << ", ";
+  os << ".queue_names = {";
+  for (auto &queue_name: t.queue_names){
+    os << queue_name << ",";
+  }
+  os << "}";
+  os << "}";
+  return os;
 }
 
-
-
-
+} // namespace
