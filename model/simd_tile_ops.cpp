@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "tile.hpp"
 
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 #include <immintrin.h>
 #endif
 
 namespace tt {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     inline void fast_transpose_4x4(const float *A, float *B, const int lda, const int ldb) {
         __m128 row1 = _mm_load_ps(&A[0*lda]);
         __m128 row2 = _mm_load_ps(&A[1*lda]);
@@ -159,7 +159,7 @@ namespace tt {
         data_format = rhs.data_format;
 
         int i,j;
-        #ifndef __ARM_ARCH
+        #ifdef __x86_64__
         __m256 row_vector;
 
         for(i=0;i<tt::constants::TILE_HEIGHT;++i)

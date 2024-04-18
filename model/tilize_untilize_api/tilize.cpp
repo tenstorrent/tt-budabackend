@@ -10,7 +10,7 @@
 #include <chrono>
 #include <cstring>
 #include <cmath>
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 #include <immintrin.h>
 #include "tilecopy.h"
 #endif
@@ -24,7 +24,7 @@
 #define NO_PTR_ALIAS __restrict__
 extern perf::tt_backend_perf backend_profiler;
 
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 #define PREFETCH(addr) _mm_prefetch((addr), _MM_HINT_T0)
 // Ignore ignored attributes warning related to using __m256i types in the std::function arguments
 // Warning raised due to alignment attributes  (implictly defined in the intrinsic type) not respected by the template
@@ -380,7 +380,7 @@ std::uint32_t DeviceTilizer<tilizer_backend>::queue_state::sync_local_rptr_with_
 
 template<Tilizer tilizer_backend>
 void DeviceTilizer<tilizer_backend>::preload_quad_headers(queue_state& s, uint32_t quad_size, uint32_t num_slots) {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     __m128i header_data = _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, quad_size / header_size_scale);
 
     for(auto i = 0; i < num_slots; i++) {
@@ -396,7 +396,7 @@ void DeviceTilizer<tilizer_backend>::preload_quad_headers(queue_state& s, uint32
 
 template<Tilizer tilizer_backend>
 void DeviceTilizer<tilizer_backend>::load_quad_headers_to_intermed_buf(uint32_t quad_size, uint32_t num_quads_in_block) {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     // Load quad headers when write combining
     __m128i header_data = _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, quad_size / header_size_scale);
     for(int i = 0; i < num_quads_in_block; i++) {
@@ -407,7 +407,7 @@ void DeviceTilizer<tilizer_backend>::load_quad_headers_to_intermed_buf(uint32_t 
 
 template<Tilizer tilizer_backend>
 void DeviceTilizer<tilizer_backend>::preload_unary_exponents(queue_state& s, uint32_t quad_size, uint32_t num_slots, tt::DataFormat target_format) {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     // Preload exponents here for Int8 -> Bfp8/Bfp8_b tilization.
     log_assert(target_format == tt::DataFormat::Bfp8 || target_format == tt::DataFormat::Bfp8_b, "Exponents should only be preinitialized for Bfp8/Bfp8_b target data.");
     
@@ -442,7 +442,7 @@ void DeviceTilizer<tilizer_backend>::preload_unary_exponents(queue_state& s, uin
 
 template<Tilizer tilizer_backend>
 void DeviceTilizer<tilizer_backend>::preload_zeros_to_dram(queue_state& s, std::vector<uint8_t>& zeros, uint32_t queue_size_in_bytes) {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     if(tilizer_backend == Tilizer::FastTilizeMMIOPush){
         for(auto i = s.write_address; i < s.write_address + queue_size_in_bytes; i += 32){
             _mm256_storeu_si256(reinterpret_cast<__m256i*>(i), _mm256_setzero_si256());
@@ -612,14 +612,14 @@ void DeviceTilizer<tilizer_backend>::init_data_copy_function(IO_LAYOUT layout, b
                 }
             }
         }
-        #ifndef __ARM_ARCH
+        #ifdef __x86_64__
         else {
             copy_quad = [&](const void* in, void* out, uint_fast32_t copy_size_bytes, vector<bool>& fill_data_for_faces, int num_rows_with_data, uint32_t datum_col_offset_for_quad, uint32_t quad_height, uint32_t num_faces_y, uint32_t num_faces_x, uint8_t* exp_host)
                         {return row_copy<32, Conversion>(reinterpret_cast<const typename Conversion::in_type*>(in), reinterpret_cast<typename Conversion::out_type*>(out), copy_size_bytes);};
         }
         #endif
     }
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     else {
         if(!(std::is_same<Conversion, RawUInt32_RawUInt32>::value || std::is_same<Conversion, RawUInt16_RawUInt16>::value || std::is_same<Conversion, RawUInt8_RawUInt8>::value)){ 
             if(stride > 0){
@@ -704,7 +704,7 @@ void DeviceTilizer<tilizer_backend>::init_from_tensors(const std::vector<tt_Pyto
         bool use_aligned_intrinsics_avx2 = !(reinterpret_cast<const std::uintptr_t>(t.ptr) % input_alignment_avx2);
         bool use_aligned_intrinsics_avx = !(reinterpret_cast<const std::uintptr_t>(t.ptr) % input_alignment_avx);
         
-        #ifndef __ARM_ARCH
+        #ifdef __x86_64__
         if(use_aligned_intrinsics_avx2) {
             simd_256_load = ([](const __m256i* ptr){return _mm256_load_si256(ptr);});
         }
@@ -1394,7 +1394,7 @@ tt_PytorchTensorDesc DeviceTilizer<tilizer_backend>::shuffle_tensor(const tt_Pyt
             pad_tensor<float>(tensor);
             tensor_to_shuffle = padded_tensor;
         }
-        #ifndef __ARM_ARCH
+        #ifdef __x86_64__
         if(can_use_fast_shuffler){
             if(need_scalar_fallback) {
                 if(stride == 1){
@@ -1427,7 +1427,7 @@ tt_PytorchTensorDesc DeviceTilizer<tilizer_backend>::shuffle_tensor(const tt_Pyt
             pad_tensor<uint16_t>(tensor);
             tensor_to_shuffle = padded_tensor;
         }
-        #ifndef __ARM_ARCH
+        #ifdef __x86_64__
         if(can_use_fast_shuffler){
             if(need_scalar_fallback) {
                 if(stride == 1){
