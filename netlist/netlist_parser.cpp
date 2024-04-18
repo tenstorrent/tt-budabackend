@@ -114,8 +114,8 @@ void netlist_parser::parse_queues(const YAML::Node& queues, unordered_map<string
                             .address = per_core_alloc_info[1].as<std::uint32_t>()});
                     }
                     if (it->second["read_ports"]) {
-                        if (this->device_info.arch != tt::ARCH::WORMHOLE_B0) {
-                            log_fatal("read_ports setting for DRAM buffers is only available for wormhole_b0");
+                        if (this->device_info.arch == tt::ARCH::GRAYSKULL) {
+                            log_fatal("read_ports setting for DRAM buffers is not available for grayskull");
                         }            
                         log_assert(it->second["dram"].size() == it->second["read_ports"].size(), "queue {}: read_ports setting must have one element per queue buffer", name); 
                         int i = 0;
@@ -127,8 +127,8 @@ void netlist_parser::parse_queues(const YAML::Node& queues, unordered_map<string
                         }            
                     }
                     if (it->second["write_ports"]) {
-                        if (this->device_info.arch != tt::ARCH::WORMHOLE_B0) {
-                            log_fatal( "write_ports setting for DRAM buffers is only available for wormhole_b0");
+                        if (this->device_info.arch == tt::ARCH::GRAYSKULL) {
+                            log_fatal( "write_ports setting for DRAM buffers is not available for grayskull");
                         }            
                         log_assert(it->second["dram"].size() == it->second["write_ports"].size(), "queue {}: write_ports setting must have one element per queue buffer", name); 
                         int i = 0;
@@ -434,13 +434,13 @@ void netlist_parser::parse_op(const YAML::Node& op, tt_op_info &op_info) {
                 } else if ((iiit->first.as<string>() == "srnd_fpu_en")) {
                     //Only here for backwards compatibility until safe to remove
                     op_info.attributes.stoch_rnd_mode = (iiit->second.as<bool>()) ? StochRndMode::Fpu : StochRndMode::None;
-                    if ((op_info.attributes.stoch_rnd_mode != StochRndMode::None) && this->device_info.arch != tt::ARCH::WORMHOLE_B0) {
-                        log_fatal("Stochastic rounding is only available for wormhole_b0");
+                    if ((op_info.attributes.stoch_rnd_mode != StochRndMode::None) && this->device_info.arch == tt::ARCH::GRAYSKULL) {
+                        log_fatal("Stochastic rounding is not available for grayskull");
                     }
                 } else if ((iiit->first.as<string>() == "stoch_rnd_mode")) {
                     op_info.attributes.stoch_rnd_mode = netlist_utils::get_stoch_rnd_mode(iiit->second.as<string>());
-                    if ((op_info.attributes.stoch_rnd_mode != StochRndMode::None) && (this->device_info.arch != tt::ARCH::WORMHOLE_B0)) {
-                        log_fatal("Stochastic rounding is only available for wormhole_b0");
+                    if ((op_info.attributes.stoch_rnd_mode != StochRndMode::None) && (this->device_info.arch == tt::ARCH::GRAYSKULL)) {
+                        log_fatal("Stochastic rounding is not available for grayskull");
                     }
                 } else if (
                     (iiit->first.as<string>() == "identity") &&
@@ -2844,7 +2844,7 @@ void netlist_parser::verify_complex_settings() {
             if (op_info.dest_accumulate_data_format == DataFormat::Float32) {
 
                 if(is_valid_matmul_op(op_info.type)) {
-                    bool accumulate_en = (device_info.arch == tt::ARCH::WORMHOLE_B0) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
+                    bool accumulate_en = (device_info.arch != tt::ARCH::GRAYSKULL) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
     
                     if(accumulate_en) {
                         log_assert(
@@ -2871,7 +2871,7 @@ void netlist_parser::verify_complex_settings() {
             if (op_info.dest_accumulate_data_format == DataFormat::Int32) {
 
                 if(is_valid_matmul_op(op_info.type)) {
-                    bool accumulate_en = (device_info.arch == tt::ARCH::WORMHOLE_B0) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
+                    bool accumulate_en = (device_info.arch != tt::ARCH::GRAYSKULL) ? (op_info.attributes.l1_acc) : (op_info.attributes.m_k > 1);
     
                     if(accumulate_en) {
                         log_assert(
@@ -2895,9 +2895,9 @@ void netlist_parser::verify_complex_settings() {
                                                 (netlist_utils::get_unary_op(op_info.type) == UnaryOp::Datacopy)),
                     "gradient ops does not support input transpose except for matmul and datacopy");
 
-                if ((device_info.arch != tt::ARCH::WORMHOLE_B0) && op_info.dest_accumulate_data_format == DataFormat::Float32) {
+                if ((device_info.arch == tt::ARCH::GRAYSKULL) && op_info.dest_accumulate_data_format == DataFormat::Float32) {
                     log_assert(op_info.intermed_data_format == op_info.dest_accumulate_data_format,
-                    "GS/WHA0 constraint: For gradients and accumulate data format Fp32, intermediate data format must be Fp32");
+                    "GS constraint: For gradients and accumulate data format Fp32, intermediate data format must be Fp32");
                 }
                 log_assert(op_info.type != "maximum",  "gradient ops does not support maximum op");
             }
@@ -2995,16 +2995,16 @@ void netlist_parser::verify_complex_settings() {
 	    
             //WHB0: Add asserts for matmul l1 acc kernel
             if (op_info.attributes.l1_acc) {
-                log_assert((device_info.arch == tt::ARCH::WORMHOLE_B0) || (device_info.arch == tt::ARCH::BLACKHOLE),
-                    "L1 accumulation is only a feature of wormhole b0 matmul, not supported on other devices");
+                log_assert(device_info.arch != tt::ARCH::GRAYSKULL,
+                    "L1 accumulation is only a feature of wormhole_b0/blackhole matmul, not supported on other devices");
 
                 log_assert(is_valid_matmul_op(op_info.type) || is_valid_depthwise_op(op_info.type),
-                    "L1 accumulation is only a feature of wormhole b0 matmul, not supported on other ops");
+                    "L1 accumulation is only a feature of wormhole_b0/blackhole matmul, not supported on other ops");
 
                 log_assert((op_info.intermed_data_format == DataFormat::Float32)
                     || (op_info.intermed_data_format == DataFormat::Int32)
                     || (op_info.intermed_data_format == DataFormat::Float16_b),
-                    "wh_b0 hardware constraint: matmul l1 accumulation can only support accumulation in fp32 and float16_b");
+                    "wh_b0/blackhole hardware constraint: matmul l1 accumulation can only support accumulation in fp32 and float16_b");
 
             }
 
