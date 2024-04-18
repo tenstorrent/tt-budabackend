@@ -94,7 +94,7 @@ ifneq ($(CCACHE),)
   export CCACHE_NOHARDLINK=true
   export CCACHE_DIR_EXISTS=$(shell [ -d $(CCACHE_DIR) ] && echo "1")
   ifneq ($(CCACHE_DIR_EXISTS), 1)
-    $(info $(HOME)/.ccache directory does not exist, creating it.")
+    $(info "$(HOME)/.ccache directory does not exist, creating it.")
     $(shell mkdir -p $(CCACHE_DIR))
   endif
   #CCACHE_CMD=$(CCACHE)
