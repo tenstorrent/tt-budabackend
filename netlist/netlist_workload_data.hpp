@@ -118,6 +118,8 @@ class netlist_workload_data {
     void assert_constants_not_modified_in_programs();
     void populate_instruction_temporal_graph_mappings(const netlist_parser& parser);
 };
+
+  ostream& operator<<(ostream& out, const tt::tt_address_range& t);
 }  // namespace tt
 
 namespace std {

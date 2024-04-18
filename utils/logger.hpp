@@ -23,6 +23,8 @@
 #include <pybind11/iostream.h>
 #endif
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "fmt/color.h"
 #include "fmt/core.h"
 #include "fmt/ostream.h"

@@ -345,13 +345,3 @@ void golden_workload_data::deallocate_untilized_memory(void *ptr) {
 }
 }  // namespace tt::golden
 
-ostream &operator<<(ostream &os, const tt::tt_address_range &t) {
-    os << "tt_address_range{";
-    os << " .device = " << t.device << ",";
-    os << " .channel = " << t.channel << ",";
-    os << " .base_byte_address = " << t.base_byte_address << ",";
-    os << " .end_byte_address = " << t.end_byte_address << ",";
-    os << " .byte_size = " << t.byte_size;
-    os << "}";
-    return os;
-}

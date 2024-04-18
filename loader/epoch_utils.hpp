@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "utils/logger.hpp"
 #include "epoch_q.h"
 #include "netlist/netlist_info_types.hpp"
 #include "netlist_program.hpp"

@@ -9,6 +9,7 @@
 #include "netlist/netlist_utils.hpp"
 #include "tt_backend_api_types.hpp"
 #include "utils/scoped_timer.hpp"
+#include "utils/logger.hpp"
 
 // Need namespaces because of hlk_args redefinition
 namespace matmul_u {
