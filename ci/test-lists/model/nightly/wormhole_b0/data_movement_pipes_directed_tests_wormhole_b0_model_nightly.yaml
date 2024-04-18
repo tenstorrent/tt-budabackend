@@ -1,0 +1,27 @@
+data_movement_pipes_directed_tests_wormhole_b0_model_nightly:
+  build_on_runner: True
+  tag: nightly
+  owner: ["ajakovljevic"]
+  arch_name: wormhole_b0
+  device_runner: Model
+
+  test_flow: "./build/test/verif/netlist_tests/test_inference"
+  vars: 
+    NETLIST_BASE_DIR: verif/directed_tests/data_movement_pipes
+    NETLIST_BUILD_DIR: build/test/$NETLIST_BASE_DIR
+  build_cmd:
+    - make -j8 build_hw
+    - make -j8 verif/netlist_tests
+    - mkdir -p $NETLIST_BUILD_DIR
+    - cp $NETLIST_BASE_DIR/pt_hardnet85_netlist.yaml $NETLIST_BUILD_DIR
+
+  build_timeout: "3600"
+  timeout: "500"
+  run_on_same_runner: True
+  artifacts: []
+
+# ========== Tests ========== #
+  # issue: bbe#2624
+  data_movement_pipes_directed_tests_wormhole_b0_model_nightly_decompose_post_tm_gather_pipes:
+    owner: ["ajakovljevic"]
+    command: ["--netlist $NETLIST_BUILD_DIR/pt_hardnet85_netlist.yaml --compile-only"]
