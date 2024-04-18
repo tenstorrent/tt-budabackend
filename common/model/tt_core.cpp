@@ -1046,7 +1046,7 @@ void hlk_pack_tile_to_stream(tt_core* core_ptr, int dst_index, int stream, int p
     }
 }
 
-template<int pop_blocks = 0>
+template<int pop_blocks>
 void hlk_pop_tiles(tt_core* core_ptr, int stream, int num_tiles) {
     //log_info(tt::LogModel, "hlk_pop_tiles on core {} stream {} num_tiles {} tiles_in_buf {}", 
     //    core_ptr->core_coords, stream, num_tiles, core_ptr->b_arr[stream]->tiles_in_buf());
@@ -1112,7 +1112,7 @@ void hlk_sfpu_dequant_int32(tt_core* core_ptr, int stream, int dstindex_a, int d
         core_ptr->hlk_sfpu_op_dequant_int32(dstindex_a, dstindex_b);
 }
 
-template<BinaryOp op_type, Dim broadcast_dim = Dim::None>
+template<BinaryOp op_type, Dim broadcast_dim>
 TT_HLK_ALWAYS_INLINE void hlk_binary_op(tt_core* core_ptr, int lstream, int rstream, int lindex, int rindex, int dst_index, int transpose) {
     switch(op_type) {
         case BinaryOp::Add:
@@ -1139,7 +1139,7 @@ TT_HLK_ALWAYS_INLINE void hlk_binary_op(tt_core* core_ptr, int lstream, int rstr
     }
 }
 
-template<BinaryOp op_type, BinaryOpDstReuse dst_reuse, Dim broadcast_dim = Dim::None>
+template<BinaryOp op_type, BinaryOpDstReuse dst_reuse, Dim broadcast_dim>
 TT_HLK_ALWAYS_INLINE void hlk_binary_op_reuse_dest(tt_core* core_ptr, int rstream, int rindex, int dst_index, int clear_fp_32_dst_acc) {
     switch(op_type) {
         case BinaryOp::Add:
