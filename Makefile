@@ -11,6 +11,13 @@ ARCH_NAME ?= grayskull
 HOST_ARCH = $(shell uname -m)
 # TODO: enable OUT to be per config (this impacts all scripts that run tests)
 # OUT ?= build_$(DEVICE_RUNNER)_$(CONFIG)
+# this flag disables build of firmware
+NOFW ?= 0
+# don't build FW on non-x86 hosts
+ifneq ("$(HOST_ARCH)", "x86_64")
+NOFW = 1
+endif
+
 OUT ?= $(BUDA_HOME)/build
 PREFIX ?= $(OUT)
 TT_MODULES=
@@ -160,8 +167,8 @@ ifeq ($(EMULATION_DEVICE_EN), 1)
 endif
 
 build: backend build_hw
-ifeq ("$(HOST_ARCH)", "aarch64")
-# Don't build RiscV FW on ARM. Supported toolchain only works on x86.
+ifeq ($(NOFW), 1)
+# Don't build RISC-V FW if the corresponding flag is set.
 build_hw: gitinfo umd src_ops src_pipes src_verif src_perf_lib netlist loader runtime
 else
 build_hw: gitinfo umd build_fw src_ops src_pipes src_verif src_perf_lib netlist loader runtime
