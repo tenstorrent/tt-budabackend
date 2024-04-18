@@ -126,7 +126,7 @@ WARNINGS ?= -Wdelete-non-virtual-dtor -Wreturn-type -Wswitch -Wuninitialized -Wn
 CC ?= $(CCACHE_CMD) gcc
 CXX ?= $(CCACHE_CMD) g++
 DEVICE_CXX = g++
-ifeq ("$(HOST_ARCH)", "aarch64")
+ifneq ("$(HOST_ARCH)", "x86_64")
 CFLAGS ?= -MMD $(WARNINGS) -I. $(CONFIG_CFLAGS) -DBUILD_DIR=\"$(OUT)\" -DFMT_HEADER_ONLY -Ithird_party/fmt
 else
 # Add AVX and FMA (Fused Multiply Add) flags for x86 compile
