@@ -36,7 +36,7 @@ DEBUDA_SERVER_LDFLAGS = $(DEBUDA_SERVER_LIB_DEPS) -lyaml-cpp -lzmq -Wl,-rpath,\$
 
 -include $(DEBUDA_SERVER_DEPS)
 
-dbd/server/app: $(DEBUDA_SERVER) $(CREATE_ETHERNET_MAP_WORMHOLE_DBD)
+dbd/server/app: $(DEBUDA_SERVER)
 
 $(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/wormhole/create-ethernet-map
 	@mkdir -p $(@D)
