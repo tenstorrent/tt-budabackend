@@ -3009,6 +3009,15 @@ void Net2Pipe::emit_untilize_output(YAML::Emitter &out, const tt_op_info *op_inf
     out << SET_KEY_VAL("untilized_output_type_1_zdim", type_1_zdim);
 }
 
+const unsigned int Net2Pipe::splice_op_input_size_tiles(const int input_index, 
+                                                        const int mblock_size_tiles, 
+                                                        const tt_op_info& op_info) const
+{
+    int new_num_tiles = op_info.input_core_grids[input_index].r * op_info.input_core_grids[input_index].c * mblock_size_tiles * n2p::get_op_input_total_bcast_factor(op_info, input_index);
+    int real_stride = op_info.attributes.splice_infos[input_index].stride + op_info.attributes.splice_infos[input_index].index;
+    int num_tiles_passed = (new_num_tiles / real_stride) * op_info.attributes.splice_infos[input_index].length;
+    return num_tiles_passed / op_info.grid_size_logical_r() / op_info.grid_size_logical_c();
+}
 
 void Net2Pipe::get_op_input(
     const tt_op_info &op_info,
@@ -3064,7 +3073,7 @@ void Net2Pipe::get_op_input(
                input_block_size_tiles = input_block_k_tiles * op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct;
                scatter_gather_num_tiles = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.u_kt;
                // Accumulate attribute is not supported in case of identity matmul.
-               epoch_tiles = input_count * op_info.attributes.act_t * input_block_size_tiles;
+               epoch_tiles = input_count * t * input_block_size_tiles;
            } else if (index == 2) {
                input_block_size_tiles = op_info.attributes.num_index_tiles;
                scatter_gather_num_tiles = op_info.attributes.num_index_tiles;
@@ -3181,12 +3190,12 @@ void Net2Pipe::get_op_input(
     } else if (n2p::get_op_class(op_info) == OpClass::Nary) {
         tt_dim_info input_dim = op_info.input_dims.at(index);
         if (op_info.attributes.splice_mode == SpliceMode::Ublock) {
-            int mblock_size_tiles = input_dim.ublock_rt * input_dim.ublock_ct * input_dim.mblock_m * input_dim.mblock_n;
-            epoch_tiles = input_count * op_info.output_dim.t * mblock_size_tiles; //input & output dims must match
+            int mblock_size_tiles = input_dim.t * input_dim.ublock_rt * input_dim.ublock_ct * input_dim.mblock_m * input_dim.mblock_n;
+            epoch_tiles = input_count * splice_op_input_size_tiles(index, mblock_size_tiles, op_info);
             scatter_gather_num_tiles = mblock_size_tiles;
         } else if (op_info.attributes.splice_mode == SpliceMode::T) {
-            int mblock_size_tiles = input_dim.ublock_rt * input_dim.ublock_ct * input_dim.mblock_m * input_dim.mblock_n;
-            epoch_tiles = input_count * input_dim.t * mblock_size_tiles; //input & output dims must match
+            int mblock_size_tiles = input_dim.t * input_dim.ublock_rt * input_dim.ublock_ct * input_dim.mblock_m * input_dim.mblock_n;
+            epoch_tiles = input_count * splice_op_input_size_tiles(index, mblock_size_tiles, op_info);
             scatter_gather_num_tiles = mblock_size_tiles;
         }
     } else if (n2p::get_op_class(op_info) == OpClass::Buffer) {

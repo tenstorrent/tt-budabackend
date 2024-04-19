@@ -246,6 +246,7 @@ protected:
   bool is_target_device_downstream(int starting_device_id, int ending_device_id, int epoch_device, int target_device) const;
   void emit_queue(YAML::Emitter& out, std::string queue_name, std::string graph_name, const temporal_epoch_context& epoch_context, const n2p::DeterministicKeyMap& deterministic_id_map, int epoch_device, int input_count, const QueueSettings& queue_settings) const;
   int compute_intermediate_buffer_size_tiles(const tt_op_info &op_info, int input_count, int int_id, int output_is_scatter, int output_size_tiles, int output_replicate) const;
+  const unsigned int splice_op_input_size_tiles(const int input_index, const int mblock_size_tiles, const tt_op_info& op_info) const;
 
   void create_prolog_buffers(const std::string &op_name, int input_index, temporal_epoch_context& epoch_context) const;
   void collect_kernel_buf_info(const std::string &op_name, int input_count, temporal_epoch_context& epoch_context) const;
