@@ -26,11 +26,11 @@ enum class L1BufferType {
 
 enum class L1ProfileStage {
     Uninitialized = 0,
-    Initialized,
-    ReservedBinaries,
-    Pipegen,
-    ActualBinaries,
-    Done
+    Initialized = 1,
+    ReservedBinaries = 2,
+    Pipegen = 3,
+    ActualBinaries = 4,
+    Done = 5
 };
 
 class L1Buffer {
@@ -48,8 +48,7 @@ class L1Buffer {
     int m_reserved_size;
 
     public:
-    L1Buffer() {}
-
+    L1Buffer() = default;
     L1Buffer(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size):
         m_buffer_type(buffer_type), m_name(name), m_start_addr(start_addr), m_consumed_size(consumed_size), m_reserved_size(reserved_size) {
         log_assert(reserved_size >= 0, "Reserved size should always be positive");
@@ -58,7 +57,7 @@ class L1Buffer {
 
     void update(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
 
-    inline string name() const {
+    inline const string &name() const {
         return m_name;
     }
 
@@ -106,22 +105,21 @@ class L1Buffer {
 
 class L1Core {
     private:
-    chip_id_t m_device_id;
-    tt_xy_pair m_physical_coord;
-    tt_xy_pair m_logical_coord;
-    uint32_t m_l1_size;
+    const chip_id_t m_device_id = -1;
+    const tt_xy_pair m_physical_coord = tt_xy_pair();
+    const tt_xy_pair m_logical_coord = tt_xy_pair();
+    const uint32_t m_l1_size = 0;
+    const string m_op_name = "";
+    const string m_op_type = "";
     uint32_t m_consumed_size = 0;
     uint32_t m_reserved_size = 0;
-    string m_op_name;
-    string m_op_type;
     // contains all the buffers in the core's l1
     vector<std::shared_ptr<L1Buffer>> m_all_buffers;
     // maps start address to buffer, points to the same buffers as m_all_buffers
     unordered_map<uint32_t, std::shared_ptr<L1Buffer>> m_buffer_address_map;
 
     public:
-    L1Core() {}
-
+    L1Core() = default;
     L1Core(const tt_cxy_pair &physical_coord, const tt_cxy_pair &logical_coord, const string &op_name, const string &op_type, uint32_t l1_size);
 
     void add_buffer(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
@@ -130,23 +128,23 @@ class L1Core {
 
     void sort_buffers_and_check_overlap();
 
-    inline tt_xy_pair physical_coord() const { 
+    inline const tt_xy_pair &physical_coord() const { 
         return m_physical_coord; 
     }
 
-    inline tt_xy_pair logical_coord() const { 
+    inline const tt_xy_pair &logical_coord() const { 
         return m_logical_coord; 
     }
 
-    inline chip_id_t device() const {
+    inline const chip_id_t &device() const {
         return m_device_id;
     }
 
-    inline string op_name() const {
+    inline const string &op_name() const {
         return m_op_name;
     }
 
-    inline string op_type() const {
+    inline const string &op_type() const {
         return m_op_type;
     }
 
@@ -185,9 +183,9 @@ class L1Core {
 // An L1 graph should contain a unordered_set of L1 cores
 class L1Graph {
     private:
-    int m_temporal_epoch;
-    string m_graph_name;
-    chip_id_t m_target_device;
+    const int m_temporal_epoch = -1;
+    const string m_graph_name = "";
+    const chip_id_t m_target_device = -1;
 
     // these two maps point to the same objects
     unordered_map<tt_xy_pair, std::shared_ptr<L1Core>> m_physical_l1_cores;
@@ -197,8 +195,7 @@ class L1Graph {
     L1ProfileStage m_profile_stage = L1ProfileStage::Uninitialized;
 
     public:
-    L1Graph() {}
-
+    L1Graph() = default;
     L1Graph(const string &graph_name, int temporal_epoch, chip_id_t target_device, const unordered_map<string, core_descriptor> &cores_to_descriptors, uint32_t l1_size);
 
     void add_buffer_to_core(
@@ -232,18 +229,18 @@ class L1Graph {
         return m_temporal_epoch;
     }
     
-    inline chip_id_t target_device() const {
+    inline const chip_id_t &target_device() const {
         return m_target_device;
     }
 
-    inline L1ProfileStage get_profile_stage() const {
+    inline const L1ProfileStage &get_profile_stage() const {
         return m_profile_stage;
     }
     inline void set_profile_stage(L1ProfileStage stage) {
         m_profile_stage = stage;
     }
 
-    inline string graph_name() const {
+    inline const string &graph_name() const {
         return m_graph_name;
     }
 
@@ -252,15 +249,14 @@ class L1Graph {
 
 class L1Profiler {
     private:
-    const string m_arch_name;
-    const uint32_t m_l1_size;
+    const string m_arch_name = "";
+    const uint32_t m_l1_size = 0;
     // maps graph name to the binaries allocated to it
     unordered_map<string, std::unique_ptr<L1Graph>> m_graphs;
 
     public:
-    L1Profiler(): m_arch_name(""), m_l1_size(0) {}
-
-    L1Profiler(uint32_t l1_size, const string &arch_name): m_l1_size(l1_size), m_arch_name(arch_name) {};
+    L1Profiler() = default;
+    L1Profiler(const string &arch_name, uint32_t l1_size): m_arch_name(arch_name), m_l1_size(l1_size) {};
 
     void add_graph(const string &graph_name, int temporal_epoch, chip_id_t target_device, const unordered_map<string, core_descriptor> &cores_to_descriptors);
 
@@ -315,7 +311,7 @@ Profilers of different memory units (l1, dram) are to be wrapped in MemoryProfil
 */
 class MemoryProfiler {
     private:
-    uint32_t m_program_id = 0;
+    const bool m_profile_l1 = false;
     string m_arch_name = "";
     uint32_t m_l1_size = 0;
     unordered_map<chip_id_t, std::shared_ptr<buda_SocDescriptor>> m_chip_id_to_sdesc;
@@ -325,10 +321,9 @@ class MemoryProfiler {
     
     std::unique_ptr<L1Profiler> m_l1_profiler;
     std::mutex m_l1_profiler_mutex;
-    const bool m_profile_l1;
 
     public:
-    MemoryProfiler(): m_profile_l1(false) {}
+    MemoryProfiler() = default;
     MemoryProfiler(const unordered_map<chip_id_t, buda_SocDescriptor> &sdesc_per_chip, bool l1_profile_en);
 
     // try to add new graph to profiler, potentially adding new devices and their soc descriptors
@@ -361,6 +356,7 @@ class MemoryProfiler {
         L1ProfileStage stage
     ); 
 
+    // add buffer to a core's l1, graph found based on temporal epoch id and device id of core_coord
     void add_buffer_to_graph_l1(
         int temporal_epoch_id, 
         const tt_cxy_pair &core_coord, 
@@ -373,6 +369,11 @@ class MemoryProfiler {
         L1ProfileStage stage
     );
 
+    // add buffer to every worker core's l1 in every graph
+    void broadcast_add_buffer_l1(const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
+
+    // update buffer in a core's l1
+    // buffers are found based on old_start_addr
     void update_buffer_of_graph_l1(
         const string &graph_name, 
         const tt_cxy_pair &core_coord, 
@@ -386,9 +387,8 @@ class MemoryProfiler {
         L1ProfileStage stage
     );
 
-    // add buffer to every worker core's l1 that is running an op in the graph
-    void broadcast_add_buffer_l1(const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
-
+    // update buffer of every worker core's l1 in every graph, if the buffer is found
+    // buffers are found based on old_start_addr
     void broadcast_update_buffer_l1(
         const L1BufferType &buffer_type, 
         const string &buffer_name, 

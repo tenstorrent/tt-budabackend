@@ -16,7 +16,7 @@ string to_hex(uint64_t num, uint8_t num_digits) {
     return ss.str();
 }
 
-string get_core_str(tt_xy_pair core) {
+string get_core_str(const tt_xy_pair &core) {
     return to_string(core.x) + "-" + to_string(core.y);
 }
 /*********************
@@ -91,8 +91,7 @@ void L1Core::sort_buffers_and_check_overlap() {
 **********************/
 
 L1Graph::L1Graph(const string &graph_name, int temporal_epoch, chip_id_t target_device, const unordered_map<string, core_descriptor> &cores_to_descriptors, uint32_t l1_size)
-: m_temporal_epoch(temporal_epoch), m_target_device(target_device), m_graph_name(graph_name) 
-{
+: m_temporal_epoch(temporal_epoch), m_target_device(target_device), m_graph_name(graph_name) {
     // initialize empty l1 cores for this graph
     // cores_to_descriptors contains all the worker cores of this graph, and their corresponding coordinates, ops etc.
     for (const auto &[physical_core_str, descriptor] : cores_to_descriptors) {
@@ -367,23 +366,22 @@ void L1Profiler::create_reports(const string &output_dir) const {
 
 MemoryProfiler::MemoryProfiler(const unordered_map<chip_id_t, buda_SocDescriptor> &sdesc_per_chip, bool l1_profiler_en): m_profile_l1(l1_profiler_en) {   
     if (l1_profiler_en) {
-        unordered_map<chip_id_t, uint32_t> l1_sizes;
         for (const auto &[chip_id, sdesc] : sdesc_per_chip) {
             const string sdesc_arch = get_arch_str(sdesc.arch);
             if (m_arch_name == "") {
                 m_arch_name = sdesc_arch;
             }
             else {
-                log_assert(m_arch_name == sdesc_arch, "Unexpected chips to have different architectures {} and {}", m_arch_name, sdesc_arch);
+                log_assert(m_arch_name == sdesc_arch, "Architecture mismatch between cores: {} and {}", m_arch_name, sdesc_arch);
             }
             if (m_l1_size == 0) {
                 m_l1_size = sdesc.worker_l1_size;
             }
             else {
-                log_assert(m_l1_size == sdesc.worker_l1_size, "Unexpected cores to have different l1 sizes {} and {}", m_l1_size, sdesc.worker_l1_size);
+                log_assert(m_l1_size == sdesc.worker_l1_size, "L1 size mismatch between cores: {} and {}", m_l1_size, sdesc.worker_l1_size);
             }
         }
-        m_l1_profiler = std::make_unique<L1Profiler>(m_l1_size, m_arch_name);
+        m_l1_profiler = std::make_unique<L1Profiler>(m_arch_name, m_l1_size);
     }
 }
 
@@ -399,7 +397,7 @@ void MemoryProfiler::add_graph(const buda_SocDescriptor &sdesc, const tt_digraph
 
 void MemoryProfiler::update_chip_id_to_sdesc(chip_id_t chip_id, const buda_SocDescriptor &soc_descriptor) {
     if (m_chip_id_to_sdesc.find(chip_id) == m_chip_id_to_sdesc.end()) {
-        log_assert(m_arch_name == get_arch_str(soc_descriptor.arch), "New soc descriptor has different arch than memory profiler");
+        log_assert(m_arch_name == get_arch_str(soc_descriptor.arch), "New soc descriptor has different architecture than memory profiler");
         log_assert(m_l1_size == soc_descriptor.worker_l1_size, "New soc descriptor has different l1 size than memory profiler");
         m_chip_id_to_sdesc.emplace(chip_id, std::make_shared<buda_SocDescriptor>(soc_descriptor));
     }
@@ -510,31 +508,6 @@ void MemoryProfiler::broadcast_add_buffer_l1(
     }
 }
 
-void MemoryProfiler::broadcast_update_buffer_l1(
-    const L1BufferType &buffer_type, 
-    const string &buffer_name, 
-    const uint32_t old_start_addr,
-    const uint32_t new_start_addr,
-    int consumed_size, 
-    int reserved_size,
-    L1ProfileStage stage
-) {
-    if (!m_profile_l1) return;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
-    for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
-        m_l1_profiler->broadcast_update_buffer_all_used_cores(
-            graph_name, 
-            buffer_type,
-            buffer_name,
-            old_start_addr,
-            new_start_addr,
-            consumed_size,
-            reserved_size,
-            stage
-        );
-    }
-}
-
 void MemoryProfiler::update_buffer_of_graph_l1(
     const string &graph_name, 
     const tt_cxy_pair &core_coord, 
@@ -564,6 +537,31 @@ void MemoryProfiler::update_buffer_of_graph_l1(
     );
 }
 
+void MemoryProfiler::broadcast_update_buffer_l1(
+    const L1BufferType &buffer_type, 
+    const string &buffer_name, 
+    const uint32_t old_start_addr,
+    const uint32_t new_start_addr,
+    int consumed_size, 
+    int reserved_size,
+    L1ProfileStage stage
+) {
+    if (!m_profile_l1) return;
+    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
+        m_l1_profiler->broadcast_update_buffer_all_used_cores(
+            graph_name, 
+            buffer_type,
+            buffer_name,
+            old_start_addr,
+            new_start_addr,
+            consumed_size,
+            reserved_size,
+            stage
+        );
+    }
+}
+
 void MemoryProfiler::update_graph_profile_stage_l1(const string &graph_name, L1ProfileStage stage, bool force_update) {
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
@@ -579,7 +577,7 @@ void MemoryProfiler::update_profile_stage_all_graphs_l1(L1ProfileStage stage, bo
     std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
     for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
         if (!force_update and m_l1_profiler->get_graph_stage(graph_name) >= stage) {
-            return;
+            continue;
         }
         m_l1_profiler->set_graph_profile_stage(graph_name, stage);
     }
