@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
 from typing import Dict, List, Tuple
+import yaml
 
 from util import get_git_root
 
@@ -86,9 +87,7 @@ class CompilationPipelineRunner:
             relative_dump_folder,
             f"config_{hashlib.md5(str(config).encode()).hexdigest()}",
         )
-        template_yaml_relative = os.path.join(
-            "verif", "template_netlist", "templates", os.path.basename(template_yaml)
-        )
+        template_yaml_relative = os.path.relpath(template_yaml, get_git_root())
         netlist_test_infos = generate_netlists_from_configs(
             template_yaml_relative, relative_dir_path, relative_dump_folder
         )
