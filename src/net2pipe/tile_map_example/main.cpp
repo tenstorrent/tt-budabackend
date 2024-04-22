@@ -43,7 +43,9 @@ int main(int argc, char* argv[]) {
   //     three_d_array_tile_src_map::get_op_matmul_col_input
   //     three_d_array_tile_src_map::get_op_matmul_row_input
   //     three_d_array_tile_src_map::get_op_eltwise_input
-  consumer_to_producer_tile_map tile_map =  tm.get_op_eltwise_input(2,    // consumer t
+  consumer_to_producer_tile_map tile_map =  tm.get_op_eltwise_input(0, /* kernel_bcast_tiles */
+                                                                    false, /* kernel_bcast_tiles_per_t */
+                                                                    2,    // consumer t
                                                                     1, 2, // ublock r, c
                                                                     2, 1, // mblock ublocks r, c,
                                                                     8, 2, // grid r, c
@@ -83,7 +85,7 @@ int main(int argc, char* argv[]) {
   cout << "Max producer core fan out streams - estimated: " << max_producer_core_fan_out_streams_estimate << ", actual: " << max_producer_core_fan_out_streams  << "\n";
   cout << "Max producer core scatter stream blob phases - estimated: " << max_producer_core_scatter_stream_blob_phases_estimate << ", actual: " << max_producer_core_scatter_stream_blob_phases  << "\n";
   cout << "Max cosumer core gather stream blob phases - estimated: " << max_consumer_core_gather_stream_blob_phases_estimate << ", actual: " << max_consumer_core_gather_stream_blob_phases  << "\n";
-  
+
   cout << "\n\n";
 
 }

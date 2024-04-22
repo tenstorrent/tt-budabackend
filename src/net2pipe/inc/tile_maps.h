@@ -3,16 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <array>
 #include <string>
 #include <sstream>
 #include <map>
 #include <vector>
 #include <assert.h>
-#include <cstdint>
-#include <climits>
 
 #include "tile_maps_common.h"
-#include "net2pipe_logger.h"
 
 class tile_to_core_index_map {
 public:
@@ -32,13 +30,13 @@ public:
     return
       (this->core_r == other.core_r) &&
       (this->core_c == other.core_c) &&
-      (this->tile_index == other.tile_index);     
+      (this->tile_index == other.tile_index);
   }
   bool operator != (const tile_to_core_index_map& other) {
     return
       (this->core_r != other.core_r) ||
       (this->core_c != other.core_c) ||
-      (this->tile_index != other.tile_index);     
+      (this->tile_index != other.tile_index);
   }
 };
 
@@ -60,7 +58,7 @@ public:
   consumer_to_producer_tile_map(int producer_num_cores_r, int producer_num_cores_c,
                                 int consumer_num_cores_r, int consumer_num_cores_c) {
     this->producer_num_cores_r = producer_num_cores_r;
-    this->producer_num_cores_c = producer_num_cores_c; 
+    this->producer_num_cores_c = producer_num_cores_c;
     this->consumer_num_cores_r = consumer_num_cores_r;
     this->consumer_num_cores_c = consumer_num_cores_c;
   }
@@ -80,14 +78,41 @@ public:
   int max_consumer_core_phases();
 };
 
+// Class implementing a 3D array of tile_to_core_index_map through 1D array.
+class TileMap1D {
+public:
+  tile_to_core_index_map& get_tile_map(int t, int rt, int ct) {
+    return tile_map[get_index(t, rt, ct)];
+  }
+
+  void allocate(int t_size, int rt_size, int ct_size) {
+    this->t_size = t_size;
+    this->rt_size = rt_size;
+    this->ct_size = ct_size;
+    tile_map.resize(t_size * rt_size * ct_size);
+  }
+
+  void set_tile_map(int t, int rt, int ct, tile_to_core_index_map tm) {
+    tile_map[get_index(t, rt, ct)] = tm;
+  }
+
+private:
+  size_t get_index(int t, int rt, int ct) const {
+    return t * rt_size * ct_size + rt * ct_size + ct;
+  }
+
+  std::vector<tile_to_core_index_map> tile_map;
+  int t_size;
+  int rt_size;
+  int ct_size;
+};
 
 class three_d_array_tile_src_map {
-  
+
 protected:
-  
-  std::map <int, std::map <int, std::map<int, tile_to_core_index_map> > > tile_map;
-  std::map <map_dims, int> dim_size_map;
-  
+  TileMap1D tile_map;
+  std::array<int, 3> dim_size_map; // t, rt, ct
+
   std::string producer_name;
   std::string consumer_name;
   int r_stack_factor;
@@ -108,7 +133,7 @@ protected:
 
   std::vector<std::string> tm_sequence;
   std::vector<std::vector<int>> tm_args_sequence;
-    
+
   tile_to_core_index_map get_tile_map(int t, int rt, int ct, int input_index = 0);
 
   inline std::string dim_to_str(int t, int rt, int ct) {
@@ -121,7 +146,7 @@ protected:
     if (!condition) {
       std::stringstream full_err_msg;
       full_err_msg << "TM ERROR (producer = " << this->producer_name << ", consumer = " << this->consumer_name << "): " << error_msg << std::endl;
-      throw std::runtime_error(full_err_msg.str());                   
+      throw std::runtime_error(full_err_msg.str());
     }
   }
 
@@ -129,10 +154,34 @@ protected:
     return (tm_name == "vslice") || (tm_name == "hslice");
   }
 
-  three_d_array_tile_src_map copy_with_clear_tile_map() {
-    three_d_array_tile_src_map result = *this;
-    result.tile_map.clear();
+  three_d_array_tile_src_map copy_except_tile_map_vector() {
+    three_d_array_tile_src_map result;
+    result.producer_data_format = this->producer_data_format;
+    result.producer_name = this->producer_name;
+    result.consumer_name = this->consumer_name;
+    result.r_stack_factor = this->r_stack_factor;
+    result.c_stack_factor = this->c_stack_factor;
+    result.r_padding_tiles = this->r_padding_tiles;
+    result.c_padding_tiles = this->c_padding_tiles;
+    result.r_stack_padding = this->r_stack_padding;
+    result.c_stack_padding = this->c_stack_padding;
+    result.row_major_stack = this->row_major_stack;
+    result.r_slice_factor = this->r_slice_factor;
+    result.c_slice_factor = this->c_slice_factor;
+    result.r_bcast_factor = this->r_bcast_factor;
+    result.c_bcast_factor = this->c_bcast_factor;
+    result.tm_has_transpose = this->tm_has_transpose;
+    result.producer_output_buf_size_t = this->producer_output_buf_size_t;
+    result.multi_t_reach_stack = this->multi_t_reach_stack;
+    result.adjusted_slice_factor = this->adjusted_slice_factor;
+    result.dim_size_map = this->dim_size_map;
+    result.tm_sequence = this->tm_sequence;
+    result.tm_args_sequence = this->tm_args_sequence;
     return result;
+  }
+
+  void allocate_tile_map() {
+    tile_map.allocate(get_size(map_dims::t), get_size(map_dims::rt), get_size(map_dims::ct));
   }
 
   three_d_array_tile_src_map tile_transpose();
@@ -162,7 +211,7 @@ public:
     int num_cores_c;
     int t;
     bool row_major_ublock_scan_order;
-    
+
     data_format(int ublock_tiles_r, int ublock_tiles_c,
                 int mblock_ublocks_m, int mblock_ublocks_n,
                 int num_cores_r, int num_cores_c,
@@ -171,12 +220,12 @@ public:
       mblock_ublocks_m(mblock_ublocks_m), mblock_ublocks_n(mblock_ublocks_n),
       num_cores_r(num_cores_r), num_cores_c(num_cores_c), t(t),
       row_major_ublock_scan_order(row_major_ublock_scan_order) {}
-    
+
     data_format() :
       ublock_tiles_r(-1), ublock_tiles_c(-1),
       mblock_ublocks_m(-1), mblock_ublocks_n(-1),
       num_cores_r(-1), num_cores_c(-1), t(-1) {}
-    
+
     int r_size_tiles() { return num_cores_r*mblock_ublocks_m*ublock_tiles_r; }
     int c_size_tiles() { return num_cores_c*mblock_ublocks_n*ublock_tiles_c; }
     int mblock_size_tiles() { return mblock_ublocks_n*ublock_tiles_c*mblock_ublocks_m*ublock_tiles_r; }
@@ -196,9 +245,9 @@ public:
         (this->num_cores_r == other.num_cores_r) &&
         (this->num_cores_c == other.num_cores_c) &&
         (this->t == other.t) &&
-        (this->row_major_ublock_scan_order == other.row_major_ublock_scan_order);      
+        (this->row_major_ublock_scan_order == other.row_major_ublock_scan_order);
     }
-    
+
   };
 
   data_format producer_data_format;
@@ -233,7 +282,7 @@ public:
                                                         int consumer_t,
                                                         int consumer_ublock_tiles_r, int consumer_ublock_tiles_k,
                                                         int consumer_mblock_ublocks_m, int consumer_row_input_block_ublocks_k,
-                                                        int consumer_num_cores_r, int consumer_num_cores_c,                                                        
+                                                        int consumer_num_cores_r, int consumer_num_cores_c,
                                                         bool consumer_row_major_ublock_scan_order = false);
 
   consumer_to_producer_tile_map get_op_matmul_col_input(int kernel_bcast_tiles, bool kernel_bcast_tiles_per_t,
@@ -242,7 +291,7 @@ public:
                                                         int consumer_col_input_block_ublocks_k, int consumer_mblock_ublocks_n,
                                                         int consumer_num_cores_r, int consumer_num_cores_c,
                                                         bool consumer_row_major_ublock_scan_order = true);
-  
+
   std::tuple<consumer_to_producer_tile_map, consumer_to_producer_tile_map>
   get_prolog_matmul_col_input(int kernel_bcast_tiles, bool kernel_bcast_tiles_per_t,
                               int consumer_t,
@@ -251,13 +300,17 @@ public:
                               int consumer_mblock_ublocks_n,
                               int consumer_num_cores_r, int consumer_num_cores_c);
 
-  int get_size(map_dims dim) {
-    return this->dim_size_map[dim];
+  int get_size(map_dims dim) const {
+    return this->dim_size_map[static_cast<size_t>(dim)];
   }
-    
+
+  int& dim_size(map_dims dim) {
+    return this->dim_size_map[static_cast<size_t>(dim)];
+  }
+
   void get_val(int t, int rt, int ct, int& core_r, int& core_c, int& tile_index) {
     assert(t < get_size(map_dims::t) && rt < get_size(map_dims::rt) && ct < get_size(map_dims::ct));
-    tile_to_core_index_map tm = this->tile_map[t][rt][ct];
+    tile_to_core_index_map tm = this->tile_map.get_tile_map(t, rt, ct);
     core_r = tm.core_r;
     core_c = tm.core_c;
     tile_index = tm.tile_index;
@@ -267,7 +320,7 @@ public:
 
   three_d_array_tile_src_map pad(int rt, int ct);
   three_d_array_tile_src_map unpad(int rt, int ct);
-  
+
   void print();
 
   static inline bool divisible_either_direction(int a, int b) {
@@ -282,9 +335,9 @@ public:
                                int consumer_t,
                                // consumer grid & output block dimensions (for eltwise, same as input dimensions)
                                int consumer_grid_size_r, int consumer_grid_size_c,
-                               int consumer_mblock_ublocks_m, int consumer_mblock_ublocks_n, 
+                               int consumer_mblock_ublocks_m, int consumer_mblock_ublocks_n,
                                int consumer_ublock_tiles_r, int consumer_ublock_tiles_c,
-                               // k = inner dimension for matmul input blocks, don't-care for eltwise (includes full row/column)                        
+                               // k = inner dimension for matmul input blocks, don't-care for eltwise (includes full row/column)
                                int consumer_mblock_ublocks_k, int consumer_ublock_tiles_k,
                                bool consumer_row_major_ublock_scan_order,
                                // function return values:
@@ -296,9 +349,9 @@ public:
                                                int consumer_t,
                                                // consumer grid & output block dimensions (for eltwise, same as input dimensions)
                                                int consumer_grid_size_r, int consumer_grid_size_c,
-                                               int consumer_mblock_ublocks_m, int consumer_mblock_ublocks_n, 
+                                               int consumer_mblock_ublocks_m, int consumer_mblock_ublocks_n,
                                                int consumer_ublock_tiles_r, int consumer_ublock_tiles_c,
-                                               // k = inner dimension for matmul input blocks, don't-care for eltwise (includes full row/column)                        
+                                               // k = inner dimension for matmul input blocks, don't-care for eltwise (includes full row/column)
                                                int consumer_mblock_ublocks_k, int consumer_ublock_tiles_k,
                                                bool consumer_row_major_ublock_scan_order,
                                                // function return values:
