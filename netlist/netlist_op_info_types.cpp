@@ -174,7 +174,7 @@ ostream& operator<<(ostream& os, const tt_op_info& t) {
 }
 
 void verify_gradient_op(const tt_op_info& t) {
-    if (t.gradient_op and ((not netlist_utils::is_valid_matmul_op(t.type)) && (t.arch_name != tt::ARCH::WORMHOLE_B0) &&
+    if (t.gradient_op and ((not netlist_utils::is_valid_matmul_op(t.type)) && (t.arch_name == tt::ARCH::GRAYSKULL) &&
                            (BinaryOp::Multiply != (netlist_utils::get_binary_op(t.type))) &&
                            (UnaryOp::Datacopy != (netlist_utils::get_unary_op(t.type)))))
         log_fatal("Unsupported tt_op_info::gradient_op set for op {}, type {}", t.name, t.type);
