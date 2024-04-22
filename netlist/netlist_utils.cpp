@@ -293,6 +293,8 @@ TmOp netlist_utils::get_tm_op(string tm_op) {
         op = TmOp::vStack;
     } else if (tm_op == "tile_broadcast") {
         op = TmOp::TileBroadcast;
+    } else if (tm_op == "pad") {
+        op = TmOp::Pad;
     }
     return op;
 }

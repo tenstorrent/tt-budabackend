@@ -151,6 +151,7 @@ enum class TmOp : std::uint8_t
     vStack,
     Transpose,
     TileBroadcast,
+    Pad,
     Invalid,
 };
 
