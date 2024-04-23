@@ -75,6 +75,7 @@ struct test_args {
     bool use_netlist_input_output_list = false;
     bool run_programs_out_of_order = false;
     std::string harvesting_masks = "";
+    bool disable_l1_profiler = false;
     void parse_from_tti() {
         tti = std::make_shared<tt::tt_device_image>(tti_path, output_dir);
         netlist_path = tti->get_netlist_path();;
@@ -463,6 +464,7 @@ test_args parse_test_args(std::vector<std::string> input_args) {
     help_string += "--skip-check                : Skips the golden/observed check.\n";
     help_string += "--tensor-binary-dir         : Reads all the tensors (except for inputs to the graph) from the binaries";
     help_string += "--repeat-tensor-in-microbatch : Use the same tensor across all inputs in a microbatch (useful for determinism tests)\n";
+    help_string += "--disable-l1-profiler       : Disable backend l1 profiler\n";
     help_string += "--help                      : Prints this message\n";
     try {
         std::tie(args.output_dir, input_args) =
@@ -556,6 +558,7 @@ test_args parse_test_args(std::vector<std::string> input_args) {
         args.read_tensor_binaries = verif::cmdline_to_external_binary_mode(read_tensor_binaries_str);
         args.write_tensor_binaries = verif::cmdline_to_external_binary_mode(write_tensor_binaries_str);
         std::tie(args.use_netlist_input_output_list, input_args) = verif_args::has_command_option_and_remaining_args(input_args, "--use-netlist-input-output-list");
+        std::tie(args.disable_l1_profiler, input_args) = verif_args::has_command_option_and_remaining_args(input_args, "--disable-l1-profiler");
         check_valid_external_options(args);
 
         verif_args::validate_remaining_args(input_args);
@@ -644,6 +647,7 @@ int run(std::vector<std::string> &input_args)
         .soc_descriptor_path=args.device_desc_path,
         .cluster_descriptor_path=args.cluster_desc_path,
         .perf_desc_args=input_args_flattened,
+        .l1_profiler_en=!args.disable_l1_profiler,
     };
     if (args.compile_only) {
         target_config.mode = DEVICE_MODE::CompileOnly;
