@@ -190,6 +190,8 @@ class TemporalEpoch(TTObject):
                 util.VERBOSE("- Skipping dram_perf_dump_blob")
             elif key == "overlay_blob_extra_size":
                 util.VERBOSE("- Skipping overlay_blob_extra_size")
+            elif key == "global_info_blob":
+                util.VERBOSE("- Skipping global_info_blob")
             elif key.startswith("phase_"):
                 phase_id = int(key[6:])  # Skip "phase_" string to get the id
                 for stream_designator, stream_data in val.items():
