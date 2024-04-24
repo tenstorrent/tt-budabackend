@@ -40,11 +40,11 @@ namespace pipegen2
         void write_phase_configs(const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs);
 
         // Collects stream configs mapped by phase id.
-        std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>> collect_phase_map(
+        std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>> collect_phase_map(
             const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs);
 
         // Writes phase map to the blob yaml.
-        void write_phase_map(const std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map);
+        void write_phase_map(const std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>>& phase_map);
 
         // Writes DRAM performance info to the blob yaml.
         void write_dram_perf_info(const PerfInfoManager& perf_info_manager);
@@ -57,7 +57,7 @@ namespace pipegen2
         // and index of phase with that id in the stream.
         void collect_stream_graph_phases(
             const StreamGraph* stream_graph,
-            std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map);
+            std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>>& phase_map);
 
         // Returns list of ncrisc configs grouped by stream id key. Map (instead of unordered_map) needs to be used
         // to keep deterministic output.

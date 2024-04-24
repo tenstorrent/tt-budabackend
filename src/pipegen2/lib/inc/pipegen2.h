@@ -71,6 +71,10 @@ class Pipegen2 {
     // Analyzes the created fork-join graphs for hangs.
     void analyze_fork_join_graphs();
 
+    // StreamConfigs are holding only diffs between phases during pipegen processing. This function accumulates all
+    // StreamConfigs, so that each of them holds all the data for current Phase.
+    void accumulate_stream_configs();
+
     // Device resources manager.
     std::unique_ptr<ResourceManager> m_resource_manager;
 

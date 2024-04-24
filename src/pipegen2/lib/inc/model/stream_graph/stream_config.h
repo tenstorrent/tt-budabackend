@@ -182,13 +182,14 @@ namespace pipegen2
 
     public:
         // Sets all values that are set in other config to this config.
-        void apply(const StreamConfig& other_config)
+        // If force_set is set to false, will skip the fields which are already set in this stream config.
+        void apply(const StreamConfig& other_config, bool force_set = true)
         {
             for (const auto& kv : other_config.m_field_maps)
             {
                 const auto& type_index = kv.first;
                 const auto& other_fm = kv.second;
-                std::visit([this, &type_index, &other_config](auto&& arg)
+                std::visit([this, &type_index, &other_config, &force_set](auto&& arg)
                 {
                     using T = std::decay_t<decltype(arg)>;
                     // We traverse all members and check if they contain value. Additionally, we could have a set of
@@ -202,8 +203,18 @@ namespace pipegen2
                         auto opt_var = (other_config.*getter)();
                         if (opt_var.has_value())
                         {
-                            // Get appropriate map for the type and get setter for the variable given by member_name.
+                            // Get appropriate map for the type from this stream config.
                             auto my_field_map = m_field_maps.at(type_index);
+
+                            // Skip overriding if the field is already set.
+                            auto getter_from_opt = std::get<0>((std::get<T>(my_field_map)).at(member_name));
+                            auto this_opt_var = (this->*getter_from_opt)();
+                            if (!force_set && this_opt_var.has_value())
+                            {
+                                continue;
+                            }
+
+                            // Get setter for the variable given by member_name for this stream config.
                             auto setter_from_opt = std::get<2>((std::get<T>(my_field_map)).at(member_name));
 
                             // Invoke the setter.

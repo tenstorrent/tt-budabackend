@@ -36,6 +36,7 @@ std::unique_ptr<StreamGraphCollection> Pipegen2::create_stream_graphs(const std:
     create_rational_graphs();
     create_stream_graphs(epoch_num);
     analyze_fork_join_graphs();
+    accumulate_stream_configs();
     return std::move(m_stream_graphs);
 }
 
@@ -158,6 +159,19 @@ std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> Pipegen2::get_all_
     }
 
     return data_buffers_per_core;
+}
+
+void Pipegen2::accumulate_stream_configs() {
+    for (const auto& stream_graph : m_stream_graphs->get_stream_graphs()) {
+        for (const std::unique_ptr<pipegen2::StreamNode>& stream : stream_graph->get_streams()) {
+            StreamConfig* previous_config = &stream->get_base_config();
+            for (PhaseConfig& phase_config : stream->get_phase_configs()) {
+                // We want to apply set fields from the previous config, but not override already set fields.
+                phase_config.config.apply(*previous_config, false);
+                previous_config = &phase_config.config;
+            }
+        }
+    }
 }
 
 }  // namespace pipegen2

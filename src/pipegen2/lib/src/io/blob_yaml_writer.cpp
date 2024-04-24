@@ -107,16 +107,16 @@ namespace pipegen2
 
     void BlobYamlWriter::write_phase_configs(const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs)
     {
-        std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>> phase_map =
+        std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>> phase_map =
             collect_phase_map(stream_graphs);
 
         write_phase_map(phase_map);
     }
 
-    std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>> BlobYamlWriter::collect_phase_map(
+    std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>> BlobYamlWriter::collect_phase_map(
         const std::vector<std::unique_ptr<StreamGraph>>& stream_graphs)
     {
-        std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>> phase_map;
+        std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>> phase_map;
 
         for (const std::unique_ptr<StreamGraph>& stream_graph : stream_graphs)
         {
@@ -128,21 +128,19 @@ namespace pipegen2
 
     void BlobYamlWriter::collect_stream_graph_phases(
         const StreamGraph* stream_graph,
-        std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map)
+        std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>>& phase_map)
     {
         for (const std::unique_ptr<StreamNode>& stream_node : stream_graph->get_streams())
         {
-            StreamConfig stream_config = stream_node->get_base_config();
             for (const PhaseConfig& phase_config : stream_node->get_phase_configs())
             {
-                stream_config += phase_config.config;
-                phase_map[phase_config.phase_id][stream_node->get_stream_location_with_id()] = stream_config;
+                phase_map[phase_config.phase_id][stream_node->get_stream_location_with_id()] = &phase_config.config;
             }
         }
     }
 
     void BlobYamlWriter::write_phase_map(
-        const std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map)
+        const std::map<PhaseId, std::map<tt_cxys_pair, const StreamConfig*>>& phase_map)
     {
         for (const auto& [phase_id, phase_configs] : phase_map)
         {
@@ -153,7 +151,7 @@ namespace pipegen2
                 BYW_WRITE_LINE(get_stream_node_string(stream_id) << ":");
 
                 IndentYaml indent2(this);
-                write_stream_params(stream_config, phase_id);
+                write_stream_params(*stream_config, phase_id);
             }
         }
     }
