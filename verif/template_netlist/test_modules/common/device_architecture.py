@@ -40,7 +40,6 @@ class DeviceArchitecture:
 
     # Dram memory
     num_dram_channels: int
-    max_num_queue_buffers_accessed: int
     dram_buffer_start_addr: int
     dram_buffer_end_addr: int
     dram_queue_header_size: int
@@ -157,7 +156,6 @@ class GrayskullArchitecture(DeviceArchitecture):
             noc_data_word_width_bytes = 32,
             max_ethernet_links = 0,
             num_dram_channels = 8,
-            max_num_queue_buffers_accessed = 40,
             dram_buffer_start_addr = 256 * 1024 * 1024,
             dram_buffer_end_addr = 1024 * 1024 * 1024 - 1,
             dram_queue_header_size = 32,
@@ -197,7 +195,6 @@ class WormholeArchitecture(DeviceArchitecture):
             noc_data_word_width_bytes = 32,
             max_ethernet_links = 14,
             num_dram_channels = 6,
-            max_num_queue_buffers_accessed = 40,
             dram_buffer_start_addr = 256 * 1024 * 1024,
             dram_buffer_end_addr = 1024 * 1024 * 1024 - 1,
             dram_queue_header_size = 32,
@@ -237,7 +234,6 @@ class WormholeB0Architecture(DeviceArchitecture):
             noc_data_word_width_bytes = 32,
             max_ethernet_links = 14,
             num_dram_channels = 6,
-            max_num_queue_buffers_accessed = 40,
             dram_buffer_start_addr = 256 * 1024 * 1024,
             dram_buffer_end_addr = 1024 * 1024 * 1024 - 1,
             dram_queue_header_size = 32,
@@ -277,7 +273,6 @@ class BlackholeArchitecture(DeviceArchitecture):
             noc_data_word_width_bytes = 64,
             max_ethernet_links = 14,
             num_dram_channels = 6,
-            max_num_queue_buffers_accessed = 40,
             dram_buffer_start_addr = 256 * 1024 * 1024,
             dram_buffer_end_addr = 1024 * 1024 * 1024 - 1,
             dram_queue_header_size = 64,

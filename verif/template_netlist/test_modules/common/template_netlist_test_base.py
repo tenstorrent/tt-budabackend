@@ -42,8 +42,6 @@ from test_modules.common.op_input import (
 from test_modules.common.resource_constraints import (
     ResourceConstrNode,
     ResourceConstrNodeSide,
-    get_num_buffers_accessed_along_dim,
-    get_num_buffers_accessed_along_dim_z3_expr,
     get_op2op_resource_usage,
     get_queue2op_resource_usage,
     get_op2op_resource_usage_z3,
@@ -1200,75 +1198,6 @@ class TemplateNetlistTestBase(ABC):
                         op_j.grid_loc_y + op_j.grid_size_y <= op_i.grid_loc_y,
                     )
                 )
-
-    # TODO remove this method completely
-    def constrain_dram_queues_number(self, op: Node, queue_inputs: List[Node]):
-        """Constrains grid sizes of dram queues.
-
-        Parameters
-        ----------
-        op: Node
-            Node corresponding to an operation.
-        queue_inputs: list of Node
-            List of nodes corresponding to dram queues that are inputs
-            to the op.
-        """
-        # This is not a totally precise constraint regarding dram queues. It
-        # roughly estimates number of needed dram queues and discards most of
-        # bad solutions, however there is more precise validation check done in
-        # valid_config_callback function. This is done to avoid very complex
-        # constraint affecting solver's runtime too much.
-        self.solver.add(
-            Sum([queue.get_grid_size_var() for queue in queue_inputs])
-            <= op.get_grid_size_var() * self.arch.max_num_queue_buffers_accessed
-        )
-
-    # TODO remove this check completely
-    def constrain_num_queue_buffers_accessed(self, op: Node) -> None:
-        """
-        Helper function for check_resource_usage which adds num of queue buffers
-        accessed constraints for this op to the solver (which are too complex and
-        thus added only when needed).
-
-        See docstring for get_num_queue_buffers_accessed.
-        """
-        # Aux accumulator variable.
-        total_num_queue_buffers_accessed_z3 = 0
-
-        queues_feeding_this_op = list(filter(lambda q: q.name in op.inputs, self.queues))
-
-        # Accumulate num of accessed input buffers for each input queue.
-        for queue in queues_feeding_this_op:
-            # queue and op Nodes exported as ResourceConstrNodes for the sake
-            # of common API. Input index is not relevant here since it is not
-            # used in get_num_buffers_accessed_along_dim_z3_expr calculations.
-            queue_node = self.export_producer_queue_for_resource_constraints_from_z3(node=queue)
-
-            op_node = self.export_consumer_op_for_resource_constraints_from_z3(
-                node=op, input_index=self.get_consumers_producer_input_index(queue, op)
-            )
-
-            num_buffers_x_z3 = get_num_buffers_accessed_along_dim_z3_expr(
-                op_node, queue_node, Dimension.Horizontal, self.solver
-            )
-            num_buffers_y_z3 = get_num_buffers_accessed_along_dim_z3_expr(
-                op_node, queue_node, Dimension.Vertical, self.solver
-            )
-
-            total_num_queue_buffers_accessed_z3 += num_buffers_x_z3 * num_buffers_y_z3
-
-        # Every core of op maps to exactly one buffer of output queue,
-        # therefore we need to include op2queue fanout in total calculation.
-        op2queues_fanout = self.get_op2queues_resource_usage(op, self.queues)
-        total_num_queue_buffers_accessed_z3 += op2queues_fanout
-
-        op.add_raw_attribute("total_num_queue_buffers_accessed")
-
-        self.solver.add(op.total_num_queue_buffers_accessed == total_num_queue_buffers_accessed_z3)
-        self.solver.add(
-            op.total_num_queue_buffers_accessed > 0,
-            (op.total_num_queue_buffers_accessed <= self.arch.max_num_queue_buffers_accessed),
-        )
 
     def define_common_op_constraints(self, op_node: Node) -> None:
         """Defines common constraints for all the OP types.
@@ -2990,63 +2919,6 @@ class TemplateNetlistTestBase(ABC):
             )
         )
 
-    def get_num_queue_buffers_accessed(self, op: Node, queues: List[Node], model_vars: Dict) -> int:
-        """
-        Helper function for check_resource_usage which calculates how many
-        queue buffers are accessed for every op core that receives input from
-        and/or outputs to DRAM.
-
-        Parameters
-        ----------
-        op:
-            Op of interest.
-        queues:
-            List of all queues in graph.
-        model_vars:
-            Dictionary of variable names and their solver.check() generated
-            values.
-
-        Returns
-        -------
-        int
-            Number of buffers op must access.
-        """
-        # Aux accumulator variable.
-        total_num_queue_buffers_accessed = 0
-
-        queues_feeding_this_op = list(filter(lambda q: q.name in op.inputs, queues))
-
-        # Accumulate num of accessed input buffers for each input queue.
-        for queue in queues_feeding_this_op:
-            # queue and op Nodes exported as ResourceConstrNodes for the sake
-            # of common API. Input index is not relevant here since it is not
-            # used in get_num_buffers_accessed_along_dim calculations.
-            queue_node = self.export_producer_queue_for_resource_constraints_from_model(
-                node=queue, model_vars=model_vars
-            )
-
-            op_node = self.export_consumer_op_for_resource_constraints_from_model(
-                node=op,
-                input_index=self.get_consumers_producer_input_index(queue, op),
-                model_vars=model_vars,
-            )
-
-            num_buffers_x = get_num_buffers_accessed_along_dim(
-                op_node, queue_node, Dimension.Horizontal
-            )
-            num_buffers_y = get_num_buffers_accessed_along_dim(
-                op_node, queue_node, Dimension.Vertical
-            )
-
-            total_num_queue_buffers_accessed += num_buffers_x * num_buffers_y
-
-        # Every core of op maps to exactly one buffer of output queue,
-        # therefore we need to include op2queue fanout in total calculation.
-        op_queues_fanout = self.get_op2queues_resource_usage(op, queues)
-        total_num_queue_buffers_accessed += op_queues_fanout
-
-        return total_num_queue_buffers_accessed
-
     def constrain_fork_streams(self, op: Node) -> None:
         """
         Helper function for check_resource_usage which adds extra streams
@@ -3613,11 +3485,6 @@ class TemplateNetlistTestBase(ABC):
             total_fork_streams_used_per_core = 0
             total_queues_op_pipe_inputs = 0
 
-            # (0): Check how many DRAM buffers this op accesses.
-            num_queue_buffers_accessed = self.get_num_queue_buffers_accessed(
-                op, self.queues, model_vars
-            )
-
             # (1): this op is producer.
 
             # (1.1): if op forks to one or more queues, check if fanout is
@@ -3661,14 +3528,6 @@ class TemplateNetlistTestBase(ABC):
             )
 
             # Check return values from previous cases.
-            # TODO remove this check completely.
-            if num_queue_buffers_accessed > self.arch.max_num_queue_buffers_accessed:
-                logger.warning(
-                    f"Solution hits num_queue_buffers_accessed constraint "
-                    f"for op {op.name} ({num_queue_buffers_accessed} > "
-                    f"{self.arch.max_num_queue_buffers_accessed})"
-                )
-
             if total_fork_streams_used_per_core > self.arch.max_fork_streams_used_per_core:
                 logger.warning(
                     f"Solution rejected because of max_fork_streams_per_core constraint "
