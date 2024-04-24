@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "utils/logger.hpp"
 #include "netlist/netlist_utils.hpp"
 #include "router.hpp"
 #include "router/router_passes.h"

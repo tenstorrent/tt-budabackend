@@ -17,7 +17,6 @@
 #include "netlist/netlist_program.hpp"
 #include "netlist/netlist_workload_data.hpp"
 
-ostream& operator<<(ostream& out, const tt::tt_address_range& t);
 
 namespace tt::golden {
 //! All encompassing workload_data object which has the parser/graphs/program all encapsulated in 1 object

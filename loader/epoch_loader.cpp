@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include "epoch_utils.hpp"
 #include "utils/scoped_timer.hpp"
+#include "utils/logger.hpp"
 
 
 namespace fs = std::experimental::filesystem;

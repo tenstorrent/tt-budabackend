@@ -8,6 +8,15 @@ CONFIGURATION_FILES = \
 CONFIGURATION_YAML_FILES = $(filter %.yaml, $(CONFIGURATION_FILES))
 CONFIGURATION_EMBED_FILES = $(filter %.embed, $(CONFIGURATION_FILES))
 
+
+# create-ethernet-map only supplied for aarch64 and x86_64; other archs just get x86_64
+ifneq ("$(HOST_ARCH)", "aarch64")
+ETH_MAP_ARCH = x86
+else
+ETH_MAP_ARCH = $(HOST_ARCH)
+endif
+
+
 $(CONFIGURATION_EMBED_FILES): $(CONFIGURATION_YAML_FILES)
 	@mkdir -p $(BUDA_HOME)/dbd/server/app/configuration
 	cat $(subst $@_,,$(filter $@_%, $(join $(addsuffix _,$(CONFIGURATION_EMBED_FILES)),$(CONFIGURATION_YAML_FILES)))) | xxd -i > $(BUDA_HOME)/$@
@@ -38,7 +47,7 @@ DEBUDA_SERVER_LDFLAGS = $(DEBUDA_SERVER_LIB_DEPS) -lyaml-cpp -lzmq -Wl,-rpath,\$
 
 dbd/server/app: $(DEBUDA_SERVER) $(CREATE_ETHERNET_MAP_WORMHOLE_DBD)
 
-$(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/wormhole/create-ethernet-map
+$(CREATE_ETHERNET_MAP_WORMHOLE_DBD): $(BUDA_HOME)/umd/device/bin/silicon/$(ETH_MAP_ARCH)/create-ethernet-map
 	@mkdir -p $(@D)
 	ln -s $^ $@
 	chmod +x $@

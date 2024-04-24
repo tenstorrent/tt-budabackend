@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/tt_soc_descriptor.h"
 #include "netlist_utils.hpp"
+#include "utils/logger.hpp"
 #include "router/router_passes_common.h"
 #include "router.hpp"
 #include "common/size_lib.hpp"

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "tile_lib.hpp"
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 #include <immintrin.h>
 #endif
 #include <cmath>
@@ -16,7 +16,7 @@ namespace tt::tile_lib {
 
 // *** Tile by Tile Binary Operations *** //
 namespace binary {
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 void add(tt::tt_tile& output_tile, const tt::tt_tile& input0, const tt::tt_tile& input1) {
     __m256 row_vector_A;
     __m256 row_vector_B;
@@ -145,7 +145,7 @@ float reciprocal(const float& x) {
     }
     return value;
 }
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 // Fast transpose not defined for ARM
 inline void fast_transpose_4x4(const float* A, float* B, const int lda, const int ldb) {
     __m128 row1 = _mm_load_ps(&A[0 * lda]);
@@ -327,7 +327,7 @@ void vector_datacopy(
         }
     }
 }
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 void square(tt::tt_tile& output_tile, const tt::tt_tile& input0, const Dim& vector_mode) {
     int rows_to_process = (vector_mode == Dim::R) ? 4 : tt::constants::TILE_HEIGHT;
     int cols_to_process = (vector_mode == Dim::C) ? tt::constants::TILE_WIDTH / 2 : tt::constants::TILE_WIDTH;

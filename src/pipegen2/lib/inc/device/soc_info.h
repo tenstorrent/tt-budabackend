@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"

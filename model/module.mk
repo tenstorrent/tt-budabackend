@@ -31,7 +31,7 @@ ifeq ($(NO_DISTRIBUTED_EPOCH_TABLES),1)
 	CXXFLAGS += $(addprefix -DNO_DISTRIBUTED_EPOCH_TABLES=, $(NO_DISTRIBUTED_EPOCH_TABLES))
 endif
 
-ifeq ("$(HOST_ARCH)", "aarch64")
+ifneq ("$(HOST_ARCH)", "x86_64")
 # This file will not use AVX functions with ARM 
 MODEL_SRCS += \
 	model/tilize_untilize_api/tilize.cpp \

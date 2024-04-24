@@ -11,6 +11,13 @@ ARCH_NAME ?= grayskull
 HOST_ARCH = $(shell uname -m)
 # TODO: enable OUT to be per config (this impacts all scripts that run tests)
 # OUT ?= build_$(DEVICE_RUNNER)_$(CONFIG)
+# this flag disables build of firmware
+NOFW ?= 0
+# don't build FW on non-x86 hosts
+ifneq ("$(HOST_ARCH)", "x86_64")
+NOFW = 1
+endif
+
 OUT ?= $(BUDA_HOME)/build
 PREFIX ?= $(OUT)
 TT_MODULES=
@@ -94,7 +101,7 @@ ifneq ($(CCACHE),)
   export CCACHE_NOHARDLINK=true
   export CCACHE_DIR_EXISTS=$(shell [ -d $(CCACHE_DIR) ] && echo "1")
   ifneq ($(CCACHE_DIR_EXISTS), 1)
-    $(info $(HOME)/.ccache directory does not exist, creating it.")
+    $(info "$(HOME)/.ccache directory does not exist, creating it.")
     $(shell mkdir -p $(CCACHE_DIR))
   endif
   #CCACHE_CMD=$(CCACHE)
@@ -119,13 +126,13 @@ WARNINGS ?= -Wdelete-non-virtual-dtor -Wreturn-type -Wswitch -Wuninitialized -Wn
 CC ?= $(CCACHE_CMD) gcc
 CXX ?= $(CCACHE_CMD) g++
 DEVICE_CXX = g++
-ifeq ("$(HOST_ARCH)", "aarch64")
+ifneq ("$(HOST_ARCH)", "x86_64")
 CFLAGS ?= -MMD $(WARNINGS) -I. $(CONFIG_CFLAGS) -DBUILD_DIR=\"$(OUT)\" -DFMT_HEADER_ONLY -Ithird_party/fmt
 else
 # Add AVX and FMA (Fused Multiply Add) flags for x86 compile
 CFLAGS ?= -MMD $(WARNINGS) -I. $(CONFIG_CFLAGS) -mavx2 -mfma -DBUILD_DIR=\"$(OUT)\" -DFMT_HEADER_ONLY -Ithird_party/fmt
 endif
-CXXFLAGS ?= --std=c++17 -fvisibility-inlines-hidden
+CXXFLAGS ?= --std=c++17 -fvisibility-inlines-hidden -Wno-stringop-overflow -Wno-unused-variable
 LDFLAGS ?= $(CONFIG_LDFLAGS) -Wl,-rpath,$(PREFIX)/lib -L$(LIBDIR) -ldl
 SHARED_LIB_FLAGS = -shared -fPIC
 STATIC_LIB_FLAGS = -fPIC
@@ -160,8 +167,8 @@ ifeq ($(EMULATION_DEVICE_EN), 1)
 endif
 
 build: backend build_hw
-ifeq ("$(HOST_ARCH)", "aarch64")
-# Don't build RiscV FW on ARM. Supported toolchain only works on x86.
+ifeq ($(NOFW), 1)
+# Don't build RISC-V FW if the corresponding flag is set.
 build_hw: gitinfo umd src_ops src_pipes src_verif src_perf_lib netlist loader runtime
 else
 build_hw: gitinfo umd build_fw src_ops src_pipes src_verif src_perf_lib netlist loader runtime

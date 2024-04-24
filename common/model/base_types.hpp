@@ -4,7 +4,9 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <ostream>
+#include <cstdint>
 
 #include "utils/logger.hpp"
 #include "constants.hpp"

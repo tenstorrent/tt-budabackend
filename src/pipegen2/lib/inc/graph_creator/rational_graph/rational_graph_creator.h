@@ -14,7 +14,6 @@
 #include "model/rational_graph/nodes/dram_input_node.h"
 #include "model/rational_graph/rational_graph.h"
 
-struct tt_cxy_pair;
 
 namespace pipegen2
 {

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include "depthwise_op.hpp"
+#include "utils/logger.hpp"
 
 #include "common/model/tt_core.hpp"
 #include "common/env_lib.hpp"
