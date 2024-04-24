@@ -1271,8 +1271,9 @@ void tt_runtime::profile_reserved_l1_binary_buffers() {
             perf::overlay_buffer_name,
             l1_mem::address_map::OVERLAY_BLOB_BASE,
             placeholder_consumed_size,
-            // account for extra overlay blob memory reservation
-            dram_mem::address_map::OVERLAY_FULL_BLOB_SIZE(),
+            // reserve default overlay size here
+            // extra size will be appended accordingly when profiling pipegen
+            l1_mem::address_map::OVERLAY_BLOB_SIZE,
             perf::L1ProfileStage::ReservedBinaries
         );
         memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::ReservedBinaries);

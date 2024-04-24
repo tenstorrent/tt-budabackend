@@ -38,6 +38,7 @@ static const std::string c_perf_thresh_arg_name = "--perf-thresh";
 static const std::string c_backend_mode_arg_name = "--mode";
 static const std::string c_determinism_test_arg_name = "--determinism-test";
 static const std::string c_determinism_minibatch_count_arg_name = "--minibatch-count";
+static const std::string c_disable_l1_profiler_arg_name = "--disable-l1-profiler";
 static const std::string c_help_arg_name = "--help";
 
 static const std::string c_netlist_path_arg_default_value = "verif/graph_tests/netlists/netlist_binary_single_tile.yaml";
@@ -112,6 +113,10 @@ std::string create_help_string()
         "\t\t: Define the number of minibatches for determinism tests " +
         "(Default: " + to_string(c_determinism_minibatch_count_default_value) + ")\n";
 
+    help_string += "\t" + c_disable_l1_profiler_arg_name + 
+        "\t\t: Disable the l1 profiler when running the test " +
+        "(Default: " + "false" + ")\n";
+
     help_string += "\t" + c_help_arg_name +
         "\t\t\t\t: Prints this message\n";
 
@@ -139,6 +144,7 @@ struct test_args
     unsigned backend_mode = c_backend_mode_default_value;
     int determinism_minibatch_count = c_determinism_minibatch_count_default_value;
     bool determinism_test = c_determinism_test_default_value;
+    bool disable_l1_profiler = false;
 };
 
 struct test_parameters
@@ -204,6 +210,9 @@ test_args parse_test_args(std::vector<std::string> input_args)
 
         std::tie(args.determinism_test, input_args) = verif_args::has_command_option_and_remaining_args(
             input_args, c_determinism_test_arg_name);
+        
+        std::tie(args.disable_l1_profiler, input_args) = verif_args::has_command_option_and_remaining_args(
+            input_args, c_disable_l1_profiler_arg_name);
 
         args.perf_desc = perf::PerfDesc(input_args, args.netlist_path);
         verif_args::validate_remaining_args(input_args);
@@ -303,6 +312,7 @@ std::shared_ptr<tt_backend> create_target_backend(const test_args& args, tt::ARC
         .mode = get_device_mode(args.backend_mode),
         .optimization_level = args.opt_level,
         .output_dir = args.output_dir,
+        .l1_profiler_en = !args.disable_l1_profiler
     };
 
     std::shared_ptr<tt_backend> target_backend = tt_backend::create(args.netlist_path, target_config);

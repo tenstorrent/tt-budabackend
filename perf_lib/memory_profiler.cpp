@@ -531,6 +531,7 @@ void MemoryProfiler::add_buffer_to_graph_l1(
     if (buffer_name == perf::extra_overlay_buffer_name) {
         const perf::L1Buffer* default_overlay_blob_buffer = find_buffer_in_graph_l1(graph_name, core_coord, coord_type, l1_mem::address_map::OVERLAY_BLOB_BASE);
         log_assert(default_overlay_blob_buffer != nullptr, "Default overlay blob buffer not found in memory profiler");
+        log_assert(default_overlay_blob_buffer->r_size() == l1_mem::address_map::OVERLAY_BLOB_SIZE, "Default overlay blob buffer size mismatch");
         int new_overlay_reserved_size = default_overlay_blob_buffer->r_size() + reserved_size;
         update_buffer_reserved_size_l1(graph_name, core_coord, default_overlay_blob_buffer->start_addr(), new_overlay_reserved_size, coord_type, stage);
         return;
