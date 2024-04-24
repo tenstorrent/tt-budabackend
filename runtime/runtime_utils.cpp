@@ -187,12 +187,16 @@ void run_pipegen2(const string &desc_name,
 
 void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
     for (const auto &[core_logical_loc, l1_allocations] : all_worker_l1_allocations) {
+        if (!memory_profiler->is_used_worker(temporal_epoch_id, core_logical_loc, perf::CoordType::Logical)) {
+            log_debug(tt::LogPerfInfra, "Not profiling for core {} because it is not a worker", core_logical_loc.str());
+            continue;
+        }
         if (memory_profiler->get_graph_profile_stage_l1(temporal_epoch_id, core_logical_loc.chip) >= perf::L1ProfileStage::Pipegen) {
             log_fatal("Unexpected graph being profiled more than once for pipegen!");
         }
         for (const pipegen2::L1MemoryAllocation* l1_allocation : l1_allocations) {
-            uint32_t start_addr = l1_allocation->get_address();
-            uint32_t buffer_size = l1_allocation->get_size();
+            const uint32_t start_addr = l1_allocation->get_address();
+            const uint32_t buffer_size = l1_allocation->get_size();
             const string buffer_name = l1_allocation->allocation_name();
             memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, buffer_name, 
                 start_addr, buffer_size, buffer_size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);

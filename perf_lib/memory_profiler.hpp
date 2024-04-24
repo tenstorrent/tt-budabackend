@@ -16,6 +16,11 @@ using std::unordered_map;
 using std::string;
 using std::vector;
 
+const string overlay_buffer_name = "OVERLAY_BLOB";
+
+// Keep consistent with extra_overlay_blob_l1_buffer.cpp
+const string extra_overlay_buffer_name = "Extra overlay blob buffer";
+
 /**************************
  * L1 Profiler Structures
 ***************************/
@@ -55,7 +60,8 @@ class L1Buffer {
         log_assert(consumed_size <= reserved_size, "L1Buffer consumes {} bytes but only reserves {} bytes", consumed_size, reserved_size);
     }
 
-    void update(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
+    void update_consumed_size(int new_consumed_size);
+    void update_reserved_size(int new_reserved_size);
 
     inline const string &name() const {
         return m_name;
@@ -124,9 +130,14 @@ class L1Core {
 
     void add_buffer(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
 
-    void update_buffer(const L1BufferType &buffer_type, const string &name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size);
+    void update_buffer_consumed_size(uint32_t start_addr, int new_consumed_size);
+    void update_buffer_reserved_size(uint32_t start_addr, int new_reserved_size);
 
     void sort_buffers_and_check_overlap();
+
+    const L1Buffer* find_buffer(uint32_t start_addr) const;
+
+    vector<const L1Buffer*> get_all_buffers() const;
 
     inline const tt_xy_pair &physical_coord() const { 
         return m_physical_coord; 
@@ -147,8 +158,6 @@ class L1Core {
     inline const string &op_type() const {
         return m_op_type;
     }
-
-    vector<const L1Buffer*> get_all_buffers() const;
 
     inline int consumed_size_bytes() const {
         return m_consumed_size;
@@ -197,7 +206,7 @@ class L1Graph {
     public:
     L1Graph() = default;
     L1Graph(const string &graph_name, int temporal_epoch, chip_id_t target_device, const unordered_map<string, core_descriptor> &cores_to_descriptors, uint32_t l1_size);
-
+    
     void add_buffer_to_core(
         const tt_cxy_pair &core, 
         const L1BufferType &buffer_type, 
@@ -208,22 +217,18 @@ class L1Graph {
         CoordType coord_type
     );
 
-    void update_buffer_of_core(
-        const tt_cxy_pair &core, 
-        const L1BufferType &buffer_type, 
-        const string &name,
-        uint32_t old_start_addr,
-        uint32_t new_start_addr,
-        int consumed_size, 
-        int reserved_size,
-        CoordType coord_type
-    );
+    void update_core_buffer_consumed_size(const tt_cxy_pair &core, uint32_t start_addr, int new_consumed_size, CoordType coord_type);
 
-    void add_buffer_to_all_used_cores(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
+    void update_buffer_consumed_size_of_all_used_workers(uint32_t start_addr, int new_consumed_size);
+
+    void update_core_buffer_reserved_size(const tt_cxy_pair &core, uint32_t start_addr, int new_reserved_size, CoordType coord_type); 
+
+    void add_buffer_to_all_used_workers(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size);
     
-    void update_buffer_of_all_used_cores(const L1BufferType &buffer_type, const string &name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size);
 
     void sort_buffers_and_check_overlap();
+
+    const L1Buffer* find_buffer_in_core(const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr) const;
 
     inline int temporal_epoch() const {
         return m_temporal_epoch;
@@ -272,23 +277,27 @@ class L1Profiler {
         L1ProfileStage stage
     );
 
-    void update_buffer_of_graph(
-        const string& graph_name, 
+    void update_graph_buffer_consumed_size(
+        const string &graph_name, 
         const tt_cxy_pair &core_coord, 
-        const L1BufferType &buffer_type, 
-        const string &buffer_name, 
-        uint32_t old_start_addr,
-        uint32_t new_start_addr, 
-        int consumed_size, 
-        int reserved_size,
+        uint32_t start_addr, 
+        int new_consumed_size, 
         CoordType coord_type,
         L1ProfileStage stage
     );
 
-    void broadcast_add_buffer_all_used_cores(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
+    void broadcast_update_buffer_consumed_size_of_graph(const string &graph_name, uint32_t start_addr, int new_consumed_size, L1ProfileStage stage);
 
-    // update buffer in every worker core's l1
-    void broadcast_update_buffer_all_used_cores(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
+    void update_graph_buffer_reserved_size(
+        const string &graph_name, 
+        const tt_cxy_pair &core_coord, 
+        uint32_t start_addr, 
+        int new_reserved_size, 
+        CoordType coord_type,
+        L1ProfileStage stage
+    );
+
+    void broadcast_add_buffer_all_used_workers(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
 
     void set_graph_profile_stage(const string &graph_name, L1ProfileStage stage);
 
@@ -297,6 +306,8 @@ class L1Profiler {
     void sort_graph_buffers_and_check_overlap(const string &graph_name);
 
     void sort_all_graph_buffers_and_check_overlap();
+
+    const L1Buffer* find_buffer_in_graph(const string &graph_name, const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr) const;
 
     void create_reports(const string &output_dir) const;
 };
@@ -317,10 +328,12 @@ class MemoryProfiler {
     unordered_map<chip_id_t, std::shared_ptr<buda_SocDescriptor>> m_chip_id_to_sdesc;
 
     unordered_map<string, std::shared_ptr<tt_perf_digraph_wrapper>> m_graph_wrappers_graph_name;
+    unordered_map<string, std::unordered_set<tt_xy_pair>> m_graph_logical_used_workers;
+    unordered_map<string, std::unordered_set<tt_xy_pair>> m_graph_physical_used_workers;
     unordered_map<int, unordered_map<chip_id_t, std::shared_ptr<tt_perf_digraph_wrapper>>> m_graph_wrappers_temporal_epoch_device;
     
     std::unique_ptr<L1Profiler> m_l1_profiler;
-    std::mutex m_l1_profiler_mutex;
+    std::recursive_mutex m_l1_profiler_mutex;
 
     public:
     MemoryProfiler() = default;
@@ -335,10 +348,19 @@ class MemoryProfiler {
     // update graph wrapper info for new graph
     void update_graph_wrappers(const string &graph_name, const tt_digraph &graph, int temporal_epoch_id);
 
+    // update graph used worker cores (cores than ran tensix ops)
+    void update_graph_used_workers(const string &graph_name, const unordered_map<string, core_descriptor> &cores_to_descriptors);
+
     inline bool temporal_epoch_device_exists(int temporal_epoch_id, chip_id_t device_id) const {
         return m_graph_wrappers_temporal_epoch_device.find(temporal_epoch_id) != m_graph_wrappers_temporal_epoch_device.end() and
             m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id).find(device_id) != m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id).end();
     }
+
+    const string &get_graph_name(int temporal_epoch_id, chip_id_t device_id) const;
+
+    bool is_used_worker(int temporal_epoch_id, const tt_cxy_pair &core, CoordType coord_type) const;
+
+    bool is_used_worker(const string &graph_name,const tt_xy_pair &core, CoordType coord_type) const;
 
     // create l1 profiler reports
     void create_reports_l1(const string &output_dir) const;
@@ -372,33 +394,32 @@ class MemoryProfiler {
     // add buffer to every worker core's l1 in every graph
     void broadcast_add_buffer_l1(const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage);
 
-    // update buffer in a core's l1
-    // buffers are found based on old_start_addr
-    void update_buffer_of_graph_l1(
+    // Update the consumed size of buffer. Buffers are found based on start_addr
+    void update_buffer_consumed_size_l1(
         const string &graph_name, 
         const tt_cxy_pair &core_coord, 
-        const L1BufferType &buffer_type, 
-        const string &buffer_name, 
-        uint32_t old_start_addr, 
-        uint32_t new_start_addr, 
-        int consumed_size, 
-        int reserved_size,
+        uint32_t start_addr, 
+        int new_consumed_size, 
         CoordType coord_type,
         L1ProfileStage stage
     );
 
-    // update buffer of every worker core's l1 in every graph, if the buffer is found
-    // buffers are found based on old_start_addr
-    void broadcast_update_buffer_l1(
-        const L1BufferType &buffer_type, 
-        const string &buffer_name, 
-        const uint32_t old_start_addr,
-        const uint32_t new_start_addr,
-        int consumed_size, 
-        int reserved_size,
+    // Update consumed size of every buffer in every graph.
+    void broadcast_update_buffer_consumed_size_l1(
+        uint32_t start_addr,
+        int new_consumed_size,
         L1ProfileStage stage
     );
 
+    void update_buffer_reserved_size_l1(
+        const string &graph_name, 
+        const tt_cxy_pair &core_coord, 
+        uint32_t start_addr, 
+        int new_reserved_size, 
+        CoordType coord_type,
+        L1ProfileStage stage
+    );
+    
     void update_graph_profile_stage_l1(const string &graph_name, L1ProfileStage stage, bool force_update = false);
 
     void update_temporal_epoch_profile_stage_l1(int temporal_epoch_id, L1ProfileStage stage, bool force_update = false);
@@ -413,6 +434,8 @@ class MemoryProfiler {
 
     void sort_all_graph_buffers_and_check_overlap_l1();
     
+    const L1Buffer* find_buffer_in_graph_l1(const string &graph_name, const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr);
+
     // check if the l1 profiler is enabled
     inline bool profile_l1() const {
         return m_profile_l1;

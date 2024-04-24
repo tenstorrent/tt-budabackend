@@ -1268,7 +1268,7 @@ void tt_runtime::profile_reserved_l1_binary_buffers() {
 
         memory_profiler->broadcast_add_buffer_l1(
             perf::L1BufferType::BinaryBuffer,
-            "OVERLAY_BLOB",
+            perf::overlay_buffer_name,
             l1_mem::address_map::OVERLAY_BLOB_BASE,
             placeholder_consumed_size,
             // account for extra overlay blob memory reservation
@@ -1288,24 +1288,16 @@ void tt_runtime::profile_actual_l1_binary_buffers() {
         // epoch_loader:send_static_binaries
         const tt_epoch_program_info &first_info = loader->graph_to_epoch_map.begin()->second;
         const std::shared_ptr<tt_epoch_binary> first_binary = first_info.binary;
-        memory_profiler->broadcast_update_buffer_l1(
-            perf::L1BufferType::BinaryBuffer,
-            "NCRISC_FW",
-            l1_mem::address_map::NCRISC_FIRMWARE_BASE,
+        memory_profiler->broadcast_update_buffer_consumed_size_l1(
             l1_mem::address_map::NCRISC_FIRMWARE_BASE,
             first_binary->ncrisc_vec.size() * sizeof(uint32_t),
-            l1_mem::address_map::NCRISC_FIRMWARE_SIZE,
             perf::L1ProfileStage::ActualBinaries
         );
 
         // BRISC hex contains zeros, compare against l1_mem::address_map::BRISC_FIRMWARE_SIZE + l1_mem::address_map::ZEROS_SIZE
-        memory_profiler->broadcast_update_buffer_l1(
-            perf::L1BufferType::BinaryBuffer,
-            "BRISC_FW",
-            l1_mem::address_map::FIRMWARE_BASE,
+        memory_profiler->broadcast_update_buffer_consumed_size_l1(
             l1_mem::address_map::FIRMWARE_BASE,
             first_binary->brisc_vec.size() * sizeof(uint32_t),
-            l1_mem::address_map::BRISC_FIRMWARE_SIZE + l1_mem::address_map::ZEROS_SIZE,
             perf::L1ProfileStage::ActualBinaries
         );
 
@@ -1319,72 +1311,52 @@ void tt_runtime::profile_actual_l1_binary_buffers() {
                 hex = &(bin->trisc0_bin_vec[hex_id]);
                 // Part of trisc binaries get written into trisc local mem region
                 // thus directly compare trisc binary size against reserved region
-                memory_profiler->update_buffer_of_graph_l1(
+                memory_profiler->update_buffer_consumed_size_l1(
                     graph_name, 
                     tt_cxy_pair(target_device, hex->associated_routing_core),
-                    perf::L1BufferType::BinaryBuffer,
-                    "TRISC0",
-                    l1_mem::address_map::TRISC0_BASE,
                     l1_mem::address_map::TRISC0_BASE,
                     hex->hex_vec.size() * sizeof(uint32_t),
-                    l1_mem::address_map::TRISC0_SIZE,
                     coord_type,
                     perf::L1ProfileStage::ActualBinaries
                 );
+                
 
                 hex = &(bin->trisc1_bin_vec[hex_id]);
-                memory_profiler->update_buffer_of_graph_l1(
+                memory_profiler->update_buffer_consumed_size_l1(
                     graph_name, 
                     tt_cxy_pair(target_device, hex->associated_routing_core),
-                    perf::L1BufferType::BinaryBuffer,
-                    "TRISC1",
-                    l1_mem::address_map::TRISC1_BASE,
                     l1_mem::address_map::TRISC1_BASE,
                     hex->hex_vec.size() * sizeof(uint32_t),
-                    l1_mem::address_map::TRISC1_SIZE,
                     coord_type,
                     perf::L1ProfileStage::ActualBinaries
                 );
 
                 hex = &(bin->trisc2_bin_vec[hex_id]);
-                memory_profiler->update_buffer_of_graph_l1(
+                memory_profiler->update_buffer_consumed_size_l1(
                     graph_name, 
                     tt_cxy_pair(target_device, hex->associated_routing_core),
-                    perf::L1BufferType::BinaryBuffer,
-                    "TRISC2",
-                    l1_mem::address_map::TRISC2_BASE,
                     l1_mem::address_map::TRISC2_BASE,
                     hex->hex_vec.size() * sizeof(uint32_t),
-                    l1_mem::address_map::TRISC2_SIZE,
                     coord_type,
                     perf::L1ProfileStage::ActualBinaries
                 );
-
+                
                 hex = &(bin->runtime_config_vec[hex_id]);
-                memory_profiler->update_buffer_of_graph_l1(
+                memory_profiler->update_buffer_consumed_size_l1(
                     graph_name, 
                     tt_cxy_pair(target_device, hex->associated_routing_core),
-                    perf::L1BufferType::BinaryBuffer,
-                    "RUNTIME_CONFIG",
-                    l1_mem::address_map::EPOCH_RUNTIME_CONFIG_BASE,
                     l1_mem::address_map::EPOCH_RUNTIME_CONFIG_BASE,
                     hex->hex_vec.size() * sizeof(uint32_t),
-                    l1_mem::address_map::EPOCH_RUNTIME_CONFIG_SIZE,
                     coord_type,
                     perf::L1ProfileStage::ActualBinaries
                 );
 
                 hex = &(bin->blob_bin_vec[hex_id]);
-                memory_profiler->update_buffer_of_graph_l1(
+                memory_profiler->update_buffer_consumed_size_l1(
                     graph_name, 
                     tt_cxy_pair(target_device, hex->associated_routing_core),
-                    perf::L1BufferType::BinaryBuffer,
-                    "OVERLAY_BLOB",
-                    l1_mem::address_map::OVERLAY_BLOB_BASE,
                     l1_mem::address_map::OVERLAY_BLOB_BASE,
                     hex->hex_vec.size() * sizeof(uint32_t),
-                    // account for extra overlay blob memory reservation
-                    dram_mem::address_map::OVERLAY_FULL_BLOB_SIZE(),
                     coord_type,
                     perf::L1ProfileStage::ActualBinaries
                 );

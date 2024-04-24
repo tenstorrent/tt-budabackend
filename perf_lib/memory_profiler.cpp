@@ -23,13 +23,17 @@ string get_core_str(const tt_xy_pair &core) {
  * L1 Buffer Methods  
 **********************/
 
-void L1Buffer::update(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size) {
-    m_buffer_type = buffer_type;
-    m_name = name;
-    m_start_addr = start_addr;
-    m_consumed_size = consumed_size;
-    m_reserved_size = reserved_size;
+void L1Buffer::update_consumed_size(int new_consumed_size) {
+    log_assert(new_consumed_size <= m_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, new_consumed_size, m_reserved_size);
+    m_consumed_size = new_consumed_size;
 }
+
+void L1Buffer::update_reserved_size(int new_reserved_size) {
+    log_assert(new_reserved_size >= 0, "{}: Reserved size of buffer should always be positive", __FUNCTION__);
+    log_assert(m_consumed_size <= new_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, m_consumed_size, new_reserved_size);
+    m_reserved_size = new_reserved_size;
+}
+
 
 /*********************
  * L1 Core Methods  
@@ -38,6 +42,13 @@ void L1Buffer::update(const L1BufferType &buffer_type, const string &name, uint3
 L1Core::L1Core(const tt_cxy_pair &physical_coord, const tt_cxy_pair &logical_coord, const string &op_name, const string &op_type, uint32_t l1_size)
     : m_device_id(physical_coord.chip), m_physical_coord(physical_coord), m_logical_coord(logical_coord), m_op_name(op_name), m_op_type(op_type), m_l1_size(l1_size) {
     log_assert(physical_coord.chip == logical_coord.chip, "L1Core: physical, logical device ids don't match");
+}
+
+const L1Buffer* L1Core::find_buffer(uint32_t start_addr) const {
+    if (m_buffer_address_map.find(start_addr) != m_buffer_address_map.end()) {
+        return m_buffer_address_map.at(start_addr).get();
+    }
+    return nullptr;
 }
 
 vector<const L1Buffer*> L1Core::get_all_buffers() const {
@@ -61,19 +72,23 @@ void L1Core::add_buffer(const L1BufferType &buffer_type, const string &name, uin
     m_reserved_size += reserved_size;
 }
 
-void L1Core::update_buffer(const L1BufferType &buffer_type, const string &name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size) {
-    log_assert(consumed_size <= reserved_size, "{}: Buffer {} is using more l1 memory than reserved ({} > {})", __FUNCTION__, name, consumed_size, reserved_size);
-    log_assert(m_buffer_address_map.find(old_start_addr) != m_buffer_address_map.end(), "{}: Buffer to update at address {} doesn't exist", __FUNCTION__, old_start_addr);
-    std::shared_ptr<L1Buffer> &buffer = m_buffer_address_map.at(old_start_addr);
-    if (buffer->c_size() >= 0) {
+void L1Core::update_buffer_consumed_size(uint32_t start_addr, int new_consumed_size) {
+    log_assert(m_buffer_address_map.find(start_addr) != m_buffer_address_map.end(), "{}: Buffer to update at address {} doesn't exist", __FUNCTION__, start_addr);
+    std::shared_ptr<L1Buffer> &buffer = m_buffer_address_map.at(start_addr);
+    if (buffer->c_size() > 0) {
         m_consumed_size -= buffer->c_size();
     }
-    if (consumed_size >= 0) {
-        m_consumed_size += consumed_size;
-    }
+    m_consumed_size += new_consumed_size;
+    buffer->update_consumed_size(new_consumed_size);
+}
+
+void L1Core::update_buffer_reserved_size(uint32_t start_addr, int new_reserved_size) {
+    log_assert(m_buffer_address_map.find(start_addr) != m_buffer_address_map.end(), "{}: Buffer to update at address {} doesn't exist", __FUNCTION__, start_addr);
+    std::shared_ptr<L1Buffer> &buffer = m_buffer_address_map.at(start_addr);
     m_reserved_size -= buffer->r_size();
-    m_reserved_size += reserved_size;
-    buffer->update(buffer_type, name, new_start_addr, consumed_size, reserved_size);
+    m_reserved_size += new_reserved_size;
+    log_assert(m_reserved_size <= m_l1_size, "{}: Total reserved size {} is greater than l1 size {} for physical core {}", __FUNCTION__, m_reserved_size, m_l1_size, m_physical_coord.str());
+    buffer->update_reserved_size(new_reserved_size);
 }
 
 void L1Core::sort_buffers_and_check_overlap() {
@@ -127,46 +142,38 @@ void L1Graph::add_buffer_to_core(
     log_assert(m_target_device == core.chip, "{}: graph {} target device {} and core {} target device {} mismatch", __FUNCTION__, m_graph_name, m_target_device, core.str(), core.chip);
     unordered_map<tt_xy_pair, std::shared_ptr<L1Core>> &l1_cores = get_cores_by_coord_type(coord_type);
     tt_xy_pair core_coord(core.x, core.y);
-
     // L1 profiler profiles for worker cores (cores that run tensix ops) only
-    if (l1_cores.find(core_coord) == l1_cores.end()) {
-        log_trace(LogPerfInfra, "{}: Not profiling buffer for core {} because it is unused", __FUNCTION__, core.str());
-        return;
-    }
+    log_assert(l1_cores.find(core_coord) != l1_cores.end(), "{}: Core {} not found in graph {}", __FUNCTION__, core.str(), m_graph_name);
     l1_cores.at(core_coord)->add_buffer(buffer_type, name, start_addr, consumed_size, reserved_size);
 }
 
-void L1Graph::update_buffer_of_core(
-    const tt_cxy_pair &core, 
-    const L1BufferType &buffer_type, 
-    const string &name, 
-    uint32_t old_start_addr,
-    uint32_t new_start_addr, 
-    int consumed_size, 
-    int reserved_size,
-    CoordType coord_type
-) {
+void L1Graph::update_core_buffer_consumed_size(const tt_cxy_pair &core, uint32_t start_addr, int new_consumed_size, CoordType coord_type) {
     log_assert(m_target_device == core.chip, "{}: graph {} target device {} and core {} target device {} mismatch", __FUNCTION__, m_graph_name, m_target_device, core.str(), core.chip);
     unordered_map<tt_xy_pair, std::shared_ptr<L1Core>> &l1_cores = get_cores_by_coord_type(coord_type);
     tt_xy_pair core_coord(core.x, core.y);
-
     // L1 profiler profiles for worker cores (cores that run tensix ops) only
-    if (l1_cores.find(core_coord) == l1_cores.end()) {
-        log_trace(LogPerfInfra, "{}: Not updating buffer for core {} because it is unused", __FUNCTION__, core.str());
-        return;
-    }
-    l1_cores.at(core_coord)->update_buffer(buffer_type, name, old_start_addr, new_start_addr, consumed_size, reserved_size);
+    log_assert(l1_cores.find(core_coord) != l1_cores.end(), "{}: Core {} not found in graph {}", __FUNCTION__, core.str(), m_graph_name);
+    l1_cores.at(core_coord)->update_buffer_consumed_size(start_addr, new_consumed_size);
 }
 
-void L1Graph::add_buffer_to_all_used_cores(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size) {
+void L1Graph::update_buffer_consumed_size_of_all_used_workers(uint32_t start_addr, int new_consumed_size) {
+    for (auto &[core_coord, l1_core] : m_physical_l1_cores) {
+        l1_core->update_buffer_consumed_size(start_addr, new_consumed_size);
+    }
+}
+
+void L1Graph::update_core_buffer_reserved_size(const tt_cxy_pair &core, uint32_t start_addr, int new_reserved_size, CoordType coord_type) {
+    log_assert(m_target_device == core.chip, "{}: graph {} target device {} and core {} target device {} mismatch", __FUNCTION__, m_graph_name, m_target_device, core.str(), core.chip);
+    unordered_map<tt_xy_pair, std::shared_ptr<L1Core>> &l1_cores = get_cores_by_coord_type(coord_type);
+    tt_xy_pair core_coord(core.x, core.y);
+    // L1 profiler profiles for worker cores (cores that run tensix ops) only
+    log_assert(l1_cores.find(core_coord) != l1_cores.end(), "{}: Core {} not found in graph {}", __FUNCTION__, core.str(), m_graph_name);
+    l1_cores.at(core_coord)->update_buffer_reserved_size(start_addr, new_reserved_size);
+}
+
+void L1Graph::add_buffer_to_all_used_workers(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size) {
     for (auto &[core_coord, l1_core] : m_physical_l1_cores) {
         l1_core->add_buffer(buffer_type, name, start_addr, consumed_size, reserved_size);
-    }
-}
-
-void L1Graph::update_buffer_of_all_used_cores(const L1BufferType &buffer_type, const string &name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size) {
-    for (auto &[core_coord, l1_core] : m_physical_l1_cores) {
-        l1_core->update_buffer(buffer_type, name, old_start_addr, new_start_addr, consumed_size, reserved_size);
     }
 }
 
@@ -174,6 +181,16 @@ void L1Graph::sort_buffers_and_check_overlap() {
     for (auto &[core_coord, l1_core] : m_physical_l1_cores) {
         l1_core->sort_buffers_and_check_overlap();
     }
+}
+
+const L1Buffer* L1Graph::find_buffer_in_core(const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr) const {
+    if (coord_type == CoordType::Physical and m_physical_l1_cores.find(core) != m_physical_l1_cores.end()) {
+        return m_physical_l1_cores.at(core)->find_buffer(start_addr);
+    }
+    else if (coord_type == CoordType::Logical and m_logical_l1_cores.find(core) != m_logical_l1_cores.end()) {
+        return m_logical_l1_cores.at(core)->find_buffer(start_addr);
+    }
+    return nullptr;
 }
 
 /*********************
@@ -203,7 +220,7 @@ void L1Profiler::add_buffer_to_graph(
 
     // if the stage at which the buffer is added to the graph is earlier than the profile stage of the graph, don't add the buffer
     if (target_graph->get_profile_stage() >= stage) {
-        log_trace(tt::LogPerfInfra, "{}: not adding buffer to graph {} because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
+        log_debug(tt::LogPerfInfra, "{}: not adding buffer to graph {} because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
         return;
     }
 
@@ -218,68 +235,79 @@ void L1Profiler::add_buffer_to_graph(
     );
 }
 
-void L1Profiler::update_buffer_of_graph(
-        const string& graph_name, 
-        const tt_cxy_pair &core_coord, 
-        const L1BufferType &buffer_type, 
-        const string &buffer_name, 
-        uint32_t old_start_addr,
-        uint32_t new_start_addr, 
-        int consumed_size, 
-        int reserved_size,
-        CoordType coord_type,
-        L1ProfileStage stage
+void L1Profiler::update_graph_buffer_consumed_size(
+    const string &graph_name, 
+    const tt_cxy_pair &core_coord, 
+    uint32_t start_addr, 
+    int new_consumed_size, 
+    CoordType coord_type,
+    L1ProfileStage stage
 ) {
     log_assert(m_graphs.find(graph_name) != m_graphs.end(), "{}: Graph name {} does not exist!", __FUNCTION__, graph_name);
     
     L1Graph* target_graph = m_graphs.at(graph_name).get();
 
-    // if the stage at which the buffer is added to the graph is earlier than the profile stage of the graph, don't add the buffer
+    // if the stage of the graph is greater than the stage at which the buffer is being updated, don't update the buffer
     if (target_graph->get_profile_stage() >= stage) {
-        log_trace(tt::LogPerfInfra, "{}: not updating buffer of graph {} because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
+        log_debug(tt::LogPerfInfra, "{}: not updating buffer of graph {} because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
         return;
     }
 
-    target_graph->update_buffer_of_core(
+    target_graph->update_core_buffer_consumed_size(
         core_coord,
-        buffer_type,
-        buffer_name,
-        old_start_addr,
-        new_start_addr,
-        consumed_size,
-        reserved_size,
+        start_addr,
+        new_consumed_size,
         coord_type
     );
 }
 
-void L1Profiler::broadcast_add_buffer_all_used_cores(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage) {
+void L1Profiler::broadcast_update_buffer_consumed_size_of_graph(const string &graph_name, uint32_t start_addr, int new_consumed_size, L1ProfileStage stage) {
     log_assert(m_graphs.find(graph_name) != m_graphs.end(), "{}: graph {} not found", __FUNCTION__, graph_name);
     L1Graph* l1_graph = m_graphs.at(graph_name).get();
     if (l1_graph->get_profile_stage() >= stage) {
-        log_trace(tt::LogPerfInfra, "{}: not adding buffer to graph because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
+        log_debug(tt::LogPerfInfra, "{}: not adding buffer to graph because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
         return;
     }
-    l1_graph->add_buffer_to_all_used_cores(
-        buffer_type,
-        buffer_name,
+    l1_graph->update_buffer_consumed_size_of_all_used_workers(start_addr, new_consumed_size);
+}
+
+void L1Profiler::update_graph_buffer_reserved_size(
+    const string &graph_name, 
+    const tt_cxy_pair &core_coord, 
+    uint32_t start_addr, 
+    int new_reserved_size, 
+    CoordType coord_type,
+    L1ProfileStage stage
+) {
+    log_assert(m_graphs.find(graph_name) != m_graphs.end(), "{}: Graph name {} does not exist!", __FUNCTION__, graph_name);
+    
+    L1Graph* target_graph = m_graphs.at(graph_name).get();
+
+    // if the stage of the graph is greater than the stage at which the buffer is being updated, don't update the buffer
+    if (target_graph->get_profile_stage() >= stage) {
+        log_debug(tt::LogPerfInfra, "{}: not updating buffer of graph {} because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
+        return;
+    }
+
+    target_graph->update_core_buffer_reserved_size(
+        core_coord,
         start_addr,
-        consumed_size,
-        reserved_size
+        new_reserved_size,
+        coord_type
     );
 }
 
-void L1Profiler::broadcast_update_buffer_all_used_cores(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t old_start_addr, uint32_t new_start_addr, int consumed_size, int reserved_size, L1ProfileStage stage) {
+void L1Profiler::broadcast_add_buffer_all_used_workers(const string &graph_name, const L1BufferType &buffer_type, const string &buffer_name, uint32_t start_addr, int consumed_size, int reserved_size, L1ProfileStage stage) {
     log_assert(m_graphs.find(graph_name) != m_graphs.end(), "{}: graph {} not found", __FUNCTION__, graph_name);
     L1Graph* l1_graph = m_graphs.at(graph_name).get();
     if (l1_graph->get_profile_stage() >= stage) {
-        log_trace(tt::LogPerfInfra, "{}: not adding buffer to graph because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
+        log_debug(tt::LogPerfInfra, "{}: not adding buffer to graph because graph profile stage is greater than buffer stage.", __FUNCTION__, graph_name);
         return;
     }
-    l1_graph->update_buffer_of_all_used_cores(
+    l1_graph->add_buffer_to_all_used_workers(
         buffer_type,
         buffer_name,
-        old_start_addr,
-        new_start_addr,
+        start_addr,
         consumed_size,
         reserved_size
     );
@@ -307,9 +335,14 @@ void L1Profiler::sort_all_graph_buffers_and_check_overlap() {
     }
 }
 
+const L1Buffer* L1Profiler::find_buffer_in_graph(const string &graph_name, const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr) const {
+    log_assert(m_graphs.find(graph_name) != m_graphs.end(), "{}: Graph {} was never recorded.", __FUNCTION__, graph_name);
+    return m_graphs.at(graph_name)->find_buffer_in_core(core, coord_type, start_addr);
+}
+
 void L1Profiler::create_reports(const string &output_dir) const {
     const string metadata_key = "metadata";
-    const string worker_cores_key = "worker-cores";
+    const string used_workers_key = "worker-cores";
     for (const auto &[graph_name, l1_graph] : m_graphs) {
         log_assert(l1_graph->get_profile_stage() == L1ProfileStage::Done, "{}: Expected profiling on graph to be done", __FUNCTION__);
         json graph_l1_report;
@@ -319,22 +352,22 @@ void L1Profiler::create_reports(const string &output_dir) const {
         graph_l1_report[metadata_key]["target-device"] = l1_graph->target_device();
         graph_l1_report[metadata_key]["arch-name"] = m_arch_name;
         graph_l1_report[metadata_key]["temporal-epoch"] = l1_graph->temporal_epoch();
-        graph_l1_report[worker_cores_key] = json::object();
+        graph_l1_report[used_workers_key] = json::object();
         for (const auto &[phys_coord, l1_core] : l1_graph->get_cores_by_coord_type(CoordType::Physical)) {
             const string physical_core_str = get_core_str(l1_core->physical_coord());
             const string logical_core_str = get_core_str(l1_core->logical_coord());
-            graph_l1_report[worker_cores_key][physical_core_str] = json::object();
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"] = json::object();
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["logical-core-x-y"] = logical_core_str;
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["op-name"] = l1_core->op_name();
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["op-type"] = l1_core->op_type();
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["l1-size-bytes"] = m_l1_size;
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["total-reserved-size-bytes"] = l1_core->reserved_size_bytes();
-            graph_l1_report[worker_cores_key][physical_core_str]["core-attributes"]["total-consumed-size-bytes"] = l1_core->consumed_size_bytes();
+            graph_l1_report[used_workers_key][physical_core_str] = json::object();
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"] = json::object();
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["logical-core-x-y"] = logical_core_str;
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["op-name"] = l1_core->op_name();
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["op-type"] = l1_core->op_type();
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["l1-size-bytes"] = m_l1_size;
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["total-reserved-size-bytes"] = l1_core->reserved_size_bytes();
+            graph_l1_report[used_workers_key][physical_core_str]["core-attributes"]["total-consumed-size-bytes"] = l1_core->consumed_size_bytes();
 
             // Create reports for binary and data buffers
-            graph_l1_report[worker_cores_key][physical_core_str]["binary-buffers"] = json::array();
-            graph_l1_report[worker_cores_key][physical_core_str]["data-buffers"] = json::array();
+            graph_l1_report[used_workers_key][physical_core_str]["binary-buffers"] = json::array();
+            graph_l1_report[used_workers_key][physical_core_str]["data-buffers"] = json::array();
             for (const L1Buffer* buffer : l1_core->get_all_buffers()) {
                 const string buffer_name = buffer->name();
                 const string buffer_category_name = buffer->category_name();
@@ -350,7 +383,7 @@ void L1Profiler::create_reports(const string &output_dir) const {
                     json_buffer["consumed-size-bytes"] = "N/A";
                     json_buffer["percent-consumed"] = "N/A";
                 }
-                graph_l1_report[worker_cores_key][physical_core_str][buffer_category_name].emplace_back(std::move(json_buffer));
+                graph_l1_report[used_workers_key][physical_core_str][buffer_category_name].emplace_back(std::move(json_buffer));
             }
         }
         std::ofstream graph_report_file(graph_l1_report_path);
@@ -390,6 +423,7 @@ void MemoryProfiler::add_graph(const buda_SocDescriptor &sdesc, const tt_digraph
     update_chip_id_to_sdesc(target_device, sdesc);
     const string &graph_name = graph.my_graph_info.name;
     update_graph_wrappers(graph_name, graph, temporal_epoch_id);
+    update_graph_used_workers(graph_name, m_graph_wrappers_graph_name.at(graph_name)->core_to_descriptor);
     if (m_profile_l1) {
         m_l1_profiler->add_graph(graph_name, temporal_epoch_id, target_device, m_graph_wrappers_graph_name.at(graph_name)->core_to_descriptor);
     }
@@ -429,6 +463,55 @@ void MemoryProfiler::update_graph_wrappers(const string &graph_name, const tt_di
     }
 }
 
+void MemoryProfiler::update_graph_used_workers(const string &graph_name, const unordered_map<string, core_descriptor> &cores_to_descriptors) {
+    log_assert((m_graph_physical_used_workers.find(graph_name) == m_graph_physical_used_workers.end()) == (m_graph_logical_used_workers.find(graph_name) == m_graph_logical_used_workers.end()), 
+        "{}: Physical logical worker cores out of sync for graph {}", __FUNCTION__, graph_name);
+
+    if (m_graph_logical_used_workers.find(graph_name) == m_graph_logical_used_workers.end()) {
+        m_graph_logical_used_workers.emplace(graph_name, unordered_set<tt_xy_pair>());
+        unordered_set<tt_xy_pair> &graph_logical_workers = m_graph_logical_used_workers.at(graph_name);
+        for (const auto &[core_str, descriptor] : cores_to_descriptors) {
+            log_assert(graph_logical_workers.find(descriptor.logical_core) == graph_logical_workers.end(), "{}: Logical core {} already exists in graph {}", __FUNCTION__, descriptor.logical_core.str(), graph_name);
+            graph_logical_workers.insert(descriptor.logical_core);
+        }
+    }
+    if (m_graph_physical_used_workers.find(graph_name) == m_graph_physical_used_workers.end()) {
+        m_graph_physical_used_workers.emplace(graph_name, unordered_set<tt_xy_pair>());
+        unordered_set<tt_xy_pair> &graph_physical_workers = m_graph_physical_used_workers.at(graph_name);
+        for (const auto &[core_str, descriptor] : cores_to_descriptors) {
+            log_assert(graph_physical_workers.find(descriptor.physical_core) == graph_physical_workers.end(), "{}: Physical core {} already exists in graph {}", __FUNCTION__, descriptor.physical_core.str(), graph_name);
+            graph_physical_workers.insert(descriptor.physical_core);
+        }
+    }
+    log_assert(m_graph_physical_used_workers.size() == m_graph_logical_used_workers.size(), "{}: Physical and logical worker cores size out of sync for graph {}", __FUNCTION__, graph_name);
+}
+
+const string &MemoryProfiler::get_graph_name(int temporal_epoch_id, chip_id_t device_id) const {
+    log_assert(temporal_epoch_device_exists(temporal_epoch_id, device_id), "{}: graph on device {} at temporal epoch {} not recorded!", __FUNCTION__, device_id, temporal_epoch_id);
+    return m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id).at(device_id)->graph.my_graph_info.name;
+}
+
+bool MemoryProfiler::is_used_worker(const string &graph_name, const tt_xy_pair &core_coord, CoordType coord_type) const {
+    if (coord_type == CoordType::Physical) {
+        log_assert(m_graph_physical_used_workers.find(graph_name) != m_graph_physical_used_workers.end(), "{}: Graph {} not recorded", __FUNCTION__, graph_name);
+        const unordered_set<tt_xy_pair> &graph_physical_workers = m_graph_physical_used_workers.at(graph_name);
+        return graph_physical_workers.find(core_coord) != graph_physical_workers.end();
+    }
+    else if (coord_type == CoordType::Logical) {
+        log_assert(m_graph_logical_used_workers.find(graph_name) != m_graph_logical_used_workers.end(), "{}: Graph {} not recorded", __FUNCTION__, graph_name);
+        const unordered_set<tt_xy_pair> &graph_logical_workers = m_graph_logical_used_workers.at(graph_name);
+        return graph_logical_workers.find(core_coord) != graph_logical_workers.end();
+    }
+    else {
+        log_fatal("Invalid coordinate type");
+    }
+}
+
+bool MemoryProfiler::is_used_worker(int temporal_epoch_id, const tt_cxy_pair &core, CoordType coord_type) const {
+    const string &graph_name = get_graph_name(temporal_epoch_id, core.chip);
+    return is_used_worker(graph_name, tt_xy_pair(core.x, core.y), coord_type);
+}
+
 void MemoryProfiler::add_buffer_to_graph_l1(
     const string &graph_name, 
     const tt_cxy_pair &core_coord, 
@@ -442,7 +525,16 @@ void MemoryProfiler::add_buffer_to_graph_l1(
 ) {
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    // FIXME: Comparing buffer names is currently a workaround
+    // Handle the special case for extra overlay buffer, and merge it into the default overlay buffer
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
+    if (buffer_name == perf::extra_overlay_buffer_name) {
+        const perf::L1Buffer* default_overlay_blob_buffer = find_buffer_in_graph_l1(graph_name, core_coord, coord_type, l1_mem::address_map::OVERLAY_BLOB_BASE);
+        log_assert(default_overlay_blob_buffer != nullptr, "Default overlay blob buffer not found in memory profiler");
+        int new_overlay_reserved_size = default_overlay_blob_buffer->r_size() + reserved_size;
+        update_buffer_reserved_size_l1(graph_name, core_coord, default_overlay_blob_buffer->start_addr(), new_overlay_reserved_size, coord_type, stage);
+        return;
+    }
     m_l1_profiler->add_buffer_to_graph(
         graph_name, 
         core_coord,
@@ -469,21 +561,10 @@ void MemoryProfiler::add_buffer_to_graph_l1(
 ) {
     if (!m_profile_l1) return;
     chip_id_t device_id = core_coord.chip;
-    log_assert(temporal_epoch_device_exists(temporal_epoch_id, device_id), "{}: graph on device {} at temporal epoch {} not recorded!", __FUNCTION__, device_id, temporal_epoch_id);
-    const string &graph_name = m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id).at(device_id)->graph.my_graph_info.name;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
-    m_l1_profiler->add_buffer_to_graph(
-        graph_name, 
-        core_coord,
-        buffer_type,
-        buffer_name,
-        start_addr,
-        consumed_size,
-        reserved_size,
-        coord_type,
-        stage
-    );
+    const string &graph_name = get_graph_name(temporal_epoch_id, device_id);
+    add_buffer_to_graph_l1(graph_name, core_coord, buffer_type, buffer_name, start_addr, consumed_size, reserved_size, coord_type, stage);
 }
+
 
 void MemoryProfiler::broadcast_add_buffer_l1(
     const L1BufferType &buffer_type, 
@@ -494,9 +575,9 @@ void MemoryProfiler::broadcast_add_buffer_l1(
     L1ProfileStage stage
 ) {
     if (!m_profile_l1) return;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
-        m_l1_profiler->broadcast_add_buffer_all_used_cores(
+        m_l1_profiler->broadcast_add_buffer_all_used_workers(
             graph_name,
             buffer_type,
             buffer_name,
@@ -508,64 +589,72 @@ void MemoryProfiler::broadcast_add_buffer_l1(
     }
 }
 
-void MemoryProfiler::update_buffer_of_graph_l1(
+void MemoryProfiler::update_buffer_consumed_size_l1(
     const string &graph_name, 
     const tt_cxy_pair &core_coord, 
-    const L1BufferType &buffer_type, 
-    const string &buffer_name, 
-    uint32_t old_start_addr, 
-    uint32_t new_start_addr, 
-    int consumed_size, 
-    int reserved_size,
+    uint32_t start_addr, 
+    int new_consumed_size, 
     CoordType coord_type,
     L1ProfileStage stage
 ) {
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
-    m_l1_profiler->update_buffer_of_graph(
+    if (!is_used_worker(graph_name, core_coord, coord_type)) {
+        log_debug(tt::LogPerfInfra, "{}: Not updating buffer consumed size for graph {} core {} because it is not a used worker core", __FUNCTION__, graph_name, core_coord.str());
+        return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
+    m_l1_profiler->update_graph_buffer_consumed_size(
         graph_name, 
         core_coord,
-        buffer_type,
-        buffer_name,
-        old_start_addr,
-        new_start_addr,
-        consumed_size,
-        reserved_size,
-        coord_type,
+        start_addr,
+        new_consumed_size,
+        coord_type, 
         stage
     );
-}
+};
 
-void MemoryProfiler::broadcast_update_buffer_l1(
-    const L1BufferType &buffer_type, 
-    const string &buffer_name, 
-    const uint32_t old_start_addr,
-    const uint32_t new_start_addr,
-    int consumed_size, 
-    int reserved_size,
+void MemoryProfiler::broadcast_update_buffer_consumed_size_l1(
+    uint32_t start_addr,
+    int new_consumed_size,
     L1ProfileStage stage
 ) {
     if (!m_profile_l1) return;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
-        m_l1_profiler->broadcast_update_buffer_all_used_cores(
+        m_l1_profiler->broadcast_update_buffer_consumed_size_of_graph(
             graph_name, 
-            buffer_type,
-            buffer_name,
-            old_start_addr,
-            new_start_addr,
-            consumed_size,
-            reserved_size,
+            start_addr,
+            new_consumed_size,
             stage
         );
     }
 }
 
+void MemoryProfiler::update_buffer_reserved_size_l1(
+    const string &graph_name, 
+    const tt_cxy_pair &core_coord, 
+    uint32_t start_addr, 
+    int new_reserved_size, 
+    CoordType coord_type,
+    L1ProfileStage stage
+) {
+    if (!m_profile_l1) return;
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
+    m_l1_profiler->update_graph_buffer_reserved_size(
+        graph_name, 
+        core_coord,
+        start_addr,
+        new_reserved_size,
+        coord_type, 
+        stage
+    );
+};
+
 void MemoryProfiler::update_graph_profile_stage_l1(const string &graph_name, L1ProfileStage stage, bool force_update) {
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     if (!force_update and m_l1_profiler->get_graph_stage(graph_name) >= stage) {
         return;
     }
@@ -574,7 +663,7 @@ void MemoryProfiler::update_graph_profile_stage_l1(const string &graph_name, L1P
 
 void MemoryProfiler::update_profile_stage_all_graphs_l1(L1ProfileStage stage, bool force_update) {
     if (!m_profile_l1) return;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     for (const auto &[graph_name, graph_wrapper] : m_graph_wrappers_graph_name) {
         if (!force_update and m_l1_profiler->get_graph_stage(graph_name) >= stage) {
             continue;
@@ -587,7 +676,7 @@ void MemoryProfiler::update_temporal_epoch_profile_stage_l1(int temporal_epoch_i
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_temporal_epoch_device.find(temporal_epoch_id) != m_graph_wrappers_temporal_epoch_device.end(), 
         "{}: temporal epoch {} does not exist!", temporal_epoch_id);
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     for (const auto &[device_id, graph_wrapper] : m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id)) {
         const string graph_name = graph_wrapper->graph.my_graph_info.name;
         if (!force_update and m_l1_profiler->get_graph_stage(graph_name) >= stage) {
@@ -600,29 +689,34 @@ void MemoryProfiler::update_temporal_epoch_profile_stage_l1(int temporal_epoch_i
 L1ProfileStage MemoryProfiler::get_graph_profile_stage_l1(const string &graph_name) {
     if (!m_profile_l1) return L1ProfileStage::Uninitialized;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     return m_l1_profiler->get_graph_stage(graph_name);
 }
 
 L1ProfileStage MemoryProfiler::get_graph_profile_stage_l1(int temporal_epoch_id, chip_id_t device_id) {
     if (!m_profile_l1) return L1ProfileStage::Uninitialized;
-    log_assert(temporal_epoch_device_exists(temporal_epoch_id, device_id), "{}: graph on device {} at temporal epoch {} not recorded!", __FUNCTION__, device_id, temporal_epoch_id);
-    const string &graph_name = m_graph_wrappers_temporal_epoch_device.at(temporal_epoch_id).at(device_id)->graph.my_graph_info.name;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
-    return m_l1_profiler->get_graph_stage(graph_name);
+    const string &graph_name = get_graph_name(temporal_epoch_id, device_id);
+    return get_graph_profile_stage_l1(graph_name);
 }
 
 void MemoryProfiler::sort_graph_buffers_and_check_overlap_l1(const string &graph_name) {
     if (!m_profile_l1) return;
     log_assert(m_graph_wrappers_graph_name.find(graph_name) != m_graph_wrappers_graph_name.end(), "{}: Graph {} not recorded");
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     m_l1_profiler->sort_graph_buffers_and_check_overlap(graph_name);
 }
 
 void MemoryProfiler::sort_all_graph_buffers_and_check_overlap_l1() {
     if (!m_profile_l1) return;
-    std::lock_guard<std::mutex> lock(m_l1_profiler_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
     m_l1_profiler->sort_all_graph_buffers_and_check_overlap();
+}
+
+const L1Buffer* MemoryProfiler::find_buffer_in_graph_l1(const string &graph_name, const tt_cxy_pair &core, CoordType coord_type, uint32_t start_addr) {
+    if (!m_profile_l1) return nullptr;
+    chip_id_t device_id = core.chip;
+    std::lock_guard<std::recursive_mutex> lock(m_l1_profiler_mutex);
+    return m_l1_profiler->find_buffer_in_graph(graph_name, core, coord_type, start_addr);
 }
 
 void MemoryProfiler::create_reports_l1(const string &l1_output_dir) const {
