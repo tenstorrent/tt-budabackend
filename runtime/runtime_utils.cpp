@@ -7,6 +7,7 @@
 #include <tuple>
 #include <unistd.h>
 
+#include "device/l1/l1_buffer.h"
 #include "pipegen2.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_location_utils.h"
@@ -170,7 +171,7 @@ void run_pipegen2(const string &desc_name,
             pipegen.output_memory_allocations(log_memory_allocations_dir, temporal_epoch);
         }
         if (memory_profiler and memory_profiler->profile_l1()) {
-            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> all_worker_l1_allocations = pipegen.get_all_worker_l1_allocations();
+            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> all_worker_l1_allocations = pipegen.get_all_worker_l1_data_buffers();
             profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
         }
     } catch (const pipegen2::BasePipegen2CompileException &ex) {
@@ -185,19 +186,21 @@ void run_pipegen2(const string &desc_name,
     }
 }
 
-void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
-    for (const auto &[core_logical_loc, l1_allocations] : all_worker_l1_allocations) {
+void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> &all_worker_l1_buffers, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
+    for (const auto &[core_logical_loc, l1_data_buffers] : all_worker_l1_buffers) {
         if (!memory_profiler->is_used_worker(temporal_epoch_id, core_logical_loc, perf::CoordType::Logical)) {
             log_debug(tt::LogPerfInfra, "Not profiling for core {} because it is not a worker", core_logical_loc.str());
             continue;
         }
+        
         if (memory_profiler->get_graph_profile_stage_l1(temporal_epoch_id, core_logical_loc.chip) >= perf::L1ProfileStage::Pipegen) {
             log_fatal("Unexpected graph being profiled more than once for pipegen!");
         }
-        for (const pipegen2::L1MemoryAllocation* l1_allocation : l1_allocations) {
-            const uint32_t start_addr = l1_allocation->get_address();
-            const uint32_t buffer_size = l1_allocation->get_size();
-            const string buffer_name = l1_allocation->allocation_name();
+
+        for (const pipegen2::L1Buffer* l1_buffer : l1_data_buffers) {
+            const uint32_t start_addr = l1_buffer->get_address();
+            const uint32_t buffer_size = l1_buffer->get_size();
+            const string buffer_name = l1_buffer->get_name();
             memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, buffer_name, 
                 start_addr, buffer_size, buffer_size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);
         }

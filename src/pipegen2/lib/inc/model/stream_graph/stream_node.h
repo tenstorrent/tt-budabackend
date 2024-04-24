@@ -180,6 +180,10 @@ namespace pipegen2
         // Gets all NCRISC configs (non-const).
         std::vector<NcriscConfig>& get_ncrisc_configs() { return m_ncrisc_configs; }
 
+        // Returns number of active DRAM or PCIe buffers stream accesses (reads from or writes to) through its NCRISC
+        // configs.
+        int get_num_active_buffers_accessed_through_ncrisc() const;
+
         // Returns pointer to the NCRISC config of the stream if it is a dram writer. Otherwise returns nullptr.
         NcriscConfig* get_ncrisc_writer_config()
         {
@@ -289,7 +293,8 @@ namespace pipegen2
         // stream hangs. This number limits how many phases can be optimized into a single phase.
         unsigned int m_max_num_tiles_per_phase;
 
-        // Netlist op name. Experimental purpose only.
+        // Name of an OP (from netlist) which spreads accross core on which this stream is allocated. Only packer and 
+        // unpacker streams have a meaningful OP name.
         std::string m_op_name;
     };
 }

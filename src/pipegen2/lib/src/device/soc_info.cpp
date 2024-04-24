@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include "device/soc_info_constants.h"
-#include "common/buda_soc_descriptor.h"
 #include "device/tt_arch_types.h"
 #include "l1_address_map.h"
 #include "noc/noc_parameters.h"
@@ -190,8 +189,8 @@ tt_cxy_pair SoCInfo::convert_logical_to_physical_worker_core_coords(const tt_cxy
     }
     catch (std::exception& e)
     {
-        throw NoPhysicalCoreException("There is no physical worker core on logical location " + 
-                                      logical_coords.str(), 
+        throw NoPhysicalCoreException("There is no physical worker core on logical location " +
+                                      logical_coords.str(),
                                       logical_coords);
     }
 }
@@ -381,7 +380,7 @@ const std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> SoCInfo::get_
     {
         soc_descriptor.emplace(static_cast<tt::chip_id_t>(soc_descriptor_it.first), soc_descriptor_it.second.get());
     }
-    
+
     return soc_descriptor;
 }
 

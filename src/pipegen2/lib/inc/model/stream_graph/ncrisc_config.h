@@ -20,6 +20,13 @@ namespace pipegen2
     public:
         NcriscConfig() = default;
 
+        // Checks if config is used to read or write to active DRAM or PCIe buffer. Active buffers are all but DRAM 
+        // prefetch inputs and DRAM intermediate outputs.
+        bool is_accessing_active_dram_or_pcie_buffer() const
+        { 
+            return (dram_input || dram_output) && (dram_io || dram_streaming); 
+        }
+
         std::uint64_t dram_buf_noc_addr;
 
         unsigned int dram_buf_size_bytes;

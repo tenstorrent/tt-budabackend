@@ -11,19 +11,18 @@
 
 #include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
-#include "device/core_resources_unit_test_utils.h"
-#include "device/l1_memory_allocation.h"
+#include "device/l1/l1_buffer.h"
 #include "device/worker_core_resources_gs.h"
 #include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
-#include "test_utils/unit_test_utils.h"
 
 using namespace pipegen2;
 using namespace unit_test_utils;
 
 /**********************************************************************************************************************
     Tests for function: allocate_gather_stream
+    (which also indirectly tests get_allocated_stream_ids)
 **********************************************************************************************************************/
 
 TEST(Pipegen2_CoreResources, AllocateGatherStream_ProperAllocatedStreamStorage)
@@ -43,6 +42,7 @@ TEST(Pipegen2_CoreResources, AllocateGatherStream_ProperAllocatedStreamStorage)
 
 /**********************************************************************************************************************
     Tests for function: allocate_multicast_stream
+    (which also indirectly tests get_allocated_stream_ids)
 **********************************************************************************************************************/
 
 TEST(Pipegen2_CoreResources, AllocateMulticastStream_ProperAllocatedStreamStorage)
@@ -62,6 +62,7 @@ TEST(Pipegen2_CoreResources, AllocateMulticastStream_ProperAllocatedStreamStorag
 
 /**********************************************************************************************************************
     Tests for function: allocate_general_purpose_stream
+    (which also indirectly tests get_allocated_stream_ids)
 **********************************************************************************************************************/
 
 TEST(Pipegen2_CoreResources, AllocateGeneralPurposeStream_ProperAllocatedStreamStorage)
@@ -77,128 +78,6 @@ TEST(Pipegen2_CoreResources, AllocateGeneralPurposeStream_ProperAllocatedStreamS
     EXPECT_EQ(
         worker_core_resources.get_allocated_stream_ids(),
         std::set<StreamId>{static_cast<StreamId>(END_IO_STREAM + 1)});
-}
-
-/**********************************************************************************************************************
-    Tests for function: allocate_l1_extra_tile_headers_space
-**********************************************************************************************************************/
-
-TEST(Pipegen2_CoreResources, AllocateL1ExtraTileHeadersSpace_AllocateUntilOutOfMemory)
-{
-    // Memory is allocated from the end of L1 data buffers space towards beginning.
-    int l1_data_buffers_available_space =
-        (l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes) -
-        l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
-    int tile_header_buffer_size = constants::tile_header_size_bytes * constants::general_max_num_tiles_per_phase;
-
-    // Max number of tile header buffers that can be placed in l1 space for data buffers.
-    unsigned int max_num_tile_header_buffers = l1_data_buffers_available_space / tile_header_buffer_size;
-
-    const tt_cxy_pair core_physical_location{0, 0, 0};
-    const tt_cxy_pair core_logical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
-
-    // The first allocated tile header buffer is allocated in predesignated space for a single tile header buffer.
-    unsigned int tile_header_addr = worker_core_resources.allocate_tile_header_buffer(0);
-    EXPECT_LT(tile_header_addr, l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
-
-    unsigned int tile_header_buff_prev_addr;
-    // All the following allocations will end up in l1 data buffer space.
-    for (unsigned int test_tile_size = 1; test_tile_size <= max_num_tile_header_buffers; test_tile_size++)
-    {
-        tile_header_buff_prev_addr = tile_header_addr;
-        tile_header_addr = worker_core_resources.allocate_tile_header_buffer(test_tile_size);
-        EXPECT_GT(tile_header_addr, l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
-        if (test_tile_size > 1)
-        {
-            // The allocations are happening from the end of the space towards the beginning.
-            EXPECT_LT(tile_header_addr, tile_header_buff_prev_addr);
-        }
-    }
-
-    // Verify we are not out of space.
-    EXPECT_NO_THROW(worker_core_resources.check_if_out_of_l1_data_buffers_memory());
-
-    // When we do another pass with the same values, nothing should changes since no allocations should happen.
-    for (unsigned int test_tile_size = 1; test_tile_size <= max_num_tile_header_buffers; test_tile_size++)
-    {
-        worker_core_resources.allocate_tile_header_buffer(test_tile_size);
-    }
-    EXPECT_NO_THROW(worker_core_resources.check_if_out_of_l1_data_buffers_memory());
-
-    // Allocate one too many tile headers. This will overflow L1 space.
-    // Note that we use max_num_tile_header_buffers + 1 as tile_size here. It's only important that it's a new value
-    worker_core_resources.allocate_tile_header_buffer(max_num_tile_header_buffers + 1);
-
-    // Expect an error to be thrown when specifically checking if L1 is out of memory.
-    verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            worker_core_resources.check_if_out_of_l1_data_buffers_memory();
-        },
-        [&](const OutOfCoreResourcesException& ex)
-        {
-            verify_out_of_core_resource_exception(
-                ex,
-                core_physical_location,
-                core_logical_location,
-                OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
-                l1_data_buffers_available_space,
-                (max_num_tile_header_buffers + 1) * tile_header_buffer_size);
-        });
-}
-
-/**********************************************************************************************************************
-    Tests for function: allocate_l1_data_buffer
-    (which also indirectly tests allocate_l1_extra_overlay_blob_space and check_if_out_of_l1_data_buffers_memory)
-**********************************************************************************************************************/
-
-TEST(Pipegen2_CoreResources, AllocateL1DataBuffer_AllocateUntilOutOfMemory)
-{
-    // Memory is allocated from the end of L1 data buffers space towards beginning.
-    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
-    int l1_data_buffers_space_end_address = l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
-    unsigned int available_space = l1_data_buffers_space_end_address - l1_data_buffers_space_start_address;
-    unsigned int allocated_l1_data_buffers_size = available_space - 1;
-
-    const tt_cxy_pair core_physical_location{0, 0, 0};
-    const tt_cxy_pair core_logical_location{0, 0, 0};
-    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
-
-    // Allocate nothing, dummy call.
-    unsigned int l1_current_data_buffers_space_address;
-    EXPECT_NO_THROW(l1_current_data_buffers_space_address = worker_core_resources.allocate_l1_data_buffer(0));
-    EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_end_address);
-
-    // Allocate almost entire space, just leave one byte unallocated.
-    EXPECT_NO_THROW(
-        l1_current_data_buffers_space_address = worker_core_resources.allocate_l1_data_buffer(
-            allocated_l1_data_buffers_size));
-    EXPECT_EQ(
-        l1_current_data_buffers_space_address, l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
-
-    // Allocate one more byte for extra overlay blob space.
-    EXPECT_NO_THROW(worker_core_resources.allocate_l1_extra_overlay_blob_space(1));
-
-    // Allocate one too many tile headers. This will overflow L1 space.
-    worker_core_resources.allocate_l1_data_buffer(1);
-
-    // Expect an error to be thrown when specifically checking if L1 is out of memory.
-    verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            worker_core_resources.check_if_out_of_l1_data_buffers_memory();
-        },
-        [&](const OutOfCoreResourcesException& ex)
-        {
-            verify_out_of_core_resource_exception(
-                ex,
-                core_physical_location,
-                core_logical_location,
-                OutOfCoreResourcesException::CoreResourceType::kL1DataBuffersMemory,
-                allocated_l1_data_buffers_size,
-                allocated_l1_data_buffers_size + 1);
-        });
 }
 
 /**********************************************************************************************************************
@@ -293,16 +172,164 @@ TEST(Pipegen2_CoreResources, GetMulticastStreamsCount_ExpectingExactReturnValue)
 }
 
 /**********************************************************************************************************************
-    Tests for function: track_stream_buffer_allocation
+    Tests for function: allocate_l1_tile_header_buffer
+    (this is just sanity test for this thin wrapper. Thorough test is provided in test_l1_data_buffers_memory_layout)
 **********************************************************************************************************************/
-TEST(Pipegen2_CoreResources, AddStreamBufferAllocation_AddingOneStream)
+
+TEST(Pipegen2_CoreResources, AllocateL1TileHeaderBuffer_SanityCheck)
+{
+    // Memory is allocated from the end of L1 data buffers space towards beginning.
+    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
+    int l1_data_buffers_space_end_address = l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
+    int l1_data_buffers_available_space = l1_data_buffers_space_end_address - l1_data_buffers_space_start_address;
+    int tile_header_buffer_size = constants::tile_header_buffer_size_bytes;
+
+    // Max number of tile header buffers that can be placed in l1 space for data buffers.
+    unsigned int max_num_tile_header_buffers = l1_data_buffers_available_space / tile_header_buffer_size;
+
+    const tt_cxy_pair core_physical_location{0, 0, 0};
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
+
+    // The first allocated tile header buffer is allocated in predesignated space for a single tile header buffer.
+    const L1Buffer* tile_header_buffer = worker_core_resources.allocate_l1_tile_header_buffer(0);
+    EXPECT_EQ(tile_header_buffer->get_address(), worker_core_resources_constants::l1_predefined_tile_header_buffer_address);
+
+    unsigned int tile_header_buff_expected_addr = l1_data_buffers_space_end_address;
+    // All the following allocations will end up in l1 data buffer space.
+    for (unsigned int test_tile_size = 1; test_tile_size <= max_num_tile_header_buffers; test_tile_size++)
+    {
+        tile_header_buff_expected_addr -= constants::tile_header_buffer_size_bytes;
+        tile_header_buffer = worker_core_resources.allocate_l1_tile_header_buffer(test_tile_size);
+        EXPECT_EQ(tile_header_buffer->get_address(), tile_header_buff_expected_addr);
+    }
+
+    // Verify we are not out of space.
+    EXPECT_NO_THROW(worker_core_resources.check_if_out_of_l1_data_buffers_memory());
+}
+
+/**********************************************************************************************************************
+    Tests for function: allocate_l1_stream_buffer
+    (this is just sanity test for this thin wrapper. Thorough test is provided in test_l1_data_buffers_memory_layout)
+**********************************************************************************************************************/
+
+TEST(Pipegen2_CoreResources, AllocateL1StreamBuffer_SanityCheck)
+{
+    // Memory is allocated from the end of L1 data buffers space towards beginning.
+    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
+    int l1_data_buffers_space_end_address = l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
+    unsigned int available_space = l1_data_buffers_space_end_address - l1_data_buffers_space_start_address;
+
+    const tt_cxy_pair core_physical_location{0, 0, 0};
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    StreamNode stream_node(StreamType::Gather, core_physical_location, 0);
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
+
+    // Allocate nothing, dummy call.
+    const L1Buffer* l1_current_data_buffer = worker_core_resources.allocate_l1_stream_buffer(&stream_node, 0);
+    EXPECT_EQ(l1_current_data_buffer, nullptr);
+
+    // Allocate almost entire space, just leave one byte unallocated.
+    unsigned int allocated_l1_data_buffers_size = available_space - 1;
+
+    EXPECT_NO_THROW(
+        l1_current_data_buffer = worker_core_resources.allocate_l1_stream_buffer(
+            &stream_node, allocated_l1_data_buffers_size));
+    EXPECT_EQ(
+        l1_current_data_buffer->get_address(), l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
+    EXPECT_EQ(
+        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+}
+
+/**********************************************************************************************************************
+    Tests for function: allocate_l1_ncrisc_fallback_buffer
+    (this is just sanity test for this thin wrapper. Thorough test is provided in test_l1_data_buffers_memory_layout)
+**********************************************************************************************************************/
+
+TEST(Pipegen2_CoreResources, AllocateL1NcriscFallbackBuffer_SanityCheck)
+{
+    // Memory is allocated from the end of L1 data buffers space towards beginning.
+    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
+    int l1_data_buffers_space_end_address = l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
+    unsigned int available_space = l1_data_buffers_space_end_address - l1_data_buffers_space_start_address;
+
+    const tt_cxy_pair core_physical_location{0, 0, 0};
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
+
+    // Allocate nothing, dummy call.
+    const L1Buffer* l1_current_data_buffer = worker_core_resources.allocate_l1_ncrisc_fallback_buffer(0);
+    EXPECT_EQ(l1_current_data_buffer, nullptr);
+
+    // Allocate almost entire space, just leave one byte unallocated.
+    unsigned int allocated_l1_data_buffers_size = available_space - 1;
+
+    EXPECT_NO_THROW(
+        l1_current_data_buffer = worker_core_resources.allocate_l1_ncrisc_fallback_buffer(
+            allocated_l1_data_buffers_size));
+    EXPECT_EQ(
+        l1_current_data_buffer->get_address(), l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
+    EXPECT_EQ(
+        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+}
+
+/**********************************************************************************************************************
+    Tests for function: allocate_l1_extra_overlay_blob_space
+    (this is just sanity test for this thin wrapper. Thorough test is provided in test_l1_data_buffers_memory_layout)
+**********************************************************************************************************************/
+
+TEST(Pipegen2_CoreResources, AllocateL1ExtraOverlayBlobSpace_SanityCheck)
+{
+    // Memory is allocated from the beginning of L1 data buffers space towards end.
+    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
+
+    const tt_cxy_pair core_physical_location{0, 0, 0};
+    const tt_cxy_pair core_logical_location{0, 0, 0};
+    WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
+
+    // Allocate extra 60KB of blob space.
+    unsigned int extra_blob_space = 0xF000;
+    unsigned int total_blob_size = l1_mem::address_map::OVERLAY_BLOB_SIZE + extra_blob_space;
+
+    const L1Buffer* l1_current_data_buffer;
+    EXPECT_NO_THROW(
+        l1_current_data_buffer = worker_core_resources.allocate_l1_extra_overlay_blob_space(
+            total_blob_size, false));
+    EXPECT_EQ(
+        l1_current_data_buffer->get_address(), l1_data_buffers_space_start_address);
+    EXPECT_EQ(
+        l1_current_data_buffer->get_size(), extra_blob_space);
+}
+
+
+/**********************************************************************************************************************
+    Tests for function: get_tile_header_buffer_address
+    (this is just sanity test for this thin wrapper. Thorough test is provided in test_l1_data_buffers_memory_layout)
+**********************************************************************************************************************/
+
+TEST(Pipegen2_CoreResources, GetTileHeaderBufferAddress_ExpectingExactReturnValue)
 {
     WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
-    StreamNode stream_node(StreamType::Gather, tt_cxy_pair(0, 0, 0), 0);
-    stream_node.assign_stream_id(1);
-    
-    worker_core_resources.track_stream_buffer_allocation(&stream_node, 1000, 0);
-    EXPECT_EQ(worker_core_resources.get_all_memory_allocations().size(), 1);
-    EXPECT_EQ(worker_core_resources.get_all_memory_allocations()[0]->get_size(), 1000);
-    EXPECT_EQ(worker_core_resources.get_all_memory_allocations()[0]->get_address(), 0);
+
+    const unsigned int l1_data_buffers_space_end_address =
+        l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
+
+    const unsigned int dummy_tile_size_1 = 1;
+    const unsigned int dummy_tile_size_2 = 2;
+
+    // No tile header buffers allocated still.
+    EXPECT_THROW(worker_core_resources.get_tile_header_buffer_address(dummy_tile_size_1), std::runtime_error);
+
+    // First THB is allocated at predefined location.
+    worker_core_resources.allocate_l1_tile_header_buffer(dummy_tile_size_1);
+    EXPECT_EQ(
+        worker_core_resources.get_tile_header_buffer_address(dummy_tile_size_1),
+        worker_core_resources_constants::l1_predefined_tile_header_buffer_address);
+
+    // All other THBs are allocated from end towards beginning of L1 data buffers space.
+    worker_core_resources.allocate_l1_tile_header_buffer(dummy_tile_size_2);
+    const unsigned int expected_thb_address =
+        l1_data_buffers_space_end_address - constants::tile_header_buffer_size_bytes;
+
+    EXPECT_EQ(worker_core_resources.get_tile_header_buffer_address(dummy_tile_size_2), expected_thb_address);
 }

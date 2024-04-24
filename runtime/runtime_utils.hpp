@@ -30,7 +30,7 @@ namespace pipegen2 {
 
 class BasePipegen2CompileException;
 class BasePipegen2IOException;
-class L1MemoryAllocation;
+class L1Buffer;
 
 }
 
@@ -74,7 +74,7 @@ void handle_pipegen2_internal_error(const std::exception &ex,
 void populate_common_pipegen_error_info(const std::string &graph_name,
                                         const int temporal_epoch,
                                         tt_compile_result_per_epoch &compile_result);
-void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1MemoryAllocation*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id);                       
+void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id);                       
 void run_blobgen(const string &root, const string &build_graph_dir, const string &build_dir_path, int temporal_epoch,
                  const std::vector<chip_id_t> &chip_ids,
                  const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip);

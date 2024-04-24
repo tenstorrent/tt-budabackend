@@ -15,7 +15,7 @@
 void verify_illegal_resource_allocation_exception(
     const pipegen2::IllegalCoreResourceAllocationException& ex,
     const tt_cxy_pair& physical_core_location,
-    const tt_cxy_pair& logical_core_location, 
+    const tt_cxy_pair& logical_core_location,
     pipegen2::IllegalCoreResourceAllocationException::CoreResourceType core_resource_type);
 
 // Verifies that the thrown OutOfCoreResourcesException exception has all the expected fields configured.
@@ -51,5 +51,5 @@ void test_function_repeated_calls_until_exception_thrown(
 
 // Verifies that the thrown NoPhysicalCoreException exception has all the expected fields configured.
 void verify_no_physical_core_exception(
-    const pipegen2::NoPhysicalCoreException& ex, 
+    const pipegen2::NoPhysicalCoreException& ex,
     const tt_cxy_pair& logical_core_location);

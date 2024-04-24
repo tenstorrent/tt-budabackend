@@ -15,6 +15,7 @@ from verif.common.test_utils import get_process_shared_logger
 class StreamGraphComparisonStrategy(Enum):
     edges = 0
     topology = 1
+    identical = 2
 
 
 def get_blog_logger_name() -> str:
@@ -850,6 +851,9 @@ class StreamGraph:
 class BlobComparator:
     PHASE_PREFIX = "phase_"
     DRAM_SECTION_KEY = "dram_blob"
+    GLOBAL_INFO_SECTION_KEY = "global_info_blob"
+    NCRISC_FALLBACK_BUFFER_ADDRESS_KEY = "ncrisc_fallback_buffer_l1_address"
+    NCRISC_FALLBACK_BUFFER_SIZE_KEY = "ncrisc_fallback_buffer_size"
     DRAM_PERF_INFO_SECTION_KEY = "dram_perf_dump_blob"
     DRAM_PERF_INFO_SECTION_NOC_ADDR_KEY = "dram_perf_buf_noc_addr"
     DRAM_PERF_INFO_SECTION_MAX_REQ_KEY = "dram_perf_buf_max_req"
@@ -868,8 +872,8 @@ class BlobComparator:
 
     def compare(self, sg_comparison_strategy: StreamGraphComparisonStrategy) -> bool:
         """Returns whether blobs are considered same or not."""
-        if self.orig_blob == self.new_blob:
-            return True
+        if sg_comparison_strategy == StreamGraphComparisonStrategy.identical:
+            return self.compare_identical()
 
         orig_phase_map = self.parse_phase_map(self.orig_blob)
         self.propagate_scatter_idxs(orig_phase_map)
@@ -893,10 +897,19 @@ class BlobComparator:
         # order to report all errors in the log.
         dram_section_equal = self.compare_dram_section()
         phase_section_equal = self.compare_phase_section()
+        global_info_section_equal = self.compare_global_info_section()
         dram_perf_info_section_equal = self.compare_dram_perf_info_section()
         return (
-            dram_section_equal and phase_section_equal and dram_perf_info_section_equal
+            dram_section_equal and phase_section_equal and global_info_section_equal and dram_perf_info_section_equal
         )
+        
+    def compare_identical(self) -> bool:
+        if self.orig_blob == self.new_blob:
+            self.logger.info("Blobs are identical")
+            return True
+        else:
+            self.logger.error("Blobs are not identical")
+            return False
 
     def compare_phase_section(self):
         orig_sinks_per_id = {}
@@ -1060,6 +1073,90 @@ class BlobComparator:
         DEFAULT_KEYS_AND_VALUES["dram_buf_noc_addr"] = None
 
         return ncrisc_configs_equal
+
+    def compare_global_info_section(self):
+        """Comparison is run only if both blobs have global_info_blob section, otherwise it is disregarded."""
+        orig_global_info = self.orig_blob.get(
+            BlobComparator.GLOBAL_INFO_SECTION_KEY, None
+        )
+        generated_global_info = self.new_blob.get(
+            BlobComparator.GLOBAL_INFO_SECTION_KEY, None
+        )
+        
+        if orig_global_info == None:
+            self.logger.warning(
+                f"{BlobComparator.GLOBAL_INFO_SECTION_KEY} section is not found in original blob!"
+                f" Not comparing these sections."
+            )
+            return True
+
+        if generated_global_info == None:
+            self.logger.warning(
+                f"{BlobComparator.GLOBAL_INFO_SECTION_KEY} section is not found in generated blob!"
+                f" Not comparing these sections."
+            )
+            return True
+        
+        if len(generated_global_info) > len(orig_global_info):
+            self.logger.warning(
+                f"Generated {BlobComparator.GLOBAL_INFO_SECTION_KEY} contains more elements than "
+                f"the original: ({set(generated_global_info.keys()) - set(orig_global_info.keys())})"
+            )
+            return False
+        
+        if len(orig_global_info) > len(generated_global_info):
+            self.logger.warning(
+                f"Original {BlobComparator.GLOBAL_INFO_SECTION_KEY} contains more elements than "
+                f"the generated: ({set(orig_global_info.keys()) - set(generated_global_info.keys())})"
+            )
+            return False
+        
+        match = True
+
+        # Don't break the loop at any point. Log all errors that occur.
+        for worker_loc in orig_global_info.keys():
+            orig_subdict = orig_global_info[worker_loc]
+            generated_subdict = generated_global_info.get(worker_loc, None)
+
+            if generated_subdict == None:
+                self.logger.error(
+                    f"{worker_loc} is not found in generated blob's "
+                    f"{BlobComparator.GLOBAL_INFO_SECTION_KEY} section!"
+                )
+                match = False
+                continue
+
+            orig_l1_buf_addr = orig_subdict[
+                BlobComparator.NCRISC_FALLBACK_BUFFER_ADDRESS_KEY
+            ]
+            generated_l1_buf_addr = generated_subdict[
+                BlobComparator.NCRISC_FALLBACK_BUFFER_ADDRESS_KEY
+            ]
+
+            if orig_l1_buf_addr != generated_l1_buf_addr:
+                self.logger.error(
+                    f"{worker_loc} {BlobComparator.NCRISC_FALLBACK_BUFFER_ADDRESS_KEY} is different "
+                    f"(original: {[hex(addr) for addr in orig_l1_buf_addr]} vs "
+                    f"generated: {[hex(addr) for addr in generated_l1_buf_addr]})"
+                )
+                match = False
+
+            orig_l1_buf_size = orig_subdict[
+                BlobComparator.NCRISC_FALLBACK_BUFFER_SIZE_KEY
+            ]
+            generated_l1_buf_size = generated_subdict[
+                BlobComparator.NCRISC_FALLBACK_BUFFER_SIZE_KEY
+            ]
+
+            if orig_l1_buf_size != generated_l1_buf_size:
+                self.logger.error(
+                    f"{worker_loc} {BlobComparator.NCRISC_FALLBACK_BUFFER_SIZE_KEY} is different "
+                    f"(original: {[hex(addr) for addr in orig_l1_buf_size]} vs "
+                    f"generated: {[hex(addr) for addr in generated_l1_buf_size]})"
+                )
+                match = False
+
+        return match
 
     def compare_dram_perf_info_section(self):
         """Comparison is run only if both blobs have dram_perf_dump_blob section, otherwise it is disregarded."""

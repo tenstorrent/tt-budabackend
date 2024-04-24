@@ -3,7 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "eth_l1_address_map.h"
+#include "l1_address_map.h"
+#include "src/firmware/riscv/common/dram_stream_intf_constants.h"
+
 #include "model/typedefs.h"
+#include "pipegen2_constants.h"
 
 namespace pipegen2
 {
@@ -37,13 +42,14 @@ constexpr unsigned int max_num_ncrisc_reading_streams = 8;
 // are writing to. Similarly as above, we are limited by space in L0 designated for this.
 constexpr unsigned int max_num_ncrisc_writing_streams = 8;
 
-// A single DRAM IO stream can read from multiple DRAM buffers. Total number of active (all but DRAM prefetch and DRAM
-// output intermediates) DRAM buffers a worker core accesses through all of its streams must be <= 40. Again, this limit
-// comes from limitations of 4KB L0 DATA RAM in NCRISC.
-constexpr unsigned int max_num_active_buffers_accessed = 40;
+// A single DRAM IO stream can read from multiple DRAM or PCIe buffers. Total number of active (all but DRAM prefetch
+// and DRAM output intermediates) DRAM or PCIe buffers a worker core accesses through all of its streams must be <= 40.
+// Again, this limit comes from limitations of 4KB L0 DATA RAM in NCRISC where data structures to track NCRISC
+// transfers are stored.
+constexpr unsigned int max_num_active_buffers_accessed_through_l0 = MAX_L0_DRAM_Q_STATE_T;
 
-// Cushion bytes used when allocating tile header buffer in the predefined space for a single tile header buffer.
-constexpr unsigned int tile_header_buffer_allocation_cushion_bytes = 128;
+// Memory in bytes one NCRISC FW struct used for keeping track of reading and writing to DRAM or PCIe buffers takes up.
+constexpr unsigned int ncrisc_buffer_tracking_struct_size = EXPECTED_DRAM_Q_STATE_T_STRUCT_SIZE;
 
 } // namespace core_resources_constants
 
@@ -66,7 +72,23 @@ constexpr StreamId gather_multicast_streams_id_range_start = 0;
 // Ending ID in the gather/multicast streams ID range.
 constexpr StreamId gather_multicast_streams_id_range_end = 3;
 
+// Predefined tile header buffer address in L1.
+constexpr unsigned int l1_predefined_tile_header_buffer_address =
+    eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
+    128 /* cushion bytes */ -
+    pipegen2::constants::tile_header_buffer_size_bytes;
+
 } // namespace ethernet_core_resources_constants
+
+namespace worker_core_resources_constants
+{
+
+// Predefined tile header buffer address in L1.
+constexpr unsigned int l1_predefined_tile_header_buffer_address =
+    l1_mem::address_map::OVERLAY_BLOB_BASE -
+    128 /* cushion bytes */ -
+    pipegen2::constants::tile_header_buffer_size_bytes;
+}
 
 namespace worker_core_resources_gs_constants
 {

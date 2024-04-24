@@ -14,6 +14,13 @@ namespace pipegen2
         }
     }
 
+    void StreamGraphCollection::add_ncrisc_fallback_buffer_allocation(
+        const tt_cxy_pair core_location,
+        const L1Buffer* ncrisc_fallback_buffer_allocation)
+    {
+        m_ncrisc_fallback_buffer_allocation_per_core.emplace(core_location, ncrisc_fallback_buffer_allocation);
+    }
+
     std::vector<const StreamNode*> StreamGraphCollection::get_streams_on_core(const tt_cxy_pair& core_location) const
     {
         std::vector<const StreamNode*> streams_on_core;
@@ -35,7 +42,7 @@ namespace pipegen2
         {
             physical_locations.insert(stream_node->get_physical_location());
         }
-        
+
         return physical_locations;
     }
 }

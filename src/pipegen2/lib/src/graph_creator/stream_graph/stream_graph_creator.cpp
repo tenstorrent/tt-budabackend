@@ -11,8 +11,8 @@
 
 #include "data_flow_calculator/data_flow_calculator.h"
 #include "graph_creator/stream_graph/pipe_streams_creator_factory.h"
+#include "graph_creator/stream_graph/resources_allocators/stream_resources_allocator.h"
 #include "graph_creator/stream_graph/stream_flow_control_optimizer.h"
-#include "graph_creator/stream_graph/stream_resources_allocator.h"
 #include "model/rational_graph/nodes/pcie_streaming_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
 #include "model/stream_graph/ncrisc_config.h"
@@ -38,7 +38,6 @@ namespace pipegen2
         for (const std::unique_ptr<RationalGraph>& rational_graph : rational_graphs)
         {
             std::unique_ptr<StreamGraph> stream_graph = std::make_unique<StreamGraph>();
-
 
             create_streams_per_pipe(rational_graph.get(), &pipe_streams_creator_factory, resource_manager,
                                         &virt_node_to_stream_node, stream_graph.get());
@@ -83,6 +82,8 @@ namespace pipegen2
         insert_dummy_phases(stream_graph_collection.get());
 
         set_incoming_noc_ids(stream_graph_collection.get());
+        
+        set_op_names_on_cores(stream_graph_collection.get(), resource_manager);
 
         StreamResourcesAllocator stream_resources_allocator(resource_manager);
         stream_resources_allocator.allocate_resources(stream_graph_collection.get());
@@ -415,6 +416,25 @@ namespace pipegen2
                           chosen_noc_id, stream_node->get_physical_location().str(), stream_node->get_stream_type());
                 stream_node->get_base_config().set_incoming_data_noc(chosen_noc_id);
                 stream_node->get_base_config().set_remote_src_update_noc(get_complementary_noc_route(chosen_noc_id));
+            }
+        }
+    }
+    
+    void StreamGraphCreator::set_op_names_on_cores(
+        const StreamGraphCollection* stream_graph_collection, 
+        const ResourceManager* resource_manager)
+    {
+        for (const tt_cxy_pair& core_location : stream_graph_collection->get_physical_locations())
+        {
+            for (const StreamNode* stream : stream_graph_collection->get_streams_on_core(core_location))
+            {
+                // Only packer and unpacker streams contain OP name.
+                if (stream->get_stream_type() == StreamType::Packer || 
+                    stream->get_stream_type() == StreamType::Unpacker)
+                {
+                    resource_manager->set_core_resource_op_name(core_location, stream->get_op_name());
+                    break;
+                }
             }
         }
     }

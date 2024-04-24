@@ -10,6 +10,7 @@
 #include "device/tt_xy_pair.h"
 
 #include "data_flow_calculator/pcie_flow_calculator.h"
+#include "device/l1/l1_buffer.h"
 #include "graph_creator/rational_graph/gather_optimization_manager.h"
 #include "graph_creator/rational_graph/pg_subgraph_finder.h"
 #include "model/rational_graph/nodes/dram_embedding_index_input_node.h"
@@ -296,6 +297,15 @@ namespace pipegen2
         }
         else if (output_buffer->is_input_operand())
         {
+            // Unpacker nodes have an optional attribute which indicates we should allocate additional memory for
+            // overlay blob on core. Attibute specifies full overlay blob size, and if it exceeds default blob size,
+            // that means we have to allocate extra space at the beginning of L1 data buffers space on core.
+            const L1Buffer* extra_overlay_blob_space = resource_manager->allocate_l1_extra_overlay_blob_space(
+                physical_location, output_buffer->get_overlay_blob_size());
+
+            unsigned int extra_overlay_blob_space_in_bytes =
+                extra_overlay_blob_space != nullptr ? extra_overlay_blob_space->get_size() : 0;
+
             return std::make_unique<UnpackerOutputNode>(
                 output_buffer->get_id(),
                 output_buffer->get_op_name(),
@@ -308,8 +318,7 @@ namespace pipegen2
                 output_buffer->get_tile_clear_granularity(),
                 output_buffer->get_scatter_gather_num_tiles(),
                 output_buffer->is_embedding_index(),
-                resource_manager->allocate_l1_extra_overlay_blob_space(
-                    physical_location, output_buffer->get_overlay_blob_size()));
+                extra_overlay_blob_space_in_bytes);
         }
         else
         {

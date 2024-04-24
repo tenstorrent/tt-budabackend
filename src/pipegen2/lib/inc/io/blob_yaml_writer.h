@@ -49,9 +49,12 @@ namespace pipegen2
         // Writes DRAM performance info to the blob yaml.
         void write_dram_perf_info(const PerfInfoManager& perf_info_manager);
 
-        // Goes through all the streams in the stream graphs and fills phases with same id.
-        // Returns a map, mapping phase id to a map mapping stream ids having a phase with that id
-        // to their respective StreamConfigs.
+        // Write additional information stored in collection related to cores on chip, like memory allocations.
+        void write_global_info(const StreamGraphCollection* stream_graph_collection);
+
+        // Goes through all the streams in the stream graphs and collects phases with same id.
+        // Returns a map, mapping phase id to vector of all the streams having a phase with that id
+        // and index of phase with that id in the stream.
         void collect_stream_graph_phases(
             const StreamGraph* stream_graph,
             std::map<PhaseId, std::map<tt_cxys_pair, StreamConfig>>& phase_map);
@@ -148,6 +151,9 @@ namespace pipegen2
 
         // Starting line prefix for each phase in blob yaml file.
         static std::string s_phase_blob_yaml_prefix;
+
+        // Starting line prefix for global info section in blob yaml file.
+        static std::string s_global_info_blob_yaml_prefix;
 
         // Output blob yaml file stream;
         std::ofstream m_blob_yaml_file_stream;

@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <cstdint>
-
 namespace pipegen2 {
 namespace constants {
+
 // Logical location that is not mapped to a physical location.
 constexpr int unmapped_logical_location = 255;
 
@@ -20,6 +19,9 @@ constexpr unsigned int general_max_num_tiles_per_phase = 2048;
 // ------------------------------------ L1 buffer management constants -------------------------------------------------
 // Tile header size in bytes.
 constexpr unsigned int tile_header_size_bytes = 16;
+
+// Tile header buffers have fixed size.
+constexpr unsigned int tile_header_buffer_size_bytes = tile_header_size_bytes * general_max_num_tiles_per_phase;
 
 // Unused space at the end of L1 data buffers space, because ckernels can wrap to 0 if we try to use entire L1.
 constexpr int unused_data_buffers_space_bytes = 64;

@@ -10,7 +10,7 @@
 #include "stream_io_map.h"
 
 #include "device/core_resources_constants.h"
-#include "device/l1_memory_allocation.h"
+#include "device/l1/l1_buffer.h"
 #include "device/operand_stream_map.h"
 #include "device/resource_manager.h"
 #include "device/resource_manager_internal.h"
@@ -457,17 +457,19 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocateEthernetStream_ExpectingExactReturnV
 }
 
 /**********************************************************************************************************************
-    Tests for function: allocate_l1_extra_tile_headers_space
+    Tests for function: allocate_l1_tile_header_buffers
 **********************************************************************************************************************/
 
-TEST_F(Pipegen2_ResourceManager, AllocateL1ExtraTileHeadersSpace_ExpectingExactReturnValue)
+TEST_F(Pipegen2_ResourceManager, AllocateL1TileHeaderBuffers_ExpectingExactReturnValue)
 {
-    // TODO once logic around tile headers is changed, write this test. See issue tenstorrent/budabackend#2532.
+    // TODO once THBAllocationStrategy tests are written, write this test. See issue tenstorrent/budabackend#2532.
     GTEST_SKIP();
 }
 
 /**********************************************************************************************************************
     Tests for function: allocate_l1_extra_overlay_blob_space
+    NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_extra_overlay_blob_space is
+    thorougly tested in test_l1_data_buffers_memory_layout.
 **********************************************************************************************************************/
 
 TEST_F(Pipegen2_ResourceManager, AllocateL1ExtraOverlayBlobSpace_ExpectingExactReturnValue)
@@ -492,13 +494,12 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocateL1ExtraOverlayBlobSpace_ExpectingExa
 }
 
 /**********************************************************************************************************************
-    Tests for function: allocate_core_l1_stream_buffer
-    // NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_data_buffer and 
-    CoreResources::track_stream_buffer_allocation is thorougly tested in UTs for core resources.
-    // Also tests CoreResources::get_l1_memory_allocations
+    Tests for function: allocate_l1_stream_buffer
+    NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_stream_buffer is thorougly tested in
+    test_l1_data_buffers_memory_layout.
 **********************************************************************************************************************/
 
-TEST_F(Pipegen2_ResourceManager, AllocateCoreL1StreamBuffer_ExpectingExactReturnValue)
+TEST_F(Pipegen2_ResourceManager, AllocateL1StreamBuffer_ExpectingExactReturnValue)
 {
     tt_cxy_pair worker_core_location =
         tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
@@ -512,17 +513,41 @@ TEST_F(Pipegen2_ResourceManager, AllocateCoreL1StreamBuffer_ExpectingExactReturn
     // Allocate almost entire space, just leave one byte unallocated.
     unsigned int l1_current_data_buffers_space_address;
 
-    std::unique_ptr<StreamNode> stream_node = std::make_unique<StreamNode>(
-        StreamNode(StreamType::Unpacker, worker_core_location, 1));
+    StreamNode stream_node(StreamType::Unpacker, worker_core_location, 1);
 
-    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location).size(), 0);
     EXPECT_NO_THROW(
-        l1_current_data_buffers_space_address = m_resource_manager->allocate_core_l1_stream_buffer(
-            stream_node.get(), half_of_available_space));
+        l1_current_data_buffers_space_address = m_resource_manager->allocate_l1_stream_buffer(
+            &stream_node, half_of_available_space)->get_address());
 
     EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_start_address + (half_of_available_space));
-    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location).size(), 1);
-    EXPECT_EQ(m_resource_manager->get_l1_memory_allocations(worker_core_location)[0]->get_size(), half_of_available_space);
+}
+
+/**********************************************************************************************************************
+    Tests for function: allocate_l1_ncrisc_fallback_buffer
+    NOTE: this is just sanity test. Underlying call to CoreResources::allocate_l1_ncrisc_fallback_buffer is thorougly
+    tested in test_l1_data_buffers_memory_layout.
+**********************************************************************************************************************/
+
+TEST_F(Pipegen2_ResourceManager, AllocateL1NcriscFallbackBuffer_ExpectingExactReturnValue)
+{
+    tt_cxy_pair worker_core_location =
+        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+
+    // Memory is allocated from the end of L1 data buffers space towards beginning.
+    int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
+    int l1_data_buffers_space_end_address = l1_mem::address_map::MAX_SIZE - constants::unused_data_buffers_space_bytes;
+    unsigned int half_of_available_space =
+        (l1_data_buffers_space_end_address - l1_data_buffers_space_start_address) / 2;
+
+    // Allocate almost entire space, just leave one byte unallocated.
+    unsigned int l1_current_data_buffers_space_address;
+
+    EXPECT_NO_THROW(
+        l1_current_data_buffers_space_address =
+            m_resource_manager->allocate_l1_ncrisc_fallback_buffer(
+                worker_core_location, half_of_available_space)->get_address());
+
+    EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_start_address + (half_of_available_space));
 }
 
 /**********************************************************************************************************************

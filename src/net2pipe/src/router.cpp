@@ -1644,12 +1644,17 @@ void Router::constructor_enable_core_resource_tracking_asserts() {
 
 void Router::constructor_report_exceeded_core_resources() const {
     std::unordered_map<tt_cxy_pair, std::vector<resource_usage_entry_t>> exceeded_resource_messages = {};
+    std::unordered_set<ResourceUsageType> ignore_list {
+        ResourceUsageType::ETHERNET_STREAMS,
+        ResourceUsageType::L1_MEMORY,
+        ResourceUsageType::ACTIVE_DRAM_QUEUES};
+
     for (auto chip_id : chip_ids) {
         for (const auto &[core_routing_coords, core_descriptor] : this->get_soc_descriptor(chip_id).cores) {
             const tt_cxy_pair core_location(chip_id, core_routing_coords.x, core_routing_coords.y);
             const auto &core_resource_tracker = this->cluster_resource_model.get_core_attributes(core_location);
-            if (core_resource_tracker.any_resource_limits_exceeded_with_ignore_list(std::unordered_set<ResourceUsageType>{ResourceUsageType::ETHERNET_STREAMS, ResourceUsageType::L1_MEMORY})) {
-                exceeded_resource_messages[core_location] = core_resource_tracker.get_exceeded_resources_with_ignore_list(std::unordered_set<ResourceUsageType>{ResourceUsageType::ETHERNET_STREAMS, ResourceUsageType::L1_MEMORY});
+            if (core_resource_tracker.any_resource_limits_exceeded_with_ignore_list(ignore_list)) {
+                exceeded_resource_messages[core_location] = core_resource_tracker.get_exceeded_resources_with_ignore_list(ignore_list);
             }
         }
     }

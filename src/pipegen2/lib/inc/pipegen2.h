@@ -7,11 +7,13 @@
 #include <string>
 #include <vector>
 
-#include "device/l1_memory_allocation.h"
 #include "device/tt_xy_pair.h"
 #include "model/fork_join_graph/fork_join_graph_collection.h"
 #include "model/stream_graph/stream_graph_collection.h"
+
 namespace pipegen2 {
+
+class L1Buffer;
 class PipeGraph;
 class RationalGraph;
 class ResourceManager;
@@ -47,8 +49,8 @@ class Pipegen2 {
     // Outputs analysis of L1 memory allocations by stream buffers.
     void output_memory_allocations(const std::string& log_path, const int temporal_epoch);
 
-    // Outputs all L1 memory allocations per worker core
-    std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> get_all_worker_l1_allocations() const;
+    // Outputs all L1 data buffers allocated per worker core location.
+    std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> get_all_worker_l1_data_buffers() const;
 
    private:
     // Creates pipe graph from the input net2pipe pipegen yaml.
@@ -87,4 +89,5 @@ class Pipegen2 {
     // Path to SOC descriptors yaml.
     std::string m_soc_descriptors_yaml_path;
 };
+
 }  // namespace pipegen2

@@ -3,11 +3,12 @@
 #include <gtest/gtest.h>
 
 #include "device/tt_xy_pair.h"
-#include "model/typedefs.h"
 #include "stream_io_map.h"
 
 #include "device/core_resources_constants.h"
+#include "device/l1/l1_buffer.h"
 #include "device/resource_manager_internal.h"
+#include "model/typedefs.h"
 
 std::unique_ptr<pipegen2::WorkerCoreResources> verify_create_worker_core_resources(tt::ARCH arch)
 {
@@ -102,14 +103,14 @@ void verify_allocate_l1_extra_overlay_blob_space(
     // Expecting no extra space allocated.
     EXPECT_EQ(
         resource_manager->allocate_l1_extra_overlay_blob_space(core_location, blob_size_in_bytes),
-        blob_size_in_bytes);
+        nullptr);
 
     // Allocate extra 60KB of blob space.
     unsigned int extra_blob_space = 0xF000;
     blob_size_in_bytes = min_blob_size + extra_blob_space;
 
     EXPECT_EQ(
-        resource_manager->allocate_l1_extra_overlay_blob_space(core_location, blob_size_in_bytes),
+        resource_manager->allocate_l1_extra_overlay_blob_space(core_location, blob_size_in_bytes)->get_size(),
         extra_blob_space);
 }
 

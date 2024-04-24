@@ -1201,6 +1201,7 @@ class TemplateNetlistTestBase(ABC):
                     )
                 )
 
+    # TODO remove this method completely
     def constrain_dram_queues_number(self, op: Node, queue_inputs: List[Node]):
         """Constrains grid sizes of dram queues.
 
@@ -1222,6 +1223,7 @@ class TemplateNetlistTestBase(ABC):
             <= op.get_grid_size_var() * self.arch.max_num_queue_buffers_accessed
         )
 
+    # TODO remove this check completely
     def constrain_num_queue_buffers_accessed(self, op: Node) -> None:
         """
         Helper function for check_resource_usage which adds num of queue buffers
@@ -1279,12 +1281,6 @@ class TemplateNetlistTestBase(ABC):
         # Op fits on a grid.
         self.solver.add(op_node.grid_loc_x + op_node.grid_size_x <= self.arch.grid_size_x)
         self.solver.add(op_node.grid_loc_y + op_node.grid_size_y <= self.arch.grid_size_y)
-
-        # Constrain maximum number of active DRAM queues
-        self.constrain_dram_queues_number(
-            op_node,
-            [self.nodes[q_name] for q_name in op_node.inputs if self.nodes[q_name].is_queue()],
-        )
 
         self.constrain_ublock_size(op_node)
 
@@ -2090,10 +2086,6 @@ class TemplateNetlistTestBase(ABC):
         q_node:
             Queue node for which to define constraints.
         """
-        # Queue can fit on a chip.
-        self.solver.add(q_node.grid_size_x <= self.arch.grid_size_x)
-        self.solver.add(q_node.grid_size_y <= self.arch.grid_size_y)
-
         # Microblock in tiles can fit in half dest register.
         self.solver.add(q_node.ub_r * q_node.ub_c <= self.arch.max_tiles_in_dest / 2)
 
@@ -3669,18 +3661,13 @@ class TemplateNetlistTestBase(ABC):
             )
 
             # Check return values from previous cases.
+            # TODO remove this check completely.
             if num_queue_buffers_accessed > self.arch.max_num_queue_buffers_accessed:
                 logger.warning(
-                    f"Solution rejected because of num_queue_buffers_accessed constraint "
+                    f"Solution hits num_queue_buffers_accessed constraint "
                     f"for op {op.name} ({num_queue_buffers_accessed} > "
                     f"{self.arch.max_num_queue_buffers_accessed})"
                 )
-                logger.info(f"Constraining number of queue buffers for this op.")
-                # This solution did not pass check because number of queue
-                # buffers accessed exceeds max allowed value. Thus we constrain
-                # num queue buffers for this op.
-                self.constrain_num_queue_buffers_accessed(op)
-                return False
 
             if total_fork_streams_used_per_core > self.arch.max_fork_streams_used_per_core:
                 logger.warning(

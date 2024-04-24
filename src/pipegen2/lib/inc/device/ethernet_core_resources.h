@@ -32,9 +32,6 @@ private:
     // Calculates total number of multicast streams available.
     unsigned int calculate_multicast_streams_count() const override;
 
-    // Returns predefined tile header buffer address.
-    unsigned int get_predefined_tile_header_buffer_addr() const override;
-
     // Calculates total number of general purpose streams available.
     unsigned int calculate_general_purpose_streams_count() const;
 

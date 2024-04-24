@@ -49,9 +49,6 @@ protected:
     virtual unsigned int calculate_general_purpose_streams_count() const = 0;
 
 private:
-    // Returns predefined tile header buffer address.
-    unsigned int get_predefined_tile_header_buffer_addr() const override;
-
     // Returns next available general purpose stream ID.
     StreamId get_next_available_general_purpose_stream_id() override;
 };

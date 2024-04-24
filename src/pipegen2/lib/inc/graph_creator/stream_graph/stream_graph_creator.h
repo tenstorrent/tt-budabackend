@@ -85,6 +85,11 @@ namespace pipegen2
 
         // Sets incoming NOC ids for all streams in the stream graph that do not have it set.
         static void set_incoming_noc_ids(StreamGraphCollection* stream_graph_collection);
+        
+        // All packer and unpacker streams have name of an op associated with them. Function copies that name on core on
+        // which those streams are allocated.
+        void set_op_names_on_cores(const StreamGraphCollection* stream_graph_collection, 
+                                   const ResourceManager* resource_manager);
 
         // Get complementary NOC route.
         static NOC_ROUTE get_complementary_noc_route(NOC_ROUTE route)

@@ -4,11 +4,10 @@
 #include "device/ethernet_core_resources.h"
 
 #include "eth_l1_address_map.h"
+#include "utils/logger.hpp"
 
 #include "device/core_resources_constants.h"
-#include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
-#include "utils/logger.hpp"
 
 namespace pipegen2
 {
@@ -19,7 +18,8 @@ EthernetCoreResources::EthernetCoreResources(const tt_cxy_pair& core_physical_lo
                   ethernet_core_resources_constants::ethernet_stream_id_range_end + 1,
                   ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1 /* extra_streams_id_range_end */,
                   eth_l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
-                  eth_l1_mem::address_map::MAX_SIZE),
+                  eth_l1_mem::address_map::MAX_SIZE,
+                  ethernet_core_resources_constants::l1_predefined_tile_header_buffer_address),
     m_next_available_ethernet_stream_id(ethernet_core_resources_constants::ethernet_stream_id_range_start),
     m_next_available_gather_multicast_stream_id(
         ethernet_core_resources_constants::gather_multicast_streams_id_range_start)
@@ -155,10 +155,4 @@ unsigned int EthernetCoreResources::calculate_general_purpose_streams_count() co
     return extra_streams_count + additional_extra_streams;
 }
 
-unsigned int EthernetCoreResources::get_predefined_tile_header_buffer_addr() const
-{
-    return eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
-           core_resources_constants::tile_header_buffer_allocation_cushion_bytes -
-           TileHeaderBuffer::get_tile_header_buffer_size_bytes();
-}
 } // namespace pipegen2

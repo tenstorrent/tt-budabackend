@@ -562,7 +562,7 @@ end
 
 
 # Main function where epoch_t (from epoch.h) is being written to output stream which will end up in resulting .hex
-def PopulateEpochTStruct(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_info_stream_addr)
+def PopulateEpochTStruct(core_epoch_info, epoch_valid, yx_label, perf_blobs, epoch_info_stream_addr, global_info_blob)
   chip_id, y, x = yx_label.to_s.scan(/chip_(\d+)__y_(\d+)__x_(\d+)/).last.map {|str| str.to_i }
   epoch_t_dws = []
   # *** Writing epoch_t ***
@@ -673,7 +673,16 @@ def PopulateEpochTStruct(core_epoch_info, epoch_valid, yx_label, perf_blobs, epo
     epoch_t_dws << 0
     epoch_t_dws << 0
   end
-  epoch_t_dws << 0 # extra_dram_q_state_addr
+  
+  # Address in L1 of fallback buffer NCRISC will use in case core exceeds L0 limitations. Used just to pass it down to
+  # NCRISC firmware. Exists only if some core on chip exceeds limitations and exists only for that core.
+  if ((global_info_blob != nil) && 
+      (global_info_blob[yx_label] != nil) && 
+      (global_info_blob[yx_label][:ncrisc_fallback_buffer_l1_address] != nil))
+    epoch_t_dws << global_info_blob[yx_label][:ncrisc_fallback_buffer_l1_address]
+  else
+    epoch_t_dws << 0
+  end
 
   epoch_t_dws << ((core_epoch_info[:ublock_ct] ? core_epoch_info[:ublock_ct] << 16 : 0) | (core_epoch_info[:ublock_rt] ? core_epoch_info[:ublock_rt] : 0))
   epoch_t_dws << ((core_epoch_info[:mblock_n] ? core_epoch_info[:mblock_n] << 16 : 0) | (core_epoch_info[:mblock_m] ? core_epoch_info[:mblock_m] : 0))
@@ -735,7 +744,7 @@ def PopulateInvalidEpochTStruct(chip_id, y, x)
     :epoch_id => 0
   }
 
-  return PopulateEpochTStruct(core_epoch_info, 1, "chip_#{chip_id}__y_#{y}__x_#{x}", nil, {})
+  return PopulateEpochTStruct(core_epoch_info, 1, "chip_#{chip_id}__y_#{y}__x_#{x}", nil, {}, nil)
 end
 
 def compute_epoch_info_addrs(epoch_info, yx_label, epoch_info_space_start)
@@ -831,6 +840,7 @@ end
 autocfg = $tt_overlay_graphs[graph_name]
 dram_blobs = autocfg[:dram_blob]
 perf_blobs = autocfg[:dram_perf_dump_blob]
+global_info_blob = autocfg[:global_info_blob]
 
 if $verbose == 2
   puts "%%%%%%%%%%%%%%%%"
@@ -2078,7 +2088,7 @@ phase_info.each do |yx_label, streams|
   end
 
   # The first line writes epoch_t, the second writes all other structures
-  epoch_t_dws = PopulateEpochTStruct(epoch_info[yx_label], 1, yx_label, perf_blobs, epoch_info_stream_addr)
+  epoch_t_dws = PopulateEpochTStruct(epoch_info[yx_label], 1, yx_label, perf_blobs, epoch_info_stream_addr, global_info_blob)
   epoch_t_dws += stream_info_dws
 
   if $verbose_debug == 1

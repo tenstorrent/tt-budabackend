@@ -10,6 +10,8 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "device/tt_xy_pair.h"
+#include "model/typedefs.h"
 #include "utils/scoped_timer.hpp"
 
 #include "model/stream_graph/stream_node.h"
@@ -25,6 +27,7 @@ namespace pipegen2
     // some point.
     std::string BlobYamlWriter::s_dram_perf_buf_max_req = "dram_perf_buf_max_req:";
     std::string BlobYamlWriter::s_phase_blob_yaml_prefix = "phase_";
+    std::string BlobYamlWriter::s_global_info_blob_yaml_prefix = "global_info_blob:";
 
     // Writes content line into blob yaml. Using macro instead of a function for better perf, because otherwise we
     // would create/concatenate bunch of strings bunch of times in order to pass output string to the function.
@@ -47,6 +50,7 @@ namespace pipegen2
     {
         write_ncrisc_configs(stream_graph_collection->get_stream_graphs());
         write_phase_configs(stream_graph_collection->get_stream_graphs());
+        write_global_info(stream_graph_collection);
 
         if (perf_info_manager.is_perf_dump_enabled())
         {
@@ -174,6 +178,32 @@ namespace pipegen2
             IndentYaml indent(this);
             BYW_WRITE_LINE(s_dram_perf_buf_noc_addr << " " << get_hex_string(worker_info_pair.second));
             BYW_WRITE_LINE(s_dram_perf_buf_max_req << " " << get_string(workers_to_max_req_info[worker]));
+        }
+    }
+
+    void BlobYamlWriter::write_global_info(const StreamGraphCollection* stream_graph_collection)
+    {
+        BYW_WRITE_LINE(s_global_info_blob_yaml_prefix);
+
+        if (stream_graph_collection->get_ncrisc_fallback_buffers_allocations_per_core().empty())
+        {
+            return;
+        }
+        
+        IndentYaml indent(this);
+
+        for (const auto& [core_location, ncrisc_fallback_buffer_allocation] :
+             stream_graph_collection->get_ncrisc_fallback_buffers_allocations_per_core())
+        {
+            BYW_WRITE_LINE(get_core_location_string(core_location) << ":");
+
+            IndentYaml indent2(this);
+
+            BYW_WRITE_LINE(
+                "ncrisc_fallback_buffer_l1_address: " <<
+                get_hex_string(ncrisc_fallback_buffer_allocation->get_address()));
+
+            BYW_WRITE_LINE("ncrisc_fallback_buffer_size: " << ncrisc_fallback_buffer_allocation->get_size());
         }
     }
 

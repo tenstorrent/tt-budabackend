@@ -6,11 +6,12 @@
 #include <memory>
 #include <stdexcept>
 
-#include "device/core_resources.h"
 #include "device/fork_join_paths_checker.h"
+#include "device/l1/l1_buffer.h"
 #include "device/perf_info_manager.h"
 #include "device/resource_manager.h"
 #include "device/soc_info.h"
+#include "device/worker_core_resources.h"
 #include "graph_creator/fork_join_graph/fork_join_graph_creator.h"
 #include "graph_creator/pipe_graph/pipe_graph_creator.h"
 #include "graph_creator/rational_graph/rational_graph_creator.h"
@@ -138,37 +139,25 @@ void Pipegen2::output_memory_allocations(const std::string& log_path, const int 
         throw std::runtime_error("Failed to open log file");
     }
 
-    for (const CoreResources* core_resources : m_resource_manager->get_all_worker_core_resources()) {
-        if (core_resources->get_all_memory_allocations().size() > 0) {
-            log_file << "Core: \n";
-            log_file << "\tchip: " << core_resources->get_logical_location().chip << "\n";
-            log_file << "\tr: " << core_resources->get_logical_location().y << "\n";
-            log_file << "\tc: " << core_resources->get_logical_location().x << "\n";
-            log_file << "\top_name: " << core_resources->get_op_name() << "\n";
-
-            for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation :
-                 core_resources->get_all_memory_allocations()) {
-                log_file << memory_allocation->allocation_info() << "\n";
-            }
-        }
+    for (const auto& [core_location, worker_core_resources] :
+         m_resource_manager->get_worker_core_resources_per_physical_location()) {
+        log_file << worker_core_resources->get_l1_memory_layout_info();
     }
 }
 
-std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> Pipegen2::get_all_worker_l1_allocations()
-    const {
-    std::unordered_map<tt_cxy_pair, std::vector<const L1MemoryAllocation*>> memory_allocations;
-    for (const CoreResources* core_resources : m_resource_manager->get_all_worker_core_resources()) {
-        if (core_resources->get_all_memory_allocations().size() > 0) {
-            const tt_cxy_pair& core_coord = core_resources->get_logical_location();
-            for (const std::unique_ptr<L1MemoryAllocation>& memory_allocation :
-                 core_resources->get_all_memory_allocations()) {
-                if (memory_allocations.find(core_coord) == memory_allocations.end()) {
-                    memory_allocations.emplace(core_coord, std::vector<const L1MemoryAllocation*>());
-                }
-                memory_allocations.at(core_coord).push_back(memory_allocation.get());
-            }
+std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> Pipegen2::get_all_worker_l1_data_buffers() const {
+    std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> data_buffers_per_core;
+
+    for (const auto& [core_physical_location, worker_core_resources] :
+         m_resource_manager->get_worker_core_resources_per_physical_location()) {
+        const std::vector<const L1Buffer*> allocated_buffers = worker_core_resources->get_all_allocated_data_buffers();
+
+        if (!allocated_buffers.empty()) {
+            data_buffers_per_core[worker_core_resources->get_logical_location()] = allocated_buffers;
         }
     }
-    return memory_allocations;
+
+    return data_buffers_per_core;
 }
+
 }  // namespace pipegen2

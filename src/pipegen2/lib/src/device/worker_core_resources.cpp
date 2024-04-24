@@ -10,7 +10,6 @@
 #include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
 #include "pipegen2_exceptions.h"
-#include "utils/logger.hpp"
 
 namespace pipegen2
 {
@@ -21,7 +20,8 @@ WorkerCoreResources::WorkerCoreResources(const tt_cxy_pair& core_physical_locati
                   static_cast<StreamId>(END_IO_STREAM + 1),
                   static_cast<StreamId>(NOC_NUM_STREAMS - 1),
                   l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
-                  l1_mem::address_map::MAX_SIZE)
+                  l1_mem::address_map::MAX_SIZE,
+                  worker_core_resources_constants::l1_predefined_tile_header_buffer_address)
 {
 }
 
@@ -152,10 +152,4 @@ StreamId WorkerCoreResources::get_next_available_general_purpose_stream_id()
     return stream_id;
 }
 
-unsigned int WorkerCoreResources::get_predefined_tile_header_buffer_addr() const
-{
-    return l1_mem::address_map::OVERLAY_BLOB_BASE -
-           core_resources_constants::tile_header_buffer_allocation_cushion_bytes -
-           TileHeaderBuffer::get_tile_header_buffer_size_bytes();
-}
 } // namespace pipegen2

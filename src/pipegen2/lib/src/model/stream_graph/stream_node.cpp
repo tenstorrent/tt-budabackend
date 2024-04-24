@@ -336,6 +336,21 @@ namespace pipegen2
                                         std::make_move_iterator(stream_destinations.end()));
     }
 
+    int StreamNode::get_num_active_buffers_accessed_through_ncrisc() const
+    {
+        int active_dram_or_pcie_buffers = 0;
+
+        for (const NcriscConfig& ncrisc_config : get_ncrisc_configs())
+        {
+            if (ncrisc_config.is_accessing_active_dram_or_pcie_buffer())
+            {
+                ++active_dram_or_pcie_buffers;
+            }
+        }
+
+        return active_dram_or_pcie_buffers;
+    }
+
     bool StreamNode::is_multicast_stream() const
     {
         return m_stream_type == StreamType::Multicast || m_stream_type == StreamType::PackerMulticast;

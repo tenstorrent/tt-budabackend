@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include <set>
-#include <stdexcept>
 
 #include <gtest/gtest.h>
 
-#include "l1_address_map.h"
 #include "noc/noc_overlay_parameters.h"
 #include "stream_io_map.h"
 
@@ -16,7 +14,6 @@
 #include "device/worker_core_resources_gs.h"
 #include "device/worker_core_resources_wh.h"
 #include "model/typedefs.h"
-#include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
 #include "test_utils/unit_test_utils.h"
 

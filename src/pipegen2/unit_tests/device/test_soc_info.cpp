@@ -112,7 +112,7 @@ TEST_F(Pipegen2_SoCInfo, GetDeviceArch_ExpectingExactReturnValue)
     // Expecting that we created SoCInfo for arch for which project was built.
     tt::ARCH arch;
     EXPECT_NO_THROW(arch = m_soc_info->get_device_arch());
-    EXPECT_EQ(arch, unit_test_utils::get_build_arch());
+    EXPECT_TRUE(arch == unit_test_utils::get_build_arch());
 }
 
 /**********************************************************************************************************************
