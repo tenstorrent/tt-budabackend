@@ -63,7 +63,6 @@ bool CoreResources::any_resource_limits_exceeded_with_ignore_list(const std::uno
         return ignored.find(type) == ignored.end();
     };
     return (check_enabled(ResourceUsageType::EXTRA_STREAMS) && this->get_used_extra_streams() > this->max_extra_streams) ||
-        (check_enabled(ResourceUsageType::ACTIVE_DRAM_QUEUES) && this->used_active_dram_streams > this->max_active_dram_queues) ||
         (check_enabled(ResourceUsageType::L1_MEMORY) && this->used_l1_memory > this->l1_memory_size) ||
         (check_enabled(ResourceUsageType::INPUT_FROM_DRAM) && this->used_input_from_dram_slots > this->max_input_from_dram_streams) ||
         (check_enabled(ResourceUsageType::OUTPUT_TO_DRAM) && this->used_output_to_dram_slots > this->max_output_to_dram_streams) ||
@@ -170,9 +169,6 @@ std::vector<resource_usage_entry_t> CoreResources::get_exceeded_resources_with_i
     std::vector<resource_usage_entry_t> exceeded_resources = {};
     if (check_enabled(ResourceUsageType::EXTRA_STREAMS) && this->get_used_extra_streams() > this->max_extra_streams) {
         exceeded_resources.push_back(resource_usage_entry_t{.resource_name="extra streams", .used=this->get_used_extra_streams(), .limit=this->max_extra_streams});
-    }
-    if (check_enabled(ResourceUsageType::ACTIVE_DRAM_QUEUES) && this->used_active_dram_streams > this->max_active_dram_queues) {
-        exceeded_resources.push_back(resource_usage_entry_t{.resource_name="active dram queues", .used=this->used_active_dram_streams, .limit=this->max_active_dram_queues});
     }
     if (check_enabled(ResourceUsageType::L1_MEMORY) && this->used_l1_memory > this->l1_memory_size) {
         exceeded_resources.push_back(resource_usage_entry_t{.resource_name="l1 memory", .used=this->used_l1_memory, .limit=this->l1_memory_size});

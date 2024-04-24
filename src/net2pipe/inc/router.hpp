@@ -39,7 +39,6 @@ struct pipe_resource_attributes_t {
     has_output_to_dram({}),
     output_chips({}),
     forked_input_buffers({}),
-    active_dram_queues(0),
     has_input_from_dram(false),
     has_gather(false),
     has_multicast(false)
@@ -50,7 +49,6 @@ struct pipe_resource_attributes_t {
     std::vector<std::unordered_set<chip_id_t>> output_chips; // per timestep
 
     std::unordered_set<unique_id_t> forked_input_buffers;
-    int active_dram_queues;
     bool has_input_from_dram;
     bool has_gather;
     bool has_multicast;
@@ -334,7 +332,6 @@ int compute_pipe_segment_gather_extra_stream_use(const Router &router, pipe_segm
 
 int compute_pipe_segment_gather_extra_input_buffering_size(const Router &router, pipe_segment_id_t const& pipe_segment_id);
 
-int get_number_of_active_dram_queues(const Router &router, unique_id_t pipe_id);
 bool op_forks_to_multiple_consumers(router::Router &router, const std::string &op_name);
 bool is_single_source_pipe_that_forwards_all_input_buffer_tiles_in_order(router::Router &router, const pipe_t &pipe);
 

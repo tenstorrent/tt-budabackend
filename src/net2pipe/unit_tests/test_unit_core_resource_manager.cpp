@@ -19,7 +19,7 @@ using router::pipe_segment_hash_t;
 
 TEST(Net2PipeCoreResourceManager, TestL1BufferAllocation) {
     constexpr int l1_size_bytes = 1499136;
-    auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, MAX_TOTAL_ACTIVE_DRAM_QUEUES, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
 
     tt_cxy_pair core_loc = tt_cxy_pair(0,0,0);
 
@@ -49,7 +49,7 @@ TEST(Net2PipeCoreResourceManager, TestL1BufferAllocation) {
 TEST(Net2PipeCoreResourceManager, TestBufferStreamAllocation) {
     constexpr int l1_size_bytes = 10000000;
     constexpr int relay_stream_count_limit = HwCoreAttributes::RELAY_BUFFER_STREAM_LAST - HwCoreAttributes::RELAY_BUFFER_STREAM_FIRST;
-    auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, MAX_TOTAL_ACTIVE_DRAM_QUEUES, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     int tile_size_in_bytes = tt::size::get_tile_size_in_bytes(DataFormat::Float16, false);
     int num_l1_tiles = l1_size_bytes / tile_size_in_bytes;
     log_assert(num_l1_tiles >= relay_stream_count_limit, "This test didn't allocate a large enough l1 size");
@@ -74,7 +74,7 @@ TEST(Net2PipeCoreResourceManager, TestDramIOStreamAllocation) {
     // TEST DRAM INPUT STREAM LIMIT
     {
         constexpr int dram_input_stream_limit = MAX_DRAM_IO_INPUT_STREAMS;
-        auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, MAX_TOTAL_ACTIVE_DRAM_QUEUES, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+        auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
         int tile_size_in_bytes = tt::size::get_tile_size_in_bytes(DataFormat::Float16, false);
         int num_l1_tiles = l1_size_bytes / tile_size_in_bytes;
         log_assert(num_l1_tiles >= dram_input_stream_limit, "This test didn't allocate a large enough l1 size");
@@ -96,7 +96,7 @@ TEST(Net2PipeCoreResourceManager, TestDramIOStreamAllocation) {
     // TEST DRAM OUTPUT STREAM LIMIT
     {
         constexpr int dram_output_stream_limit = MAX_DRAM_IO_OUTPUT_STREAMS;
-        auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, MAX_TOTAL_ACTIVE_DRAM_QUEUES, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+        auto core = router::HwCoreAttributes(l1_size_bytes, MAX_DRAM_IO_INPUT_STREAMS, MAX_DRAM_IO_OUTPUT_STREAMS, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
         int tile_size_in_bytes = tt::size::get_tile_size_in_bytes(DataFormat::Float16, false);
         int num_l1_tiles = l1_size_bytes / tile_size_in_bytes;
         log_assert(num_l1_tiles >= dram_output_stream_limit, "This test didn't allocate a large enough l1 size");
@@ -625,7 +625,7 @@ class HwCoreAttributesUnderTest : public HwCoreAttributes {
 };
 
 TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAndMulticast_MCastMCastMCast_Total0) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -635,7 +635,7 @@ TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAn
 }
 
 TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAndMulticast_MCastMCastMCastGather_Total1) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -646,7 +646,7 @@ TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAn
 }
 
 TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAndMulticast_MCastMCastGather4Input_Total3) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -656,7 +656,7 @@ TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAn
 }
 
 TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAndMulticast_MCastMCastGather2Input_Total4) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -668,7 +668,7 @@ TEST(Net2PipeRouterResourceManagement, TestFunctionCountExtraStreamsFromGatherAn
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_MCastGather3InputGather2Input_Total5) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}}, 3);
@@ -680,7 +680,7 @@ TEST(
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_Gather5InputGather3InputGather2Input_Total6Or7) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=3, .outputs={0}}, 2);
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
@@ -697,7 +697,7 @@ TEST(
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_Gather5InputGather3InputGatherMCast2Input_Total6) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}}, 3);
@@ -710,7 +710,7 @@ TEST(
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_Gather5InputGatherMCast2InputGatherMCast2InputGatherMCast2InputMCast_Total6) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
     core.register_resident_gather_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}}, 2);
@@ -724,7 +724,7 @@ TEST(
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_Gather5InputGatherMCast2InputGatherMCast2InputGatherMCast2Input_Total7) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
     core.register_resident_gather_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}}, 2);
@@ -735,7 +735,7 @@ TEST(
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastMCastGather_1ExtraStream) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -745,7 +745,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastMCastGather_1ExtraS
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCast_1ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
 
@@ -756,7 +756,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCast_1ExtraS
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCastGather_2ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -767,7 +767,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCastGather_2
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastMCastGatherGather_2ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -778,7 +778,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastMCastGatherGather_2
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCastGatherGather_3ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 5);
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -791,7 +791,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterGatherMCastMCastMCastGatherGa
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterMCastGatherGather_6ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}}, 5);
@@ -800,7 +800,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterMCastGatherGather_6ExtraStrea
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastGather_3ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=2, .outputs={0}});
@@ -810,7 +810,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastGather_3ExtraStream
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastGatherGather_4ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=2, .outputs={0}});
@@ -820,7 +820,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterMCastMCastGatherGather_4Extra
 }
 
 TEST(Net2PipeRouterResourceManagement, TestRegisterGatherGatherMCastMCast_4ExtraStreams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=3, .outputs={0}}, 5);
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=4, .outputs={0}}, 5);
@@ -831,7 +831,7 @@ TEST(Net2PipeRouterResourceManagement, TestRegisterGatherGatherMCastMCast_4Extra
 }
 
 TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveMCast_3Streams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -845,7 +845,7 @@ TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveM
 }
 
 TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveMCastMCastMCast_3Streams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -862,7 +862,7 @@ TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveM
 }
 
 TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveMCastMCastGather_0Streams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -879,7 +879,7 @@ TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveM
 }
 
 TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveNetMCastMCastMCast_3Streams) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}});
     core.register_resident_multicast_pipe(pipe_segment_hash_t{.pipe_id=1, .outputs={0}});
@@ -910,7 +910,7 @@ TEST(Net2PipeRouterResourceManagement, TestMCastMCastMCastGather4Streams_RemoveN
 TEST(
     Net2PipeRouterResourceManagement,
     TestFunctionCountExtraStreamsFromGatherAndMulticast_GatherScatterPipe4Segments_Total12) {
-    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, 40, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
+    auto core = HwCoreAttributesUnderTest(10000000, 8, 8, false, MAX_MCAST_STREAMS_PER_CORE_GRAYSKULL);
     // mcast doesn't use "extra" streams
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={0}}, 16);
     core.register_resident_gather_pipe(pipe_segment_hash_t{.pipe_id=0, .outputs={1}}, 16);

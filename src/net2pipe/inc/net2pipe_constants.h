@@ -37,8 +37,6 @@ static constexpr int WORKER_GATHER_STREAMED_READ_INPUT_BUFFER_NUM_TILES = 4;
 static constexpr int ETH_SUM_GATHER_INPUT_MIN_SIZE_TILES = 8;
 static constexpr int SUM_GATHER_INPUT_MIN_SIZE_TILES = 12;
 
-static constexpr int MAX_TOTAL_ACTIVE_DRAM_QUEUES = 40;
-
 static constexpr int TILE_HEADER_SIZE_BYTES = 16;
 
 // Ethernet Constants -- NEED TO MOVE THESE CONSTANTS TO ARCH SPECIFIC LOOKUP TABLES

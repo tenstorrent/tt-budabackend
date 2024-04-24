@@ -367,23 +367,6 @@ static std::unordered_set<tt_cxy_pair> collect_pipe_endpoint_cores(const Router 
     return endpoint_cores;
 }
 
-int get_number_of_active_dram_queues(const Router &router, unique_id_t pipe_id) {
-    const auto &pipe = router.get_pipe(pipe_id);
-    const auto &in_buf_ids = pipe.input_buffer_ids;
-
-    std::unordered_set<unique_id_t> dram_queue_base_buffer_ids = {};
-    const auto &buffer_output_pipes = router.get_buffer_output_pipes();
-    for(auto id : in_buf_ids) { 
-        unique_id_t base_id = router.is_buffer_scatter(id) ? router.get_scatter_buffer_base_id(id) : id;
-        if(router.is_queue_buffer(id) && !router.get_buffer(id).queue_info().is_prolog()) {
-            dram_queue_base_buffer_ids.insert(base_id);
-        }
-    }
-
-    int active_dram_queues = dram_queue_base_buffer_ids.size();
-    return active_dram_queues;
-}
-
 bool Router::is_pipe_scatter_single_core(unique_id_t pipe_id) const {
     
     const pipe_t &pipe = this->get_pipe(pipe_id);
@@ -530,7 +513,6 @@ pipe_resource_attributes_t Router::collect_pipe_segment_attributes(pipe_segment_
         }
     }
 
-    pipe_attrs.active_dram_queues = get_number_of_active_dram_queues(*this, pipe_segment_id.pipe_id);
     pipe_attrs.has_gather = requires_extra_input_streams(*this, pipe_segment_id.pipe_id);
 
     return pipe_attrs;
@@ -580,7 +562,6 @@ pipe_resource_attributes_t Router::collect_pipe_attributes(unique_id_t pipe_id) 
         }
     }
 
-    pipe_attrs.active_dram_queues = get_number_of_active_dram_queues(*this, pipe_id);
     pipe_attrs.has_gather = requires_extra_input_streams(*this, pipe_id);
 
     return pipe_attrs;
@@ -672,11 +653,6 @@ void Router::add_pipe_resource_usage_to_core(pipe_segment_id_t const& pipe_segme
             new_amount,
             core_resource_tracker.available_l1_bytes(),
             extra_pipe_input_streams);
-
-        // compute required active dram queues
-        if (pipe_attrs.active_dram_queues > 0) {
-            this->cluster_resource_model.get_core_attributes(pipe_location).adjust_active_dram_queues(pipe_attrs.active_dram_queues);
-        }
     }
 
     if (is_chip_to_chip_pipe(get_pipe(pipe_id), *this)) {
@@ -740,12 +716,6 @@ void Router::remove_pipe_resource_usage_from_core(pipe_segment_id_t const& pipe_
         log_trace(tt::LogRouter, "Router::remove_pipe_resource_usage_from_core (c={},y={},x={}): {} B returned to L1. Remaining L1 capacity: {} B. {} extra streams from core (c={},y={},x={}) for multiple input side of gather pipe", 
             pipe_location.chip, pipe_location.y, pipe_location.x, extra_input_buffering_bytes, core_attrs.available_l1_bytes(),
             extra_streams_to_remove, pipe_locations_set.begin()->chip, pipe_locations_set.begin()->y, pipe_locations_set.begin()->x);
-
-        if (pipe_attrs.active_dram_queues > 0 && pipe_locations_set.size() > 0) {
-            TT_ASSERT(pipe_locations_set.size() == 1);
-            const auto &loc = *(pipe_locations_set.begin());
-            this->cluster_resource_model.get_core_attributes(loc).adjust_active_dram_queues(-pipe_attrs.active_dram_queues);
-        }
     }
 
 
@@ -1403,12 +1373,6 @@ Router::constructor_initialize_pipe_resource_usage() {
                 pipe_location.x,
                 snapshot_after - snapshot_before,
                 snapshot_after);
-            auto pipe_locations_set = std::set<tt_cxy_pair>(pipe.locations.begin(), pipe.locations.end());
-            if (pipe_attrs.active_dram_queues > 0 && pipe_locations_set.size() > 0) {
-                TT_ASSERT(pipe_locations_set.size() == 1);
-                const auto &loc = *(pipe_locations_set.begin());
-                this->cluster_resource_model.get_core_attributes(loc).adjust_active_dram_queues(pipe_attrs.active_dram_queues);
-            }
         }
 
         if (this->get_soc_descriptor(this->chip_ids.at(0)).ethernet_cores.size() > 0) {
@@ -1646,8 +1610,7 @@ void Router::constructor_report_exceeded_core_resources() const {
     std::unordered_map<tt_cxy_pair, std::vector<resource_usage_entry_t>> exceeded_resource_messages = {};
     std::unordered_set<ResourceUsageType> ignore_list {
         ResourceUsageType::ETHERNET_STREAMS,
-        ResourceUsageType::L1_MEMORY,
-        ResourceUsageType::ACTIVE_DRAM_QUEUES};
+        ResourceUsageType::L1_MEMORY};
 
     for (auto chip_id : chip_ids) {
         for (const auto &[core_routing_coords, core_descriptor] : this->get_soc_descriptor(chip_id).cores) {
@@ -1866,7 +1829,6 @@ bool Router::can_assign_connected_pipe_to_core(pipe_segment_id_t const& pipe_seg
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_input_from_dram ? core_attrs.has_available_input_from_dram_slot() : true);
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_gather ? core_attrs.has_extra_streams_available(compute_pipe_segment_gather_extra_stream_use(*this, pipe_segment_id, core_location)) : true);
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_gather ? core_attrs.can_allocate_bytes(compute_pipe_segment_gather_extra_input_buffering_size(*this, pipe_segment_id)) : true);
-    can_assign_to_core = can_assign_to_core && core_attrs.has_available_active_dram_queue_slots(pipe_attrs.active_dram_queues);
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_multicast ? core_attrs.has_available_multicast_stream_slots(1) : true);
     can_assign_to_core = can_assign_to_core && core_attrs.has_extra_streams_available(compute_pipe_segment_extra_stream_use(*this, pipe_segment_id, core_location));
 
@@ -1904,8 +1866,6 @@ bool Router::can_assign_connected_pipe_and_buffer_to_core(pipe_segment_id_t cons
         can_assign_to_core && core_attrs.can_allocate_bytes(
                                      compute_pipe_segment_gather_extra_input_buffering_size(*this, pipe_segment_id) +
                                      get_buffer(buffer_id).info().allocated_size_in_bytes());
-    can_assign_to_core =
-        can_assign_to_core && core_attrs.has_available_active_dram_queue_slots(pipe_attrs.active_dram_queues);
     can_assign_to_core =
         can_assign_to_core && (pipe_attrs.has_multicast ? core_attrs.has_available_multicast_stream_slots(1) : true);
     can_assign_to_core =
@@ -2620,7 +2580,6 @@ std::unordered_map<tt_cxy_pair, std::unique_ptr<CoreResources>> Router::initiali
                     l1_size,
                     MAX_DRAM_IO_INPUT_STREAMS,
                     MAX_DRAM_IO_OUTPUT_STREAMS,
-                    MAX_TOTAL_ACTIVE_DRAM_QUEUES,
                     is_ethernet_core,
                     address_map.arch_constants.MAX_MCAST_STREAMS_PER_CORE))));
 

@@ -28,7 +28,6 @@ HwCoreAttributes::HwCoreAttributes(
     int l1_size,
     int max_input_from_dram_slots,
     int max_output_to_dram_slots,
-    int max_active_dram_queues_limit,
     bool supports_eth_links,
     int max_num_gather_pipes_before_phase_based_gather) :
     tt::CoreResources(
@@ -39,7 +38,6 @@ HwCoreAttributes::HwCoreAttributes(
          .max_num_non_mcast_eth_streams = MAX_NUM_NON_MCAST_ETH_STREAMS,
          .extra_tile_size_header_buffer_size = MAX_TILES_MSG_INFO_BUF_PER_PHASE * TILE_HEADER_SIZE_BYTES,
          .max_extra_streams = MAX_EXTRA_STREAMS,
-         .max_active_dram_queues = max_active_dram_queues_limit,
          .max_num_eth_streams_total =
              (supports_eth_links ? (env_var("TT_ENABLE_FW_ETH_STREAMS", 0) == 1 ? MAX_NUM_ETH_STREAMS_TOTAL
                                                                                 : MAX_NUM_ETH_HARDWARE_STREAMS_TOTAL)
@@ -51,7 +49,6 @@ HwCoreAttributes::HwCoreAttributes(
          .used_multicast_non_eth_stream_slots = 0,
          .used_ethernet_stream_slots = 0,
          .used_extra_streams = 0,
-         .used_active_dram_streams = 0,
          .used_tile_sizes = {}}),
     max_num_gather_pipes_before_phase_based_gather(max_num_gather_pipes_before_phase_based_gather),
     resident_gather_multicast_pipes(0),
@@ -469,7 +466,6 @@ std::ostream &std::operator<<(std::ostream &s, router::HwCoreResourceUsageSnapsh
       case tt::ResourceUsageType::MULTICAST_STREAMS: s << "MULTICAST_STREAMS"; break;
       case tt::ResourceUsageType::ETHERNET_STREAMS: s << "ETHERNET_STREAMS"; break;
       case tt::ResourceUsageType::EXTRA_STREAMS: s << "EXTRA_STREAMS"; break;
-      case tt::ResourceUsageType::ACTIVE_DRAM_QUEUES: s << "ACTIVE_DRAM_QUEUES"; break;
     }
     s << ": " << amount << ", ";
   }

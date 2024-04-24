@@ -27,7 +27,6 @@ enum ResourceUsageType {
   MULTICAST_STREAMS,
   ETHERNET_STREAMS,
   EXTRA_STREAMS,
-  ACTIVE_DRAM_QUEUES,
 };
 
 struct CoreResources {
@@ -50,7 +49,6 @@ struct CoreResources {
     //   - for example, a relay buffer that reads from DRAM and only forwards to a single consumer would
     //     use only one "extra" stream in total, since the same stream both reads from DRAM and implements the relay
     const int max_extra_streams;
-    const int max_active_dram_queues;
     const int max_num_eth_streams_total;
 
     int used_l1_memory = 0;
@@ -60,7 +58,6 @@ struct CoreResources {
     int used_multicast_non_eth_stream_slots = 0;
     int used_ethernet_stream_slots = 0;
     int used_extra_streams = 0;
-    int used_active_dram_streams = 0;
 
     std::unordered_set<std::uint32_t> used_tile_sizes = {};
 
@@ -99,18 +96,14 @@ struct CoreResources {
    int number_of_available_input_from_dram_slots() const;
    bool has_available_ethernet_stream_slots(int num_streams) const;
    bool has_extra_streams_available(int num = 1) const;
-   bool has_available_active_dram_queue_slots(int num = 1) const {
-       return this->max_active_dram_queues - this->get_used_active_dram_queues() >= num; }
 
 
     int get_used_extra_streams() const { int used = this->used_extra_streams; /*log_assert(used <= max_extra_streams, "Exceeded maximum 'extra' streams allowed");*/ return used; }
     int number_of_available_extra_streams() const { int available = this->max_extra_streams - get_used_extra_streams(); /*log_assert(available >= 0, "Exceeded max_extra_streams");*/ return available; }
-    int number_of_available_active_dram_queues() const { int available = this->max_active_dram_queues - get_used_active_dram_queues(); /*log_assert(available >= 0, "Exceeded max active DRAM queues");*/ return available; }
     int get_used_input_from_dram_streams() const { return this->used_input_from_dram_slots; }
     int get_used_output_to_dram_streams() const { return this->used_output_to_dram_slots; }
     int get_buffer_count() const;
     int get_used_ethernet_stream_count() const;
-    int get_used_active_dram_queues() const { return this->used_active_dram_streams; }
     int get_max_extra_streams() const { return this->max_extra_streams; }
     int get_max_input_from_dram_streams() const { return this->max_input_from_dram_streams;}
     int get_max_output_to_dram_streams() const { return this->max_output_to_dram_streams; }

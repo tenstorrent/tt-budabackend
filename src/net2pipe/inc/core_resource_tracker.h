@@ -65,7 +65,6 @@ class HwCoreAttributes : public tt::CoreResources {
         int l1_size, 
         int max_dram_input_slots, 
         int max_dram_output_slots, 
-        int max_active_dram_queues, 
         bool supports_eth_links,
         int max_num_gather_pipes_before_phase_based_gather);
     HwCoreAttributes(HwCoreAttributes const&)=default;
@@ -118,7 +117,6 @@ class HwCoreAttributes : public tt::CoreResources {
     void apply_buffer_attrs(const BufferAttributes &attrs);
     void add_to_buffer_count();
     void adjust_extra_streams(int num_extra_streams_diff) { this->used_extra_streams += num_extra_streams_diff; /*TT_ASSERT(get_used_extra_streams() <= this->max_extra_streams);*/ }
-    void adjust_active_dram_queues(int num_active_dram_streams_diff) { this->used_active_dram_streams += num_active_dram_streams_diff; TT_ASSERT(!this->resource_constraint_asserts_enabled || this->get_used_active_dram_queues() <= this->max_active_dram_queues); }
 
     void disable_resource_constraint_checking() { this->resource_constraint_asserts_enabled = false; }
     void enable_resource_constraint_checking() { this->resource_constraint_asserts_enabled = true; }
@@ -161,7 +159,6 @@ struct HwCoreResourceUsageSnapshot {
                                                              MULTICAST_STREAMS,
                                                              ETHERNET_STREAMS,
                                                              EXTRA_STREAMS,
-                                                             ACTIVE_DRAM_QUEUES,
                                                          };
     for (ResourceUsageType t : resources_impl) {
       switch (t) {
@@ -171,7 +168,6 @@ struct HwCoreResourceUsageSnapshot {
           case MULTICAST_STREAMS: snapshot.resources_used[MULTICAST_STREAMS] = resource_tracker.get_used_mcast_stream_count(); break;
           case ETHERNET_STREAMS: snapshot.resources_used[ETHERNET_STREAMS] = resource_tracker.get_used_ethernet_stream_count(); break;
           case EXTRA_STREAMS: snapshot.resources_used[EXTRA_STREAMS] = resource_tracker.get_used_extra_streams(); break;
-          case ACTIVE_DRAM_QUEUES: snapshot.resources_used[ACTIVE_DRAM_QUEUES] = resource_tracker.get_used_active_dram_queues(); break;
           default: TT_ASSERT(false, "Unsupported case");
       }
     }
