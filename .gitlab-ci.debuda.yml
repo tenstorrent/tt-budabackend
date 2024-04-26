@@ -48,7 +48,7 @@
     ### Strip some symbols
     - strip umd/device/bin/silicon/x86/create-ethernet-map
     ### Build
-    - make -j$(nproc) build_hw verif/op_tests dbd SKIP_UNIT_TESTS_RUN=1
+    - make -j$(nproc) build_hw verif/op_tests dbd dbd/pybind/unit_tests SKIP_UNIT_TESTS_RUN=1
   artifacts:
     when: always
     paths:
@@ -60,6 +60,7 @@
       - build/lib/libtt.so
       - build/lib/libdevice.so
       - build/lib/tt_dbd_pybind.so
+      - build/lib/tt_dbd_pybind_unit_tests.so
       - build/src/**/*
       - dbd/**/*
       - device/*.yaml
@@ -117,7 +118,7 @@ debuda-unit-tests-agnostic:
     ### Install missing python modules
     - pip install -r dbd/requirements.txt
     ### Build tests
-    - make -j$(nproc) dbd/server/unit_tests dbd/pybind SKIP_UNIT_TESTS_RUN=1
+    - make -j$(nproc) dbd/server/unit_tests dbd/pybind dbd/pybind/unit_tests SKIP_UNIT_TESTS_RUN=1
     ### Run tests
     - $UNIT_TESTS_BUILD_DIR/dbd/server/bin/debuda_server_unit_tests --gtest_output="xml:$TEST_RESULTS_DIR/debuda_server_unit_tests.xml"
   artifacts:
@@ -244,7 +245,8 @@ debuda-unit-tests-grayskull:
     NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
     ARCH_NAME: grayskull
   before_script:
-    ### Do nothing
+    ### Set PYTHONPATH to find debuda bindings
+    - export PYTHONPATH=$PYTHONPATH:build/lib
   script:
     ### Initialize grayskull
     - !reference [.debuda-grayskull, script]
@@ -386,7 +388,8 @@ debuda-unit-tests-wormhole-b0:
     NETLIST_FILE: dbd/test/netlists/netlist_multi_matmul_perf.yaml
     ARCH_NAME: wormhole_b0
   before_script:
-    ### Do nothing
+  ### Set PYTHONPATH to find debuda bindings
+    - export PYTHONPATH=$PYTHONPATH:build/lib
   script:
     ### Initialize wormhole-b0
     - !reference [.debuda-wormhole-b0, script]

@@ -8,7 +8,7 @@ dbd: dbd/server dbd/pybind
 	$(PRINT_OK)
 
 # Tests target: it builds everything and tests and run tests
-dbdtests: dbd dbd/server/unit_tests
+dbdtests: dbd dbd/server/unit_tests dbd/pybind/unit_tests
 
 # MARKDOWN_FILES=
 MARKDOWN_FILES=debuda-py-intro.md
