@@ -1,0 +1,65 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 1]
+    ublock: [1, 1]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x3f21a4a0]]
+  
+  output:
+    type: queue
+    input: target_op
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 1]
+    ublock: [1, 1]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x30295e00]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    target_op: 
+      type: nop 
+      grid_loc: [1, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [dram_input0] 
+      in_df: [Bfp8_b] 
+      acc_df: Bfp8_b
+      out_df: Bfp8_b  
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+      input_0_tms: []
+      
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - staticvar: {$lptr0 : 0, $gptr0: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr0, rd_ptr_global: $gptr0}}}
+      # - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      # - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - varinst: [$lptr0, incwrap, 1, 2]
+      - varinst: [$gptr0, incwrap, 1, 2]
+      - endloop

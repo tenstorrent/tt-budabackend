@@ -1,0 +1,61 @@
+devices:
+  arch: [wormhole_b0, blackhole]
+
+queues:
+  input0:  {type: ram, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 16], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input1:  {type: ram, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [16, 4], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x35000000]]}
+  output0: {type: queue, input: op0 , entries: 4, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 4], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x3a000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  4
+    op0:
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1]
+      in_df: [Bfp8, Bfp8]
+      acc_df: Bfp8
+      out_df: Bfp8
+      intermed_df: Bfp8
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      input_buf_min_size_tiles: [64,128]
+      attributes: {m_k: 1, u_kt: 16}
+      untilize_output: false
+      t: 1
+      mblock: [2, 2]
+      ublock: [2, 4]
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 4]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+         input1: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 8] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 8] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+
+

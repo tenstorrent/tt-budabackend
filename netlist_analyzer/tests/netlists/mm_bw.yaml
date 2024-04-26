@@ -1,0 +1,89 @@
+devices:
+    arch: grayskull
+  
+queues:
+  in0  : {type: queue, input: HOST, entries: 256, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  we0  : {type: queue, input: HOST, entries: 1, grid_size:   [1, 1], t: 1, mblock: [1, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  in1  : {type: queue, input: HOST, entries: 256, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10000000]]}
+  we1  : {type: queue, input: HOST, entries: 1, grid_size:   [1, 1], t: 1, mblock: [1, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x20000000]]}
+  out0 : {type: queue, input: wr0 , entries: 256, grid_size: [1, 1], t: 1, mblock: [4, 2], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[4, 0x10000000]]}
+  
+graphs:
+  test0:
+    target_device: 0
+    input_count: 256
+    mm0:
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [in0, we0]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      attributes: {m_k: 1, u_kt: 2}
+      untilize_output: false
+      t: 1
+      mblock: [4, 2]
+      ublock: [4, 2]
+      input_0_tms: []
+      input_1_tms: []
+    
+    mm1:
+      type: matmul
+      grid_loc: [0, 3]
+      grid_size: [1, 1]
+      inputs: [in1, we1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      attributes: {m_k: 1, u_kt: 2}
+      untilize_output: false
+      t: 1
+      mblock: [4, 2]
+      ublock: [4, 2]
+      input_0_tms: []
+      input_1_tms: []
+
+    wr0:
+      type: add
+      grid_loc: [0, 6]
+      grid_size: [1, 1]
+      inputs: [mm0, mm1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 1
+      mblock: [4, 2]
+      ublock: [4, 2]
+
+
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test0, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          we0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          we1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+
+test-config:
+  io-config:
+    inputs: [in0, in1 ]
+    outputs: [out0]

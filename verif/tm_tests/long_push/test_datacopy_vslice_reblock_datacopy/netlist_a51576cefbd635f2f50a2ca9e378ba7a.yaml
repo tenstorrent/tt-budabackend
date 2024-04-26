@@ -1,0 +1,89 @@
+
+# input_grid_r = $TEMPLATE_input_grid_r
+
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [2, 4]
+    t: 3
+    mblock: [1, 1]
+    ublock: [2, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x1015b840], [2, 0x13479120], [2, 0x1602a420], [2, 0x1f8cde40], [2, 0x1ff13920], [2, 0x2152ef80], [2, 0x29c21220], [2, 0x3dc99d80]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 2
+    grid_size: [2, 8]
+    t: 6
+    mblock: [1, 2]
+    ublock: [1, 1]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x1106eee0], [1, 0x19d1d2c0], [1, 0x1cd15c80], [1, 0x22335e40], [1, 0x267720a0], [1, 0x2a968720], [1, 0x2eb6e2a0], [1, 0x2fecbe00], [1, 0x3048c060], [1, 0x31271aa0], [1, 0x32225fc0], [1, 0x33dd9c40], [1, 0x34e84d40], [1, 0x35daaac0], [1, 0x36721b40], [1, 0x3d884040]]
+    ublock_order: r
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: 2
+    passthrough: 
+      type: datacopy 
+      grid_loc: [0, 0] 
+      grid_size: [2, 4]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 3
+      mblock: [1, 1]
+      ublock: [2, 4]
+      input_0_tms: []
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [8, 4] 
+      grid_size: [2, 8]
+      inputs: [passthrough] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16 
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 6
+      mblock: [1, 2]
+      ublock: [1, 1]
+      input_0_tms: [vslice: 2]
+      
+programs:
+  - program0:
+      #- var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var : [$c_loop_count]
+      - staticvar : {$lptr : 0, $gptr : 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, 2, 4] # add two variables
+      - varinst: [$gptr, incwrap, 2, 4] # add two variables
+      - endloop 
+
+
+

@@ -1,0 +1,21 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  r0    : {type: ram, input: HOST     , entries: 1, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  output: {type: queue, input: unary0 , entries: 4, grid_size: [2, 2], t: 4, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12100000], [0, 0x12200000], [0, 0x12300000]]}
+
+graphs:
+  test_graph:
+    target_device: 0
+    input_count: 2
+    unary0: {type: datacopy, grid_loc: [0, 0], grid_size: [2, 2], inputs: [r0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 4, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - working_program:
+      - staticvar: {$q_rdptr0: 0, $q_rdptr1: 0}
+      - var: {$zero: 0, $c_num_loops: 2, $c_incr: 1} # $c_num_loops has to match output entries
+      - loop: $c_num_loops
+      - execute: {graph_name: test_graph, queue_settings: {
+        r0: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $zero, rd_ptr_global: $zero}}}
+      - endloop

@@ -1,0 +1,53 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+
+  # input
+# input_0_matmul2:         {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x1000]]}
+  input_0_matmul2:         {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+# input_0_matmul1:         {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x1000]]}
+  input_0_matmul1:         {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+  # output
+# test_module.output_add:  {type: queue, input: add, entries: 2, grid_size: [1, 2], t: 1, mblock: [1, 1], ublock: [2, 1], df: Float16_b, target_device: 0, loc: host}
+  test_module.output_add:  {type: queue, input: add, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+  # parameter
+# test_module.weights2:    {type: queue, input: HOST, entries: 1, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1000], [1, 0x1000]]}
+  test_module.weights2:    {type: queue, input: HOST, entries: 1, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x34000000],[0, 0x36000000]]}
+# test_module.weights1:    {type: queue, input: HOST, entries: 1, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x1000], [4, 0x1000]]}
+  test_module.weights1:    {type: queue, input: HOST, entries: 1, grid_size: [1, 2], t: 1, mblock: [2, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x38000000],[0, 0x3A000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    matmul2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 2], inputs: [input_0_matmul2, test_module.weights2],
+         t: 1, mblock: [2, 1], ublock: [1, 1], in_df: [Float16_b, Float16_b], acc_df: Float16, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 2, u_kt: 1}}
+    matmul1: {type: matmul, grid_loc: [0, 2], grid_size: [1, 2], inputs: [input_0_matmul1, test_module.weights1],
+         t: 1, mblock: [1, 1], ublock: [2, 1], in_df: [Float16_b, Float16_b], acc_df: Float16, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 2, u_kt: 1}}
+    exp: {type: exp, grid_loc: [0, 4], grid_size: [1, 2], inputs: [matmul1],
+         t: 1, mblock: [2, 1], ublock: [1, 1], in_df: [Float16_b], acc_df: Float16, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    add: {type: add, grid_loc: [0, 6], grid_size: [1, 2], inputs: [exp, matmul2], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 1], in_df: [Float16_b, Float16_b], acc_df: Float16, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+
+
+programs:
+  - run_fwd:
+    - var: [$c_one, $c_zero, $gptr_q0, $c_num_microbatches, $lptr_q0]
+    - varinst: [$c_zero, set, 0]
+    - varinst: [$c_one, set, 1]
+    - varinst: [$c_num_microbatches, set, 1]
+    - loop: $c_num_microbatches
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               test_module.weights2: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               test_module.weights1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               input_0_matmul2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_0_matmul1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$gptr_q0, add, $gptr_q0, $c_one]
+    -   varinst: [$lptr_q0, add, $lptr_q0, $c_one]
+    - endloop
+

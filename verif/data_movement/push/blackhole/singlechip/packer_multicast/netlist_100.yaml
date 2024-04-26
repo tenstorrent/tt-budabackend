@@ -1,0 +1,116 @@
+# test_config_id=2
+devices:
+  arch: wormhole_b0
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 2
+    mblock: [44, 50]
+    ublock: [1, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000000]]
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 176
+    mblock: [5, 2]
+    ublock: [5, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[2, 0x10000000]]
+
+  output_dram:
+    type: queue
+    input: target_op0
+    entries: 1
+    grid_size: [1, 2]
+    t: 176
+    mblock: [1, 1]
+    ublock: [1, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000000], [5, 0x1005d840]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    feeder0:
+      type: datacopy
+      grid_loc: [1, 1]
+      grid_size: [1, 1]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 176
+      mblock: [1, 25]
+      ublock: [1, 1]
+      input_0_tms: [hslice: 2, vslice: 44]
+    feeder1:
+      type: datacopy
+      grid_loc: [1, 3]
+      grid_size: [5, 2]
+      inputs: [input1_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 176
+      mblock: [5, 1]
+      ublock: [1, 1]
+    target_op0:
+      type: matmul
+      grid_loc: [1, 5]
+      grid_size: [1, 2]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 1, u_kt: 25}
+      t: 176
+      mblock: [1, 1]
+      ublock: [1, 1]
+      untilize_output: false
+
+programs:
+- program0:
+  - var: [$c_microbatch_count, $c_zero]
+  - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+  - varinst: [$c_microbatch_count, set, 1]
+  - varinst: [$c_zero, set, 0]
+  - loop: $c_microbatch_count   #loop over number of microbatches that make a minibatch
+  - execute: {graph_name: test_op, queue_settings: {input0_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}, input1_dram: {prologue: false, epilogue: false,
+          zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+  - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

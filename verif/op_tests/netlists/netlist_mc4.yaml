@@ -1,0 +1,154 @@
+devices:
+  arch: GRAYSKULL
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 8, grid_size: [3, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x3915ba20], [0, 0x39187640], [0, 0x391b3260]]}
+  input1:  {type: queue, input: HOST, entries: 8, grid_size: [3, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x394d51e0], [0, 0x39576600], [0, 0x39617a20]]}
+  output: {type: queue, input: drainer , entries: 8, grid_size: [1, 1], t: 1, mblock: [6, 2], ublock: [1, 1], df: Float16, target_device: 3, loc: dram, dram: [[0, 0x39d84320]]}
+
+  e2e_in0_to_op0: {type: queue, input: feeder0, entries: 8, grid_size: [3, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 2, loc: dram, dram: [[0, 0x3915ba20], [0, 0x39187640], [0, 0x391b3260]]}
+  e2e_in1_to_op0: {type: queue, input: feeder1, entries: 8, grid_size: [3, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 2, loc: dram, dram: [[0, 0x3a15ba20], [0, 0x3a187640], [0, 0x3a1b3260]]}
+  e2e_op0_to_out: {type: queue, input: op0 ,    entries: 8, grid_size: [3, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16, target_device: 3, loc: dram, dram: [[0, 0x3915ba20], [0, 0x39187640], [0, 0x391b3260]]}
+
+
+graphs:
+  test_feeder0_op:
+    target_device: 0
+    input_count:  4
+    feeder0: 
+      type: datacopy
+      grid_loc: [4, 7]   # [r,c]
+      grid_size: [3, 1] # [r,c]
+      inputs: [input0] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [2,  2]
+      ublock: [1, 1]
+      input_0_tms:
+  test_feeder1_op:
+    target_device: 1
+    input_count:  4
+    feeder1: 
+      type: datacopy
+      grid_loc: [5, 9]   # [r,c]
+      grid_size: [3, 1] # [r,c]
+      inputs: [input1] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [2,  2]
+      ublock: [1, 1]
+      input_0_tms:
+  test_op:
+    target_device: 2
+    input_count:  4
+    op0: 
+      type: multiply 
+      grid_loc: [2, 10]   # [r,c]
+      grid_size: [3, 1] # [r,c]
+      inputs: [e2e_in0_to_op0, e2e_in1_to_op0] 
+      in_df: [Float16, Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: false
+      t: 1
+      mblock: [2,  2]
+      ublock: [1, 1]
+      input_0_tms:
+  test_drainer_op:
+    target_device: 3
+    input_count:  4
+    drainer: 
+      type: datacopy
+      grid_loc: [0, 11]   # [r,c]
+      grid_size: [3, 1] # [r,c]
+      inputs: [e2e_op0_to_out] 
+      in_df: [Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      untilize_output: true
+      t: 1
+      mblock: [2,  2]
+      ublock: [1, 1]
+      input_0_tms:
+      
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # set input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_feeder0_op, queue_settings: {
+          input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 16]
+      - varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+  - program1:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # set input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_feeder1_op, queue_settings: {
+          input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 16]
+      - varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+  - program2:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # set input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          e2e_in0_to_op0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          e2e_in1_to_op0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 16]
+      - varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+  - program3:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # set input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_drainer_op, queue_settings: {
+          e2e_op0_to_out: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 16]
+      - varinst: [$gptr, incwrap, $c_input_count, 16]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+

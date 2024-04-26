@@ -1,0 +1,73 @@
+# size queues to exactly fit output, s.t. if we incorrectly exeucte output will be full
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in0: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  in1: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  in2: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10000000]]}
+  in3: {type: queue, input: HOST    , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[3, 0x10000000]]}
+  out0: {type: queue, input: unary0  , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  out1: {type: queue, input: unary1  , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x28000000]]}
+  out2: {type: queue, input: unary2  , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  out3: {type: queue, input: unary3  , entries: 8, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x38000000]]}
+
+graphs:
+  compile_order_0_exec_order_1:
+    target_device: 0
+    input_count: 1
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  compile_order_2_exec_order_3:
+    target_device: 0
+    input_count: 2
+    unary3: {type: nop, grid_loc: [0, 1], grid_size: [1, 1], inputs: [in3], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  compile_order_3_exec_order_2:
+    target_device: 0
+    input_count: 4
+    unary2: {type: nop, grid_loc: [0, 2], grid_size: [1, 1], inputs: [in2], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+  compile_order_1_exec_order_0:
+    target_device: 0
+    input_count: 1
+    unary0: {type: nop, grid_loc: [0, 3], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - compile_order_0_exec_order_1:
+      - var: [$ptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 4]  # load loop count
+      - varinst: [$c_input_count, set, 1] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: compile_order_0_exec_order_1, queue_settings: {
+          in1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+      - varinst: [$ptr, add, $ptr, $c_input_count] # incr ptr
+      - endloop 
+
+  - compile_order_1_exec_order_0:
+      - var: [$ptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: compile_order_1_exec_order_0, queue_settings: {
+          in0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+      - varinst: [$ptr, add, $ptr, $c_input_count] # incr ptr
+      - endloop
+
+  - compile_order_2_exec_order_3:
+      - var: [$ptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst: [$c_input_count, set, 2] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: compile_order_2_exec_order_3, queue_settings: {
+          in3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+      - varinst: [$ptr, add, $ptr, $c_input_count] # incr ptr
+      - endloop 
+
+  - compile_order_3_exec_order_2:
+      - var: [$ptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 4] # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: compile_order_3_exec_order_2, queue_settings: {
+          in2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $ptr, rd_ptr_global: $ptr}}}
+      - varinst: [$ptr, add, $ptr, $c_input_count] # incr ptr
+      - endloop 

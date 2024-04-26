@@ -1,0 +1,143 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  # input
+  input_0_matmul2:                        {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x302020a0]]}
+  input_0_matmul1:                        {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3010c360]]}
+  # output
+  verify_module.output_add:               {input: add, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+  output_grad_input_0_matmul1:            {input: bw_in0_matmul1_matmul_1_output_nop, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x408020]}
+  output_grad_input_0_matmul2:            {input: bw_in0_matmul2_matmul_1_output_nop, type: queue, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x080040]}
+  # parameter
+  ff.verify_module.weights2:                 {input: opt_in0_verify_module.weights2_subtract_2, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  ff.verify_module.weights1:                 {input: opt_in0_verify_module.weights1_subtract_2, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3000a2c0]]}
+  # constant
+  input_constant_sqrt_1:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3001c7a0]]}
+  # epoch_to_epoch
+  e2e_sqrt_0:                             {input: sqrt, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x30000000]]}
+  # optimizer_parameter
+  input_opt_verify_module.weights2_0.lr:  {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3001f080]]}
+  input_opt_verify_module.weights1_0.lr:  {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3001f8c0]]}
+  # loss
+  loss_verify_module.output_add:          {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30314580]]}
+  # grad_accumulator
+  grad_acc_verify_module.weights1:        {input: bw_in1_matmul1_matmul_1, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3001cfe0]]}
+  grad_acc_verify_module.weights2:        {input: bw_in1_matmul2_matmul_1, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    matmul2: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_0_matmul2, ff.verify_module.weights2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    matmul1: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [input_0_matmul1, ff.verify_module.weights1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    sqrt: {type: sqrt, grid_loc: [0, 2], grid_size: [1, 1], inputs: [matmul1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    add: {type: add, grid_loc: [0, 3], grid_size: [1, 1], inputs: [sqrt, matmul2], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+  bwd_1:
+    target_device: 0
+    input_count: 1
+    bw_in0_sqrt_reciprocal_0: {type: reciprocal, grid_loc: [0, 2], grid_size: [1, 1], inputs: [e2e_sqrt_0],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    bw_in0_sqrt_multiply_2: {type: multiply, grid_loc: [1, 2], grid_size: [1, 1], inputs: [bw_in0_sqrt_reciprocal_0, input_constant_sqrt_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}, broadcast: {c: 2}]}
+    bw_in0_sqrt_multiply_3: {type: multiply, grid_loc: [2, 2], grid_size: [1, 1], inputs: [bw_in0_sqrt_multiply_2, loss_verify_module.output_add],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    bw_in0_matmul1_matmul_1: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [bw_in0_sqrt_multiply_3, ff.verify_module.weights1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [transpose],
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in1_matmul1_matmul_1_transpose_nop: {type: nop, grid_loc: [3, 1], grid_size: [1, 1], inputs: [input_0_matmul1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    bw_in1_matmul1_matmul_1: {type: matmul, grid_loc: [2, 1], grid_size: [1, 1], inputs: [bw_in1_matmul1_matmul_1_transpose_nop, bw_in0_sqrt_multiply_3], gradient_op: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in0_matmul1_matmul_1_output_nop: {type: nop, grid_loc: [1, 1], grid_size: [1, 1], inputs: [bw_in0_matmul1_matmul_1], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    bw_in0_matmul2_matmul_1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [loss_verify_module.output_add, ff.verify_module.weights2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [transpose],
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in1_matmul2_matmul_1_transpose_nop: {type: nop, grid_loc: [3, 0], grid_size: [1, 1], inputs: [input_0_matmul2],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_0_tms: [transpose]}
+    bw_in1_matmul2_matmul_1: {type: matmul, grid_loc: [2, 0], grid_size: [1, 1], inputs: [bw_in1_matmul2_matmul_1_transpose_nop, loss_verify_module.output_add], gradient_op: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 2}}
+    bw_in0_matmul2_matmul_1_output_nop: {type: nop, grid_loc: [1, 0], grid_size: [1, 1], inputs: [bw_in0_matmul2_matmul_1], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+  opt_2:
+    target_device: 0
+    input_count: 1
+    opt_in0_verify_module.weights2_multiply_1: {type: multiply, grid_loc: [0, 0], grid_size: [1, 1], inputs: [grad_acc_verify_module.weights2, input_opt_verify_module.weights2_0.lr],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}, broadcast: {c: 2}]}
+    opt_in0_verify_module.weights2_subtract_2: {type: subtract, grid_loc: [0, 1], grid_size: [1, 1], inputs: [ff.verify_module.weights2, opt_in0_verify_module.weights2_multiply_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    opt_in0_verify_module.weights1_multiply_1: {type: multiply, grid_loc: [0, 2], grid_size: [1, 1], inputs: [grad_acc_verify_module.weights1, input_opt_verify_module.weights1_0.lr],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}, broadcast: {c: 2}]}
+    opt_in0_verify_module.weights1_subtract_2: {type: subtract, grid_loc: [0, 3], grid_size: [1, 1], inputs: [ff.verify_module.weights1, opt_in0_verify_module.weights1_multiply_1],
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+programs:
+  - run_fwd:
+    - param: [$p_microbatch_count]      
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               ff.verify_module.weights2: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               ff.verify_module.weights1: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_0_matmul2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_0_matmul1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 8]
+    - endloop
+  - run_bwd:
+    - param: [$p_microbatch_count]      
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0, $gptr_q1: 0, $lptr_q1: 0, $gptr_q2: 0, $lptr_q2: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: bwd_1, queue_settings: {
+               ff.verify_module.weights2: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               ff.verify_module.weights1: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_constant_sqrt_1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               input_0_matmul2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_0_matmul1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               e2e_sqrt_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               loss_verify_module.output_add: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+               grad_acc_verify_module.weights1: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               grad_acc_verify_module.weights2: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 8]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 8]
+    - endloop
+  - run_opt:
+    - var: {$c_one: 1, $c_zero: 0}
+    - execute: {graph_name: opt_2, queue_settings: {
+             ff.verify_module.weights2: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             ff.verify_module.weights1: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             grad_acc_verify_module.weights1: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+             grad_acc_verify_module.weights2: {prologue: false, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 1.0

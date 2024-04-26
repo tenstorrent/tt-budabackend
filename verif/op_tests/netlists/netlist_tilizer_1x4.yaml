@@ -1,0 +1,50 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # output
+  tilized_output:                                           {input: tilizer_0, type: queue, entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 4], ublock: [1, 8], ublock_order: r, df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x20000000], [0, 0x22000000], [0, 0x24000000], [0, 0x26000000]]}
+
+  # parameter
+  flat_input:                                               {input: HOST, type: queue, entries: 8, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [1, 16], ublock_order: r, df: Float16, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x30000000], [0, 0x32000000], [0, 0x34000000], [0, 0x36000000]]}
+  #table:                                                     {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, layout: flat, target_device: 0, loc: dram, dram: [[0, 0x31000000]]} #FIXME: hack table size to match size tiles between queue and output
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    tilizer_0: {type: tilizer, grid_loc: [0, 0], grid_size: [2, 2], inputs: [flat_input], untilize_output: false,
+          t: 1, mblock: [2, 4], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Bfp8, intermed_df: Float16, acc_df: Float16_b, math_fidelity: HiFi4}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+                flat_input: {prologue: false, epilogue: false, zero: False, rd_ptr_global: $gptr_q0, rd_ptr_local: $lptr_q0}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    #type: Constant
+    #type: DebugTileId
+    constant_value: 1.0
+    debug_tile_id_base: 1.0
+    debug_tile_id_step: 1.0
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.000
+
+  io-config:
+    inputs: [flat_input]
+    outputs: [tilized_output]

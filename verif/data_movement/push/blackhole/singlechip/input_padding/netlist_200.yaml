@@ -1,0 +1,97 @@
+# test_config_id=98
+devices:
+  arch: wormhole_b0
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 12
+    grid_size: [4, 1]
+    t: 10
+    mblock: [2, 2]
+    ublock: [4, 2]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000000], [5, 0x107f8040], [5, 0x10ff0080], [5, 0x117e80c0]]
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: 12
+    grid_size: [2, 2]
+    t: 10
+    mblock: [5, 1]
+    ublock: [1, 2]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x11fe0100], [5, 0x1225d940], [5, 0x124db180], [5, 0x127589c0]]
+
+  output_dram:
+    type: queue
+    input: op0
+    entries: 12
+    grid_size: [5, 4]
+    t: 10
+    mblock: [3, 2]
+    ublock: [1, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[4, 0x10000000], [4, 0x1017e840], [4, 0x102fd080], [4, 0x1047b8c0], [4, 0x105fa100], [4, 0x10778940], [4, 0x108f7180], [4, 0x10a759c0], [4, 0x10bf4200], [4, 0x10d72a40], [4, 0x10ef1280], [4,
+        0x1106fac0], [4, 0x111ee300], [4, 0x1136cb40], [4, 0x114eb380], [4, 0x11669bc0], [4, 0x117e8400], [4, 0x11966c40], [4, 0x11ae5480], [4, 0x11c63cc0]]
+
+graphs:
+  test_multi_tm_dram_matmul:
+    target_device: 0
+    input_count: 6
+    op0:
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [5, 4]
+      inputs: [input0_dram, input1_dram]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 60
+      math_fidelity: HiFi4
+      attributes: {m_k: 2, u_kt: 3}
+      untilize_output: false
+      t: 10
+      mblock: [3, 2]
+      ublock: [1, 1]
+
+      input_0_unpad: {rt: 6, ct: 1}
+      input_0_tms: [vslice: 2, hstack: 2]
+      input_0_pad: {rt: 2, ct: 0, pad_value: 0.0}
+
+      input_1_unpad: {rt: 3, ct: 1}
+      input_1_tms: [broadcast: {c: 2}, transpose]
+      input_1_pad: {rt: 0, ct: 1, pad_value: 0.0}
+
+programs:
+- test_multi_tm_dram_matmul_program:
+  - param: [$p_microbatch_count, $p_microbatch_size]
+  - staticvar: [$lptr, $gptr]
+  - var: {$c_zero: 0, $c_wrap: 2}                           # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+  - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]    # c_wrap = 2*microbatch_size
+  - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]   # c_wrap = 2*microbatch_size*microbatch_count
+  - loop: $p_microbatch_count   #loop over number of microbatches that make a minibatch
+  - execute: {graph_name: test_multi_tm_dram_matmul, queue_settings: {input0_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1_dram: {prologue: false,
+          epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+  - varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+  - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 2 # entries / input_count
+    microbatch_size: 6 # input_count
+    minibatch_count: 1 # host loop iterations# Generation Command: SEED=41883018601 ARCH_NAME=wormhole_b0 verif/template_netlist/run_generate_ci_tests.sh test_modules.multi_tm_tests.test_dram_input_matmul_multiple_tms_and_reblock build/test/verif/test_dram_input_matmul_pad_unpad 999 1

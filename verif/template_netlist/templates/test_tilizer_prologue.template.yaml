@@ -1,0 +1,82 @@
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input_count
+    grid_size: [$TEMPLATE_input0_grid_size_r, $TEMPLATE_input0_grid_size_c]
+    t: $TEMPLATE_input0_t
+    mblock: [$TEMPLATE_input0_mb_r, $TEMPLATE_input0_mb_c]
+    ublock: [$TEMPLATE_input0_ub_r, $TEMPLATE_input0_ub_c]
+    ublock_order: $TEMPLATE_input0_ublock_order
+    df: $TEMPLATE_input0_df
+    layout: flat
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_input0_dram_buffers
+
+  output:
+    type: queue
+    input: drainer
+    entries: $TEMPLATE_input_count
+    grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+    t: $TEMPLATE_output_t
+    mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+    ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+    ublock_order: $TEMPLATE_output_ublock_order
+    df: $TEMPLATE_output_df
+    target_device: $TEMPLATE_target_device
+    loc: dram
+    dram: $TEMPLATE_output_dram_buffers
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count:  $TEMPLATE_input_count
+    $TEMPLATE_target_op_name: 
+      type: tilizer 
+      grid_loc: [$TEMPLATE_grid_loc_r, $TEMPLATE_grid_loc_c]   # [r,c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c] # [r,c]
+      inputs: [dram_input0] 
+      in_df: [$TEMPLATE_input0_df] 
+      acc_df: $TEMPLATE_output_dest_acc_df
+      out_df: $TEMPLATE_output_df
+      intermed_df: $TEMPLATE_intermed_df
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: false
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms:
+    drainer: 
+      type: datacopy
+      grid_loc: [$TEMPLATE_output_grid_loc_r, $TEMPLATE_output_grid_loc_c]   # [r,c]
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c] # [r,c]
+      inputs: [$TEMPLATE_target_op_name] 
+      in_df: [$TEMPLATE_output_df] 
+      acc_df: $TEMPLATE_output_dest_acc_df
+      out_df: $TEMPLATE_output_df  
+      intermed_df: $TEMPLATE_intermed_df
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: $TEMPLATE_untilize_output
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms:   
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 

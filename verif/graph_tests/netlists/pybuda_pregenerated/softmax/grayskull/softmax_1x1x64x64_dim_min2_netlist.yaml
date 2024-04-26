@@ -1,0 +1,59 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  input_0_softmax_exp:              {input: HOST, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x30000000]]}
+
+  # output
+  test_module.output_softmax_mult:  {input: softmax_mult, type: queue, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # constant
+  lc.input_tensor.softmax_sum.0:    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x30000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    softmax_exp: {type: exp, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_0_softmax_exp],
+         t: 1, mblock: [2, 2], ublock: [1, 1], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    softmax_sum.lc1: {type: matmul, grid_loc: [0, 1], grid_size: [1, 1], inputs: [lc.input_tensor.softmax_sum.0, softmax_exp],
+         t: 1, mblock: [1, 1], ublock: [1, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_0_tms: [broadcast: {c: 2}],
+         attributes: {m_k: 2, u_kt: 1}}
+    softmax_recip: {type: reciprocal, grid_loc: [0, 2], grid_size: [1, 1], inputs: [softmax_sum.lc1],
+         t: 1, mblock: [1, 2], ublock: [1, 1], in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    softmax_mult: {type: multiply, grid_loc: [0, 3], grid_size: [1, 1], inputs: [softmax_exp, softmax_recip], untilize_output: true,
+         t: 1, mblock: [1, 1], ublock: [2, 2], in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}]}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_num_microbatches: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_num_microbatches
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               lc.input_tensor.softmax_sum.0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               input_0_softmax_exp: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, add, $lptr_q0, $c_one]
+    -   varinst: [$gptr_q0, add, $gptr_q0, $c_one]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      lc.input_tensor.softmax_sum.0: 
+        type: Constant
+        constant_value: 1.0

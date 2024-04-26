@@ -1,0 +1,48 @@
+devices:
+  arch: WORMHOLE_B0
+
+queues:
+  input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 128], ublock: [1, 1], df: Bfp2_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x267f0080]], }
+  input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [8, 2], ublock: [6, 2], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2fb16b60]], }
+  input_2: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 16], ublock: [1, 1], df: RawUInt32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x366e7980]], }
+  
+  output0: {type: queue, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [6, 1], df: Bfp8_b, tile_dim: [32, 32], input: op, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x3f3f4da0]], }
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 1
+    op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [6, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0, input_1, input_2], in_df: [Bfp2_b, Float16_b, RawUInt32], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16, attributes: {relu_en: true, relu_mode: min, relu_threshold: 0.600000, stoch_rnd_mode: none, m_k: 12, u_kt: 12, identity: true, num_sparse_tiles: 128, num_index_tiles: 16, sparse_tile_ptr_bits: 8, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], input_1_tms: [broadcast: {r: 3}, ], input_2_tms: [], }
+    
+    
+    
+    
+    
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 2]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         
+         }}
+      - varinst: [$lptr, incwrap, $c_input_count, 4] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 4] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 2
+  comparison-config: {type: AllClose, atol: 0.01, rtol: 0.30, check_pct: 0.4, check_pcc: 0.9, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }
+  stimulus-config:
+    overrides:
+      input_0: {type: sparse, matmul_ident_name: op}
+      input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}
+      input_2: {type: sparse_encoding, matmul_ident_name: op, zero_strip_freq: 0.5, zero_ublock_freq: 0.5, zero_tile_freq: 0.5, enc_tile_byte_size: 4096}
+      

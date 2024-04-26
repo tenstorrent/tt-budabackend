@@ -1,0 +1,42 @@
+
+devices:
+  arch: [wormhole, wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 4], ublock: [1, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x12000000], [0, 0x13000000], [0, 0x14000000]]}
+  q1    : {type: queue, input: HOST   , entries: 1, grid_size: [2, 2], t: 1, mblock: [4, 1], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x11000000], [1, 0x12000000], [1, 0x13000000], [1, 0x14000000]]}
+  output: {type: queue, input: matmul0, entries: 1, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [1, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x11000000], [2, 0x12000000], [2, 0x13000000], [2, 0x14000000]]}
+
+graphs:
+  test_matmul:
+    target_device: 0
+    input_count: 1
+    matmul0: {type: matmul, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0, q1], in_df: [Float16_b, Float16_b], acc_df: Float32, out_df: Float16_b,  intermed_df: Float32, 
+    ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 4], attributes: {m_k: 8, u_kt: 2}}
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]   # load loop count
+      - varinst: [$c_input_count, set, 1]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_matmul, queue_settings: {
+        q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+        q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr} }}
+      - varinst: [$lptr, incwrap, $c_input_count, 2]
+      - varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0

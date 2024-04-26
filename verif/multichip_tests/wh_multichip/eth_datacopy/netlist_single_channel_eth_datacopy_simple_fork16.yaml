@@ -1,0 +1,62 @@
+devices:
+ arch: [wormhole,wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  
+  output: {type: queue, input: unary1 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x30000000]]}
+  output2: {type: queue, input: unary2 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x31000000]]}
+  output3: {type: queue, input: unary3 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x32000000]]}
+  output4: {type: queue, input: unary4 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x33000000]]}
+  output5: {type: queue, input: unary5 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x34000000]]}
+  output6: {type: queue, input: unary6 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x35000000]]}
+  output7: {type: queue, input: unary7 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x36000000]]}
+  output8: {type: queue, input: unary8 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x37000000]]}
+  output9: {type: queue, input: unary9 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x38000000]]}
+  output10: {type: queue, input: unary10 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x39000000]]}
+  output11: {type: queue, input: unary11 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3a000000]]}
+  output12: {type: queue, input: unary12 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3b000000]]}
+  output13: {type: queue, input: unary13 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3c000000]]}
+  output14: {type: queue, input: unary14 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3d000000]]}
+  output15: {type: queue, input: unary15 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3e000000]]}
+  output16: {type: queue, input: unary16 , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 1, loc: dram, dram: [[0, 0x3f000000]]}
+
+graphs:
+  test_unary_chip0:
+    target_device: 0
+    input_count: 1
+    unary0: {type: gelu, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    eth_datacopy: {type: ethernet_datacopy,  grid_size: [1,1], attributes: {ingress_channels: [8], egress_channels: [0], dest_device: 1}, inputs: [unary0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+  test_unary_chip1:
+    target_device: 1
+    input_count: 1
+    unary1: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary2: {type: datacopy, grid_loc: [1, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary3: {type: datacopy, grid_loc: [2, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary4: {type: datacopy, grid_loc: [3, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary5: {type: datacopy, grid_loc: [4, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary6: {type: datacopy, grid_loc: [5, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary7: {type: datacopy, grid_loc: [6, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary8: {type: datacopy, grid_loc: [7, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary9: {type: datacopy, grid_loc: [0, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary10: {type: datacopy, grid_loc: [1, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary11: {type: datacopy, grid_loc: [2, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary12: {type: datacopy, grid_loc: [3, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary13: {type: datacopy, grid_loc: [4, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary14: {type: datacopy, grid_loc: [5, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary15: {type: datacopy, grid_loc: [6, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    unary16: {type: datacopy, grid_loc: [7, 1], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}}}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop: 
+

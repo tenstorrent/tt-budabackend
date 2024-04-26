@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['check_5fresult',['check_result',['../namespacetests.html#aa238e405385c3782bb56e0d2c5d5c6a2',1,'tests']]],
+  ['clear_5fkernel_5fparameters',['clear_kernel_parameters',['../namespacetests_1_1test__config__api.html#acb29a0a49bb5ecb9cd6ca09eb6211ad1',1,'tests::test_config_api']]],
+  ['clear_5fparam_5fmapping',['clear_param_mapping',['../namespacetests.html#a669b08c547907fe0dcb3219b3b8142c7',1,'tests']]],
+  ['col',['COL',['../namespacellk_1_1tensor__ops.html#ac43a7c3eb367c669baaa45a327aeca58aa44a065875f5d66d41474bb9bfb0ce05',1,'llk::tensor_ops::COL()'],['../namespacellk_1_1tensor__ops.html#a57720b85adbe1e9b3bbab02b985f0d8daa44a065875f5d66d41474bb9bfb0ce05',1,'llk::tensor_ops::COL()']]],
+  ['col_5fmajor',['COL_MAJOR',['../namespacellk.html#a1cb439631a4f96e1431eea4d9b1f5cdba2e0e3da7320c14734283fa14f8325ccc',1,'llk']]],
+  ['col_5fmajor_5fzigzag',['COL_MAJOR_ZIGZAG',['../namespacellk.html#a1cb439631a4f96e1431eea4d9b1f5cdbae821cdf54f59066eb3b7eec07d767162',1,'llk']]],
+  ['compile_5fand_5fsetup_5fkernels',['compile_and_setup_kernels',['../namespacetests.html#af43423e70aab84bb15efb97001a0c262',1,'tests']]],
+  ['compile_5fkernels',['compile_kernels',['../namespacellk_1_1assemble__kernels.html#ac86be485d5e20c3e05809d2f00e63cfd',1,'llk::assemble_kernels']]],
+  ['config',['config',['../structtests_1_1OverlayConfig.html#a52f95fa0ae5619699aaca1ff497a1a0a',1,'tests::OverlayConfig']]],
+  ['consume',['consume',['../classllk_1_1memory.html#aebeb9c5ccea123bc09ecd2667756af91',1,'llk::memory']]],
+  ['contents',['contents',['../classllk_1_1memory.html#abdb3f8fa8d0c1b700dfb02d616b02bd2',1,'llk::memory']]],
+  ['coord',['coord',['../structllk_1_1CoreDescriptor.html#aa32a249d368698c0dd0faa96a483f073',1,'llk::CoreDescriptor']]],
+  ['core_5fconfigs',['core_configs',['../structtests_1_1TestConfig.html#ae5193ec96cb529d0e40360c46e4b6b42',1,'tests::TestConfig']]],
+  ['coredescriptor',['CoreDescriptor',['../structllk_1_1CoreDescriptor.html',1,'llk']]],
+  ['cores',['cores',['../structllk_1_1SocDescriptor.html#a282d153fb7d4f67282ecfb4f55e071a2',1,'llk::SocDescriptor']]],
+  ['coretype',['CoreType',['../namespacellk.html#ad3e730e596589754342a98abd7021ed4',1,'llk']]],
+  ['count',['count',['../classllk_1_1memory.html#a5efebebcf80bc1d7f9314ac0e046ee41',1,'llk::memory']]],
+  ['ct',['ct',['../structllk_1_1TensorDims.html#a61f71e8dcc5b6bba20cfc89b4f7e899c',1,'llk::TensorDims']]]
+];

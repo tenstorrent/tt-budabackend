@@ -1,0 +1,42 @@
+---
+# VCD parser config file
+# 
+# Notes: 
+# 1) clock and reset are optional
+# 2) only supports ANDing protocol signals for now
+#
+# Example:
+# - name: Packer Math Data
+#   hier: TOP.tt_tensix_with_l1.tensix.instruction_thread0.instruction_issue.tdma.packer
+#   clock: i_clk
+#   reset: i_reset_n
+#   protocol:
+#     - i_dram_data_valid
+#     - o_dram_data_fifo_rden
+#   payload:
+#     - i_dram_rddata
+#     - i_dram_rdtag
+
+- name: Cfg Read
+  hier: TOP_01_01.tt_tensix_with_l1.tensix.instruction_thread0.CfgExu
+  protocol:
+    - i_riscv_rd_valid
+  payload:
+    - i_riscv_addr
+
+- name: Cfg Write
+  hier: TOP_01_01.tt_tensix_with_l1.tensix.instruction_thread0.CfgExu
+  protocol:
+    - i_riscv_wr_valid
+  payload:
+    - i_riscv_addr
+    - i_riscv_wr_data
+
+- name: Cfg Ack
+  hier: TOP_01_01.tt_tensix_with_l1.tensix.instruction_thread0.CfgExu
+  protocol:
+    - o_riscv_ack
+  payload:
+    - arb_grant
+    - i_riscv_rd_valid
+    - i_riscv_wr_valid

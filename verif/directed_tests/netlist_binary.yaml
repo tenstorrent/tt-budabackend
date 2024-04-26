@@ -1,0 +1,26 @@
+devices:
+  arch: grayskull
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x2000]]}
+  q1    : {type: queue, input: HOST   , entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x2000]]}
+  output: {type: queue, input: binary0, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x2000]]}
+
+graphs:
+  test_binary:
+    target_device: 0
+    input_count: 1
+    binary0: {type: add, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0, q1], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1] }
+
+programs:
+  - program0:
+      - var: [$0, $1, $5, $8]
+      - varinst: [$5, set, 1] # LOAD an 8 into $5
+      - varinst: [$8, set, 1] # LOAD a  1 into $8 
+      - loop: $5
+      - execute: {graph_name: test_binary, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}, 
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $0, rd_ptr_global: $0}}}
+      - varinst: [$0, add, $0, $8] # add two variables
+      - varinst: [$1, add, $1, $8] # add two variables
+      - endloop 

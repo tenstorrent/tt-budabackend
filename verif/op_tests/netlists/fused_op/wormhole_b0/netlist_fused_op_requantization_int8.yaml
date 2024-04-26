@@ -1,0 +1,71 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  input1:   {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [3, 4], ublock: [1, 2], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input2:   {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [3, 4], ublock: [1, 2], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  scalars:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [3, 4], ublock: [1, 2], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x34000000]]}
+  output0:  {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 2, mblock: [3, 4], ublock: [1, 2], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [input1, scalars, input2]
+      in_df: [Int8, Float32, Int8]
+      acc_df: Int32
+      out_df: Int8
+      intermed_df: Int8
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0 }
+      t: 2
+      mblock: [3, 4]
+      ublock: [1, 2]
+
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         scalars: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+         }}
+      -   varinst: [$lptr, incwrap, $c_input_count, 2]
+      -   varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop 
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 1
+    schedules: 
+      -
+        - requantization: { type: requantization, inputs: [input0, input1], zero_point: 0, mblock: [3, 4], ublock: [1, 2], output: intermed0}
+        - mul: { type: multiply, inputs: [input2, intermed0],  pop: [intermed0], mblock: [3, 4], ublock: [1, 2], output: output}
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.01
+    check_pct: 0.99
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -10
+    uniform_upper_bound: 10
+

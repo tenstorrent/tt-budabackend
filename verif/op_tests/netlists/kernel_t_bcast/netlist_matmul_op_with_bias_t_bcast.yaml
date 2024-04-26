@@ -1,0 +1,65 @@
+devices:
+  arch: [grayskull, wormhole_b0]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 4], ublock: [2, 2], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [4, 2], ublock: [2, 2], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  input2:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [1, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
+  output: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 2, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1, input2] 
+      in_df: [Float32, Bfp8, Float16] 
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      attributes: {m_k: 4, u_kt: 2, bias: true, kernel_broadcast_per_t: {input_0 : 32}, kernel_broadcast_per_t: {input_2 : 8}}
+      untilize_output: false 
+      gradient_op: false
+      t: 2
+      mblock: [2, 2]
+      ublock: [2, 2]
+      input_0_tms: [broadcast: {z: 2}]
+      input_2_tms: [broadcast: {z: 2}, broadcast: {r: 4}]
+
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 2]
+      -   varinst: [$gptr, incwrap, $c_input_count, 2]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    # type: Constant
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+    constant_value: 1
+
+

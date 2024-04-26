@@ -1,0 +1,62 @@
+devices:
+  arch: [blackhole, wormhole_b0]
+queues:
+  input0:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 4, mblock: [4, 4], ublock: [2, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x248becc0]]}
+  input1:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 4, mblock: [4, 2], ublock: [1, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x375e4200]]}
+  output: {type: ram, input: op0 , entries: 1, grid_size: [1, 1], t: 4, mblock: [4, 2], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3b3146e0]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1] 
+      in_df: [Float16_b, Float16_b] 
+      acc_df: Float16
+      out_df: Float16_b  
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi2
+      attributes: {m_k: 4, u_kt: 1, l1_acc: False}
+      untilize_output: false 
+      gradient_op: true
+      t: 4
+      mblock: [4,  2]
+      ublock: [2, 2]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 4] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 4] # add two variables
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+

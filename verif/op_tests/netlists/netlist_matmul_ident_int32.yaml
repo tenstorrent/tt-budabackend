@@ -1,0 +1,73 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  input0_sparse:  {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 128], ublock: [1, 1], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x107e33e0], [1, 0x107ee400]]} #sparse tile input
+  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [8, 4], ublock: [2, 4], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x1085fcc0]]}
+  input2_encoding:  {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 16], ublock: [1, 1], df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x3d7042a0], [0, 0x3d7144c0]]} #index tile encoding input
+  output0: {type: queue, input: op0 , entries: 1, grid_size: [2, 1], t: 2, mblock: [1, 4], ublock: [1, 4], df: Int32, target_device: 0, loc: dram, dram: [[0, 0x3da19640], [1, 0x3e04b560]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0:
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [2, 1] # [r,c]
+      inputs: [input0_sparse, input1, input2_encoding]
+      in_df: [Int8, Int8, RawUInt32]
+      acc_df: Int32
+      out_df: Int32
+      intermed_df: Int32
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 8, u_kt: 2, identity: true, num_sparse_tiles: 128, num_index_tiles: 16, sparse_tile_ptr_bits: 10}
+      untilize_output: false
+      t: 2
+      mblock: [1, 4]
+      ublock: [1, 4]
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0_sparse: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input2_encoding: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 2] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 2] # add two variables
+      - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.99
+    check_pcc: 0.999
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -127.0
+    uniform_upper_bound: 127.0
+    overrides:
+      input0_sparse:
+        type: sparse
+        matmul_ident_name: op0
+      input2_encoding:
+        type: sparse_encoding
+        matmul_ident_name: op0
+        zero_strip_freq: 0.5  # a strip/block is zero. This will cover zero strip in the first/last position too.
+        zero_ublock_freq: 0.5 # an ublock within non-zero strip is zero. Ensure that non-zero strip contains an non-zero ublock.
+        zero_tile_freq: 0.5   # a tile within non-zero ublock is zero. Ensure that non-zero ublock contains a non-zero tile.
+        enc_tile_byte_size: 4096
+
+

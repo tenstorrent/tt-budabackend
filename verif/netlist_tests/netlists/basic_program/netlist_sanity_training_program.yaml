@@ -1,0 +1,78 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  # Input Activation - Number of entries must fit number of pipeline stages we want to mock
+  q0                : {type: queue, input: HOST             , entries: 16, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000], [0, 0x11100000], [0, 0x11200000], [0, 0x11300000]]}
+  
+  # Forward Output NOP'd
+  fwd_outputs.0     : {type: queue, input: fwd_add.buffered, entries: 16, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000], [0, 0x12100000], [0, 0x12200000], [0, 0x12300000]]}
+  
+  # Parameters
+  weights           : {type: ram  , input: weights.update   , entries: 1, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x13000000], [0, 0x13100000], [0, 0x13200000], [0, 0x13300000]]}
+  
+  # E2E from fwd to bwd
+  e2e_fwd_outputs.0 : {type: queue, input: fwd_add    , entries: 16, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x14000000], [0, 0x14100000], [0, 0x14200000], [0, 0x14300000]]}
+
+  # gradient accumulation
+  acc.gradients    : {type: ram, input: acc.gradients.matmul , entries: 1, grid_size: [2, 2], t: 1, mblock: [2, 2], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x15000000], [0, 0x15100000], [0, 0x15200000], [0, 0x15300000]]}
+  
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 2
+    fwd_add          : {type: add, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0, weights], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    fwd_add.buffered : {type: datacopy, grid_loc: [2, 0], grid_size: [2, 2], inputs: [fwd_add], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+  bwd_1:
+    target_device: 0
+    input_count: 2
+    acc.gradients.matmul: {type: matmul, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0, e2e_fwd_outputs.0], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16, gradient_op: true, intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2], attributes: {m_k: 4, u_kt: 2}}
+
+  opt_2:
+    target_device: 0
+    input_count: 1
+    opt.add: {type: add, grid_loc: [0, 0], grid_size: [2, 2], inputs: [weights, acc.gradients], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+    weights.update: {type: sigmoid, grid_loc: [2, 0], grid_size: [2, 2], inputs: [opt.add], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [2, 2], ublock: [2, 2]}
+
+programs:
+  - fwd:
+      - staticvar: {$q_local_rdptr0: 0, $gptr_q0_shadow: 0}
+      - var: {$c_num_loops: 1,  $input_count: 2, $c_zero: 0, $gptr_q0: 0}
+      - varinst: [$gptr_q0, set, $gptr_q0_shadow]
+      - loop: $c_num_loops
+      - execute: {graph_name: fwd_0, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_local_rdptr0, rd_ptr_global: $gptr_q0}, 
+          weights: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$q_local_rdptr0, incwrap, $input_count, 32]
+      - varinst: [$gptr_q0_shadow, incwrap, $input_count, 32]
+      - endloop
+  - bwd:
+      - param: [$zero_accumulated_gradients]
+      - staticvar: {$q_rdptr0: 0, $q_local_rdptr0: 0}
+      - var: {$c_num_loops: 1, $input_count: 2, $c_zero: 0}
+      - loop: $c_num_loops
+      - execute: {graph_name: bwd_1, queue_settings: {
+          q0               : {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}, 
+          e2e_fwd_outputs.0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          acc.gradients    : {prologue: true, epilogue: true, zero: $zero_accumulated_gradients, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$q_rdptr0, incwrap, $input_count, 32]
+      - endloop
+  - opt:
+      - var: {$c_zero: 0}
+      - execute: {graph_name: opt_2, queue_settings: {
+          weights      : {prologue: false, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+          acc.gradients: {prologue: false, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0

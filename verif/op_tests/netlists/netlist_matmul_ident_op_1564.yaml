@@ -1,0 +1,54 @@
+# git checkout 565ec0dbb
+# pytest pybuda/test/model_demos/cnn/pytorch/test_mobilenet_v3.py::test_mobilenetv3_timm[Wormhole_B0-mobilenetv3_large_100]
+# sparse matmul conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2
+# coverge for bug tenstorrent/budabackend#1564
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  input_1:    {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 392], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  output:     {input: op0, type: queue, entries: 4, grid_size: [8, 1], t: 1, mblock: [98, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x30000000], [2, 0x30000000], [3, 0x30000000], [4, 0x30000000], [5, 0x30000000], [1, 0x38000000], [2, 0x38000000], [3, 0x38000000]]}
+
+  # constant
+  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0:  {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 5], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[3, 0xad80ce0], [3, 0x40214ea0], [4, 0xaf34d80], [4, 0x40a68660], [5, 0x4c45b60], [5, 0x4335d0a0], [0, 0x89cf660], [0, 0x436d4b80]]}
+  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1:  {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[5, 0x4c44b20], [5, 0x4335c060], [0, 0x89ce620], [0, 0x436d3b40], [1, 0x4bf3b00], [1, 0x40564840], [2, 0x5accb20], [2, 0x4035a520]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 4
+    op0: {type: matmul, grid_loc: [0, 0], grid_size: [8, 1], inputs: [lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0, input_1, lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1],
+         t: 1, mblock: [98, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Float32, RawUInt32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_1_tms: [transpose],
+         attributes: {act_t: 1, fracture_factor: 1, identity: true, m_k: 392, num_index_tiles: 1, num_sparse_tiles: 5, sparse_tile_ptr_bits: 8, u_kt: 1}}
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $c_zero]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 4]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+          input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+          lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 4] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 4] # add two variables
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0

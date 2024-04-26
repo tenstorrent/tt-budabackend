@@ -1,0 +1,152 @@
+# Source: netlist_57bfa984a5df62e09b071515ad52e0f3.yaml
+
+devices:
+  arch: wormhole_b0
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [2, 1]
+    t: 1
+    mblock: [2, 1]
+    ublock: [2, 2]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000000], [0, 0x10008840]]
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 1]
+    ublock: [2, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10000000]]
+
+  input2_dram:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [2, 1]
+    t: 1
+    mblock: [2, 1]
+    ublock: [2, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000000], [1, 0x10004440]]
+
+  output_dram:
+    type: queue
+    input: op0
+    entries: 2
+    grid_size: [2, 1]
+    t: 17
+    mblock: [2, 1]
+    ublock: [2, 1]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[5, 0x10002240], [5, 0x1004a680]]
+
+graphs:
+  test_fused_op:
+    target_device: 0
+    input_count: 2
+
+    feeder0:
+      type: datacopy
+      grid_loc: [0, 0]
+      grid_size: [2, 1]
+      inputs: [input0_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      t: 1
+      mblock: [2, 1]
+      ublock: [2, 2]
+
+    feeder1:
+      type: datacopy
+      grid_loc: [4, 6]
+      grid_size: [1, 1]
+      inputs: [input1_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      t: 1
+      mblock: [1, 1]
+      ublock: [2, 1]
+
+    op0:
+      type: fused_op
+      attributes: {fused_op_id: 0, kernel_broadcast: {input_2: 48}}
+      grid_loc: [2, 6]
+      grid_size: [2, 1]
+      inputs: [feeder0, feeder1, input2_dram]
+      in_df: [Float16, Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3
+      untilize_output: false
+      t: 17
+      mblock: [2, 1]
+      ublock: [2, 1]
+      input_0_tms: [broadcast: {z: 17}]
+      input_1_tms: [broadcast: {z: 17}]
+      input_2_tms: [broadcast: {z: 17}]
+
+programs:
+- test_fused_op_program:
+  - param: [$p_microbatch_count, $p_microbatch_size]
+  - staticvar: [$lptr, $gptr]
+  - var: {$c_zero: 0, $c_wrap: 2}                           # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+  - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]    # c_wrap = 2*microbatch_size
+  - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]   # c_wrap = 2*microbatch_size*microbatch_count
+  - loop: $p_microbatch_count   #loop over number of microbatches that make a minibatch
+  - execute: {graph_name: test_fused_op, queue_settings: {input0_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1_dram: {prologue: false, epilogue: false,
+          zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input2_dram: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+  - varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+  - endloop
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 2
+    schedules:
+        # op -> matmul -> intermed
+    - - subop0: {type: matmul, inputs: [input0, input1], mblock: [2, 1], ublock: [2, 1], attributes: {m_k: 1, u_kt: 2}, output: intermed0}
+        # dram + intermed -> intermed
+    - - subop1: {type: nop, inputs: [input2], mblock: [2, 1], ublock: [2, 1], output: intermed1}
+        # Accumulate all results as final output of the fused op.
+    - - subop_res_0: {type: add, inputs: [intermed0, intermed1], pop: [intermed0, intermed1], mblock: [2, 1], ublock: [2, 1], output: output}
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations
+  test-generation-debug:
+    kernel_broadcast_index: 2 # kernel broadcast index for this netlist

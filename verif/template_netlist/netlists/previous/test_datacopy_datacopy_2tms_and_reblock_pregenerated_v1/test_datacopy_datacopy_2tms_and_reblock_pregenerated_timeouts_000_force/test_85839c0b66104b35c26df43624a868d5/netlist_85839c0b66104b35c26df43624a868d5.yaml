@@ -1,0 +1,93 @@
+# test_config_id=58
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [4, 4]
+    t: 36
+    mblock: [1, 5]
+    ublock: [1, 5]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[1, 0x10000040], [1, 0x101c90e0], [1, 0x10392180], [1, 0x1055b220], [1, 0x107242c0], [1, 0x108ed360], [1, 0x10ab6400], [1, 0x10c7f4a0], [1, 0x10e48540], [1, 0x110115e0], [1, 0x111da680], [1, 0x113a3720], [1, 0x1156c7c0], [1, 0x11735860], [1, 0x118fe900], [1, 0x11ac79a0]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 1
+    grid_size: [10, 8]
+    t: 18
+    mblock: [5, 1]
+    ublock: [2, 1]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000060], [3, 0x1005b700], [3, 0x100b6da0], [3, 0x10112440], [3, 0x1016dae0], [3, 0x101c9180], [3, 0x10224820], [3, 0x1027fec0], [3, 0x102db560], [3, 0x10336c00], [3, 0x103922a0], [3, 0x103ed940], [3, 0x10448fe0], [3, 0x104a4680], [3, 0x104ffd20], [3, 0x1055b3c0], [3, 0x105b6a60], [3, 0x10612100], [3, 0x1066d7a0], [3, 0x106c8e40], [3, 0x107244e0], [3, 0x1077fb80], [3, 0x107db220], [3, 0x108368c0], [3, 0x10891f60], [3, 0x108ed600], [3, 0x10948ca0], [3, 0x109a4340], [3, 0x109ff9e0], [3, 0x10a5b080], [3, 0x10ab6720], [3, 0x10b11dc0], [3, 0x10b6d460], [3, 0x10bc8b00], [3, 0x10c241a0], [3, 0x10c7f840], [3, 0x10cdaee0], [3, 0x10d36580], [3, 0x10d91c20], [3, 0x10ded2c0], [3, 0x10e48960], [3, 0x10ea4000], [3, 0x10eff6a0], [3, 0x10f5ad40], [3, 0x10fb63e0], [3, 0x11011a80], [3, 0x1106d120], [3, 0x110c87c0], [3, 0x11123e60], [3, 0x1117f500], [3, 0x111daba0], [3, 0x11236240], [3, 0x112918e0], [3, 0x112ecf80], [3, 0x11348620], [3, 0x113a3cc0], [3, 0x113ff360], [3, 0x1145aa00], [3, 0x114b60a0], [3, 0x11511740], [3, 0x1156cde0], [3, 0x115c8480], [3, 0x11623b20], [3, 0x1167f1c0], [3, 0x116da860], [3, 0x11735f00], [3, 0x117915a0], [3, 0x117ecc40], [3, 0x118482e0], [3, 0x118a3980], [3, 0x118ff020], [3, 0x1195a6c0], [3, 0x119b5d60], [3, 0x11a11400], [3, 0x11a6caa0], [3, 0x11ac8140], [3, 0x11b237e0], [3, 0x11b7ee80], [3, 0x11bda520], [3, 0x11c35bc0]]
+
+graphs:
+  test_multi_tm_datacopy_datacopy:
+    target_device: 0
+    input_count: 1
+    feeder0:
+      type: datacopy
+      grid_loc: [4, 0]
+      grid_size: [4, 4]
+      inputs: [dram_input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 4
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 36
+      mblock: [1, 5]
+      ublock: [1, 5]
+    op0:
+      type: datacopy
+      grid_loc: [0, 4]
+      grid_size: [10, 8]
+      inputs: [feeder0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 6
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 18
+      mblock: [5, 1]
+      ublock: [2, 1]
+      input_0_tms: [vstack: 2, transpose]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_datacopy,
+          queue_settings: {
+            dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

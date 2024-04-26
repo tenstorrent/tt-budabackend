@@ -1,0 +1,182 @@
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input0_dram_entries
+    grid_size: [$TEMPLATE_input0_dram_grid_size_r, $TEMPLATE_input0_dram_grid_size_c]
+    t: $TEMPLATE_input0_dram_t
+    mblock: [$TEMPLATE_input0_dram_mb_r, $TEMPLATE_input0_dram_mb_c]
+    ublock: [$TEMPLATE_input0_dram_ub_r, $TEMPLATE_input0_dram_ub_c]
+    df: $TEMPLATE_input0_dram_df
+    target_device: 0
+    loc: $TEMPLATE_input0_dram_loc
+    $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
+
+  input1_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input1_dram_entries
+    grid_size: [$TEMPLATE_input1_dram_grid_size_r, $TEMPLATE_input1_dram_grid_size_c]
+    t: $TEMPLATE_input1_dram_t
+    mblock: [$TEMPLATE_input1_dram_mb_r, $TEMPLATE_input1_dram_mb_c]
+    ublock: [$TEMPLATE_input1_dram_ub_r, $TEMPLATE_input1_dram_ub_c]
+    df: $TEMPLATE_input1_dram_df
+    ublock_order: $TEMPLATE_input1_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_input1_dram_loc
+    $TEMPLATE_input1_dram_loc: $TEMPLATE_input1_dram_buffers
+  input2_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input2_dram_entries
+    grid_size: [$TEMPLATE_input2_dram_grid_size_r, $TEMPLATE_input2_dram_grid_size_c]
+    t: $TEMPLATE_input2_dram_t
+    mblock: [$TEMPLATE_input2_dram_mb_r, $TEMPLATE_input2_dram_mb_c]
+    ublock: [$TEMPLATE_input2_dram_ub_r, $TEMPLATE_input2_dram_ub_c]
+    df: $TEMPLATE_input2_dram_df
+    ublock_order: $TEMPLATE_input2_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_input2_dram_loc
+    $TEMPLATE_input2_dram_loc: $TEMPLATE_input2_dram_buffers
+
+  input3_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input3_dram_entries
+    grid_size: [$TEMPLATE_input3_dram_grid_size_r, $TEMPLATE_input3_dram_grid_size_c]
+    t: $TEMPLATE_input3_dram_t
+    mblock: [$TEMPLATE_input3_dram_mb_r, $TEMPLATE_input3_dram_mb_c]
+    ublock: [$TEMPLATE_input3_dram_ub_r, $TEMPLATE_input3_dram_ub_c]
+    df: $TEMPLATE_input3_dram_df
+    ublock_order: $TEMPLATE_input3_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_input3_dram_loc
+    $TEMPLATE_input3_dram_loc: $TEMPLATE_input3_dram_buffers
+
+  output0_dram:  
+    type: queue
+    input: op1
+    entries: $TEMPLATE_output_dram_entries
+    grid_size: [$TEMPLATE_output_dram_grid_size_r, $TEMPLATE_output_dram_grid_size_c]
+    t: $TEMPLATE_output_dram_t
+    mblock: [$TEMPLATE_output_dram_mb_r, $TEMPLATE_output_dram_mb_c]
+    ublock: [$TEMPLATE_output_dram_ub_r, $TEMPLATE_output_dram_ub_c]
+    df: $TEMPLATE_output_dram_df
+    target_device: 0
+    loc: $TEMPLATE_output_dram_loc
+    $TEMPLATE_output_dram_loc: $TEMPLATE_output_dram_buffers
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  $TEMPLATE_microbatch_size
+    op0: 
+      type: fused_op
+      grid_loc: [$TEMPLATE_op0_loc_r, $TEMPLATE_op0_loc_c]
+      grid_size: [$TEMPLATE_op0_grid_size_r, $TEMPLATE_op0_grid_size_c]
+      inputs: [input0_dram, input1_dram, input2_dram]
+      in_df: [$TEMPLATE_input0_dram_df, $TEMPLATE_input1_dram_df, $TEMPLATE_input2_dram_df]
+      acc_df: $TEMPLATE_op0_acc_df
+      out_df: $TEMPLATE_op0_out_df
+      intermed_df: $TEMPLATE_op0_intermed_df
+      ublock_order: r
+      buf_size_mb: $TEMPLATE_buf_size_mb
+      math_fidelity: HiFi3
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      untilize_output: $TEMPLATE_untilize_output
+      t: $TEMPLATE_op0_t
+      mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c]
+      ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c]
+    op1: 
+      type: fused_op
+      grid_loc: [$TEMPLATE_op1_loc_r, $TEMPLATE_op1_loc_c]
+      grid_size: [$TEMPLATE_op1_grid_size_r, $TEMPLATE_op1_grid_size_c]
+      inputs: [input2_dram, input3_dram, op0, input2_dram]
+      in_df: [$TEMPLATE_input2_dram_df, $TEMPLATE_input3_dram_df, $TEMPLATE_op0_out_df, $TEMPLATE_input2_dram_df]
+      acc_df: $TEMPLATE_op1_acc_df
+      out_df: $TEMPLATE_op1_out_df  
+      intermed_df: $TEMPLATE_op1_intermed_df
+      ublock_order: r
+      buf_size_mb: $TEMPLATE_buf_size_mb
+      math_fidelity: LoFi
+      gradient_op: false
+      attributes: {fused_op_id: 1}
+      untilize_output: $TEMPLATE_untilize_output
+      t: $TEMPLATE_op1_t
+      mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c]
+      ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c]
+      
+programs:
+  - program0:
+      - param: [$p_microbatch_count, $p_microbatch_size]
+      - staticvar: [$lptr, $gptr]
+      - var: {$c_wrap: 2} 
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size] 
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+      - loop: $p_microbatch_count
+      - execute: {graph_name: test_op, queue_settings: {
+          input0_dram: {prologue: $TEMPLATE_input0_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          input1_dram: {prologue: $TEMPLATE_input1_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          input2_dram: {prologue: $TEMPLATE_input2_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+          input3_dram: {prologue: $TEMPLATE_input3_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+      -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+      - endloop
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 3
+    schedules:
+      -
+        - op0_subop0: {type: exp, inputs: [input1], mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c], ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c], output: intermed0}
+        - op0_subop1: {type: sqrt, inputs: [input0], mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c], ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c], output: intermed1}
+        - op0_subop2: {type: multiply, inputs: [intermed1, intermed0], pop: [intermed0, intermed1], mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c], ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c], output: intermed2}
+        - op0_subop3: {type: add, inputs: [intermed2, input2], pop: [intermed2], mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c], ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c], output: output}
+  1:
+    inputs: 4
+    intermediates: 0
+    schedules:
+      - 
+        - op1_subop0: {type: add, inputs: [input0, input1], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - op1_subop1: {type: add, inputs: [dest, input1], pop: [input1], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - op1_subop2: {type: add, inputs: [dest, input0], pop: [input0], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: min}, output: dest}
+        - op1_subop3: {type: multiply, inputs: [dest, input2], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], attributes: {relu_en: true, relu_threshold: 0.0, relu_mode: max}, output: dest}
+        - op1_subop4: {type: sqrt, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop5: {type: power, inputs: [dest], attributes: {exp: 2}, mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop6: {type: log, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop7: {type: sigmoid, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop8:              {type: add, inputs: [dest, input3], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop9:            {type: lrelu, inputs: [dest], attributes: {slope: 0.33}, mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop10:              {type: exp, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop11:       {type: reciprocal, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        #- op1_subop12: {type: dropout, inputs: [dest], attributes: {p: 0, seed: 123}, mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop13:             {type: tanh, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop14:             {type: sine, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop15:           {type: cosine, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop16:             {type: gelu, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop17:  {type: gelu_derivative, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop18:           {type: square, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop19:              {type: nop, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: dest}
+        - op1_subop20:         {type: datacopy, inputs: [dest], mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c], ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.5
+    uniform_upper_bound: 2.0
+  test-args:
+    microbatch_count: $TEMPLATE_microbatch_count # entries / input_count
+    microbatch_size: $TEMPLATE_microbatch_size # input_count
+    minibatch_count: $TEMPLATE_minibatch_count # host loop iterations

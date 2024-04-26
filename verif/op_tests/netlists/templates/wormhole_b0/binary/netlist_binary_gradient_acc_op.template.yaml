@@ -1,0 +1,62 @@
+devices:
+  arch: $TEMPLATE_device
+queues:
+  input0:  {type: queue, input: HOST, entries: $TEMPLATE_entries, grid_size: [$TEMPLATE_grid_size_y, $TEMPLATE_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_mblock_m, $TEMPLATE_mblock_n], ublock: [$TEMPLATE_ublock_rt, $TEMPLATE_ublock_ct], tile_dim: [$TEMPLATE_in_0_tile_dim_r, $TEMPLATE_in_0_tile_dim_c], df: $TEMPLATE_in0_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in0_dram_buffers}
+  input1:  {type: queue, input: HOST, entries: $TEMPLATE_entries, grid_size: [$TEMPLATE_grid_size_y, $TEMPLATE_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_mblock_m, $TEMPLATE_mblock_n], ublock: [$TEMPLATE_ublock_rt, $TEMPLATE_ublock_ct], tile_dim: [$TEMPLATE_in_1_tile_dim_r, $TEMPLATE_in_1_tile_dim_c], df: $TEMPLATE_in1_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_in1_dram_buffers}
+  output: {type: ram, input: op0 , entries: 1, grid_size: [$TEMPLATE_out_grid_size_y, $TEMPLATE_out_grid_size_x], t: $TEMPLATE_t, mblock: [$TEMPLATE_out_mblock_m, $TEMPLATE_out_mblock_n], ublock: [$TEMPLATE_out_ublock_rt, $TEMPLATE_out_ublock_ct], tile_dim: [$TEMPLATE_out_tile_dim_r, $TEMPLATE_out_tile_dim_c], df: $TEMPLATE_out_data_format, target_device: $TEMPLATE_target_device, loc: dram, dram: $TEMPLATE_out_dram_buffers}
+
+graphs:
+  test_op:
+    target_device: $TEMPLATE_target_device
+    input_count:  $TEMPLATE_input_count
+    op0: 
+      type: $TEMPLATE_binary_type
+      grid_loc: [$TEMPLATE_grid_loc_y, $TEMPLATE_grid_loc_x]   # [r,c]
+      grid_size: [$TEMPLATE_grid_size_y, $TEMPLATE_grid_size_x] # [r,c]
+      inputs: [input0, input1] 
+      in_df: [$TEMPLATE_in0_data_format, $TEMPLATE_in1_data_format] 
+      acc_df: $TEMPLATE_dest_accumulate_data_format
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: $TEMPLATE_untilize_output 
+      gradient_op: true
+      t: $TEMPLATE_t
+      mblock: [$TEMPLATE_mblock_m,  $TEMPLATE_mblock_n]
+      ublock: [$TEMPLATE_ublock_rt, $TEMPLATE_ublock_ct]
+      tile_dim: [$TEMPLATE_out_tile_dim_r, $TEMPLATE_out_tile_dim_c]
+      input_0_tms:
+      input_1_tms:
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count, $ramrdptr, $ramwrptr]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set,  $TEMPLATE_loop_count]   # load loop count
+      - varinst: [$c_input_count, set, $TEMPLATE_input_count]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      - varinst: [$gptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: $TEMPLATE_loop_count
+  comparison-config:
+    type: $TEMPLATE_comparison_config_type
+    atol: $TEMPLATE_comparison_config_atol
+    rtol: $TEMPLATE_comparison_config_rtol
+    check_pct: $TEMPLATE_comparison_config_check_pct
+    check_pcc: $TEMPLATE_comparison_config_check_pcc
+    verbosity: $TEMPLATE_comparison_config_verbosity
+  stimulus-config:
+    type: $TEMPLATE_stimulus_config_type
+    uniform_lower_bound: $TEMPLATE_stimulus_config_uniform_lower_bound
+    uniform_upper_bound: $TEMPLATE_stimulus_config_uniform_upper_bound
+

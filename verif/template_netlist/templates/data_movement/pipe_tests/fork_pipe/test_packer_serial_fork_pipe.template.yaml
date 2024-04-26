@@ -1,0 +1,99 @@
+# test_config_id=$TEMPLATE_test_config_id
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  input0_dram:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input0_dram_entries
+    grid_size: [$TEMPLATE_input0_dram_grid_size_r, $TEMPLATE_input0_dram_grid_size_c]
+    t: $TEMPLATE_input0_dram_t
+    mblock: [$TEMPLATE_input0_dram_mb_r, $TEMPLATE_input0_dram_mb_c]
+    ublock: [$TEMPLATE_input0_dram_ub_r, $TEMPLATE_input0_dram_ub_c]
+    df: $TEMPLATE_input0_dram_df
+    ublock_order: $TEMPLATE_input0_dram_ublock_orders
+    target_device: 0
+    loc: $TEMPLATE_input0_dram_loc
+    $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
+
+  output0_dram:
+    type: queue
+    input: drainer0
+    entries: $TEMPLATE_output0_dram_entries
+    grid_size: [$TEMPLATE_output0_dram_grid_size_r, $TEMPLATE_output0_dram_grid_size_c]
+    t: $TEMPLATE_output0_dram_t
+    mblock: [$TEMPLATE_output0_dram_mb_r, $TEMPLATE_output0_dram_mb_c]
+    ublock: [$TEMPLATE_output0_dram_ub_r, $TEMPLATE_output0_dram_ub_c]
+    df: $TEMPLATE_output0_dram_df
+    ublock_order: $TEMPLATE_output0_dram_ublock_order
+    target_device: 0
+    loc: $TEMPLATE_output0_dram_loc
+    $TEMPLATE_output0_dram_loc: $TEMPLATE_output0_dram_buffers
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: $TEMPLATE_microbatch_size
+    feeder0:
+      type: datacopy
+      grid_loc: [$TEMPLATE_feeder0_loc_r, $TEMPLATE_feeder0_loc_c]
+      grid_size: [$TEMPLATE_feeder0_grid_size_r, $TEMPLATE_feeder0_grid_size_c]
+      inputs: [input0_dram]
+      in_df: [$TEMPLATE_feeder0_in0_df]
+      acc_df: $TEMPLATE_feeder0_acc_df
+      out_df: $TEMPLATE_feeder0_out_df
+      intermed_df: $TEMPLATE_feeder0_intermed_df
+      ublock_order: $TEMPLATE_feeder0_ublock_order
+      buf_size_mb: $TEMPLATE_feeder0_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      t: $TEMPLATE_feeder0_t
+      mblock: [$TEMPLATE_feeder0_mb_r, $TEMPLATE_feeder0_mb_c]
+      ublock: [$TEMPLATE_feeder0_ub_r, $TEMPLATE_feeder0_ub_c]
+      input_0_tms: [vslice: $TEMPLATE_feeder0_vslice, hslice: $TEMPLATE_feeder0_hslice]
+
+    drainer0:
+      type: datacopy
+      grid_loc: [$TEMPLATE_drainer0_loc_r, $TEMPLATE_drainer0_loc_c]
+      grid_size: [$TEMPLATE_drainer0_grid_size_r, $TEMPLATE_drainer0_grid_size_c]
+      inputs: [feeder0]
+      in_df: [$TEMPLATE_drainer0_in0_df]
+      acc_df: $TEMPLATE_drainer0_acc_df
+      out_df: $TEMPLATE_drainer0_out_df
+      intermed_df: $TEMPLATE_drainer0_intermed_df
+      ublock_order: $TEMPLATE_drainer0_ublock_order
+      buf_size_mb: $TEMPLATE_drainer0_buf_size_mb
+      math_fidelity: $TEMPLATE_math_fidelity
+      untilize_output: $TEMPLATE_drainer0_untilize_output
+      t: $TEMPLATE_drainer0_t
+      mblock: [$TEMPLATE_drainer0_mb_r, $TEMPLATE_drainer0_mb_c]
+      ublock: [$TEMPLATE_drainer0_ub_r, $TEMPLATE_drainer0_ub_c]
+      input_0_tms: [vstack: $TEMPLATE_drainer0_input0_stack_factor]
+      untilize_output: $TEMPLATE_drainer0_untilize_output
+
+programs:
+  - program0:
+    - var: [$c_microbatch_count, $c_zero]
+    - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+    - varinst: [$c_microbatch_count, set, $TEMPLATE_microbatch_count]
+    - varinst: [$c_zero, set, 0]
+    - loop: $c_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_op,
+          queue_settings: {
+               input0_dram: {
+                prologue: $TEMPLATE_input0_dram_prologue,
+                epilogue: false,
+                zero: false,
+                rd_ptr_local: $lptr_q0,
+                rd_ptr_global: $gptr_q0,
+              }
+          }
+        }
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: $TEMPLATE_microbatch_count # entries / input_count
+    microbatch_size: $TEMPLATE_microbatch_size # input_count
+    minibatch_count: $TEMPLATE_minibatch_count # host loop iterations
