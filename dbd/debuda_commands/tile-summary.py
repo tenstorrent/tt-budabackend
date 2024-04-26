@@ -22,6 +22,9 @@ import tt_util as util
 from tt_coordinate import OnChipCoordinate
 from docopt import docopt
 
+# TODO: Support dumpping tiles
+from tt_debuda_server import debuda_server_not_supported
+
 command_metadata = {"short": "t", "type": "high-level", "description": __doc__}
 
 
@@ -114,7 +117,12 @@ def dump_message_xy(context, ui_state: UIState, tile_id, raw):
                 data_format = get_data_format_from_string(data_format_str)
 
                 # 3. Dump the tile
-                current_device.dump_tile(loc, msg_addr, msg_size, data_format)
+                #TODO: Support dumping tiles
+                try:
+                    current_device.dump_tile(loc, msg_addr, msg_size, data_format)
+                except debuda_server_not_supported as e:
+                    util.ERROR("Error while trying to dump tile. Try running debuda with --remote flag.")
+                    raise e
             else:
                 current_device.dump_memory(loc, msg_addr, msg_size)
         else:

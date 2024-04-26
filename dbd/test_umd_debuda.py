@@ -136,7 +136,7 @@ class DbdTestRunner:
 class TestUmdDebuda(unittest.TestCase):
     def test_startup_and_exit_just_return_code(self):
         runner = DbdTestRunner(UmdDbdOutputVerifier())
-        runner.start(self, "I-don't-exist-$%^")
+        runner.start(self, ["--remote", "I don't exist"])
         runner.writeline("x")
         runner.wait()
         self.assertEqual(runner.returncode, 0)

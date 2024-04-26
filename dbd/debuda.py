@@ -14,7 +14,7 @@ Options:
   --verbose                       Print verbose output.
   --test                          Exits with non-zero exit code on any exception.
   --debuda-server-address=<addr>  IP address of debuda server. [default: localhost:5555]
-  --local                         Use pybind library instead of debuda server. This argument overwrites --debuda-server-address with localhost:0. Note that this option does not support dumping tiles and always opens ALL available devices.
+  --remote                        Use debuda server instead of pybind library. Dumping tiles is only supported this way.
 
 Description:
     Debuda parses the build output files and reads the device state to provide a debugging interface for the user.
@@ -559,11 +559,11 @@ def main():
             util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
 
     # Try to connect to the server. If it is not already running, it will be started.
-    if args["--local"]:
-        print(f"Using pybin library instead of debuda server.")
-        args["--debuda-server-address"] = "localhost:0"
-    else:
+    if args["--remote"]:
         print(f"Connecting to Debuda server at {args['--debuda-server-address']}")
+    else:
+        print(f"Using pybind library instead of debuda server.")
+        args["--debuda-server-address"] = "localhost:0"
     server_ifc = tt_device.init_server_communication(
         args["--server-cache"],
         args["--debuda-server-address"],

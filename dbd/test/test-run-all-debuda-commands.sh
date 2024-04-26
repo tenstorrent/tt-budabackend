@@ -22,9 +22,9 @@ fi
 run_debuda() {
     if [ -z "$TMP_OUT_FILE" ]; then
         # If TMP_OUT_FILE is not set, show the output
-        timeout 30 $COVERAGE_CMD dbd/debuda.py debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
+        timeout 30 $COVERAGE_CMD dbd/debuda.py --remote debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
     else
-        timeout 30 $COVERAGE_CMD dbd/debuda.py debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
+        timeout 30 $COVERAGE_CMD dbd/debuda.py --remote debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
     fi
     if [ $? -ne 0 ]; then
         echo "***"
