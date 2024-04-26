@@ -20,6 +20,11 @@ PERF_LIB_SRCS = \
 PERF_LIB_OBJS = $(addprefix $(OBJDIR)/, $(PERF_LIB_SRCS:.cpp=.o))
 PERF_LIB_DEPS = $(addprefix $(OBJDIR)/, $(PERF_LIB_SRCS:.cpp=.d))
 
+PERF_LIB_PERF_TARGETS = perf_lib/perf_targets
+PERF_LIB_TARGETS_SCRIPT = perf_lib/get_all_perf_targets.py
+
+.PHONY: $(PERF_LIB_PERF_TARGETS)
+
 -include $(PERF_LIB_DEPS)
 
 # Each module has a top level target as the entrypoint which must match the subdir name
@@ -32,3 +37,6 @@ $(PERF_LIB): $(PERF_LIB_OBJS)
 $(OBJDIR)/perf_lib/%.o: perf_lib/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(PERF_LIB_CFLAGS) $(CXXFLAGS) $(STATIC_LIB_FLAGS) $(PERF_LIB_INCLUDES) $(PERF_LIB_DEFINES) -c -o $@ $<
+
+$(PERF_LIB_PERF_TARGETS): $(PERF_LIB_TARGETS_SCRIPT)
+	$(PERF_LIB_TARGETS_SCRIPT) --output-dir $(TARGETSDIR)

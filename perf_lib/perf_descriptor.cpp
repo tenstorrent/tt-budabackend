@@ -277,37 +277,8 @@ vector<int> decode_target_inputs_str(const vector<string>& target_inputs_encoded
     return target_inputs;
 }
 
-void PerfComparisonConfig::print() {
-    log_info(tt::LogPerfCheck, "Performance comparison config:");
-    log_info(tt::LogPerfCheck, "    program-name = {}, graph-name = {}", program_name, graph_name);
-    log_info(tt::LogPerfCheck, "    math-utilization: en = {}, target_value = {}, rtol = {}, override = {}", math_utilization.en, math_utilization.target_value, math_utilization.rtol, math_utilization.override_target_value);
-    log_info(tt::LogPerfCheck, "    execution-cycles: en = {}, target_value = {}, rtol = {}, override = {}", execution_cycles.en, execution_cycles.target_value, execution_cycles.rtol, execution_cycles.override_target_value);
-    log_info(tt::LogPerfCheck, "    num-cycles-per-input: en = {}, target_value = {}, rtol = {}, override = {}", num_cycles_per_input.en, num_cycles_per_input.target_value, num_cycles_per_input.rtol, num_cycles_per_input.override_target_value);
-    log_info(tt::LogPerfCheck, "    num-inputs-per-second: en = {}, target_value = {}, rtol = {}, override = {}", num_inputs_per_second.en, num_inputs_per_second.target_value, num_inputs_per_second.rtol, num_inputs_per_second.override_target_value);
-    log_info(tt::LogPerfCheck, "    average-math-utilization: en = {}, target_value = {}, rtol = {}, override = {}", average_math_utlization.en, average_math_utlization.target_value, average_math_utlization.rtol, average_math_utlization.override_target_value);
-    log_info(tt::LogPerfCheck, "    total-runtime: en = {}, target_value = {}, rtol = {}, override = {}", total_runtime.en, total_runtime.target_value, total_runtime.rtol, total_runtime.override_target_value);
-    log_info(tt::LogPerfCheck, "    input0-bw: en = {}, target_value = {}, rtol = {}, override = {}", input0_bw.en, input0_bw.target_value, input0_bw.rtol, input0_bw.override_target_value);
-    log_info(tt::LogPerfCheck, "    output-bw: en = {}, target_value = {}, rtol = {}, override = {}", output_bw.en, output_bw.target_value, output_bw.rtol, output_bw.override_target_value);
-    log_info(tt::LogPerfCheck, "    backend-samples-per-second: en = {}, target_value = {}, rtol = {}, override = {}", backend_samples_per_second.en, backend_samples_per_second.target_value, backend_samples_per_second.rtol, backend_samples_per_second.override_target_value);
-    string target_core_str;
-    for (const auto& target_core: target_cores) {
-        target_core_str += target_core.str() + ", ";
-    }
-    log_info(tt::LogPerfCheck, "    target-cores: {}", target_core_str);
-    string target_ops_str;
-    for (const auto& target_op: target_ops) {
-        target_ops_str += target_op + ", ";
-    }
-    log_info(tt::LogPerfCheck, "    target-ops: {}", target_ops_str);
-    string target_inputs_str;
-    for (const auto& target_input: target_inputs) {
-        target_inputs_str += to_string(target_input) + ", ";
-    }
-    log_info(tt::LogPerfCheck, "    target-inputs: {}", target_inputs_str);
-}
-
 template<typename T>
-void set_comparison_config(PerfCheckValue<T> &perf_value, YAML::const_iterator it_metric, float input_override_perf_value) {
+void set_comparison_config(PerfCheckValue<T> &perf_value, YAML::const_iterator it_metric, float override_perf_value) {
     if (it_metric->first.as<string>() == "expected") {
         perf_value.set_comparison_type("expected");
         perf_value.target_value = it_metric->second.as<T>();
@@ -317,17 +288,67 @@ void set_comparison_config(PerfCheckValue<T> &perf_value, YAML::const_iterator i
         perf_value.set_comparison_type("expected");
         perf_value.rtol = it_metric->second.as<float>();
     }
-    if(it_metric->first.as<string>() == "min_bound"){
+    if(it_metric->first.as<string>() == "min_bound") {
         perf_value.set_comparison_type("min_bound");
         perf_value.target_value = it_metric->second.as<T>();
         perf_value.en = true;
     }    
     if (perf_value.en && perf_value.target_value == 0) {
-        perf_value.override_target_value = input_override_perf_value;
+        perf_value.override_target_value = override_perf_value;
     }
 }
 
-vector<PerfComparisonConfig> set_comparison_configs(string netlist_file, float input_override_perf_value) {
+/* Look for the perf target fetched from the CI database during make (make perf_lib/perf_targets). */
+float get_ci_perf_target(const string &perf_target_yaml_path, const string &test_group, const string &test_name) {
+    if (!fs::exists(perf_target_yaml_path) or !fs::is_regular_file(perf_target_yaml_path)) {
+        log_debug(tt::LogPerfCheck, "Non existant perf target yaml {}. Skipping perf target override with CI database values.", perf_target_yaml_path);
+        return 0;
+    }
+
+    YAML::Node ci_perf_targets_yaml = YAML::LoadFile(perf_target_yaml_path);
+    string current_test_group, current_test_name;
+    if (!ci_perf_targets_yaml[test_group]) {
+        log_debug(tt::LogPerfCheck, "Test group {} not found in perf target yaml. Skipping perf target override with CI database values.", test_group);
+        return 0;
+    }
+    if (!ci_perf_targets_yaml[test_group][test_name]) {
+        log_debug(tt::LogPerfCheck, "Test name {} not found in perf target yaml. Skipping perf target override with CI database values.", test_name);
+        return 0;
+    }
+
+
+    YAML::Node test_perf_target_node = ci_perf_targets_yaml[test_group][test_name];
+    log_assert(test_perf_target_node["perf_target"], "Perf target information should be dumped if test group and test name exist.");
+    log_assert(test_perf_target_node["perf_target"]["value"].IsDefined() && !test_perf_target_node["perf_target"]["value"].IsNull(), "Perf target value should be dumped if test group and test name exist.");
+
+    float perf_target = test_perf_target_node["perf_target"]["value"].as<float>();
+    return perf_target;
+}
+
+/* extract the test group and test name from the netlist.
+all perf CI tests should have test-group, test-name fields under performance-check */
+std::tuple<string, string> get_test_group_and_test_name(const YAML::Node &netlist_yaml) {
+    string test_group = "";
+    string test_name = "";
+    for (YAML::const_iterator it = netlist_yaml.begin(); it != netlist_yaml.end(); ++it) {
+        if (it->first.as<string>() != "performance-check") {
+            continue;
+        }
+        for (YAML::const_iterator config_it = it->second.begin(); config_it != it->second.end(); ++config_it) {
+            for (YAML::const_iterator it_each_config = config_it->second.begin(); it_each_config != config_it->second.end(); ++it_each_config) {
+                if (it_each_config->first.as<string>() == "test-group") {
+                    test_group = it_each_config->second.as<string>();
+                }
+                else if (it_each_config->first.as<string>() == "test-name") {
+                    test_name = it_each_config->second.as<string>();
+                }
+            }
+        }
+    }
+    return std::make_tuple(test_group, test_name);
+}
+
+vector<PerfComparisonConfig> set_comparison_configs(const string &netlist_file, const string &ci_perf_target_dir, float input_override_perf_value) {
     if (netlist_file == "") {
         return vector<PerfComparisonConfig>();
     }
@@ -335,8 +356,24 @@ vector<PerfComparisonConfig> set_comparison_configs(string netlist_file, float i
         log_fatal("Netlist file path does not exist: {}", netlist_file);
     }
     vector<PerfComparisonConfig> all_configs;
-    YAML::Node all_configs_yaml = YAML::LoadFile(netlist_file);
-    for (YAML::const_iterator it = all_configs_yaml.begin(); it != all_configs_yaml.end(); ++it) {
+    YAML::Node netlist_yaml = YAML::LoadFile(netlist_file);
+
+    // If the user provided an override value from the cmd line, use that
+    // otherwise, look for the ci perf target fetched during make
+    // if neither exist, use 0
+    float override_perf_value = 0;
+    if (input_override_perf_value != 0) {
+        override_perf_value = input_override_perf_value;
+    }
+    else {
+        string test_group, test_name;
+        std::tie(test_group, test_name) = get_test_group_and_test_name(netlist_yaml);
+
+        string ci_perf_target_yaml_path = ci_perf_target_dir + "/" + ci_perf_target_yaml;
+        override_perf_value = get_ci_perf_target(ci_perf_target_yaml_path, test_group, test_name);
+    }
+
+    for (YAML::const_iterator it = netlist_yaml.begin(); it != netlist_yaml.end(); ++it) {
         if (it->first.as<string>() == "performance-check") {
             for (YAML::const_iterator config_it = it->second.begin(); config_it != it->second.end(); ++config_it) {
                 PerfComparisonConfig perf_config;
@@ -352,47 +389,47 @@ vector<PerfComparisonConfig> set_comparison_configs(string netlist_file, float i
                     }
                     if (it_each_config->first.as<string>() == "math-utilization") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.math_utilization, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.math_utilization, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "execution-cycles") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<uint64_t>(perf_config.execution_cycles, it_metric, input_override_perf_value);
+                            set_comparison_config<uint64_t>(perf_config.execution_cycles, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "cycles-per-tensor") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.num_cycles_per_input, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.num_cycles_per_input, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "tensors-per-second") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.num_inputs_per_second, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.num_inputs_per_second, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "average-math-utilization") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.average_math_utlization, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.average_math_utlization, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "total-runtime") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<uint64_t>(perf_config.total_runtime, it_metric, input_override_perf_value);
+                            set_comparison_config<uint64_t>(perf_config.total_runtime, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "input0-bw") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.input0_bw, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.input0_bw, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "output-bw") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.output_bw, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.output_bw, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "backend-samples-per-second") {
                         for (YAML::const_iterator it_metric = it_each_config->second.begin(); it_metric != it_each_config->second.end(); ++it_metric) {
-                            set_comparison_config<float>(perf_config.backend_samples_per_second, it_metric, input_override_perf_value);
+                            set_comparison_config<float>(perf_config.backend_samples_per_second, it_metric, override_perf_value);
                         }
                     }
                     if (it_each_config->first.as<string>() == "target-cores") {
@@ -478,6 +515,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     string kernel_delay_desc;
     string decouple_dram_desc;
     string reset_input_output_delay_str;
+    string override_perf_targets_dir;
     
     std::tie(single_dump, args) = tt::args::has_command_option_and_remaining_args(args, "--dump-perf-events");
     std::tie(intermediate_dump, args) = tt::args::has_command_option_and_remaining_args(args, "--dump-perf-events-intermediate");
@@ -503,6 +541,7 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
     std::tie(reset_input_output_delay_str, args) = tt::args::get_command_option_and_remaining_args(args, "--reset-kernel-delay", std::string(""));
     std::tie(append_device_runtime_to_host_report, args) = tt::args::has_command_option_and_remaining_args(args, "--append-device-runtime-to-host");
     std::tie(reset_dram_perf_buffer, args) = tt::args::has_command_option_and_remaining_args(args, "--reset-dram-perf-buffers");
+    std::tie(override_perf_targets_dir, args) = tt::args::get_command_option_and_remaining_args(args, "--perf-targets-dir", std::string(""));
 
     perf_dump_en = single_dump || intermediate_dump || concurrent_dump;
     if (force_enable_perf_trace) {
@@ -536,6 +575,12 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
         override_perf_output_dir = perf_output_dir_override_env;
     }
 
+    perf_targets_dir = "./build/perf_targets";
+
+    if (!override_perf_targets_dir.empty()) {
+        perf_targets_dir = override_perf_targets_dir;
+    }
+
     trisc_decouplings = set_trisc_perf_decouplings(perf_op_mode_desc);
     initial_trisc_decouplings = trisc_decouplings;
     
@@ -546,8 +591,21 @@ PerfDesc::PerfDesc(vector<string> &args, string netlist_path) {
         overlay_decoupling_desc_config = get_overlay_decouple_desc_from_file(overlay_decoupling_desc_path);
     }
     overlay_decouplings = set_overlay_perf_decouplings(overlay_decoupling_desc_config);
-    
-    comparison_configs = set_comparison_configs(netlist_path, cmdline_override_perf_target);
+
+    comparison_configs = set_comparison_configs(netlist_path, perf_targets_dir, cmdline_override_perf_target);
+    // If all comparison configs have 0 expected value, then force skip_perf_check to true
+    bool should_force_skip_perf_check = true;
+    for (const PerfComparisonConfig &config : comparison_configs) {
+        if (config.has_non_zero_expected_value()) {
+            should_force_skip_perf_check = false;
+            break;
+        }
+    }
+    if (should_force_skip_perf_check and !skip_perf_check) {
+        log_warning(tt::LogPerfCheck, "Forcing skip perf check because no non-zero perf targets were specified or found");
+        skip_perf_check = true;
+    }
+
     dump_debug_mailbox = debug_mailbox;
     tt::args::split_string_into_vector(target_inputs, target_inputs_str, ",");
     vector<string> target_epochs_vec;

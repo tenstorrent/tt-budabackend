@@ -71,6 +71,7 @@ INCDIR = $(OUT)/include
 TESTDIR = $(OUT)/test
 UTSDIR = $(OUT)/unit_tests
 DOCSDIR = $(OUT)/docs
+TARGETSDIR = $(OUT)/perf_targets
 
 
 # Top level flags, compiler, defines etc.

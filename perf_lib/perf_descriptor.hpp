@@ -163,6 +163,8 @@ struct PerfDesc {
     uint check_total_num_traces = 0;
 
     bool run_perf_analyzer = false;
+
+    string perf_targets_dir;
     
     PerfDesc();
     PerfDesc(vector<string> &args, string netlist_path);

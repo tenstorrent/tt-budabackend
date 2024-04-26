@@ -77,6 +77,7 @@ const string postprocess_original_json_name = "perf_postprocess_original.json";
 const string host_summary_json_name = "host_summary_report.json";
 const string perf_model_log = "perf_model.log";
 const string decouple_info_file_name = "decouple_info.txt";
+const string ci_perf_target_yaml = "all_perf_targets.yaml";
 
 /////////////////////////////////////////////////////////////////////////
 //////////////// Enums and maps
@@ -560,7 +561,8 @@ struct PerfComparisonConfig {
 
     vector<int> target_inputs = {0};
 
-    void print();
+    void print() const;
+    bool has_non_zero_expected_value() const;
 };
 
 struct PerfDramDecouple {

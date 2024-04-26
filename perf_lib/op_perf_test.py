@@ -150,10 +150,13 @@ def run_single_config(state, name, test_config_and_perf):
         test_id=name,
         use_shared_dir=True,
     )]
+    
     for test_dir, yaml_file_name in test_path_information:
         attr = get_attr(state.op_type, state.reblocking_mode_perf_lib, config_list[0])
         netlist_path = f"{test_dir}/{yaml_file_name}"
-        generate_perf_input_config_and_modify_netlist(test_config.perf_results, test_config_and_perf, test_dir, attr.target_op_name, netlist_path)
+        test_base_name = test_config.ci_config.test_base_name
+        test_group = test_config.ci_config.test_group
+        generate_perf_input_config_and_modify_netlist(test_config_and_perf, attr.target_op_name, netlist_path, test_base_name=test_base_name, test_group=test_group)
 
 def run_sweep_and_check_perf(state):
     assert state.arch_name == "grayskull" or state.arch_name == "wormhole" or state.arch_name == "wormhole_b0"
@@ -184,7 +187,8 @@ def run_sweep_and_check_perf(state):
         idx += 1
     print_progress_bar(num_tests, num_tests)
 
-def generate_perf_input_config_and_modify_netlist(perf_results:PerfResults, op_perf_metric, output_dir, op_name, netlist_path):
+def generate_perf_input_config_and_modify_netlist(op_perf_metric, op_name, netlist_path, test_base_name, test_group):
+    netlist_name = netlist_path.split("/").pop()
     all_perf_configs = {}
     perf_config = {}
     netlist_perf_configs = {}
@@ -194,6 +198,10 @@ def generate_perf_input_config_and_modify_netlist(perf_results:PerfResults, op_p
     perf_config["target-ops"] = [op_name]
     perf_config["target-cores"] = []
     perf_config["target-inputs"] = [0]
+    perf_config["test-group"] = test_group
+    # ci/run.py
+    perf_config["test-name"] = f"{test_base_name}.{netlist_name}"
+    
     all_perf_configs["config-0"] = perf_config
     netlist_perf_configs["performance-check"] = all_perf_configs
     logger.info(f"Appending the perf config to netlist file under {netlist_path}")
@@ -247,5 +255,6 @@ if __name__ == "__main__":
     reblocking_str = state.reblocking_mode
     state.reblocking_mode = get_reblocking_type_from_arg(reblocking_str, ReblockTM)
     state.reblocking_mode_perf_lib = get_reblocking_type_from_arg(reblocking_str, ReblockTMPerfLib)
-
+    
     run_sweep_and_check_perf(state)
+    

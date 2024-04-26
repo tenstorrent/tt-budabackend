@@ -274,6 +274,11 @@ class ComparisonConfig:
         input0_bw=0.01,
         output_bw=0.01,
     )
+    
+@dataclass
+class CIConfig:
+    test_group: str = ""
+    test_base_name: str = ""
 
 class TestConfig:
     def __init__(self, name, config):
@@ -281,6 +286,7 @@ class TestConfig:
         self.parameters = self.generate_test_parameter_dict(config['test-parameters'])
         self.perf_results = PerfResults()
         self.comparison_config = ComparisonConfig()
+        self.ci_config = CIConfig()
         if 'math-utilization' in config['performance-metrics']:
             assert 'expected' in config['performance-metrics']['math-utilization']
             self.perf_results.math_utilization = config['performance-metrics']['math-utilization']['expected']
@@ -311,7 +317,15 @@ class TestConfig:
             self.perf_results.output_bw = config['performance-metrics']['output-bw']['expected']
             if 'rtol' in config['performance-metrics']['output-bw']:
                 self.comparison_config.perf_metrics_rtol.output_bw = config['performance-metrics']['output-bw']['rtol']
-
+        
+        # parse ci configs
+        ci_configs_key = "ci-configs"
+        test_group_key = "test-group"
+        test_base_name_key = "test-base-name"
+        assert ci_configs_key in config
+        assert test_group_key in config[ci_configs_key] and test_base_name_key in config[ci_configs_key]
+        self.ci_config.test_group = config[ci_configs_key][test_group_key]
+        self.ci_config.test_base_name = config[ci_configs_key][test_base_name_key]
         
     def generate_test_parameter_dict(self, config) -> Dict[str, List[int]]:
         parameters = {}
@@ -321,6 +335,7 @@ class TestConfig:
             else:
                 parameters[key] = [val]
         return parameters
+
 
 def compare_values(observed, expected, rtol: float, perf_metric: PerfMetrics):
     
