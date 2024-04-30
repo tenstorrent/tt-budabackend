@@ -191,6 +191,17 @@ def perf_ci_post_run(post_run_test_info: PostRunTestInfo):
     
 # This script should only be run for tests that have perf targets to be uploaded/compared in the CI database
 if __name__ == "__main__":
+    ci_run = bool(int(os.environ.get("CI_RUN", "0")))
+    exit_code = 0
+    if ci_run:
+        exit_code = os.environ.get("EXIT_CODE", None)
+        assert exit_code is not None, "Unexpected EXIT_CODE not set in env when running on ci"
+        
+    if int(exit_code) != 0:
+        ERROR_DEBUGGER.add_log_output(f"{MY_LOG_PREFIX} Not running perf post ci run because the test failed with exit code {exit_code}")
+        ERROR_DEBUGGER.print_trace_info()
+        exit(0)
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", type=str, required=True, choices=["grayskull", "wormhole_b0"], help="Arch name. Either grayskull or wormhole_b0")
     parser.add_argument("--tag", type=str, required=True, choices=["push", "nightly"], help="Test suite tag. Either push or nightly")
@@ -210,7 +221,7 @@ if __name__ == "__main__":
         assert post_run_test_info_base.target_op_name != ""
     
     post_run_test_info_base.multi_test_dir = args.multi_test_dir
-    post_run_test_info_base.local_run = not bool(int(os.environ.get("CI_RUN", "0")))
+    post_run_test_info_base.local_run = (not ci_run)
     post_run_test_info_base.set_test_group()
     post_run_test_info_base.set_build_id()
     post_run_test_info_base.set_commit_hash()
