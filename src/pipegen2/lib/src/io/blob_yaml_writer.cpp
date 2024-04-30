@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/blob_yaml_writer.h"
 
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -12,9 +13,8 @@
 
 #include "device/tt_xy_pair.h"
 #include "model/typedefs.h"
-#include "utils/scoped_timer.hpp"
-
 #include "model/stream_graph/stream_node.h"
+#include "pipegen2_exceptions.h"
 
 namespace pipegen2
 {
@@ -37,7 +37,25 @@ namespace pipegen2
     BlobYamlWriter::BlobYamlWriter(const std::string& blob_yaml_path) :
         m_current_indentation_level(0)
     {
+        try
+        {
+            std::filesystem::path directory = std::filesystem::path(blob_yaml_path).parent_path();
+            if (!std::filesystem::exists(directory))
+            {
+                std::filesystem::create_directories(directory);
+            }
+        }
+        catch (std::filesystem::filesystem_error const& ex)
+        {
+            throw BlobYamlIOException("Failed to create directory for blob.yaml: " + std::string(ex.what()));
+        }
+
         m_blob_yaml_file_stream.open(blob_yaml_path);
+
+        if (!m_blob_yaml_file_stream.is_open())
+        {
+            throw BlobYamlIOException("Failed to open " + blob_yaml_path + " for writing.");
+        }
     }
 
     BlobYamlWriter::~BlobYamlWriter()

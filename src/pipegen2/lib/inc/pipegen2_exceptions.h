@@ -169,4 +169,9 @@ class NoPhysicalCoreException : public BasePipegen2CompileException {
         : BasePipegen2CompileException(error_message, std::make_optional(logical_location), std::nullopt) {}
 };
 
+class BlobYamlIOException : public BasePipegen2IOException {
+   public:
+    BlobYamlIOException(const std::string& error_message) : BasePipegen2IOException(error_message) {}
+};
+
 }  // namespace pipegen2
