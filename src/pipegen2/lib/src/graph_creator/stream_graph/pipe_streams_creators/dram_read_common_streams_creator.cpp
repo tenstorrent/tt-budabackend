@@ -27,19 +27,19 @@ namespace pipegen2
     {
         const UnpackerOutputNode* unpacker_node = get_unpacker_output_node(pipe);
         std::vector<std::unique_ptr<StreamNode>> created_streams;
-        
+
         if (unpacker_node)
         {
-            created_streams.push_back(create_dram_prefetch_post_tm_to_unpacker_stream(pipe, 
-                                                                                      unpacker_node, 
-                                                                                      data_flow_info, 
+            created_streams.push_back(create_dram_prefetch_post_tm_to_unpacker_stream(pipe,
+                                                                                      unpacker_node,
+                                                                                      data_flow_info,
                                                                                       std::move(ncrisc_configs)));
         }
         else
         {
-            created_streams.push_back(create_dram_relay_stream(pipe, 
-                                                               data_flow_info, 
-                                                               ncrisc_configs[0], 
+            created_streams.push_back(create_dram_relay_stream(pipe,
+                                                               data_flow_info,
+                                                               ncrisc_configs[0],
                                                                true /* is_dram_prefetch_post_tm */));
         }
 
@@ -48,7 +48,7 @@ namespace pipegen2
         configure_dram_receiving_stream(
             created_streams[0].get(), std::move(ncrisc_configs), pipe, dram_input_node, data_flow_info,
             false /* should_scale_up_stream */, max_dram_input_buffer_size_tiles, max_num_tiles_per_phase);
-        
+
         return created_streams;
     }
 
@@ -464,7 +464,7 @@ namespace pipegen2
             dram_receiving_stream, std::move(ncrisc_configs), pipe, dram_input_node, data_flow_info,
             max_num_tiles_per_phase);
 
-        check_dram_input_buffer_size_constraints(dram_receiving_stream, get_unpacker_output_node(pipe), 
+        check_dram_input_buffer_size_constraints(dram_receiving_stream, get_unpacker_output_node(pipe),
                                                  max_dram_input_buffer_size_tiles, dram_input_node->get_tile_size());
     }
 
@@ -534,7 +534,7 @@ namespace pipegen2
                                                                       unsigned int max_dram_input_buffer_size_tiles)
     {
         const unsigned int base_buffer_size_bytes = stream->get_base_config().get_buffer_size().value();
-            
+
         const unsigned int max_num_tiles_per_phase_bytes = max_num_tiles_per_phase * dram_input_node_tile_size_bytes;
 
         unsigned int scale_factor = 1;
@@ -588,6 +588,7 @@ namespace pipegen2
             scale_factor = 2;
         }
 
+        stream->get_base_config().set_dram_scale_up_factor(scale_factor);
         stream->get_base_config().set_buffer_size(base_buffer_size_bytes * scale_factor);
     }
 
@@ -597,6 +598,7 @@ namespace pipegen2
         const unsigned int scale_factor = pcie_streaming_node->get_num_queue_slots();
         const unsigned int base_buffer_size_bytes = stream->get_base_config().get_buffer_size().value();
 
+        stream->get_base_config().set_dram_scale_up_factor(scale_factor);
         stream->get_base_config().set_buffer_size(base_buffer_size_bytes * scale_factor);
     }
 
@@ -716,7 +718,7 @@ namespace pipegen2
     }
 
     void DramReadCommonStreamsCreator::check_dram_input_buffer_size_constraints(
-        const StreamNode* stream_node, 
+        const StreamNode* stream_node,
         const UnpackerOutputNode* unpacker_node,
         unsigned int max_dram_input_buffer_size_tiles,
         unsigned int dram_input_node_tile_size_bytes)
@@ -741,7 +743,7 @@ namespace pipegen2
             unsigned int unpacker_node_buf_size_tiles = unpacker_node->get_size_tiles();
             unsigned int max_buf_size_tiles = std::max(max_dram_input_buffer_size_tiles,
                                                        unpacker_node_buf_size_tiles);
-            
+
             log_assert(stream_node_buf_size_tiles <= max_buf_size_tiles,
                        "DRAM unpacker input stream {} allocates a buffer of {} tiles, which is bigger than both "
                        "the unpacker buffer size in tiles {} and PyBuda limit of {} tiles",

@@ -3,20 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 import argparse
 from dataclasses import dataclass
-from functools import cmp_to_key
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Tuple
-import yaml
+from typing import List, Optional
 
 from logger_utils import COLORS, logger, print_progress_bar
 from perf_test_base import TEMPLATE_NETLIST_DIR, REPO_ROOT
 from perf_sweep import (
     run_single_test,
     check_test_pass,
-    get_perf_results_from_test,
-    PerfResults,
 )
 
 sys.path.insert(1, REPO_ROOT)
@@ -34,41 +30,10 @@ PERF_TEST_BIN_PATH = "./build/test/loader/tests/test_netlist_program"
 
 @dataclass
 class DataMovementPerfResults:
-    perf_results: Dict[str, List[PerfResults]]
+    pipe_perf_report_path: str
     netlist_path: str
     pipegen_yaml_path: str
     blob_yaml_path: str
-
-
-def parse_num_feeders_targets_drainers(netlist_path: str) -> Tuple[int, int, int]:
-    """
-    Returns the number of feeder and drainers op defined in the netlists (in that order).
-    Asserts if no target op is found.
-
-    Parameters
-    ----------
-    netlist_path:
-        Path to netlist yaml.
-    """
-    with open(netlist_path, "r") as file:
-        netlist_dict = yaml.safe_load(file.read())
-
-    num_feeders = 0
-    num_drainers = 0
-    num_target_ops = 0
-
-    for graph_name in netlist_dict["graphs"]:
-        for op_name in netlist_dict["graphs"][graph_name]:
-            if op_name.startswith("feeder"):
-                num_feeders += 1
-            elif op_name.startswith("drainer"):
-                num_drainers += 1
-            elif op_name.startswith("target_op"):
-                num_target_ops += 1
-
-    assert num_target_ops, "Failed to find target op in the netlist"
-
-    return num_feeders, num_target_ops, num_drainers
 
 
 def get_single_perf_test_command(netlist_path: str, output_dir: str) -> List[str]:
@@ -82,24 +47,11 @@ def get_single_perf_test_command(netlist_path: str, output_dir: str) -> List[str
     output_dir:
         Output directory where to store compilation output files and perf results.
     """
-    num_feeders, num_target_ops, num_drainers = parse_num_feeders_targets_drainers(netlist_path)
-    feeder_decouple = ",".join([f"feeder{idx}:MathPack" for idx in range(num_feeders)])
-    drainer_decouple = ",".join([f"drainer{idx}:UnpMath" for idx in range(num_drainers)])
-    target_op_decouple = ",".join(
-        [f"target_op{idx}:UnpMath-MathPack" for idx in range(num_target_ops)]
-    )
-    decoupling_commands = [x for x in [feeder_decouple, drainer_decouple, target_op_decouple] if x]
-    perf_mode = ",".join(decoupling_commands)
     return [
         PERF_TEST_BIN_PATH,
         "--netlist",
         netlist_path,
         "--silicon",
-        "--dump-perf-events",
-        "--perf-level",
-        "0",
-        "--perf-op-mode",
-        perf_mode,
         "--outdir",
         output_dir,
     ]
@@ -116,7 +68,16 @@ def execute_perf_test_command(command: List[str], log_path: str) -> bool:
     log_path:
         Path to log file on which to append process stdout.
     """
-    run_single_test(command, log_file_path=log_path, timeout=500)
+    my_env = dict(os.environ)
+    my_env["TT_BACKEND_PERF_ANALYZER"] = "1"
+
+    my_env["TT_BACKEND_NETLIST_ANALYZER"] = "1"
+
+    my_env["TT_BACKEND_ENABLE_DRAINER_OP"] = "1"
+
+    my_env["NET2PIPE_FORCE_POST_TM"] = "1"
+
+    run_single_test(command, log_file_path=log_path, timeout=500, myenv=my_env)
     return check_test_pass(log_file_path=log_path)
 
 
@@ -144,21 +105,43 @@ def run_perf_test_on_single_netlist(
         logger.error(f"Failed running perf tests on netlist `{netlist_path}`.")
         return None
 
-    _, num_target_ops, _ = parse_num_feeders_targets_drainers(netlist_path)
-    target_op_perf = {}
-    for target_op_idx in range(num_target_ops):
-        target_op_name = f"target_op{target_op_idx}"
-        _, perf_results = get_perf_results_from_test(
-            log_file_path=log_file_path,
-            attr=None,
-            override_target_op_name=target_op_name,
-        )
-        target_op_perf[target_op_name] = perf_results
-    pipegen_yaml_path = os.path.join(test_build_path, "temporal_epoch_0", "overlay", "pipegen.yaml")
-    blob_yaml_path = os.path.join(test_build_path, "temporal_epoch_0", "overlay", "blob.yaml")
+    return get_perf_test_on_single_netlist(netlist_path, tt_builds_dir)
+
+
+def get_perf_test_on_single_netlist(
+    netlist_path: str, tt_builds_dir: str
+) -> Optional[DataMovementPerfResults]:
+    """
+    Gathers perf test result on a single netlist without running test.
+
+    Parameters
+    ----------
+    netlist_path:
+        Path to netlist.
+    tt_buils_dir:
+        Directory where are stored test output files.
+    """
+    netlist_dir = os.path.dirname(netlist_path)
+    test_name = os.path.basename(netlist_dir)
+    test_build_dir = os.path.join(tt_builds_dir, test_name)
+
+    if not os.path.exists(test_build_dir):
+        return None
+
+    pipe_perf_report_path = os.path.join(
+        test_build_dir, "perf_results", "analyzer_results", "test_op", "pipe_perf_report.txt"
+    )
+
+    if not os.path.exists(pipe_perf_report_path):
+        shutil.rmtree(test_build_dir)
+        print(f"Did not find perf results for {netlist_path} in dir {test_build_dir}, removing it.")
+        return None
+
+    pipegen_yaml_path = os.path.join(test_build_dir, "temporal_epoch_0", "overlay", "pipegen.yaml")
+    blob_yaml_path = os.path.join(test_build_dir, "temporal_epoch_0", "overlay", "blob.yaml")
 
     return DataMovementPerfResults(
-        perf_results=target_op_perf,
+        pipe_perf_report_path=pipe_perf_report_path,
         netlist_path=netlist_path,
         pipegen_yaml_path=pipegen_yaml_path,
         blob_yaml_path=blob_yaml_path,
@@ -247,20 +230,16 @@ def print_perf_results(perf_results: List[DataMovementPerfResults]) -> None:
         print_green(f"Netlist: {pipe_perf.netlist_path}")
         print_green(f"Pipegen.yaml: {pipe_perf.pipegen_yaml_path}")
         print_green(f"Blob.yaml: {pipe_perf.blob_yaml_path}")
-        for target_op, target_op_perf in pipe_perf.perf_results.items():
-            print_blue(f"  {target_op}:")
-            print(f"    input0_bw_across_cores_total_runtime: {target_op_perf[0].input0_bw_across_cores_total_runtime}")
-            print(f"    input1_bw_across_cores_total_runtime: {target_op_perf[0].input1_bw_across_cores_total_runtime}")
-            print(f"    output_bw_across_cores_total_runtime: {target_op_perf[0].output_bw_across_cores_total_runtime}")
-            for target_core_perf in target_op_perf:
-                print_yellow(f"    Core({target_core_perf.target_core})")
-                print(f"      input0_bw: {target_core_perf.input0_bw}")
-                print(f"      input1_bw: {target_core_perf.input1_bw}")
-                print(f"      output_bw: {target_core_perf.output_bw}")
+        with open(pipe_perf.pipe_perf_report_path, "r") as pipe_report_file:
+            for line_index, line_str in enumerate(pipe_report_file):
+                print_func = print_yellow if line_index <= 1 else print_blue
+                print_func(line_str)
         print("=" * 120)
 
 
-def run_perf_tests_on_netlists(test_dir: str) -> None:
+def run_perf_tests_on_netlists(
+    test_dir: str, clean_run: bool, skip_run: bool, start_idx: int
+) -> None:
     """
     Runs the perf tests on all the netlists in a given directory.
 
@@ -268,19 +247,49 @@ def run_perf_tests_on_netlists(test_dir: str) -> None:
     ----------
     test_dir:
         Directory in which to scan for netlists to run perf tests on.
+    skip_run:
+        Whether to skip running the perf tests if results are not there.
+    clean_run:
+        Whether to clean the results directory before running the perf tests.
+    start_idx:
+        From where to start when running perf tests, can be used to parallelize perf tests on multiple machines.
     """
-    tt_builds_dir = create_clean_directory(test_dir, "tt_build_dir")
+    tt_builds_dir = os.path.join(test_dir, "tt_build_dir")
+
+    if clean_run:
+        tt_builds_dir = create_clean_directory(test_dir, "tt_build_dir")
 
     netlist_paths = read_netlist_paths_from_test_dir(test_dir)
-    total_num_netlists = len(netlist_paths)
+    total_num_netlists = len(netlist_paths) - start_idx
 
     perf_results = []
 
-    for idx, netlist_path in enumerate(netlist_paths, start=1):
-        print_progress_bar(idx, total_num_netlists)
-        pipe_perf = run_perf_test_on_single_netlist(
-            netlist_path=netlist_path, tt_builds_dir=tt_builds_dir
-        )
+    for idx, netlist_path in enumerate(sorted(netlist_paths, key=lambda x: os.path.basename(x))):
+        if idx < start_idx:
+            # skipping first start_idx netlists
+            continue
+        print_progress_bar(idx - start_idx, total_num_netlists)
+        try:
+            pipe_perf = get_perf_test_on_single_netlist(
+                netlist_path=netlist_path, tt_builds_dir=tt_builds_dir
+            )
+            found_pipe_perf_result = pipe_perf is not None
+            if not found_pipe_perf_result:
+                logger.info(f"Did not find perf results for {netlist_path} in dir {tt_builds_dir}")
+                if not skip_run:
+                    logger.info(f"Running perf test on {netlist_path}")
+                    pipe_perf = run_perf_test_on_single_netlist(
+                        netlist_path=netlist_path, tt_builds_dir=tt_builds_dir
+                    )
+                    found_pipe_perf_result = pipe_perf is not None
+                else:
+                    logger.info(f"Skipping run for {netlist_path}")
+            else:
+                logger.info(f"Found existing perf results for {netlist_path} in dir {tt_builds_dir}, skipping run.")
+
+        except Exception as e:
+            print(f"Error while running perf test on netlist `{netlist_path}`: {e}")
+
         if pipe_perf:
             perf_results.append(pipe_perf)
 
@@ -290,13 +299,41 @@ def run_perf_tests_on_netlists(test_dir: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--netlist-dir", required=False, help="Directory containing netlists relative to the root"
+        "--netlist-dir", required=True, help="Directory containing netlists relative to the root"
     )
     parser.add_argument(
         "--pipe-type",
         required=False,
         default=None,
         help="Pipe type to generate netlists for",
+    )
+    parser.add_argument(
+        "--clean-run",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Clean the results directory before running the perf tests",
+    )
+    parser.add_argument(
+        "--skip-run",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Skip running the perf tests if results are not there",
+    )
+    parser.add_argument(
+        "--netlist-start-idx",
+        required=False,
+        default=0,
+        type=int,
+        help="From where to start when running perf tests, can be used to parallelize perf tests on multiple machines",
+    )
+    parser.add_argument(
+        "--harvested-rows",
+        required=False,
+        default=0,
+        type=int,
+        help="Number of harvested rows on the grid for which to generate tests",
     )
     args = parser.parse_args()
 
@@ -310,5 +347,12 @@ if __name__ == "__main__":
             pipe_type=DataMovementPerfTestType[args.pipe_type],
             output_dir=args.netlist_dir,
             arch=os.environ["ARCH_NAME"],
+            harvested_rows=args.harvested_rows,
         )
-    run_perf_tests_on_netlists(args.netlist_dir)
+
+    run_perf_tests_on_netlists(
+        args.netlist_dir,
+        clean_run=args.clean_run,
+        skip_run=args.skip_run,
+        start_idx=args.netlist_start_idx,
+    )

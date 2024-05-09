@@ -502,9 +502,9 @@ def run_test_from_netlist(netlist_path, log_file_path, decouple, op_type, run_li
     run_single_test(test_cmd, log_file_path, myenv=env)
     return test_cmd
 
-def get_perf_results_from_test(log_file_path, attr, override_target_op_name=None) -> List[PerfResults]:
+def get_perf_results_from_test(log_file_path, attr, override_target_op_name=None, test_output_dir=None) -> List[PerfResults]:
     target_op_name = override_target_op_name or attr.target_op_name
-    test_output_dir = get_test_perf_output_dir(log_file_path)
+    test_output_dir = test_output_dir or get_test_perf_output_dir(log_file_path)
     epoch_perf_dir = test_output_dir + f"0000_program0/0000_test_op/"
     runtime_file_path = epoch_perf_dir + "runtime_table.json"
     op_perf_table_path = epoch_perf_dir + "op_perf_table.json"

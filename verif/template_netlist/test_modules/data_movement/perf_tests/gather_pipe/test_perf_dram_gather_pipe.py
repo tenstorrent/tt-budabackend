@@ -2,6 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 import os
+import random
 from typing import List
 
 from z3 import Solver
@@ -33,28 +34,16 @@ class DramGatherPipePerfTest(DataMovementPerfTestBase):
 
     # @override
     def additional_constraints(self) -> None:
-        self.gather_source_buffers = self.add_var("gather_source_buffers")
-        self.solver.add(
-            self.gather_source_buffers >= 2, self.gather_source_buffers <= MAX_GATHER_SOURCE_BUFFERS
-        )
-
-        for queue in self.queues:
-            self.constrain_tensor_size(queue, MAX_TENSOR_SIZE_IN_TILES)
+        dram_gather_input = self.nodes["input0_dram"]
+        self.tensor_size = self.add_var("tensor_size")
+        self.solver.add(self.tensor_size == dram_gather_input.t_dim * dram_gather_input.get_horizontal_size_var() * dram_gather_input.get_vertical_size_var())
 
         self.solver.add(self.data_format == DataFormat.Float16.value)
 
-        for node in self.nodes.values():
-            self.solver.add(node.t_dim == 1)
-
-        dram_gather_input = self.nodes["input0_dram"]
-        self.solver.add(
-            dram_gather_input.grid_size_y == self.gather_source_buffers,
-            dram_gather_input.grid_size_x == 1,
-        )
 
         for op_node in self.ops:
             self.solver.add(
-                op_node.buf_size_mb == 2, op_node.grid_size_x == 1, op_node.grid_size_y == 1
+                op_node.grid_size_x == 1, op_node.grid_size_y == 1
             )
 
         target_op = self.nodes["target_op0"]
@@ -66,14 +55,46 @@ class DramGatherPipePerfTest(DataMovementPerfTestBase):
         constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
 
     # @override
+    def get_available_dram_channels_for_queue(self, queue: Node) -> List[int]:
+        # Assuming wormhole B0 architecture here.
+        if queue.name == "input0_dram":
+            return [0, 1, 2, 3]
+        else:
+            return [4]
+
+    # @override
+    def pick_dram_channel_for_queue(self, queue: Node, available_dram_channels: List[int]) -> int:
+        assert available_dram_channels, f"Out of available dram channels for queue: `{queue.name}`"
+
+        return random.choice(available_dram_channels)
+
+    # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        gather_range = list(range(2, MAX_GATHER_SOURCE_BUFFERS + 1))
+        target_op = self.nodes["target_op0"]
+
+        def valid_combination_callback(sweep_comb_dict: dict) -> bool:
+            ub_r = sweep_comb_dict[target_op.ub_r.sexpr()]
+            ub_c = sweep_comb_dict[target_op.ub_c.sexpr()]
+
+            if ub_r * ub_c > 8:
+                return False
+
+            size_tiles = sweep_comb_dict[self.tensor_size.sexpr()]
+            if size_tiles % ub_r != 0 or size_tiles % ub_c != 0:
+                return False
+
+            return True
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
-                    self.gather_source_buffers.sexpr(): gather_range,
+                    self.tensor_size.sexpr(): list(range(10, 600, 8)) + list(range(600, 3000, 32)),
+                    self.data_format.sexpr(): [DataFormat.Float16.value],
+                    target_op.ub_r.sexpr(): list(range(1, 9)),
+                    target_op.ub_c.sexpr(): list(range(1, 9))
                 },
                 max_num_configs_per_combination=1,
+                valid_combination_callback=valid_combination_callback,
             ),
         ]
 

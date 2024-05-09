@@ -33,48 +33,88 @@ class PackerGatherPipePerfTest(DataMovementPerfTestBase):
 
     # @override
     def additional_constraints(self) -> None:
-        self.gather_source_buffers = self.add_var("gather_source_buffers")
-        self.solver.add(
-            self.gather_source_buffers >= 2, self.gather_source_buffers <= MAX_GATHER_SOURCE_BUFFERS
-        )
+        feeder_op = self.nodes["feeder_op"]
+        target_op = self.nodes["target_op"]
+        drainer_op = self.nodes["drainer_op"]
 
-        for queue in self.queues:
-            self.constrain_tensor_size(queue, MAX_TENSOR_SIZE_IN_TILES)
+        self.solver.add(feeder_op.t_dim == 1)
+        self.solver.add(target_op.t_dim == 1)
 
-        self.solver.add(self.data_format == DataFormat.Float16.value)
-
-        for node in self.nodes.values():
-            self.solver.add(node.t_dim == 1)
-
-        for op in self.ops:
-            self.solver.add(op.buf_size_mb == 2)
-
-        packer_gather_input = self.nodes["feeder0"]
-        target_op = self.nodes["target_op0"]
-        drainer0 = self.nodes["drainer0"]
-
-        self.solver.add(
-            packer_gather_input.grid_size_y == self.gather_source_buffers,
-            packer_gather_input.grid_size_x == 1,
-        )
+        # Lets do gather from feeder N,1 cores to 1,1 core.
         self.solver.add(target_op.grid_size_x == 1, target_op.grid_size_y == 1)
-        self.solver.add(drainer0.grid_size_x == 1, drainer0.grid_size_y == 1)
 
-        self.solver.add(packer_gather_input.grid_loc_y == 0, packer_gather_input.grid_loc_x == 0)
-        self.solver.add(target_op.grid_loc_y == 0, target_op.grid_loc_x == 1)
-        self.solver.add(drainer0.grid_loc_y == 0, drainer0.grid_loc_x == 2)
+        # Place target core at the bottom of the feeder core because NOC0 goes right and down.
+        self.solver.add(target_op.grid_loc_y == feeder_op.grid_size_y - 1)
+        self.solver.add(target_op.grid_loc_x == feeder_op.grid_loc_x + feeder_op.grid_size_x)
 
-        constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
+        self.solver.add(drainer_op.grid_loc_y == 0)
+        self.solver.add(drainer_op.grid_loc_x == target_op.grid_loc_x + target_op.grid_size_x)
+
+        constrain_no_reblocking_on_connection(self.solver, target_op, drainer_op)
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        gather_range = list(range(2, MAX_GATHER_SOURCE_BUFFERS + 1))
+        feeder_op = self.nodes["feeder_op"]
+        target_op = self.nodes["target_op"]
+
+        def valid_combination_callback(sweep_comb_dict: dict) -> bool:
+            def is_ublock_valid(ub_r_key, ub_c_key):
+                ub_r = sweep_comb_dict[ub_r_key]
+                ub_c = sweep_comb_dict[ub_c_key]
+                return ub_r * ub_c <= self.arch.max_tiles_in_dest / 2
+
+            # Check if the dimensions are divisible. THis will make sure solver can find mblock for target op.
+            def divisible_dim(M_key, U_key, X_key, grid_factor=1):
+                M = sweep_comb_dict[M_key]
+                U = sweep_comb_dict[U_key]
+                X = sweep_comb_dict[X_key]
+                return grid_factor * M * U % X == 0
+
+            feeder_ub_r_key = feeder_op.ub_r.sexpr()
+            feeder_ub_c_key = feeder_op.ub_c.sexpr()
+            feeder_mb_m_key = feeder_op.mb_m.sexpr()
+            feeder_mb_n_key = feeder_op.mb_n.sexpr()
+
+            target_ub_r_key = target_op.ub_r.sexpr()
+            target_ub_c_key = target_op.ub_c.sexpr()
+
+            feeder_op_height = sweep_comb_dict[feeder_op.grid_size_y.sexpr()]
+
+            if not (
+                divisible_dim(feeder_mb_m_key, feeder_ub_r_key, target_ub_r_key, grid_factor=feeder_op_height)
+                and divisible_dim(feeder_mb_n_key, feeder_ub_c_key, target_ub_c_key)
+            ):
+                return False
+
+            if not is_ublock_valid(feeder_ub_r_key, feeder_ub_c_key):
+                return False
+
+            if not is_ublock_valid(target_ub_r_key, target_ub_c_key):
+                return False
+
+
+            return True
+
+        ublock_side_dim = list(range(1, 9))
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
-                    self.gather_source_buffers.sexpr(): gather_range,
+                    self.data_format.sexpr(): [DataFormat.Float16.value, DataFormat.Bfp8_b.value],
+
+                    feeder_op.mb_m.sexpr(): [1, 2],
+                    feeder_op.mb_n.sexpr(): [1, 2, 3],
+                    feeder_op.ub_r.sexpr(): ublock_side_dim,
+                    feeder_op.ub_c.sexpr(): ublock_side_dim,
+
+                    target_op.ub_r.sexpr(): ublock_side_dim,
+                    target_op.ub_c.sexpr(): ublock_side_dim,
+
+                    feeder_op.grid_size_x.sexpr(): [1],
+                    feeder_op.grid_size_y.sexpr(): list(range(2, 9)),  # 8 is max height
                 },
                 max_num_configs_per_combination=1,
+                valid_combination_callback=valid_combination_callback,
             ),
         ]
 

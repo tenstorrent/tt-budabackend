@@ -33,64 +33,95 @@ class PackerMulticastPipePerfTest(DataMovementPerfTestBase):
 
     # @override
     def additional_constraints(self) -> None:
-        self.in0_multicast_dest_buffers = self.add_var("in0_multicast_dest_buffers")
-        self.in1_multicast_dest_buffers = self.add_var("in1_multicast_dest_buffers")
+
+        feeder_op = self.nodes["feeder_op"]
+        target_op = self.nodes["target_op"]
+        drainer_op = self.nodes["drainer_op"]
+
+        self.solver.add(feeder_op.t_dim == 1)
+        self.solver.add(target_op.t_dim == 1)
+
+        # Lets do gather+mcast from feeder N,1 cores to 1,M cores.
+        self.solver.add(target_op.grid_size_y == 1)
+
+        # Place target core at the bottom of the feeder core because NOC0 goes right and down.
+        self.solver.add(target_op.grid_loc_y == feeder_op.grid_size_y - 1)
         self.solver.add(
-            self.in0_multicast_dest_buffers >= 1,
-            self.in0_multicast_dest_buffers <= MAX_MULTICAST_DESTINATION_BUFFERS,
-        )
-        self.solver.add(
-            self.in1_multicast_dest_buffers >= 1,
-            self.in1_multicast_dest_buffers <= MAX_MULTICAST_DESTINATION_BUFFERS,
-        )
-
-        for queue in self.queues:
-            self.constrain_tensor_size(queue, MAX_TENSOR_SIZE_IN_TILES)
-
-        self.solver.add(self.data_format == DataFormat.Float16.value)
-
-        for node in self.nodes.values():
-            self.solver.add(node.t_dim == 1)
-
-        for op in self.ops:
-            self.solver.add(op.buf_size_mb == 2)
-
-        feeder0 = self.nodes["feeder0"]
-        feeder1 = self.nodes["feeder1"]
-        target_op = self.nodes["target_op0"]
-        drainer0 = self.nodes["drainer0"]
-
-        self.solver.add(feeder0.grid_size_y == 1, feeder0.grid_size_x == 1)
-        self.solver.add(feeder1.grid_size_y == 1, feeder1.grid_size_x == 1)
-        self.solver.add(
-            target_op.grid_size_x == self.in0_multicast_dest_buffers,
-            target_op.grid_size_y == self.in1_multicast_dest_buffers,
+            target_op.grid_loc_x == feeder_op.grid_loc_x + feeder_op.grid_size_x
         )
 
-        self.solver.add(feeder0.grid_loc_y == 0, feeder0.grid_loc_x == 1)
-        self.solver.add(feeder1.grid_loc_y == 1, feeder1.grid_loc_x == 0)
-        self.solver.add(target_op.grid_loc_y == 1, target_op.grid_loc_x == 1)
+        # This is a simple case where the drainer is directly below the target op
+        # But this does not test what happens after target has drainer to the right, we should test that as well.
         self.solver.add(
-            If(
-                target_op.grid_size_x <= target_op.grid_size_y,
-                And(drainer0.grid_loc_y == 1, drainer0.grid_loc_x == target_op.grid_size_x + 1),
-                And(drainer0.grid_loc_y == target_op.grid_size_y + 1, drainer0.grid_loc_x == 1),
-            )
+            drainer_op.grid_loc_y == target_op.grid_loc_y + 1,
+            drainer_op.grid_loc_x == target_op.grid_loc_x,
         )
 
-        constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
+        constrain_no_reblocking_on_connection(self.solver, target_op, drainer_op)
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        in0_mcast_range = list(range(1, MAX_MULTICAST_DESTINATION_BUFFERS + 1))
-        in1_mcast_range = list(range(1, MAX_MULTICAST_DESTINATION_BUFFERS + 1))
+        feeder_op = self.nodes["feeder_op"]
+        target_op = self.nodes["target_op"]
+        input1 = self.nodes["input1_dram"]
+
+        def valid_combination_callback(sweep_comb_dict: dict) -> bool:
+            def is_ublock_valid(ub_r_key, ub_c_key):
+                ub_r = sweep_comb_dict[ub_r_key]
+                ub_c = sweep_comb_dict[ub_c_key]
+                return ub_r * ub_c <= self.arch.max_tiles_in_dest / 2
+
+            # Check if the dimensions are divisible. THis will make sure solver can find mblock for target op.
+            def divisible_dim(M_key, U_key, X_key, grid_factor=1):
+                M = sweep_comb_dict[M_key]
+                U = sweep_comb_dict[U_key]
+                X = sweep_comb_dict[X_key]
+                return grid_factor * M * U % X == 0
+
+            feeder_ub_r_key = feeder_op.ub_r.sexpr()
+            feeder_ub_c_key = feeder_op.ub_c.sexpr()
+            feeder_mb_m_key = feeder_op.mb_m.sexpr()
+            feeder_mb_n_key = feeder_op.mb_n.sexpr()
+
+            target_ub_r_key = target_op.ub_r.sexpr()
+
+            if not (divisible_dim(feeder_mb_m_key, feeder_ub_r_key, target_ub_r_key)):
+                return False
+
+            if not is_ublock_valid(feeder_ub_r_key, feeder_ub_c_key):
+                return False
+
+            target_op_ukt = sweep_comb_dict[target_op.u_kt.sexpr()]
+            inner_dim_tiles = (
+                sweep_comb_dict[feeder_mb_n_key] * sweep_comb_dict[feeder_ub_c_key]
+            )
+            if inner_dim_tiles % target_op_ukt != 0:
+                return False
+
+            return True
+
+        ublock_side_dim = list(range(1, 9))
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
-                    self.in0_multicast_dest_buffers.sexpr(): in0_mcast_range,
-                    self.in1_multicast_dest_buffers.sexpr(): in1_mcast_range,
+                    self.data_format.sexpr(): [
+                        DataFormat.Float16.value,
+                        DataFormat.Bfp8_b.value,
+                    ],
+                    feeder_op.mb_m.sexpr(): [1, 2],
+                    feeder_op.mb_n.sexpr(): [1, 2, 3],
+                    feeder_op.ub_r.sexpr(): ublock_side_dim,
+                    feeder_op.ub_c.sexpr(): ublock_side_dim,
+                    target_op.ub_r.sexpr(): ublock_side_dim,
+                    target_op.u_kt.sexpr(): list(range(1, 3 * 8 + 1)),
+                    feeder_op.grid_size_x.sexpr(): [1],
+                    feeder_op.grid_size_y.sexpr(): [1],
+                    target_op.grid_size_x.sexpr(): [1, 2],
+                    target_op.grid_size_y.sexpr(): [1],
                 },
                 max_num_configs_per_combination=1,
+                valid_combination_callback=valid_combination_callback,
             ),
         ]
 
@@ -103,9 +134,13 @@ device_architecture: DeviceArchitecture = None
 pipe_perf_test: PackerMulticastPipePerfTest = None
 
 
-def constraint_model(solver: Solver, svars: dict, arch_name: str, harvested_rows: int = 0):
+def constraint_model(
+    solver: Solver, svars: dict, arch_name: str, harvested_rows: int = 0
+):
     global device_architecture, pipe_perf_test
-    device_architecture = DeviceArchitecture.create_from_string(arch_name, harvested_rows)
+    device_architecture = DeviceArchitecture.create_from_string(
+        arch_name, harvested_rows
+    )
 
     pipe_perf_test = PackerMulticastPipePerfTest(
         solver=solver,

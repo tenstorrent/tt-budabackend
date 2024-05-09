@@ -20,7 +20,9 @@
 #include "router.hpp"
 #include "net2pipe_common.h"
 #include "net2pipe_types.h"
+#include "common/env_lib.hpp"
 #include "common/tt_parallel_for.h"
+#include "device/cpuset_lib.hpp"
 #include "unique_id_generator.h"
 
 #define SET_KEY_VAL(key, val) YAML::Key << key << YAML::Value << val
@@ -38,29 +40,31 @@ using router::pipe_output_list_t;
 
 namespace n2p {
 
+  bool can_use_post_tm_prologue(int max_num_tiles, int kernel_input_buf_size);
+
   constexpr std::uint32_t PROLOG_CHUNK_OPERAND_ID = 32;
-  
+
   int get_op_input_total_bcast_factor(tt_op_info op_info, int index);
   void get_op_input_mcast(const tt_op_info& op_info, int input_num,
                           const std::map<std::string, std::unordered_map<std::string, tt_scheduled_op_info>> &fused_op_schedule_map,
                           bool& row_mcast, bool& col_mcast, bool& noc1_mcast);
   bool producer_size_and_placement_for_direct_mcast(
                 tt::ARCH device_arch,
-                const tt_op_info& producer_op_info, const tt_op_info& consumer_op_info, 
+                const tt_op_info& producer_op_info, const tt_op_info& consumer_op_info,
                 bool consumer_input_row_mcast, bool consumer_input_col_mcast,
                 bool consumer_input_noc1_mcast,
                 int worker_grid_size_x, int worker_grid_size_y,
                 int& adjacent_noc_id);
-                
+
   };
 
 
 struct GraphExecVars{
-  tt_instruction_info instrn; 
+  tt_instruction_info instrn;
   int input_count;
   std::vector<QueueSettings> queue_settings;
 } ;
-  
+
 struct dram_fork_pipe_metadata {
   std::vector<uint64_t> inputs;
   std::vector<int> total_readers;
@@ -124,11 +128,11 @@ struct temporal_epoch_context {
 
 class Net2Pipe {
 public:
-  
+
   Net2Pipe(const std::string &netlist_file, const std::string &output_dir, const std::string &epoch_start, const std::string &soc_descriptor_list_file_path, const std::string &cluster_description_file="");
   void output_pipes();
   void get_graph_names(std::vector<std::string> & names_vec);
-  
+
 protected:
   const std::uint64_t PEER_REGION_SIZE = (1024 * 1024 * 1024);
   const std::uint64_t DRAM_REGION_SIZE = (256 * 1024 * 1024);
@@ -171,11 +175,11 @@ protected:
 
   bool var_trace_mode;
   typedef struct {
-    tt_instruction_info instrn; 
+    tt_instruction_info instrn;
     int input_count;
     std::vector<QueueSettings> queue_settings;
   } GraphExecVars;
-  
+
   std::unordered_map<int, std::vector<GraphExecVars>> temporal_epoch_graph_exec_vars;
   std::vector<GraphExecVars> graph_exec_trace;
   std::vector<GraphExecVars> graph_exec_uniquified;
@@ -301,14 +305,14 @@ protected:
                      int& tile_size_bytes, int& epoch_tiles,
                      int& size_tiles, int& scatter_gather_num_tiles,
                      int &tiles_per_input) const;
-  
-  void get_op_output(const router::router_buffer_info_t &buffer, 
+
+  void get_op_output(const router::router_buffer_info_t &buffer,
                      bool is_scatter,
                      int input_count,
                      int core_r, int core_c, int& replicate) const;
 
   int get_consumer_index(const std::string& producer_name, const std::string consumer_name);
-  
+
   void get_tm_pipe_inputs(std::string op_name, int core_r, int core_c,
                           int input_index, std::vector<std::uint64_t>& pipe_inputs);
 
@@ -320,7 +324,7 @@ protected:
                                       const std::vector<std::vector<std::uint64_t>> &pipe_outputs,
                                       std::vector<std::tuple<chip_id_t, int, int>>& pipe_coords,
                                       bool &pipe_coords_are_ethernet_channels) const;
-  
+
   void compute_op_tms(std::string op_name, int input_count, temporal_epoch_context& epoch_context) const;
   void compute_queue_tms(std::string queue_name, int input_count, temporal_epoch_context& epoch_context) const;
 
@@ -331,7 +335,7 @@ protected:
                             int& q_slot_size_tiles,
                             int& tiles_per_input,
                             int& tile_size_bytes,
-                            int& buf_epoch_tiles, 
+                            int& buf_epoch_tiles,
                             int& replicate,
                             bool& is_scatter) const;
 

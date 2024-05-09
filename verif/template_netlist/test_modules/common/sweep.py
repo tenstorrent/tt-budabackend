@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import itertools
 import time
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import z3
 
@@ -274,6 +274,10 @@ class SweepVarsGroup:
         the same branch-TM configuration. Do not use when sweeping for var values,
         as there is no such symmetry in that regard.
 
+    valid_combination_callback: Callable
+        Callback function that will be called for each combination of sweep vars.
+        If it returns False, the combination will be skipped.
+
     Methods
     -------
     get_var_names_list(self) -> list
@@ -297,11 +301,13 @@ class SweepVarsGroup:
         max_num_configs_per_combination: Optional[int] = None,
         drop_symmetric_tm_configurations: Optional[bool] = None,
         num_tms_per_conn: Optional[List[int]] = None,
+        valid_combination_callback: Optional[Callable] = None,
     ) -> None:
         self.var_names_range_dict = var_names_range_dict
         self.max_num_configs_per_combination = max_num_configs_per_combination
         self.drop_symmetric_tm_configurations = drop_symmetric_tm_configurations
         self.num_tms_per_conn = num_tms_per_conn
+        self.valid_combination_callback = valid_combination_callback
 
     def get_var_names_list(self) -> List:
         return list(self.var_names_range_dict.keys())
@@ -330,6 +336,7 @@ class SweepVarsGroup:
     def get_next_combination(self) -> SweepCombination:
         # 'all_combinations' is a generator object, iterate through it and yield
         # the result, making this function also a generator.
+
         all_combinations = itertools.product(*self.get_var_sweep_ranges_list())
 
         # If we want to not yield symetric configurations,
@@ -338,8 +345,18 @@ class SweepVarsGroup:
 
         # Pair up each var_name with appropriate value in this combination and
         # yield it back to the caller.
+        counter = 0
+        invalids = 0
         for combination in all_combinations:
             configuration = dict(zip(self.get_var_names_list(), combination))
+
+            if self.valid_combination_callback and not self.valid_combination_callback(
+                configuration
+            ):
+                invalids += 1
+                if invalids % 1000 == 0:
+                    print(f"Skipped {invalids} invalid combinations")
+                continue
 
             if self.drop_symmetric_tm_configurations:
                 tm_configuration = self.__get_tm_configurations_grouped_by_fork_branch(
@@ -351,4 +368,7 @@ class SweepVarsGroup:
             sweep_combination = SweepCombination(
                 configuration, self.max_num_configs_per_combination
             )
+            counter += 1
+            if counter % 1000 == 0:
+                print(f"Yielded {counter} combinations")
             yield sweep_combination

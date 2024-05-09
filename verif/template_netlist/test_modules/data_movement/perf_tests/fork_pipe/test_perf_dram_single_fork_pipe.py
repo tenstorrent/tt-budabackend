@@ -2,7 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 import os
-from typing import List
+from typing import Dict, List
 
 from z3 import Solver
 
@@ -35,7 +35,7 @@ class DramSingleForkPipePerfTest(DataMovementPerfTestBase):
     def additional_constraints(self) -> None:
         self.fork_destination_buffers = self.add_var("fork_destination_buffers")
         self.solver.add(
-            self.fork_destination_buffers >= 2,
+            self.fork_destination_buffers >= 1,
             self.fork_destination_buffers <= MAX_FORK_DESTINATION_BUFFERS,
         )
 
@@ -65,15 +65,34 @@ class DramSingleForkPipePerfTest(DataMovementPerfTestBase):
         self.solver.add(target_op.grid_loc_y == 0, target_op.grid_loc_x == 0)
         self.solver.add(drainer0.grid_loc_y == 0, drainer0.grid_loc_x == 1)
 
+        broadcast_tm = self.op_input_tm_map["target_op0"]["input0_dram"].get_tms()[0].tm_arg
+
+        self.solver.add(broadcast_tm == self.fork_destination_buffers)
+
+        self.solver.add(
+            dram_fork_input.mb_m == target_op.mb_m,
+            dram_fork_input.mb_n == target_op.mb_n,
+            dram_fork_input.ub_r == target_op.ub_r,
+            dram_fork_input.ub_c == target_op.ub_c,
+            dram_fork_input.ublock_order == target_op.ublock_order,
+        )
         constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        fork_range = list(range(2, MAX_FORK_DESTINATION_BUFFERS + 1))
+        fork_range = list(range(1, 7))
+        input_q = self.nodes["input0_dram"]
+        target_op = self.nodes["target_op0"]
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
                     self.fork_destination_buffers.sexpr(): fork_range,
+                    input_q.mb_m.sexpr(): list(range(1, 21)),
+                    input_q.mb_n.sexpr(): list(range(1, 21)),
+
+                    target_op.ub_r.sexpr(): [3, 5],
+                    target_op.ub_c.sexpr(): [1, 2, 4]
                 },
                 max_num_configs_per_combination=1,
             ),

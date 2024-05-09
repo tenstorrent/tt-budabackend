@@ -221,7 +221,7 @@ class TemplateNetlistTestBase(ABC):
         constrain_op_impl(op_node)
 
     def get_op_input_buffer_size_tiles(self, op_node: Node, input_idx: int) -> z3.Var:
-        """Retursn input buffer size of a given op node on the given input index. The size of the
+        """Returns input buffer size of a given op node on the given input index. The size of the
         buffer is returned in tiles, with no double buffering.
 
         Parameters
@@ -1467,6 +1467,10 @@ class TemplateNetlistTestBase(ABC):
         op_node:
             Op node.
         """
+        # Drainer op has no output buffer, it only clears the tiles.
+        if op_node.op_type == "drainer":
+            return 0
+
         mb_m = If(op_node.untilize == Untilize.true.value, 1, op_node.mb_m)
 
         return (

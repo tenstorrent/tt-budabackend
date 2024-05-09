@@ -26,26 +26,29 @@ from test_modules.data_movement.data_movement_common_constraints import *
 class DataMovementPerfTestType(Enum):
     DramUnicast = 0
     PackerUnicast = 1
-    UnicastToDram = 2
+    PackerScatterUnicast = 2
+    UnicastToDram = 3
 
-    DramGather = 3
-    PackerGather = 4
-    GatherToDram = 5
+    DramGather = 4
+    PackerGather = 5
+    GatherToDram = 6
 
-    DramSingleFork = 6
-    DramMultiFork = 7
-    PackerSingleFork = 8
-    PackerMultiFork = 9
+    DramSingleFork = 7
+    DramMultiFork = 8
+    PackerSingleFork = 9
+    PackerMultiFork = 10
 
-    DramMulticast = 10
-    DramGatherMulticast = 11
-    PackerMulticast = 12
-    PackerGatherMulticast = 13
+    DramMulticast = 11
+    DramGatherMulticast = 12
+    PackerMulticast = 13
+    PackerGatherMulticast = 14
 
-    PipeScatter = 14
-    GatherPipeScatter = 15
-    PipeScatterMulticast = 16
-    GatherPipeScatterMulticast = 17
+    PipeScatter = 15
+    GatherPipeScatter = 16
+    PipeScatterMulticast = 17
+    GatherPipeScatterMulticast = 18
+
+    PackerForkGather = 19
 
 
 class SourceBufferType(Enum):
@@ -87,7 +90,7 @@ class DataMovementPerfTestBase(TemplateNetlistTestBase, ABC):
 
         # TODO: Extract constant
         self.solver.add(
-            self.microbatch_count == 1, self.microbatch_size == 128, self.minibatch_count == 1
+            self.microbatch_count == 1, self.microbatch_size == 64, self.minibatch_count == 1
         )
 
     # @override
@@ -177,14 +180,14 @@ class DataMovementPerfTestBase(TemplateNetlistTestBase, ABC):
             # Dram buffer allocation.
             queue_has_allocated_dram_channel = False
             queue_dram_channels = self.get_available_dram_channels_for_queue(q_node)
-            for dram_channel in queue_dram_channels:
+            while not queue_has_allocated_dram_channel:
+                dram_channel = self.pick_dram_channel_for_queue(q_node, queue_dram_channels)
                 q_end_address = curr_start_addr[dram_channel] + q_buffer_count * q_buffers_size
                 if q_end_address < self.arch.dram_buffer_end_addr:
                     queue_has_allocated_dram_channel = True
                     break
-            assert (
-                queue_has_allocated_dram_channel
-            ), f"Failed to allocate DRAM channel for queue '{q_node.name}' with available channels: {queue_dram_channels}"
+                else:
+                    queue_dram_channels.remove(dram_channel)
 
             model_vars[q_node.loc_template_str] = TemplateNetlistTestBase.dram_string(
                 channel=dram_channel,
@@ -211,6 +214,19 @@ class DataMovementPerfTestBase(TemplateNetlistTestBase, ABC):
             Queue node for which to get available dram channels.
         """
         return self.queue_dram_channels_map[queue.name]
+
+    def pick_dram_channel_for_queue(self, queue: Node, available_dram_channels: List[int]) -> int:
+        """
+        Returns a dram channel on which to allocate the queue buffer.
+        
+        Parameters
+        ----------
+        queue:
+            Queue node for which to allocate available dram channels.
+        """
+        assert available_dram_channels, f"Out of available dram channels for queue: `{queue.name}`"
+
+        return available_dram_channels[0]
 
     def populeate_queue_dram_channels_map(self) -> None:
         """
@@ -242,6 +258,10 @@ class DataMovementPerfTestBase(TemplateNetlistTestBase, ABC):
 
         for queue in self.get_output_queues():
             __dfs(queue)
+
+        for op in self.ops:
+            if op.op_type == "drainer":
+                __dfs(op)
 
         for queue in self.get_output_queues():
             self.queue_dram_channels_map[queue.name] = available_dram_channels[output_config_idx]

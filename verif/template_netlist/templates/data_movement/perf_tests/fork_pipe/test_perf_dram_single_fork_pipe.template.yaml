@@ -17,20 +17,6 @@ queues:
     loc: $TEMPLATE_input0_dram_loc
     $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
 
-  output_dram:
-    type: queue
-    input: drainer0
-    entries: $TEMPLATE_output_dram_entries
-    grid_size: [$TEMPLATE_output_dram_grid_size_r, $TEMPLATE_output_dram_grid_size_c]
-    t: $TEMPLATE_output_dram_t
-    mblock: [$TEMPLATE_output_dram_mb_r, $TEMPLATE_output_dram_mb_c]
-    ublock: [$TEMPLATE_output_dram_ub_r, $TEMPLATE_output_dram_ub_c]
-    df: $TEMPLATE_output_dram_df
-    ublock_order: $TEMPLATE_output_dram_ublock_order
-    target_device: 0
-    loc: $TEMPLATE_output_dram_loc
-    $TEMPLATE_output_dram_loc: $TEMPLATE_output_dram_buffers
-
 graphs:
   test_op:
     target_device: 0
@@ -50,8 +36,9 @@ graphs:
       t: $TEMPLATE_target_op0_t
       mblock: [$TEMPLATE_target_op0_mb_r, $TEMPLATE_target_op0_mb_c]
       ublock: [$TEMPLATE_target_op0_ub_r, $TEMPLATE_target_op0_ub_c]
+      input_0_tms: [broadcast: {r: $TEMPLATE_target_op0_in0_broadcast_r_factor}]
     drainer0:
-      type: datacopy
+      type: drainer
       grid_loc: [$TEMPLATE_drainer0_loc_r, $TEMPLATE_drainer0_loc_c]
       grid_size: [$TEMPLATE_drainer0_grid_size_r, $TEMPLATE_drainer0_grid_size_c]
       inputs: [target_op0]
@@ -62,7 +49,6 @@ graphs:
       ublock_order: $TEMPLATE_drainer0_ublock_order
       buf_size_mb: $TEMPLATE_drainer0_buf_size_mb
       math_fidelity: $TEMPLATE_math_fidelity
-      untilize_output: $TEMPLATE_drainer0_untilize_output
       t: $TEMPLATE_drainer0_t
       mblock: [$TEMPLATE_drainer0_mb_r, $TEMPLATE_drainer0_mb_c]
       ublock: [$TEMPLATE_drainer0_ub_r, $TEMPLATE_drainer0_ub_c]

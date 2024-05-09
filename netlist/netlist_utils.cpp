@@ -564,6 +564,9 @@ bool netlist_utils::is_non_tensix_op(string op_type) { return is_valid_ethernet_
 DrainerOp netlist_utils::get_drainer_op(string drainer_op) {
     DrainerOp op = DrainerOp::Invalid;
     if (drainer_op == "drainer") {
+        if (!std::getenv("TT_BACKEND_ENABLE_DRAINER_OP")) {
+            log_fatal("Drainer op is only enabled when `TT_BACKEND_ENABLE_DRAINER_OP` env variable is set.");
+        }
         op = DrainerOp::Drainer;
     }
     return op;
@@ -1208,7 +1211,7 @@ std::shared_ptr<tt_op> netlist_utils::create_op(
             op_info_ptr->attributes.stoch_rnd_mode
         ));
     } else if (is_valid_drainer_op(op_info_ptr->type)) {
-        log_assert(input_tile_dims.size() == 1, "Expected 1 input in input_tile_dims array on unary op, but got {}", input_tile_dims.size());
+        log_assert(input_tile_dims.size() == 1, "Expected 1 input in input_tile_dims array on drainer op, but got {}", input_tile_dims.size());
 
         new_tt_op = std::static_pointer_cast<tt_op>(std::make_shared<tt_drainer_op>(
             op_info_ptr->name,                          // string name

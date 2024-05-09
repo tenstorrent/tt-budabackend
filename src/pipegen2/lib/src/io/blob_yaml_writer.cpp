@@ -380,6 +380,7 @@ namespace pipegen2
         write_optionally("vc", stream_config.get_vc());
         write_optionally("zc_dim_size", stream_config.get_zc_dim_size());
         write_optionally("zr_dim_size", stream_config.get_zr_dim_size());
+        write_optionally("dram_scale_up_factor", stream_config.get_dram_scale_up_factor());
     }
 
     template <typename T>

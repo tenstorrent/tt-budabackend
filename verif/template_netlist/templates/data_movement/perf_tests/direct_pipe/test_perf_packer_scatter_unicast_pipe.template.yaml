@@ -3,19 +3,19 @@ devices:
   arch: $TEMPLATE_arch_name
 
 queues:
-  input0_dram:
+  input_dram:
     type: ram
     input: HOST
-    entries: $TEMPLATE_input0_dram_entries
-    grid_size: [$TEMPLATE_input0_dram_grid_size_r, $TEMPLATE_input0_dram_grid_size_c]
-    t: $TEMPLATE_input0_dram_t
-    mblock: [$TEMPLATE_input0_dram_mb_r, $TEMPLATE_input0_dram_mb_c]
-    ublock: [$TEMPLATE_input0_dram_ub_r, $TEMPLATE_input0_dram_ub_c]
-    df: $TEMPLATE_input0_dram_df
-    ublock_order: $TEMPLATE_input0_dram_ublock_orders
+    entries: $TEMPLATE_input_dram_entries
+    grid_size: [$TEMPLATE_input_dram_grid_size_r, $TEMPLATE_input_dram_grid_size_c]
+    t: $TEMPLATE_input_dram_t
+    mblock: [$TEMPLATE_input_dram_mb_r, $TEMPLATE_input_dram_mb_c]
+    ublock: [$TEMPLATE_input_dram_ub_r, $TEMPLATE_input_dram_ub_c]
+    df: $TEMPLATE_input_dram_df
+    ublock_order: $TEMPLATE_input_dram_ublock_orders
     target_device: 0
-    loc: $TEMPLATE_input0_dram_loc
-    $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
+    loc: $TEMPLATE_input_dram_loc
+    $TEMPLATE_input_dram_loc: $TEMPLATE_input_dram_buffers
 
   output_dram:
     type: queue
@@ -40,7 +40,7 @@ graphs:
       grid_loc: [$TEMPLATE_feeder_op_loc_r, $TEMPLATE_feeder_op_loc_c]
       grid_size: [$TEMPLATE_feeder_op_grid_size_r, $TEMPLATE_feeder_op_grid_size_c]
       input_dram_io_buf_size_tiles: [600] # hack to make sure pipegen doesn't split to 2 streams
-      inputs: [input0_dram]
+      inputs: [input_dram]
       in_df: [$TEMPLATE_feeder_op_in0_df]
       acc_df: $TEMPLATE_feeder_op_acc_df
       out_df: $TEMPLATE_feeder_op_out_df
@@ -56,6 +56,7 @@ graphs:
       grid_loc: [$TEMPLATE_target_op_loc_r, $TEMPLATE_target_op_loc_c]
       grid_size: [$TEMPLATE_target_op_grid_size_r, $TEMPLATE_target_op_grid_size_c]
       inputs: [feeder_op]
+      input_buf_min_size_tiles: [$TEMPLATE_target_op_input_buf_min_size_tiles]
       in_df: [$TEMPLATE_target_op_in0_df]
       acc_df: $TEMPLATE_target_op_acc_df
       out_df: $TEMPLATE_target_op_out_df
@@ -66,7 +67,6 @@ graphs:
       t: $TEMPLATE_target_op_t
       mblock: [$TEMPLATE_target_op_mb_r, $TEMPLATE_target_op_mb_c]
       ublock: [$TEMPLATE_target_op_ub_r, $TEMPLATE_target_op_ub_c]
-      input_0_tms: [broadcast: {r: $TEMPLATE_target_op_bcast_r} ]
     drainer_op:
       type: datacopy
       grid_loc: [$TEMPLATE_drainer_op_loc_r, $TEMPLATE_drainer_op_loc_c]
@@ -93,8 +93,8 @@ programs:
     -   execute: {
           graph_name: test_op,
           queue_settings: {
-               input0_dram: {
-                prologue: $TEMPLATE_input0_dram_prologue,
+               input_dram: {
+                prologue: $TEMPLATE_input_dram_prologue,
                 epilogue: false,
                 zero: false,
                 rd_ptr_global: $c_zero,

@@ -6,7 +6,7 @@ from typing import List
 
 from z3 import Solver
 
-from test_modules.common.data_formats import DataFormat
+from test_modules.common.data_formats import DataFormat, get_tile_size
 from test_modules.common.device_architecture import DeviceArchitecture
 from test_modules.common.node import Node
 from test_modules.common.sweep import SweepVarsGroup
@@ -32,54 +32,109 @@ class PackerUnicastPipePerfTest(DataMovementPerfTestBase):
 
     # @override
     def additional_constraints(self) -> None:
-        for queue in self.queues:
-            self.constrain_tensor_size(queue, MAX_TENSOR_SIZE_IN_TILES)
-
-        self.solver.add(self.data_format == DataFormat.Float16.value)
-
-        for node in self.nodes.values():
-            self.solver.add(node.t_dim == 1)
-            self.solver.add(node.grid_size_x == 1, node.grid_size_y == 1)
-
-        for op in self.ops:
-            self.solver.add(op.buf_size_mb == 2)
 
         feeder0 = self.nodes["feeder0"]
         target_op = self.nodes["target_op0"]
         drainer0 = self.nodes["drainer0"]
 
+        self.solver.add(feeder0.t_dim == 1)
         self.solver.add(feeder0.grid_loc_y == 0, feeder0.grid_loc_x == 0)
         self.solver.add(target_op.grid_loc_y == 0, target_op.grid_loc_x == 1)
         self.solver.add(drainer0.grid_loc_y == 0, drainer0.grid_loc_x == 2)
 
-        # constrain_no_reblocking_on_connection(self.solver, feeder0, target_op)
         constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
+
+        constrain_no_reblocking_on_connection(self.solver, feeder0, target_op)
+
+        self.input_buf_multiplier = self.add_var("input_buf_multiplier")
+        input_buf_min_size_tiles_var = target_op.get_input_buf_min_size_tiles_var(0)
+        self.solver.add(
+            input_buf_min_size_tiles_var
+            == self.input_buf_multiplier * self.get_op_input_buffer_size_tiles(target_op, 0)
+        )
+
+        self.buf_size_mb_multiplier = self.add_var("buf_size_mb_multiplier")
+        self.solver.add(
+            If(
+                self.buf_size_mb_multiplier > 0,
+                feeder0.buf_size_mb == self.buf_size_mb_multiplier * feeder0.t_dim,
+                feeder0.buf_size_mb == 2,
+            )
+        )
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        # TODO: Rethink what makes sense to randomize in the sweeps.
-        mblock_range = list(range(1, 2))
-        ublock_range = list(range(1, 2))
+        feeder_op = self.nodes["feeder0"]
 
-        target_op = self.nodes["target_op0"]
+        def valid_combination_callback(sweep_comb_dict: dict) -> bool:
+            # Purpose of this validation is to limit the number of configurations generated.
+
+            ub_r_key = feeder_op.ub_r.sexpr()
+            ub_c_key = feeder_op.ub_c.sexpr()
+
+            ublock_size = sweep_comb_dict[ub_r_key] * sweep_comb_dict[ub_c_key]
+            if ublock_size > self.arch.max_tiles_in_dest / 2:
+                return False
+
+            mb_m_key = feeder_op.mb_m.sexpr()
+            mb_n_key = feeder_op.mb_n.sexpr()
+
+            # If the product of mb_m and mb_n is greater than 10, then the ublock size should be at least 6
+            # limits many tests with small ublocks
+            if (sweep_comb_dict[mb_m_key] * sweep_comb_dict[mb_n_key] > 10) and ublock_size < 6:
+                return False
+
+            input_buf_multiplier_key = self.input_buf_multiplier.sexpr()
+            if not input_buf_multiplier_key in sweep_comb_dict:
+                return True
+
+            tile_size = get_tile_size(DataFormat(sweep_comb_dict[self.data_format.sexpr()]))
+            ublock_size_bytes = ublock_size * tile_size
+            input_buf_size_tiles = sweep_comb_dict[self.input_buf_multiplier.sexpr()] * ublock_size
+            input_buf_size_bytes = input_buf_size_tiles * tile_size
+
+            _32_kb_in_bytes = 32 * 1024
+
+            # Small ublocks should be a multiple of 4.
+            if ublock_size <= 4 and sweep_comb_dict[self.buf_size_mb_multiplier.sexpr()] % 4 != 0:
+                return False
+
+            # If we get to 3 ublocks above 32KB, we should not have any more ublocks.
+            if input_buf_size_bytes - 3 * ublock_size_bytes > _32_kb_in_bytes:
+                return False
+
+            return True
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
-                    target_op.mb_m.sexpr(): mblock_range,
+                    self.data_format.sexpr(): [DataFormat.Float16.value, DataFormat.Bfp8_b.value],
+                    self.input_buf_multiplier.sexpr(): list(range(2, 24, 2)),
+                    self.buf_size_mb_multiplier.sexpr(): list(range(0, 5, 2)),
+                    feeder_op.grid_size_x.sexpr(): [1],
+                    feeder_op.grid_size_y.sexpr(): [1],
+                    feeder_op.mb_m.sexpr(): [1, 2, 4, 5],
+                    feeder_op.mb_n.sexpr(): [1, 2, 4, 5],
+                    feeder_op.ub_r.sexpr(): list(range(1, 9)),
+                    feeder_op.ub_c.sexpr(): list(range(1, 9)),
                 },
                 max_num_configs_per_combination=1,
+                valid_combination_callback=valid_combination_callback,
             ),
+
+            # second sweep group to try grid size > 1 tensix
             SweepVarsGroup(
-                var_names_range_dict={target_op.mb_n.sexpr(): mblock_range},
+                var_names_range_dict={
+                    self.data_format.sexpr(): [DataFormat.Float16.value],
+                    feeder_op.grid_size_x.sexpr(): [1],
+                    feeder_op.grid_size_y.sexpr(): [2, 3],
+                    feeder_op.mb_m.sexpr(): [1, 2],
+                    feeder_op.mb_n.sexpr(): [1, 4],
+                    feeder_op.ub_r.sexpr(): [2, 4],
+                    feeder_op.ub_c.sexpr(): [2, 4],
+                },
                 max_num_configs_per_combination=1,
-            ),
-            SweepVarsGroup(
-                var_names_range_dict={target_op.ub_r.sexpr(): ublock_range},
-                max_num_configs_per_combination=1,
-            ),
-            SweepVarsGroup(
-                var_names_range_dict={target_op.ub_c.sexpr(): ublock_range},
-                max_num_configs_per_combination=1,
+                valid_combination_callback=valid_combination_callback,
             ),
         ]
 

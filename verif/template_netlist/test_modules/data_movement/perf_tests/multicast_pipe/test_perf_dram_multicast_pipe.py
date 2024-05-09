@@ -34,14 +34,11 @@ class DramMulticastPipePerfTest(DataMovementPerfTestBase):
     # @override
     def additional_constraints(self) -> None:
         self.in0_multicast_dest_buffers = self.add_var("in0_multicast_dest_buffers")
-        self.in1_multicast_dest_buffers = self.add_var("in1_multicast_dest_buffers")
+        self.in0_clear_granularity = self.add_var("in0_clear_granularity")
+
         self.solver.add(
             self.in0_multicast_dest_buffers >= 1,
             self.in0_multicast_dest_buffers <= MAX_MULTICAST_DESTINATION_BUFFERS,
-        )
-        self.solver.add(
-            self.in1_multicast_dest_buffers >= 1,
-            self.in1_multicast_dest_buffers <= MAX_MULTICAST_DESTINATION_BUFFERS,
         )
 
         for queue in self.queues:
@@ -60,33 +57,30 @@ class DramMulticastPipePerfTest(DataMovementPerfTestBase):
         target_op = self.nodes["target_op0"]
         drainer0 = self.nodes["drainer0"]
 
+        self.solver.add(self.in0_clear_granularity == self.get_matmul_op_input_buffer_size_tiles(target_op, 0))
+
         self.solver.add(dram_input0.grid_size_y == 1, dram_input0.grid_size_x == 1)
         self.solver.add(dram_input1.grid_size_x == 1, dram_input1.grid_size_y == 1)
         self.solver.add(
             target_op.grid_size_x == self.in0_multicast_dest_buffers,
-            target_op.grid_size_y == self.in1_multicast_dest_buffers,
+            target_op.grid_size_y == 1,
         )
 
         self.solver.add(target_op.grid_loc_y == 0, target_op.grid_loc_x == 0)
-        self.solver.add(
-            If(
-                target_op.grid_size_x <= target_op.grid_size_y,
-                And(drainer0.grid_loc_y == 1, drainer0.grid_loc_x == target_op.grid_size_x + 1),
-                And(drainer0.grid_loc_y == target_op.grid_size_y + 1, drainer0.grid_loc_x == 1),
-            )
-        )
+        self.solver.add(drainer0.grid_loc_y == 1, drainer0.grid_loc_x == 0)
 
         constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        in0_mcast_range = list(range(1, MAX_MULTICAST_DESTINATION_BUFFERS + 1))
-        in1_mcast_range = list(range(1, MAX_MULTICAST_DESTINATION_BUFFERS + 1))
+        in0_mcast_range = list(range(1, 7))
+        in0_clear_gran_range = list(range(1, 101))
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
                     self.in0_multicast_dest_buffers.sexpr(): in0_mcast_range,
-                    self.in1_multicast_dest_buffers.sexpr(): in1_mcast_range,
+                    self.in0_clear_granularity.sexpr(): in0_clear_gran_range
                 },
                 max_num_configs_per_combination=1,
             ),

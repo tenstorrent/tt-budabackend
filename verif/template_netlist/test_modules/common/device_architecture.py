@@ -205,7 +205,7 @@ class WormholeArchitecture(DeviceArchitecture):
             max_gather_stream_user_per_core = 4,
             max_op_queues_fanout = 8,
             max_stream_phases_per_core = 2048,
-            max_queues_op_pipe_inputs = 2000,
+            max_queues_op_pipe_inputs = 5000,
             max_gather_relay_streams = 3,
             supports_float32_accumulation=True
         )
@@ -244,7 +244,7 @@ class WormholeB0Architecture(DeviceArchitecture):
             max_gather_stream_user_per_core = 4,
             max_op_queues_fanout = 8,
             max_stream_phases_per_core = 1800,
-            max_queues_op_pipe_inputs = 2000,
+            max_queues_op_pipe_inputs = 5000,
             max_gather_relay_streams = 3,
             supports_float32_accumulation=True
         )

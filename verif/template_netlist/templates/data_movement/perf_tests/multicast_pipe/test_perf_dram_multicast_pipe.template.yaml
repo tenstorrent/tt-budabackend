@@ -18,7 +18,7 @@ queues:
     $TEMPLATE_input0_dram_loc: $TEMPLATE_input0_dram_buffers
 
   input1_dram:
-    type: queue
+    type: ram
     input: HOST
     entries: $TEMPLATE_input1_dram_entries
     grid_size: [$TEMPLATE_input1_dram_grid_size_r, $TEMPLATE_input1_dram_grid_size_c]
@@ -96,7 +96,7 @@ programs:
           graph_name: test_op,
           queue_settings: {
                input0_dram: {prologue: $TEMPLATE_input0_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-               input1_dram: {prologue: $TEMPLATE_input1_dram_prologue, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+               input1_dram: {prologue: $TEMPLATE_input1_dram_prologue, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}
           }
         }
     -   varinst: [$lptr, incwrap, $TEMPLATE_microbatch_size, $c_wrap]

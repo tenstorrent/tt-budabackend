@@ -149,6 +149,7 @@ namespace pipegen2
             ADD_FIELD_TO_MAP(follow_by_receiver_dummy_phase)
             ADD_FIELD_TO_MAP(follow_by_sender_dummy_phase)
             ADD_FIELD_TO_MAP(remote_src_update_noc)
+            ADD_FIELD_TO_MAP(dram_scale_up_factor)
         }
 
 #undef ADD_FIELD_TO_MAP
@@ -388,6 +389,7 @@ namespace pipegen2
         DEFINE_MEMBER_AND_ACCESSOR(bool, follow_by_receiver_dummy_phase)
         DEFINE_MEMBER_AND_ACCESSOR(bool, follow_by_sender_dummy_phase)
         DEFINE_MEMBER_AND_ACCESSOR(NOC_ROUTE, remote_src_update_noc)
+        DEFINE_MEMBER_AND_ACCESSOR(unsigned int, dram_scale_up_factor)
 #undef DEFINE_MEMBER_AND_ACCESSOR
     };
 } // namespace pipegen2

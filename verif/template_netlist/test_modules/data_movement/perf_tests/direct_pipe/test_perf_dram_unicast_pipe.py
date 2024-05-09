@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
-
-# SPDX-License-Identifier: Apache-2.0
 import os
 from typing import List
 
@@ -32,50 +29,45 @@ class DramUnicastPipePerfTest(DataMovementPerfTestBase):
 
     # @override
     def additional_constraints(self) -> None:
-        for queue in self.queues:
-            self.constrain_tensor_size(queue, MAX_TENSOR_SIZE_IN_TILES)
+        input_q = self.nodes["input0_dram"]
+        target_op = self.nodes["target_op0"]
+        drainer0 = self.nodes["drainer0"]
+
+        self.y_tiles = self.add_var("y_tiles")
+        self.x_tiles = self.add_var("x_tiles")
+
+        self.solver.add(self.y_tiles == input_q.get_vertical_size_var())
+        self.solver.add(self.x_tiles == input_q.get_horizontal_size_var())
 
         self.solver.add(self.data_format == DataFormat.Float16.value)
 
         for node in self.nodes.values():
-            self.solver.add(node.t_dim == 1)
             self.solver.add(node.grid_size_x == 1, node.grid_size_y == 1)
-
-        for op in self.ops:
-            self.solver.add(op.buf_size_mb == 2)
-
-        target_op = self.nodes["target_op0"]
-        drainer0 = self.nodes["drainer0"]
 
         self.solver.add(target_op.grid_loc_y == 0, target_op.grid_loc_x == 0)
         self.solver.add(drainer0.grid_loc_y == 0, drainer0.grid_loc_x == 1)
 
+        # constrain_no_reblocking_on_connection(self.solver, input_q, target_op)
         constrain_no_reblocking_on_connection(self.solver, target_op, drainer0)
 
     # @override
     def export_sweep_vars(self) -> List[SweepVarsGroup]:
-        # TODO: Rethink what makes sense to randomize in the sweeps.
-        mblock_range = list(range(1, 2))
-        ublock_range = list(range(1, 2))
-
+        input_q = self.nodes["input0_dram"]
         target_op = self.nodes["target_op0"]
+
         return [
             SweepVarsGroup(
                 var_names_range_dict={
-                    target_op.mb_m.sexpr(): mblock_range,
+                    self.data_format.sexpr(): [DataFormat.Float16.value, DataFormat.Bfp8_b.value],
+
+                    input_q.mb_m.sexpr(): [1, 2, 3, 4, 5],
+                    input_q.mb_n.sexpr(): [1, 2, 3, 4, 5],
+                    input_q.ub_r.sexpr(): list(range(1, 9)),
+                    input_q.ub_c.sexpr(): list(range(1, 9)),
+
+                    target_op.ub_r.sexpr(): list(range(1, 9)),
+                    target_op.ub_c.sexpr(): list(range(1, 9)),
                 },
-                max_num_configs_per_combination=1,
-            ),
-            SweepVarsGroup(
-                var_names_range_dict={target_op.mb_n.sexpr(): mblock_range},
-                max_num_configs_per_combination=1,
-            ),
-            SweepVarsGroup(
-                var_names_range_dict={target_op.ub_r.sexpr(): ublock_range},
-                max_num_configs_per_combination=1,
-            ),
-            SweepVarsGroup(
-                var_names_range_dict={target_op.ub_c.sexpr(): ublock_range},
                 max_num_configs_per_combination=1,
             ),
         ]

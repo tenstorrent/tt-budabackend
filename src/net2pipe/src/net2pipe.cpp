@@ -20,6 +20,7 @@
 #include "netlist_fused_op_info_types.hpp"
 #include "net2pipe_common.h"
 #include "netlist_info_types.hpp"
+#include "netlist_op_info_types.hpp"
 #include "netlist_utils.hpp"
 #include "common/tt_cluster_graph.hpp"
 #include "router.hpp"
@@ -91,11 +92,15 @@ namespace {
   template <typename Item>
   int num_unique_items( vector<Item> const& v ) {
     return set<Item>{ v.begin(), v.end() }.size();
-  }; 
+  };
 
 
 }
 namespace n2p {
+    bool can_use_post_tm_prologue(int max_num_tiles, int kernel_input_buf_size) {
+        return max_num_tiles <= kernel_input_buf_size;
+    }
+
   prolog_layout get_prolog_layout(
     int consumer_t,
     int consumer_ublock_tiles_k, int consumer_mblock_ublocks_k,
@@ -106,7 +111,7 @@ namespace n2p {
     prolog_layout result;
 
     result.num_cores_to_mcast   = consumer_num_cores_c;
-    
+
     // Total number of tiles for one column of cores
     const int consumer_col_input_block_tiles = (consumer_ublock_tiles_k * consumer_mblock_ublocks_k) * (consumer_ublock_tiles_c * consumer_mblock_ublocks_n);
     const int consumer_total_tiles_per_col = consumer_t * consumer_col_input_block_tiles;
@@ -117,7 +122,7 @@ namespace n2p {
         result.num_chunks_to_gather--;
     }
     assert(result.num_chunks_to_gather > 0);
-    
+
     result.chunk_size_tiles = consumer_total_tiles_per_col / result.num_chunks_to_gather;
 
     result.num_cores_r = consumer_num_cores_r;
@@ -385,7 +390,7 @@ void Net2Pipe::output_pipes() {
     {
         std::vector<temporal_epoch_context> epoch_contexts(num_temporal_epochs);
 
-        tt::parallel_for (
+        tt::parallel_for(
             0,
             num_temporal_epochs,
             [&](int temporal_epoch) {
@@ -425,7 +430,7 @@ void Net2Pipe::output_pipes() {
         // std::unordered_map<std::uint64_t, router::router_buffer_info_t> buffer_map; // router_buffer_info
         // stores routing coordinates std::unordered_map<std::uint64_t, pipe_t> pipes;
         // pass id map on export and use it for all unique ids.
-        tt::parallel_for (
+        tt::parallel_for(
             0,
             num_temporal_epochs,
             [&](int temporal_epoch) {
@@ -483,10 +488,10 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
     int op_producer_phases = 0;
     int op_producer_streams = 0;
     int op_dram_reads = 0;
-    std::map <std::string, int> input_consumer_phases; 
-    std::map <std::string, int> input_dram_reads; 
-    std::map <std::string, int> output_producer_phases; 
-    std::map <std::string, int> output_producer_streams; 
+    std::map <std::string, int> input_consumer_phases;
+    std::map <std::string, int> input_dram_reads;
+    std::map <std::string, int> output_producer_phases;
+    std::map <std::string, int> output_producer_streams;
     for (int i = 0; i < num_op_inputs; i++) {
       const std::string &input_name = op_info.input_names[i];
       if (name_is_op(input_name, epoch_context)) {
@@ -524,8 +529,8 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
         op_producer_phases += producer_phases;
         op_producer_streams += producer_streams;
       }
-    }    
-  
+    }
+
     if (((op_consumer_phases + op_producer_phases) > MAX_STREAM_PHASES_PER_CORE) ||
         (op_producer_streams > MAX_FORK_STREAMS_PER_CORE)) {
       n2p::Log() << "\n\n *** WARNING: op " << op_info.name << " has high stream/blob resource usage:" << std::endl;
@@ -535,13 +540,13 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
       for (int i = 0; i < num_op_inputs; i++) {
         const std::string &input_name = op_info.input_names[i];
         if (name_is_op(input_name, epoch_context)) {
-          n2p::Log() << "         " << input_name << " -> " << op_info.name << " consumer phases: " << input_consumer_phases[input_name] << std::endl;        
+          n2p::Log() << "         " << input_name << " -> " << op_info.name << " consumer phases: " << input_consumer_phases[input_name] << std::endl;
         }
       }
       for (const auto& output_name : epoch_context.op_queue_output_map[op_info.name]) {
         if (name_is_op(output_name, epoch_context)) {
-          n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer phases: " << output_producer_phases[output_name] << std::endl;        
-          n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer streams: " << output_producer_streams[output_name] << std::endl;                
+          n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer phases: " << output_producer_phases[output_name] << std::endl;
+          n2p::Log() << "         " << op_info.name << " -> " << output_name << " producer streams: " << output_producer_streams[output_name] << std::endl;
         }
       }
       n2p::Log() << "\n\n";
@@ -551,9 +556,9 @@ void Net2Pipe::check_op_resource_usage(const tt_graph_info &graph_info, temporal
       for (int i = 0; i < num_op_inputs; i++) {
         const std::string &input_name = op_info.input_names[i];
         if (!name_is_op(input_name, epoch_context)) {
-          n2p::Log() << "         " << input_name << " -> " << op_info.name << " DRAM read indexes: " << input_dram_reads[input_name] << std::endl;        
+          n2p::Log() << "         " << input_name << " -> " << op_info.name << " DRAM read indexes: " << input_dram_reads[input_name] << std::endl;
         }
-      }      
+      }
       n2p::Log() << "\n\n";
     }
   }
@@ -742,7 +747,7 @@ void Net2Pipe::compute_consumer_input_tile_mappings(const tt_graph_info &graph_i
 
     // Report prologing optimizations
     log_debug(tt::LogNet2Pipe, "Prolog Report:");
-    
+
     for (const auto& [op_name, op_info] : graph_info.op_map) {
         log_debug(tt::LogNet2Pipe, "Op '{}': type: {}", op_name, op_info.type);
         assert(op_info.name == op_name);
@@ -781,7 +786,7 @@ void Net2Pipe::emit_relay_buffers(int runtime_input_count, const temporal_epoch_
         tt_cxy_pair const &first_producer_buffer_core = epoch_context.buffer_map.at(first_producer_buffer).core_location();
         bool is_eth_link_receiver_relay =
             is_eth_core_relay && first_producer_buffer_core.chip != relay_buffer.chip_location();
-        
+
         if (is_eth_link_receiver_relay) {
             return std::tuple<router::unique_id_t, tt_cxy_pair, bool>(first_producer_buffer, first_producer_buffer_core, true);
         }
@@ -793,7 +798,7 @@ void Net2Pipe::emit_relay_buffers(int runtime_input_count, const temporal_epoch_
         if (is_eth_link_sender_relay) {
             return std::tuple<router::unique_id_t, tt_cxy_pair, bool>(first_consumer_buffer, first_consumer_buffer_core, true);
         }
-        
+
         return std::nullopt;
     };
 
@@ -875,7 +880,7 @@ void Net2Pipe::emit_relay_buffers(int runtime_input_count, const temporal_epoch_
             }
 
             TT_ASSERT(!output_pipes_scatter, "Relay buffers can't feed scatter pipes");
-            int dram_input_noc_id = 0; // FIXME imatosevic - does this ever need to be set for relay buffers? 
+            int dram_input_noc_id = 0; // FIXME imatosevic - does this ever need to be set for relay buffers?
             int stream_id = buffer.info().stream_id();
             TT_ASSERT(stream_id >= 0, "Invalid stream id of ", stream_id, " for buffer ", buf_id);
             int output_size_tiles = buffer.info().allocated_size_in_tiles();
@@ -1235,7 +1240,7 @@ bool Net2Pipe::is_input_adjacent_mcast(std::string producer_name, std::string co
     if (netlist_utils::is_valid_ethernet_op(producer_op_info.type) || netlist_utils::is_valid_ethernet_op(consumer_op_info.type)) {
         return false;
     }
-    
+
     chip_id_t producer_chip = op_graph_map.at(producer_name).target_device;
     if (producer_chip != op_graph_map.at(consumer_name).target_device) {
         return false;
@@ -1266,13 +1271,13 @@ bool Net2Pipe::is_input_adjacent_mcast(std::string producer_name, std::string co
 
 bool n2p::producer_size_and_placement_for_direct_mcast(
                 tt::ARCH device_arch,
-                const tt_op_info& producer_op_info, const tt_op_info& consumer_op_info, 
+                const tt_op_info& producer_op_info, const tt_op_info& consumer_op_info,
                 bool consumer_input_row_mcast, bool consumer_input_col_mcast,
                 bool consumer_input_noc1_mcast,
                 int worker_grid_size_x, int worker_grid_size_y,
                 int& adjacent_noc_id) {
 
-    // FIXME imatosevic - feature doesn't work on GS due to code size issues 
+    // FIXME imatosevic - feature doesn't work on GS due to code size issues
     // (due to RISC bug with branching between code memories)
     // revise this later as we evaluate the feature impact
     if (device_arch != tt::ARCH::WORMHOLE_B0) {
@@ -1291,15 +1296,15 @@ bool n2p::producer_size_and_placement_for_direct_mcast(
     bool producer_noc0_y_adjacent = (consumer_op_info.grid_loc_y() == ((producer_op_info.grid_loc_y() + 1) % worker_grid_size_y));
     bool producer_noc1_y_adjacent = (producer_op_info.grid_loc_y() == ((consumer_op_info.grid_loc_y() + consumer_op_info.grid_size_y()) % worker_grid_size_y));
 
-    bool direct_x_mcast = 
-        consumer_input_x_mcast && 
+    bool direct_x_mcast =
+        consumer_input_x_mcast &&
         (consumer_op_info.grid_size_y() == producer_op_info.grid_size_y()) &&
         (producer_op_info.grid_size_x() == 1) &&
         (consumer_op_info.grid_loc_y() == producer_op_info.grid_loc_y()) &&
         (producer_noc0_x_adjacent || producer_noc1_x_adjacent);
 
-    bool direct_y_mcast = 
-        consumer_input_y_mcast && 
+    bool direct_y_mcast =
+        consumer_input_y_mcast &&
         (consumer_op_info.grid_size_x() == producer_op_info.grid_size_x()) &&
         (producer_op_info.grid_size_y() == 1) &&
         (consumer_op_info.grid_loc_x() == producer_op_info.grid_loc_x()) &&
@@ -1330,7 +1335,7 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
             int tile_size_bytes = n2p::get_format_tile_size_bytes(queue_info.data_format, false, queue_info.tile_dim) * queue_info.dim.ublock_ct / tt::tile_dim_to_array(queue_info.tile_dim)[0];
             if (tt::tile_dim_to_array(queue_info.tile_dim)[0] * tile_size_bytes <= max_scatter_size_bytes) {
               scatter_granularity = tt::tile_dim_to_array(queue_info.tile_dim)[0];
-            } 
+            }
           }
         } else {
           int mblock_tiles = get_mblock_size_tiles(queue_info);
@@ -1389,12 +1394,12 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
                         found = true;
                         const bool is_two_step_prolog = epoch_context.prolog_layout_per_op.find(consumer_name) != epoch_context.prolog_layout_per_op.end() and
                                                         epoch_context.prolog_layout_per_op.at(consumer_name).find(op_input_name) != epoch_context.prolog_layout_per_op.at(consumer_name).end();
-                        
+
                         const int op_input_buf_size_tiles = get_op_kernel_input_size_tiles(output_op_info, op_input_index, epoch_context);
 
-                        log_trace(tt::LogNet2Pipe, "is_two_step_prolog: '{}': consumer op: '{}', input name: '{}', scatter_granularity: {}, input_buf_size_tiles: {}", 
+                        log_trace(tt::LogNet2Pipe, "is_two_step_prolog: '{}': consumer op: '{}', input name: '{}', scatter_granularity: {}, input_buf_size_tiles: {}",
                             is_two_step_prolog, consumer_name, op_input_name, scatter_granularity, op_input_buf_size_tiles);
-                        
+
                         if (not is_two_step_prolog and op_input_buf_size_tiles < scatter_granularity) {
                             scatter_granularity = std::gcd(op_input_buf_size_tiles, scatter_granularity);
                         }
@@ -1412,7 +1417,7 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
                 }
             }
         }
-    
+
         if (!name_is_op(producer_name, epoch_context) && epoch_context.op_queue_output_map.at(producer_name).size() > 0) {
             result = true; // All dram reads are scatter buffers
             const tt_queue_info &queue_info = this->parsed_netlist.queue_map.at(producer_name);
@@ -1438,7 +1443,7 @@ bool Net2Pipe::is_output_scatter(std::string producer_name, int &scatter_granula
 
 void Net2Pipe::read_epoch_queue_info(
     const std::string &queue_name, int input_count, const QueueSettings& queue_setting, temporal_epoch_context& epoch_context) const {
-  
+
     if (!epoch_context.queue_name_unique_id_map.count(queue_name)) {
         ERROR("Queue " << queue_name << " not assigned unique ID");
     }
@@ -1452,7 +1457,7 @@ void Net2Pipe::read_epoch_queue_info(
     int mblock_size_tiles = get_mblock_size_tiles(queue_info);
 
     int scatter_gather_num_tiles;
-    const bool is_scatter = is_output_scatter(queue_name, scatter_gather_num_tiles, epoch_context);
+    bool is_scatter = is_output_scatter(queue_name, scatter_gather_num_tiles, epoch_context);
     if (!is_scatter) {
         scatter_gather_num_tiles = mblock_size_tiles * queue_info.dim.t;
     }
@@ -1460,10 +1465,10 @@ void Net2Pipe::read_epoch_queue_info(
     epoch_context.op_queue_output_buf_granularity[queue_name] = scatter_gather_num_tiles;
 
     std::uint64_t queue_unique_id = epoch_context.queue_name_unique_id_map.at(queue_name);
-    
+
     if (is_name_embedding_table_queue(queue_name, epoch_context) || is_name_hw_tilize(queue_name, epoch_context) || is_name_embedding_index_queue(queue_name, epoch_context)) {
       if (queue_setting.prolog || queue_setting.epilog) {
-        ERROR("Queue " + queue_name + ": can't have prolog/epilog settings for embedding table and index queues");        
+        ERROR("Queue " + queue_name + ": can't have prolog/epilog settings for embedding table and index queues");
       }
     }
 
@@ -1477,7 +1482,7 @@ void Net2Pipe::read_epoch_queue_info(
           int op_target_device = this->op_graph_map.at(connected_op_name).target_device;
           if (op_target_device != queue_info.target_device) {
             ERROR("Queue " + queue_name + " has prolog=1 and is input for op " + connected_op_name + ", which is on a different target_device");
-          } 
+          }
         }
       }
       else if (!epoch_context.op_info_map.count(queue_info.input)) {
@@ -1539,7 +1544,7 @@ void Net2Pipe::read_epoch_queue_info(
           }
         }
       }
-    } 
+    }
 }
 
 int Net2Pipe::get_queue_dram_subchannel(std::uint64_t q_buf_id, const temporal_epoch_context& epoch_context) const {
@@ -1584,7 +1589,7 @@ void Net2Pipe::get_queue_attributes(const tt_queue_info &queue_info,
                                     int& q_slot_size_tiles,
                                     int& tiles_per_input,
                                     int& tile_size_bytes,
-                                    int& buf_epoch_tiles, 
+                                    int& buf_epoch_tiles,
                                     int& replicate,
                                     bool& is_scatter) const {
 
@@ -1593,7 +1598,7 @@ void Net2Pipe::get_queue_attributes(const tt_queue_info &queue_info,
     tt_op_info input_op_info = epoch_context.op_info_map.at(queue_info.input);
     untilize_input = input_op_info.untilize_output;
   }
-  
+
   if (is_name_embedding_table_queue(queue_info.name, epoch_context)) {
     std::string consumer_op_name = epoch_context.op_queue_output_map.at(queue_info.name).at(0);
     tt_op_info consumer_op_info = epoch_context.op_info_map.at(consumer_op_name);
@@ -1687,7 +1692,7 @@ void Net2Pipe::emit_queue(
     int dram_ram_flag = (queue_info.type == IO_TYPE::RandomAccess);
     int dram_io_skip_flow_ctrl = (queue_info.type == IO_TYPE::RandomAccess);
     int dram_io_allow_overwrite = (queue_info.type == IO_TYPE::RandomAccess);
-    
+
     int prolog_replicate = 1;
     if (queue_settings.prolog && epoch_context.op_queue_output_map.at(queue_name).size()) {
         prolog_replicate = num_unique_items(epoch_context.op_queue_output_map.at(queue_name));
@@ -1696,9 +1701,9 @@ void Net2Pipe::emit_queue(
     for (int conn_op_index = 0; conn_op_index < prolog_replicate; conn_op_index++) {  // outer loop is no-op unless it's a prolog with forked output
 
       for (int r = 0; r < queue_info.grid_size.r; r++) {
-        
+
         for (int c = 0; c < queue_info.grid_size.c; c++) {
-          
+
           int dram_chan = get_dram_buf_chan(queue_name, r, c);
           std::uint64_t dram_addr = get_dram_buf_addr(queue_name, r, c);
 
@@ -1739,7 +1744,7 @@ void Net2Pipe::emit_queue(
           std::uint64_t buf_queue_unique_id = this->queue_name_buf_unique_id_map.at(queue_name).at(r).at(c);
           std::uint64_t buf_instance_unique_id = queue_settings.prolog ?
             epoch_context.prolog_queue_name_fork_buf_unique_id_map.at(queue_name).at(r).at(c).at(conn_op_index) :
-            buf_queue_unique_id; 
+            buf_queue_unique_id;
 
           int dram_prefetch_noc_id = 0;
           int y_coord = 0xFF;
@@ -1769,7 +1774,7 @@ void Net2Pipe::emit_queue(
             prolog_comment_str = prolog_comment_str + ", prolog for op: " + op_name + " ";
 
             // FIXME imatosevic - this info should come from a function in Router
-            // Also revise if we swap multicast directions for inputs in the new NOC allocation scheme. 
+            // Also revise if we swap multicast directions for inputs in the new NOC allocation scheme.
             bool inverse_r_buf_placement = false;
             bool inverse_c_buf_placement = false;
             if (n2p::get_op_class(op_info) == OpClass::MatMul || n2p::get_op_class(op_info) == OpClass::Depthwise) {
@@ -1783,7 +1788,7 @@ void Net2Pipe::emit_queue(
               TT_ASSERT(input_index != -1);
               inverse_r_buf_placement = op_info.grid_transpose ? (input_index == 0) : (input_index == 1);
             }
-            
+
             int r_coord = r % op_info.grid_size_logical_r();
             if(r >= op_info.grid_size_logical_r()) {
                 prolog_comment_str += "wrapping r_coord; ";
@@ -1801,7 +1806,7 @@ void Net2Pipe::emit_queue(
             }
 
             op_info.get_core_yx_coord(r_coord, c_coord, y_coord, x_coord);
-            
+
             dram_prefetch_noc_id = get_dram_prefetch_noc_id(queue_name, op_name);
           }
 
@@ -1821,7 +1826,7 @@ void Net2Pipe::emit_queue(
           out << SET_KEY_VAL("core_coordinates", SET_COORD2(y_coord, x_coord));
           out << SET_KEY_VAL("size_tiles", q_slot_size_tiles);
           out << SET_KEY_VAL("scatter_gather_num_tiles", epoch_context.op_queue_output_buf_granularity.at(queue_name));
-          out << SET_KEY_VAL("tiles_per_input", tiles_per_input);       
+          out << SET_KEY_VAL("tiles_per_input", tiles_per_input);
           if(not epoch_context.op_queue_output_scatter.at(queue_name) and queue_settings.prolog and pre_post == 1) {
             out << SET_KEY_VAL("is_scatter", 1);
             out << SET_KEY_VAL("replicate", 1);
@@ -1981,7 +1986,7 @@ void Net2Pipe::emit_kernel_bufs(
         } else {
             op_info.get_core_yx_coord(r, c, y_coord, x_coord);
         }
-    };  
+    };
 
     for (int i = 0; i < op_info.grid_size_logical_r(); i++) {
         for (int j = 0; j < op_info.grid_size_logical_c(); j++) {
@@ -2095,7 +2100,7 @@ void Net2Pipe::emit_kernel_bufs(
             if(n2p::get_op_class(op_info) == OpClass::MatMul ) {
                 if(op_info.attributes.identity){
                     mblock_k = std::numeric_limits<std::uint16_t>::max()-2; // For identity matmul m_k is dynamically updated
-                
+
                 // disable matmul l1 acc to have a0/b0 parity
                 //} else if(op_info.arch_name == tt::ARCH::WORMHOLE_B0 && !n2p::is_bfp_format(op_info.output_data_format)) {
                 //    mblock_k = 1; //For l1 accumulate kernel, only one push to intermediate buffer, bfp output currently not supported
@@ -2116,8 +2121,8 @@ void Net2Pipe::emit_kernel_bufs(
 
                 if (op_info.attributes.requant || op_info.attributes.dequant){
                     mblock_k+=1; // add additional pass through the interm buffer for requant/dequant of int32 output
-                }    
-            }    
+                }
+            }
 
             int output_is_scatter;
             int output_size_tiles;
@@ -2155,14 +2160,14 @@ void Net2Pipe::emit_kernel_bufs(
                 std::uint64_t int_unique_id = 0;
                 bool output_buf_shared_with_int = n2p::op_output_buffer_shared_with_intermediate(op_info);
                 if (output_buf_shared_with_int) {
-                   TT_ASSERT(is_ethernet_datacopy || (n2p::op_num_intermediate_buf(op_info)==1)); //Output and interm buffer space can be shared only if op has 
+                   TT_ASSERT(is_ethernet_datacopy || (n2p::op_num_intermediate_buf(op_info)==1)); //Output and interm buffer space can be shared only if op has
                 }
-                bool override_to_force_scatter_operating_mode = is_ethernet_datacopy; 
+                bool override_to_force_scatter_operating_mode = is_ethernet_datacopy;
                 if (override_to_force_scatter_operating_mode) {
                     output_is_scatter = true;
                     output_replicate = output_buf.info().replication_factor();
                 }
-                
+
                 if (n2p::op_has_intermediate_buf(op_info)) {
                     int_unique_id = epoch_context.op_intermediate_buf_map.at(op_name).at(i).at(j).at(0);
                 }
@@ -2232,7 +2237,7 @@ void Net2Pipe::emit_kernel_bufs(
                     int int_epoch_tiles = intermediate_buffer.info().total_epoch_tiles();
                     int int_size_tiles = intermediate_buffer.info().allocated_size_in_tiles();
                     int int_scatter_gather_num_tiles = intermediate_buffer.info().scatter_gather_num_tiles();
-                
+
                     int dram_prefetch_noc_id = 0;
                     int dram_ram_flag = 0;
                     int dram_io_skip_flow_ctrl = 0;
@@ -2255,7 +2260,7 @@ void Net2Pipe::emit_kernel_bufs(
                             ERROR("Op: " + op_info.name + " has non-queue output " + queue_name);
                         }
                         tt_queue_info queue_info = this->parsed_netlist.queue_map.at(queue_name);
-                        dram_prefetch_noc_id = get_dram_prefetch_noc_id(queue_name, op_name);  
+                        dram_prefetch_noc_id = get_dram_prefetch_noc_id(queue_name, op_name);
                         dram_ram_flag = (queue_info.type == IO_TYPE::RandomAccess);
                         dram_io_skip_flow_ctrl = (queue_info.type == IO_TYPE::RandomAccess);
                         dram_io_allow_overwrite = (queue_info.type == IO_TYPE::RandomAccess);
@@ -2282,7 +2287,7 @@ void Net2Pipe::emit_kernel_bufs(
                     out << YAML::Value << YAML::BeginMap;
 
                     out << SET_KEY_VAL("md_op_name", op_name);
-                    out << SET_KEY_VAL("buffer_type", (op_info.gradient_op ? 
+                    out << SET_KEY_VAL("buffer_type", (op_info.gradient_op ?
                         n2p::c_GradientOp : n2p::c_Intermediate));
                     out << SET_KEY_VAL("id", int_operand_id);
                     out << SET_KEY_VAL("uniqid", deterministic_id_map.get_deterministic_key(int_unique_id));
@@ -2314,7 +2319,7 @@ void Net2Pipe::emit_kernel_bufs(
                     out << SET_KEY_VAL("ublock_ct", op_info.output_dim.ublock_ct);
                     out << SET_KEY_VAL("mblock_m", op_info.output_dim.mblock_m);
                     out << SET_KEY_VAL("mblock_n", op_info.output_dim.mblock_n);
-                    out << SET_KEY_VAL("mblock_k", mblock_k); 
+                    out << SET_KEY_VAL("mblock_k", mblock_k);
                     emit_untilize_output(out, NULL);
 
                     out << YAML::EndMap;
@@ -2330,7 +2335,7 @@ void Net2Pipe::create_prolog_buffers(const std::string &op_name, int input_index
 
     const string op_input_name = epoch_context.op_input_name_map[op_name][input_index];
     const n2p::prolog_layout& layout = epoch_context.prolog_layout_per_op.at(op_name).at(op_input_name);
-    
+
     const int num_mcast_lines = layout.num_cores_to_mcast;
 
     //TODO: max chunks calc is wrong for the general multiple chunk case
@@ -2358,11 +2363,11 @@ void Net2Pipe::create_prolog_buffers(const std::string &op_name, int input_index
 
             .uniqid = unique_id,
             .id = n2p::PROLOG_CHUNK_OPERAND_ID,
-            
+
             .epoch_tiles = layout.chunk_size_tiles,
             .size_tiles = layout.chunk_size_tiles,
             .scatter_gather_num_tiles = layout.chunk_size_tiles,
-            
+
             .tile_size = tile_size_bytes,
 
             .chip_id = chip_id,
@@ -2384,15 +2389,15 @@ void Net2Pipe::create_prolog_buffers(const std::string &op_name, int input_index
         );
 
         const auto& input_buffer_info = tt::buffer_info(
-            tt::RouterBufferType::PrologInter, 
-            0,// k, 
-            0,//op_info.t, 
-            layout.chunk_size_tiles,//input_size_tiles, 
-            0,//op_info.ublock_rt, 
-            0,//op_info.ublock_ct, 
-            0,//input_count, 
-            0,//op_info.mblock_m, 
-            0,//op_info.mblock_n, 
+            tt::RouterBufferType::PrologInter,
+            0,// k,
+            0,//op_info.t,
+            layout.chunk_size_tiles,//input_size_tiles,
+            0,//op_info.ublock_rt,
+            0,//op_info.ublock_ct,
+            0,//input_count,
+            0,//op_info.mblock_m,
+            0,//op_info.mblock_n,
             0,//input_scatter_gather_num_tiles,
             0,//input_epoch_tiles,
             0,
@@ -2543,7 +2548,7 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
     int consumer_delta_x = consumer_chip_x - producer_chip_x;
     int consumer_delta_y = consumer_chip_y - producer_chip_y;
 
-    const auto& producer_channels = 
+    const auto& producer_channels =
         choose_direction_channels(producer_chip,
                                   producer_up_channels,
                                   producer_right_channels,
@@ -2551,7 +2556,7 @@ void Net2Pipe::naive_place_unplaced_ethernet_datacopy_ops(const std::string &op_
                                   producer_left_channels,
                                   producer_delta_x,
                                   producer_delta_y);
-    const auto& consumer_channels = 
+    const auto& consumer_channels =
         choose_direction_channels(consumer_chip,
                                   consumer_up_channels,
                                   consumer_right_channels,
@@ -2636,10 +2641,10 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
 
     for (int i = 0; i < op_info.grid_size_logical_r(); i++) {
         for (int j = 0; j < op_info.grid_size_logical_c(); j++) {
-          
+
             int num_input_bufs = n2p::get_op_num_input_bufs(op_info);
 
-            // Need to update for ethernet datacopy - should be the dest channel locations 
+            // Need to update for ethernet datacopy - should be the dest channel locations
             const auto& routing_core_coordinates = get_op_core_routing_cxy(op_name, op_info, i, j, is_ethernet_datacopy);
             const bool routing_core_is_assigned = std::holds_alternative<tt_cxy_pair>(routing_core_coordinates);
             TT_ASSERT(routing_core_is_assigned || is_ethernet_datacopy, "Only ethernet datacopy op buffers can be unassigned to routing cores when collecting kernel buffer info");
@@ -2664,15 +2669,15 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 tt_xy_pair const &input_tile_dim_xy =
                     tt_xy_pair(n2p::get_tile_width(input_tile_dim), n2p::get_tile_height(input_tile_dim));
                 const auto& input_buffer_info = tt::buffer_info(
-                   tt::RouterBufferType::Input, 
-                   is_ethernet_datacopy ? -1 : k, 
-                   op_info.output_dim.t, 
-                   input_size_tiles, 
-                   op_info.output_dim.ublock_rt, 
-                   op_info.output_dim.ublock_ct, 
-                   input_count, 
-                   op_info.output_dim.mblock_m, 
-                   op_info.output_dim.mblock_n, 
+                   tt::RouterBufferType::Input,
+                   is_ethernet_datacopy ? -1 : k,
+                   op_info.output_dim.t,
+                   input_size_tiles,
+                   op_info.output_dim.ublock_rt,
+                   op_info.output_dim.ublock_ct,
+                   input_count,
+                   op_info.output_dim.mblock_m,
+                   op_info.output_dim.mblock_n,
                    input_scatter_gather_num_tiles,
                    input_epoch_tiles,
                    0,
@@ -2832,15 +2837,15 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
 
             const TileDim output_tile_dim = op_info.output_tile_dim;
             const auto& output_buffer_info = tt::buffer_info(
-                tt::RouterBufferType::Output, 
-                is_ethernet_datacopy ? -1 : OUTPUT_BUFFER_STREAM_START, 
-                op_info.output_dim.t, 
-                output_size_tiles, 
-                op_info.output_dim.ublock_rt, 
-                op_info.output_dim.ublock_ct, 
-                input_count, 
-                op_info.output_dim.mblock_m, 
-                op_info.output_dim.mblock_n, 
+                tt::RouterBufferType::Output,
+                is_ethernet_datacopy ? -1 : OUTPUT_BUFFER_STREAM_START,
+                op_info.output_dim.t,
+                output_size_tiles,
+                op_info.output_dim.ublock_rt,
+                op_info.output_dim.ublock_ct,
+                input_count,
+                op_info.output_dim.mblock_m,
+                op_info.output_dim.mblock_n,
                 output_scatter_gather_num_tiles,
                 output_epoch_tiles,
                 output_replicate,
@@ -2848,7 +2853,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 tt_xy_pair(n2p::get_tile_width(output_tile_dim), n2p::get_tile_height(output_tile_dim)),
                 op_info.untilize_output,
                 output_is_scatter);
-                log_debug( 
+                log_debug(
                     tt::LogNet2Pipe,
                     "Adding output buffer id {} which belongs to op {} on output {}",
                 output_unique_id,
@@ -2862,7 +2867,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                 output_buffer_info.allocated_size_in_bytes(),
                 op_info.name,
                 0);
-            const auto& output_buffer = routing_core_is_assigned ? 
+            const auto& output_buffer = routing_core_is_assigned ?
                 router::router_buffer_info_t::create_immutable(std::get<tt_cxy_pair>(routing_core_coordinates), output_buffer_info) :
                 router::router_buffer_info_t::create_mutable(std::get<chip_id_t>(routing_core_coordinates), output_buffer_info);
 
@@ -2871,7 +2876,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
 
             if (output_is_scatter) {
               for (int rep = 1; rep < output_replicate; rep++) {
-                log_debug( 
+                log_debug(
                 tt::LogNet2Pipe,
                 "Adding output buffer id {} which belongs to op {} on output {}",
                 output_unique_id + rep*output_scatter_gather_num_tiles,
@@ -2913,15 +2918,15 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
 
                     TileDim intermediate_tile_dim = op_info.output_tile_dim;
                     const auto& intermediate_buffer_info = tt::buffer_info(
-                        tt::RouterBufferType::Intermediate, 
+                        tt::RouterBufferType::Intermediate,
                         int_id,
-                        op_info.output_dim.t, 
-                        int_size_tiles, 
-                        op_info.output_dim.ublock_rt, 
-                        op_info.output_dim.ublock_ct, 
-                        input_count, 
-                        op_info.output_dim.mblock_m, 
-                        op_info.output_dim.mblock_n, 
+                        op_info.output_dim.t,
+                        int_size_tiles,
+                        op_info.output_dim.ublock_rt,
+                        op_info.output_dim.ublock_ct,
+                        input_count,
+                        op_info.output_dim.mblock_m,
+                        op_info.output_dim.mblock_n,
                         int_scatter_gather_num_tiles,
                         int_epoch_tiles,
                         0,
@@ -2933,7 +2938,7 @@ void Net2Pipe::collect_kernel_buf_info(const std::string &op_name, int input_cou
                     epoch_context.buffer_map.insert(
                         {int_unique_id, router::router_buffer_info_t::create_immutable(std::get<tt_cxy_pair>(routing_core_coordinates), intermediate_buffer_info)});
                     epoch_context.buffer_op_or_queue_name_map.insert({int_unique_id, op_name});
-                }        
+                }
             }
         }
     }
@@ -2954,7 +2959,7 @@ bool Net2Pipe::producer_output_row_major_ublock_scan_order(std::string producer_
       ERROR("Op: " + producer_op_info.name << " is a reduce but does not have ublock_order: r");
     } else if ((n2p::get_op_class(producer_op_info) == OpClass::Depthwise) && !result) {
       ERROR("Op: " + producer_op_info.name << " is a depthwise but does not have ublock_order: r");
-    }  
+    }
     return result;
   } else {
     ERROR(std::string("Unknown producer name: ") + producer_name);
@@ -2970,7 +2975,7 @@ void Net2Pipe::emit_untilize_output(YAML::Emitter &out, const tt_op_info *op_inf
     int type_0_zdim = 0;
     int type_1_zdim = 0;
     int untilized_output = 0;
-    int tile_dim_r = 0;    
+    int tile_dim_r = 0;
     int tile_dim_c = 0;
 
     if ((op_info != NULL) && op_info->untilize_output) {
@@ -3050,7 +3055,7 @@ void Net2Pipe::get_op_input(
         tile_size_bytes = n2p::get_format_tile_size_bytes(op_info.input_data_formats[index], false, input_queue_info.tile_dim) * input_queue_info.dim.ublock_ct / tt::tile_dim_to_array(input_queue_info.tile_dim)[0];
       } else {
         ERROR(std::string("Op ") + op_info.name + " is an embedding/tilizer op whose input 0 is not a support IO type");
-      }      
+      }
     } else {
       tile_size_bytes = n2p::get_format_tile_size_bytes(op_info.input_data_formats[index], true, op_info.input_tile_dims[index]);
     }
@@ -3116,7 +3121,7 @@ void Net2Pipe::get_op_input(
             input_block_size_tiles = get_mblock_size_tiles(op_info) * op_info.attributes.m_k;
             scatter_gather_num_tiles = op_info.output_dim.mblock_m * op_info.output_dim.ublock_rt * op_info.output_dim.ublock_ct;
         } else if (index == 1) {
-            input_block_size_tiles = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.m_k * op_info.attributes.u_kt; // u_kt == 1 for depthwise 
+            input_block_size_tiles = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.m_k * op_info.attributes.u_kt; // u_kt == 1 for depthwise
             scatter_gather_num_tiles = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.u_kt;
         } else {
             if (!op_info.attributes.bias) {
@@ -3139,7 +3144,7 @@ void Net2Pipe::get_op_input(
             epoch_tiles = input_count * op_info.output_dim.t * input_block_size_tiles;
         } else if (op_info.attributes.reduce_dim == Dim::Z) {
             int mblock_size_tiles = op_info.output_dim.ublock_rt * op_info.output_dim.ublock_ct * op_info.output_dim.mblock_m * op_info.output_dim.mblock_n;
-            epoch_tiles = input_count * (op_info.output_dim.t*op_info.attributes.z) * mblock_size_tiles; 
+            epoch_tiles = input_count * (op_info.output_dim.t*op_info.attributes.z) * mblock_size_tiles;
             scatter_gather_num_tiles = mblock_size_tiles;
         } else {
             TT_ASSERT(false, "unsupported reduce dim. only r, c and z are supported");
@@ -3155,8 +3160,8 @@ void Net2Pipe::get_op_input(
         int ublock_ct = input2op_map[rel_input_name].output_dim.ublock_ct;
 
         if (input2op_map[rel_input_name].type == "matmul") {
-            int m_k = input2op_map[rel_input_name].m_k; 
-            int u_kt = input2op_map[rel_input_name].u_kt; 
+            int m_k = input2op_map[rel_input_name].m_k;
+            int u_kt = input2op_map[rel_input_name].u_kt;
             int input_block_k_tiles = m_k * u_kt;
             int input_block_size_tiles;
             if (rel_input_name == input2op_map[rel_input_name].input_names.at(0)) {
@@ -3168,8 +3173,8 @@ void Net2Pipe::get_op_input(
             }
             epoch_tiles = input_count * op_info.output_dim.t * input_block_size_tiles;
         } else if (input2op_map[rel_input_name].type == "reduce") {
-            int m_k = input2op_map[rel_input_name].m_k; 
-            int u_kt = input2op_map[rel_input_name].u_kt; 
+            int m_k = input2op_map[rel_input_name].m_k;
+            int u_kt = input2op_map[rel_input_name].u_kt;
             int input_block_k_tiles = m_k * u_kt;
             int input_block_size_tiles;
             if (input2op_map[rel_input_name].reduce_dim == Dim::R) {
@@ -3180,13 +3185,13 @@ void Net2Pipe::get_op_input(
                 scatter_gather_num_tiles = ublock_rt * u_kt;
             } else {
                 TT_ASSERT(false, "unsupported reduce dim in fused op. only r and c are supported");
-            }    
+            }
             epoch_tiles = input_count * op_info.output_dim.t * input_block_size_tiles;
         } else {
             int mblock_size_tiles = ublock_rt * ublock_ct * mblock_m * mblock_n;
             epoch_tiles = input_count * op_info.output_dim.t * mblock_size_tiles;
             scatter_gather_num_tiles = mblock_size_tiles;
-        }    
+        }
     } else if (n2p::get_op_class(op_info) == OpClass::Nary) {
         tt_dim_info input_dim = op_info.input_dims.at(index);
         if (op_info.attributes.splice_mode == SpliceMode::Ublock) {
@@ -3209,7 +3214,7 @@ void Net2Pipe::get_op_input(
             input_block_size_tiles = op_info.attributes.num_index_tiles;
             scatter_gather_num_tiles = op_info.attributes.num_index_tiles;
             epoch_tiles = input_count * input_block_size_tiles;
-        }    
+        }
     } else if (n2p::get_op_class(op_info) == OpClass::Embedding) {
         int num_indices_per_core = op_info.attributes.num_indices / (op_info.grid_size_logical_r() * op_info.grid_size_logical_c());
         std::string table_input_name = op_info.input_names[index];
@@ -3257,15 +3262,15 @@ void Net2Pipe::get_op_input(
 
 
 int Net2Pipe::get_op_kernel_input_size_tiles(tt_op_info op_info, int index, const temporal_epoch_context& epoch_context) const {
-  
+
   bool embedding_op = (n2p::get_op_class(op_info) == OpClass::Embedding);
   bool tilizer_op = (n2p::get_op_class(op_info) == OpClass::Tilizer);
   bool tiles_no_header = (embedding_op || tilizer_op) && (index == 0);
   int tile_size_bytes = n2p::get_format_tile_size_bytes(op_info.input_data_formats[index], !tiles_no_header, op_info.input_tile_dims[index]);
   int kernel_clear_tiles = this->get_op_kernel_input_tile_clear_granularity(op_info, index);
   int kernel_clear_bytes = kernel_clear_tiles * tile_size_bytes;
-  
-  int min_size_bytes = 0;  
+
+  int min_size_bytes = 0;
   auto incoming_bw_bytes_per_cycle = netlist_utils::is_valid_ethernet_op(op_info.type) ? 1/*ETH_BW_BYTES_PER_CYCLE*/ : NOC_BW_BYTES_PER_CYCLE;
   int min_size_bytes_full_latency_hiding = KERNEL_INPUT_MIN_LATENCY_CYCLES *  incoming_bw_bytes_per_cycle;
 
@@ -3327,7 +3332,7 @@ int Net2Pipe::get_op_kernel_input_size_tiles(tt_op_info op_info, int index, cons
 
   if (min_size_bytes < (2*kernel_clear_bytes)) {
     min_size_bytes = 2*kernel_clear_bytes;
-  }  
+  }
 
   int min_size_bytes_param = op_info.input_buf_min_size_tiles.at(index) * tile_size_bytes;
   int rounding_size_bytes;
@@ -3337,24 +3342,24 @@ int Net2Pipe::get_op_kernel_input_size_tiles(tt_op_info op_info, int index, cons
   } else {
     // FIXME imatosevic - revise this
     // For now, unless minimal input buffer size is given in netlist, round up to 2*kernel_clear_bytes,
-    // to keep perf results consistent with previous runs. 
+    // to keep perf results consistent with previous runs.
     rounding_size_bytes = 2*kernel_clear_bytes;
   }
-  
+
   if ((min_size_bytes % rounding_size_bytes) != 0) {
     min_size_bytes = ((min_size_bytes/rounding_size_bytes) + 1)*rounding_size_bytes;
   }
-  
+
   return min_size_bytes/tile_size_bytes;
 }
 
 void n2p::get_op_input_mcast(const tt_op_info& op_info, int input_num,
-                             const std::map<std::string, std::unordered_map<std::string, tt_scheduled_op_info>> &fused_op_schedule_map, 
+                             const std::map<std::string, std::unordered_map<std::string, tt_scheduled_op_info>> &fused_op_schedule_map,
                              bool& row_mcast, bool& col_mcast, bool& noc1_mcast) {
 
   bool invert_mcast_noc = false;
   if (n2p::get_op_class(op_info) == OpClass::MatMul) {
-    
+
     if (op_info.attributes.identity) {
       if (input_num == 0) {
         row_mcast = false;
@@ -3371,7 +3376,7 @@ void n2p::get_op_input_mcast(const tt_op_info& op_info, int input_num,
         col_mcast = false;
       }
     } else { // matmul, identity = false
-      if (input_num == 0) {        
+      if (input_num == 0) {
         row_mcast = true;
         col_mcast = false;
       } else if (input_num == 1) {
@@ -3399,7 +3404,7 @@ void n2p::get_op_input_mcast(const tt_op_info& op_info, int input_num,
     row_mcast = false;
     col_mcast = false;
   } else if (n2p::get_op_class(op_info) == OpClass::FusedOp) {
-    string rel_input_name = "input" + to_string(input_num); 
+    string rel_input_name = "input" + to_string(input_num);
     std::unordered_map<std::string, tt_scheduled_op_info> input2op_map = fused_op_schedule_map.at(op_info.name);
     int num_row_mcasts = 0;
     int num_col_mcasts = 0;
@@ -3411,16 +3416,16 @@ void n2p::get_op_input_mcast(const tt_op_info& op_info, int input_num,
           if (input_name_w_index == input2op_map[input_name_w_index].input_names.at(0)) {
             if (input_num == i) {
                 row_mcast = true;
-                if (num_row_mcasts > 0) {                
-                    invert_mcast_noc = true;                
+                if (num_row_mcasts > 0) {
+                    invert_mcast_noc = true;
                 }
             }
             num_row_mcasts++;
           } else {
             if (input_num == i) {
                 col_mcast = true;
-                if (num_col_mcasts > 0) {                
-                    invert_mcast_noc = true;                
+                if (num_col_mcasts > 0) {
+                    invert_mcast_noc = true;
                 }
             }
             num_col_mcasts++;
@@ -3489,7 +3494,7 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
     int result;
 
     const unordered_map<string, tt_fused_op_info> &fused_ops_map = this->parsed_netlist.fused_ops_op_map;
-    
+
     if (op_info.input_kernel_broadcasted(index)) {
       result = op_info.input_kernel_broadcasted(index);
     }
@@ -3500,7 +3505,7 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
             } else if (index == 1) {
                 result = op_info.output_dim.mblock_n * op_info.output_dim.ublock_ct * op_info.attributes.u_kt;
             } else if (index == 2) {
-                result = 1; 
+                result = 1;
             } else {
                if (!op_info.attributes.bias)  {
                   ERROR(std::string("Op ") + op_info.name + " has 4th input but no bias attribute set ");
@@ -3551,25 +3556,25 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
         int ublock_ct = input2op_map[rel_input_name].output_dim.ublock_ct;
 
         if (input2op_map[rel_input_name].type == "matmul") {
-            int u_kt = input2op_map[rel_input_name].u_kt; 
-            int m_k  = input2op_map[rel_input_name].m_k; 
+            int u_kt = input2op_map[rel_input_name].u_kt;
+            int m_k  = input2op_map[rel_input_name].m_k;
             if (rel_input_name == input2op_map[rel_input_name].input_names.at(0)) {
                 result = ublock_rt * u_kt;
             } else {
                 result = u_kt * ublock_ct;
             }
         } else if (input2op_map[rel_input_name].type == "reduce") {
-            int u_kt = input2op_map[rel_input_name].u_kt; 
+            int u_kt = input2op_map[rel_input_name].u_kt;
             if (input2op_map[rel_input_name].reduce_dim == Dim::R) {
                 result = ublock_ct * u_kt;
             } else if (input2op_map[rel_input_name].reduce_dim == Dim::C) {
                 result = ublock_rt * u_kt;
             } else {
                 TT_ASSERT(false, "unsupported reduce dim in fused op. only r and c are supported");
-            }    
+            }
         } else {
             result = ublock_rt * ublock_ct;
-        }    
+        }
 
         if (op_info.fused_op_info.forked_input_names.find(rel_input_name) != op_info.fused_op_info.forked_input_names.end()) {
             result *= op_info.fused_op_info.forked_input_names[rel_input_name]; // scale buffer size to support input forking
@@ -3579,7 +3584,7 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
             result = (op_info.attributes.min_input_buffer[0] ? 1 : op_info.output_dim.mblock_n) * op_info.output_dim.ublock_ct * op_info.attributes.u_kt;
         } else  {
             result = 1;
-        } 
+        }
     } else if (n2p::get_op_class(op_info) == OpClass::Embedding) {
         if (index == 0) {
             std::string table_input_name = op_info.input_names[index];
@@ -3597,7 +3602,7 @@ int Net2Pipe::get_op_kernel_input_tile_clear_granularity(tt_op_info op_info, int
     } else {
         result = op_info.output_dim.ublock_rt * op_info.output_dim.ublock_ct;
     }
-    
+
     return result;
 }
 
@@ -3616,7 +3621,7 @@ void Net2Pipe::get_op_output(
     int &scatter_gather_num_tiles,
     int &tiles_per_input) const {
 
-    // FIXME imatosevic - which other data format checks do we need? 
+    // FIXME imatosevic - which other data format checks do we need?
     if ((op_info.dest_accumulate_data_format == tt::DataFormat::Float32) &&
         (this->config.arch == tt::ARCH::GRAYSKULL)) {
       ERROR(std::string("Op ") + op_info.name + " has dest accumulate data format incompatible with arch = " + get_arch_str(this->config.arch));
@@ -3640,13 +3645,13 @@ void Net2Pipe::get_op_output(
         if (!divisible_either_direction(output_single_buf_size_mblocks, op_info.output_dim.t)) {
           ERROR(std::string("Op ") + op_info.name + " has t = " + std::to_string(op_info.output_dim.t) + " and stores " + std::to_string(output_single_buf_size_mblocks) + " mblocks on output, numbers not divisible either way");
         }
-    }    
+    }
 
-    // FIXME imatosevic - check if we still need any constraint on total input count t's? 
+    // FIXME imatosevic - check if we still need any constraint on total input count t's?
     // if (((input_count * op_info.output_dim.t) % output_single_buf_size_mblocks) != 0) {
     //   ERROR(std::string("Op ") + op_info.name + " with t = " + std::to_string(op_info.output_dim.t) + " and input count = " + std::to_string(input_count) + " double-buffers a non-divisible number of mblocks on output (" + std::to_string(output_single_buf_size_mblocks) + ")");
     // }
-    
+
     if (is_output_scatter(op_info.name, scatter_gather_num_tiles, epoch_context)) {
         is_scatter = 1;
         TT_ASSERT(n2p::get_op_class(op_info) != OpClass::Buffer); // Buffer op output must not be scatter as there is no TM between buffer op output and consumer input
@@ -3686,7 +3691,7 @@ void Net2Pipe::get_op_output(
 }
 
 void Net2Pipe::compute_queue_tms(std::string queue_name, int input_count, temporal_epoch_context& epoch_context) const {
-    
+
     tt_queue_info queue_info = this->parsed_netlist.queue_map.at(queue_name);
     if (!netlist_parser::is_queue_fed_by_op(queue_info)) {
         return;
@@ -3855,7 +3860,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
             const std::vector<int>& curr_tm_args = get<1>(it);
             input_src_tm = input_src_tm.apply_tm(tm_name, curr_tm_args);
         }
-        
+
         // Apply Padding
         const auto& pad_attribute = op_info.input_padding.at(input_num);
         if (pad_attribute.rt > 0 || pad_attribute.ct > 0) {
@@ -3893,9 +3898,9 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                        epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                        epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                         log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                         op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                         op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                          input_num, input_name, max_num_tiles, kernel_buf_size);
                     }
                 } else if (input_num == 1) {
@@ -3928,9 +3933,9 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                        epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                        epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                         log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                         op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                         op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                          input_num, input_name, max_num_tiles, kernel_buf_size);
                     }
 
@@ -3955,9 +3960,9 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                        epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                        epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                         log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                            op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                            op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                             input_num, input_name, max_num_tiles, kernel_buf_size);
                     }
                 }
@@ -3983,7 +3988,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     const int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                     const int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
                     const bool unroll_and_post_tm_prolog = is_name_prolog_queue(op_info.input_names[input_num], epoch_context) and
-                                                           max_num_tiles <= kernel_buf_size;
+                                                           n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
 
                     log_debug(tt::LogNet2Pipe, "matmul in0 unroll prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
                         op_name, unroll_and_post_tm_prolog,
@@ -3999,7 +4004,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     }
 
                 } else if (input_num == 1) {
-                    
+
                     auto prolog_layout = n2p::get_prolog_layout(
                             t,
                             op_info.attributes.u_kt,
@@ -4009,13 +4014,13 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                             op_info.grid_size[0],
                             op_info.grid_size[1]
                         );
-                    /*const bool prolog_will_reblock = prolog_layout.num_chunks_to_gather != 1 and 
+                    /*const bool prolog_will_reblock = prolog_layout.num_chunks_to_gather != 1 and
                                                 (prolog_layout.num_chunks_to_gather != input_src_tm.producer_data_format.num_cores_r or
                                                 prolog_layout.num_cores_to_mcast != input_src_tm.producer_data_format.num_cores_c);
 */
                     const bool prolog_will_reblock = true;
-                    
-                    const bool do_two_step_matmul_prolog =   prolog_will_reblock and 
+
+                    const bool do_two_step_matmul_prolog =   prolog_will_reblock and
                                                              op_info.input_tm_ops[input_num].size() == 0 and
                                                              is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context);
                     consumer_to_producer_tile_map input_tm = input_src_tm.get_op_matmul_col_input(
@@ -4030,10 +4035,10 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         op_info.grid_size[1]);
 
                     int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
-                    
+
                     const bool unroll_and_post_tm_prolog = is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context) and
-                                                           max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                    
+                                                           n2p::can_use_post_tm_prologue(max_num_tiles, get_op_kernel_input_size_tiles(op_info, input_num, epoch_context));
+
                     //log_debug(tt::LogNet2Pipe, "unroll_and_post_tm_prolog: '{}', max_num_tiles: '{}'; get_op_kernel_input_size_tiles(op_info, input_num): {}",
                     //    unroll_and_post_tm_prolog, max_num_tiles, get_op_kernel_input_size_tiles(op_info, input_num));
 
@@ -4042,7 +4047,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                         epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                     }
-                    else if (do_two_step_matmul_prolog) { 
+                    else if (do_two_step_matmul_prolog) {
                         // prolog
                         epoch_context.prolog_layout_per_op[op_name][input_name] = n2p::get_prolog_layout(
                             t,
@@ -4099,13 +4104,13 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                         int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                         int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                        epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                        epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                         log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                            op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                            op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                             input_num, input_name, max_num_tiles, kernel_buf_size);
                     }
                 }
-            }    
+            }
         } else if (n2p::get_op_class(op_info) == OpClass::Depthwise) {
             int t = op_info.output_dim.t;
             if (input_num == 0) {
@@ -4125,7 +4130,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 const int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                 const int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
                 const bool unroll_and_post_tm_prolog = is_name_prolog_queue(op_info.input_names[input_num], epoch_context) and
-                                                        max_num_tiles <= kernel_buf_size;
+                                                        n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
 
                 log_debug(tt::LogNet2Pipe, "matmul in0 unroll prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
                     op_name, unroll_and_post_tm_prolog,
@@ -4166,7 +4171,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
 
                 const bool unroll_and_post_tm_prolog = is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context) and
-                                                        max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
+                                                        n2p::can_use_post_tm_prologue(max_num_tiles, get_op_kernel_input_size_tiles(op_info, input_num, epoch_context));
 
                 //log_debug(tt::LogNet2Pipe, "unroll_and_post_tm_prolog: '{}', max_num_tiles: '{}'; get_op_kernel_input_size_tiles(op_info, input_num): {}",
                 //    unroll_and_post_tm_prolog, max_num_tiles, get_op_kernel_input_size_tiles(op_info, input_num));
@@ -4176,7 +4181,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
                     epoch_context.prolog_post_tm_operand[op_name][input_name] = true;
                 }
-                else if (do_two_step_matmul_prolog) { 
+                else if (do_two_step_matmul_prolog) {
                     // prolog
                     epoch_context.prolog_layout_per_op[op_name][input_name] = n2p::get_prolog_layout(
                         t,
@@ -4233,9 +4238,9 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                     int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                     int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                    epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                    epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                     log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                        op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                        op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                         input_num, input_name, max_num_tiles, kernel_buf_size);
                 }
             }
@@ -4306,8 +4311,8 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
 
 
             if (input2op_map[rel_input_name].type == "matmul") {
-                int m_k = input2op_map[rel_input_name].m_k; 
-                int u_kt = input2op_map[rel_input_name].u_kt; 
+                int m_k = input2op_map[rel_input_name].m_k;
+                int u_kt = input2op_map[rel_input_name].u_kt;
                 if (rel_input_name == input2op_map[rel_input_name].input_names.at(0)) {
                     consumer_to_producer_tile_map input_tm = input_src_tm.get_op_matmul_row_input(
                         kernel_bcast_tiles,
@@ -4318,7 +4323,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         mblock_m,
                         m_k,
                         op_info.grid_size_logical_r(),
-                        op_info.grid_size_logical_c(), 
+                        op_info.grid_size_logical_c(),
                         true);
 
                     epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
@@ -4337,14 +4342,14 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                         false);
 
                     epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
-               } 
+               }
             } else if (input2op_map[rel_input_name].type == "reduce")  {
                 if (input2op_map[rel_input_name].reduce_dim == Dim::R) {
                     mblock_m = input2op_map[rel_input_name].m_k;
                     ublock_rt = input2op_map[rel_input_name].u_kt;
 		            op_output_row_major_scan_order = false;
                 } else if (input2op_map[rel_input_name].reduce_dim == Dim::C) {
-                    mblock_n = input2op_map[rel_input_name].m_k; 
+                    mblock_n = input2op_map[rel_input_name].m_k;
                     ublock_ct = input2op_map[rel_input_name].u_kt;
 		            op_output_row_major_scan_order = true;
                 } else {
@@ -4375,26 +4380,26 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_c(),
                     op_output_row_major_scan_order);
                 epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
-                
+
                 if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                     int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                     int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                    epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                    epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                     log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                        op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                        op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                         input_num, input_name, max_num_tiles, kernel_buf_size);
                 }
-               
-            }   
+
+            }
         } else if (n2p::get_op_class(op_info) == OpClass::Nary) {
             tt_dim_info input_dim = op_info.input_dims.at(input_num);
             if (op_info.attributes.splice_mode == SpliceMode::Ublock) {
                 tt_grid_shape input_grid_shape = op_info.input_core_grids.at(input_num);
                 bool op_output_row_major_scan_order = producer_output_row_major_ublock_scan_order(op_name, epoch_context);
-                // input_src_tm should provide canonical [rt,ct,t] shape for input.  
+                // input_src_tm should provide canonical [rt,ct,t] shape for input.
                 // Need to account for reblocking to the consuming op ublock shape + grid size, but input t should be just the output t
                 int mblock_m = input_src_tm.get_size(map_dims::rt) / (op_info.grid_size_logical_r()*op_info.output_dim.ublock_rt);
-                int mblock_n = input_src_tm.get_size(map_dims::ct) / (op_info.grid_size_logical_c()*op_info.output_dim.ublock_ct); 
+                int mblock_n = input_src_tm.get_size(map_dims::ct) / (op_info.grid_size_logical_c()*op_info.output_dim.ublock_ct);
                 consumer_to_producer_tile_map input_tm = input_src_tm.get_op_eltwise_input(
                     kernel_bcast_tiles,
                     kernel_bcast_tiles_per_t,
@@ -4410,11 +4415,11 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
             } else if (op_info.attributes.splice_mode == SpliceMode::T){
                 tt_grid_shape input_grid_shape = op_info.input_core_grids.at(input_num);
                 bool op_output_row_major_scan_order = producer_output_row_major_ublock_scan_order(op_name, epoch_context);
-                // input_src_tm should provide canonical [rt,ct,t] shape for input.  
+                // input_src_tm should provide canonical [rt,ct,t] shape for input.
                 // Need to account for reblocking to the consuming op ublock shape + grid size.
-                int t = input_src_tm.get_size(map_dims::t); 
+                int t = input_src_tm.get_size(map_dims::t);
                 int mblock_m = input_src_tm.get_size(map_dims::rt) / (op_info.grid_size_logical_r()*op_info.output_dim.ublock_rt);
-                int mblock_n = input_src_tm.get_size(map_dims::ct) / (op_info.grid_size_logical_c()*op_info.output_dim.ublock_ct);  
+                int mblock_n = input_src_tm.get_size(map_dims::ct) / (op_info.grid_size_logical_c()*op_info.output_dim.ublock_ct);
                 consumer_to_producer_tile_map input_tm = input_src_tm.get_op_eltwise_input(
                     kernel_bcast_tiles,
                     kernel_bcast_tiles_per_t,
@@ -4454,7 +4459,7 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                     op_info.grid_size_logical_r(),
                     op_info.grid_size_logical_c());
                 epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] = input_tm;
-            }    
+            }
         } else if (n2p::get_op_class(op_info) == OpClass::Embedding) {
 
             tt_dim_info input_dim = op_info.input_dims.at(input_num);
@@ -4529,13 +4534,13 @@ void Net2Pipe::compute_op_tms(std::string op_name, int input_count, temporal_epo
                 op_info.grid_size_logical_c(),
                 op_output_row_major_scan_order);
             epoch_context.op_input_tm_pipes_map[op_name][input_name][input_num] =  input_tm;
-            
+
             if(is_name_prolog_queue(op_info.input_names.at(input_num), epoch_context)) {
                 int max_num_tiles = n2p::get_max_tiles_at_output(input_tm);
                 int kernel_buf_size = get_op_kernel_input_size_tiles(op_info, input_num, epoch_context);
-                epoch_context.prolog_post_tm_operand[op_name][input_name] = max_num_tiles <= kernel_buf_size;
+                epoch_context.prolog_post_tm_operand[op_name][input_name] = n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size);
                 log_debug(tt::LogNet2Pipe, "eltwise prolog for op '{}': enabled: '{}', input{}: '{}'; max num tiles prologed: {}, kernel_buf_size: {}",
-                    op_name, max_num_tiles <= get_op_kernel_input_size_tiles(op_info, input_num, epoch_context),
+                    op_name, n2p::can_use_post_tm_prologue(max_num_tiles, kernel_buf_size),
                     input_num, input_name, max_num_tiles, kernel_buf_size);
             }
         }
@@ -4583,7 +4588,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
             }
         }
         return;
-    }    
+    }
     else {
         consumer_to_producer_tile_map tile_map = epoch_context.queue_input_tm_pipes_map[queue_name];
         for (const auto& pipe_it : tile_map.pipes) {
@@ -4614,7 +4619,7 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
                 }
             }
             TT_ASSERT(all_inputs_on_same_core); // This is supposed to be already checked when we generate the tile map
-            chip_id_t producer_chip = netlist_utils::is_valid_ethernet_op(epoch_context.op_info_map.at(queue_info.input).type) ? 
+            chip_id_t producer_chip = netlist_utils::is_valid_ethernet_op(epoch_context.op_info_map.at(queue_info.input).type) ?
                 epoch_context.op_info_map.at(queue_info.input).attributes.ethernet_datacopy_attr.dest_device :
                 this->op_graph_map.at(queue_info.input).target_device;
             int pipe_routing_x, pipe_routing_y;
@@ -4647,9 +4652,9 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
 
             const auto& output_buf_ids = pipe_outputs.at(0);
             const auto& location = pipe_coords_cxy.at(0);
-            log_debug(tt::LogNet2Pipe, "CREATING QUEUE INPUT PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}", 
+            log_debug(tt::LogNet2Pipe, "CREATING QUEUE INPUT PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}",
                 pipe_unique_id,
-                location.chip, location.y, location.x, 
+                location.chip, location.y, location.x,
                 std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                 std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                 fmt::join(pipe_inputs, ", "), fmt::join(output_buf_ids, ", ")
@@ -4657,14 +4662,14 @@ void Net2Pipe::collect_queue_input_pipes(const std::string &queue_name, temporal
             auto router_pipe = pipe_t(location, pipe_inputs, output_buf_ids, queue_name, 0);
 
             if(input_op_info.gradient_op) {
-                // Keep track of pipes feeding gradient output Queues/RAMs. This data structure (along with this->pipes) is used to populate the queue to producers 
+                // Keep track of pipes feeding gradient output Queues/RAMs. This data structure (along with this->pipes) is used to populate the queue to producers
                 // map used by runtime.
                 epoch_context.grad_op_pipes.insert({pipe_unique_id, router_pipe});
             }
             else{
                 epoch_context.pipes.insert({pipe_unique_id, router_pipe});
                 this->register_pipe_as_output_of_buffers(pipe_unique_id, pipe_inputs, epoch_context);
-                this->register_pipe_as_input_of_buffers(pipe_unique_id, output_buf_ids, epoch_context); 
+                this->register_pipe_as_input_of_buffers(pipe_unique_id, output_buf_ids, epoch_context);
             }
         }
         return;
@@ -4719,8 +4724,8 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
     //         int producer_core_log_y = producer_op_info.grid_loc[0] + r;
     //         int producer_core_log_x = producer_op_info.grid_loc[1] + c;
     //         return tt_cxy_pair(
-    //             op_input_producer_chip, 
-    //             this->soc_descriptor->worker_log_to_routing_x.at(producer_core_log_x), 
+    //             op_input_producer_chip,
+    //             this->soc_descriptor->worker_log_to_routing_x.at(producer_core_log_x),
     //             this->soc_descriptor->worker_log_to_routing_y.at(producer_core_log_y)
     //         );
     //     }
@@ -4741,7 +4746,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             return -1;
         }
     };
-    
+
     tt_op_info op_info = epoch_context.op_info_map.at(op_name);
 
     int num_input_bufs = n2p::get_op_num_input_bufs(op_info);
@@ -4771,7 +4776,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
               if (connected_op_name == op_name) {
                 prolog_consumer_index_found = true;
                 break;
-              } 
+              }
               else if (this->op_graph_map.at(connected_op_name).name == graph_name and unique_ops.find(connected_op_name) == unique_ops.end() ) {
                 unique_ops.insert(connected_op_name);
                 prolog_consumer_index++;
@@ -4788,14 +4793,14 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             int dram_read_granularity = tile_map.scatter_granularity * tile_size_bytes;
             if (dram_read_granularity < MIN_DRAM_EFFICIENT_READ_SIZE_BYTES) {
               n2p::Log() << "\nWARNING - op " << op_name << ", has streaming DRAM input "
-                        << input_name << " with read granularity of " 
-                        << tile_map.scatter_granularity << " tiles (" 
+                        << input_name << " with read granularity of "
+                        << tile_map.scatter_granularity << " tiles ("
                         << dram_read_granularity << " bytes), should be at least ~4KB for efficient reads\n\n";
             }
           }
           */
         }
-        
+
         auto process_pipes = [this, input_name, input_index, op_name, op_info, prolog_consumer_index, tile_clear_granularity, &epoch_context](
             consumer_to_producer_tile_map& tile_map,
             bool has_two_step_prolog,
@@ -4810,8 +4815,8 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             } else {
                 chip_id_t chip = std::get<0>(pipe_coord);
                 return tt_cxy_pair(
-                    chip, 
-                    this->soc_descriptors.at(chip).worker_log_to_routing_x.at(std::get<2>(pipe_coord)), 
+                    chip,
+                    this->soc_descriptors.at(chip).worker_log_to_routing_x.at(std::get<2>(pipe_coord)),
                     this->soc_descriptors.at(chip).worker_log_to_routing_y.at(std::get<1>(pipe_coord))
                 );
             }
@@ -4820,7 +4825,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
         const int scatter_granularity = step2 ? tile_map.scatter_granularity : epoch_context.op_queue_output_buf_granularity.at(input_name);
 
         for (const auto& pipe_it : tile_map.pipes) {
-            
+
             phase_pipe_tile_map pipe = pipe_it.second;
             if(not pipe.validate_padding()) {
                 log_warning(tt::LogNet2Pipe, "Error at Op: {}, Input {}: {} ", op_name, input_index, input_name);
@@ -4828,7 +4833,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
                 log_fatal("Pipe contains only padding as input");
             }
             std::uint64_t pipe_unique_id = get_next_unique_id(epoch_context.horonological_unique_keys, n2p::UNIQUE_ID_ALIGN);
-            
+
             std::vector<std::vector<std::uint64_t>> pipe_outputs;
 
             auto& in_buf_map = (has_two_step_prolog and step1) ? epoch_context.prolog_buffer_map : epoch_context.op_input_buf_map;
@@ -4907,7 +4912,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             }
 
             std::vector<tt_cxy_pair> pipe_coords_cxy = {};
-            
+
             for (size_t i = 0; i < pipe_outputs.size(); i++) {
                 const auto& pipe_coord = pipe_coords.at(i);
                 pipe_coords_cxy.push_back(pipe_coord_lookup_function(pipe_coord, op_info, pipe_coords_are_ethernet_channels));
@@ -4934,7 +4939,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
                     else {
                         output_padding_list.push_back(0);
                     }
-                    
+
                 }
             }
 
@@ -4950,9 +4955,9 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             if (pipe_outputs.size() == 1) { // This is for default non-scatter pipes
                 const auto& output_buf_ids = pipe_outputs.at(0);
                 const auto& location = pipe_coords_cxy.at(0);
-                log_debug(tt::LogNet2Pipe, "CREATING PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}", 
+                log_debug(tt::LogNet2Pipe, "CREATING PIPE {} @ location (c={},y={},x={}). DRAM_READ? {}. DRAM_WRITE? {}. input_buffer_ids: {}, output_buffer_ids: {}",
                     pipe_unique_id,
-                    location.chip, location.y, location.x, 
+                    location.chip, location.y, location.x,
                     std::any_of(pipe_inputs.begin(),pipe_inputs.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                     std::any_of(output_buf_ids.begin(),output_buf_ids.end(), [this, &epoch_context](const auto& id) { return epoch_context.buffer_map.at(id).is_queue();}) ? "Y" : "N",
                     fmt::join(pipe_inputs, ", "), fmt::join(output_buf_ids, ", ")
@@ -4978,7 +4983,7 @@ void Net2Pipe::collect_op_input_pipes(const std::string &op_name, int input_coun
             }
         }
         };
-        const bool has_two_step_prolog = epoch_context.prolog_tm_pipes_map.find(op_name) != epoch_context.prolog_tm_pipes_map.end() and 
+        const bool has_two_step_prolog = epoch_context.prolog_tm_pipes_map.find(op_name) != epoch_context.prolog_tm_pipes_map.end() and
                                          epoch_context.prolog_tm_pipes_map.at(op_name).find(input_name) != epoch_context.prolog_tm_pipes_map.at(op_name).end();
         if (has_two_step_prolog) {
             log_debug(tt::LogNet2Pipe, "pipe @ '{}' : two step 0", input_name);
@@ -5061,7 +5066,7 @@ void Net2Pipe::get_queue_consumer_map(
                 chip,
                 this->soc_descriptors.at(chip).worker_log_to_routing_x.at(x_coord),
                 this->soc_descriptors.at(chip).worker_log_to_routing_y.at(y_coord));
-            
+
             epoch_context.input_queue_id_to_consumer_cores.at(unique_q_id).insert(routing_core_coordinates);
         }
     }
@@ -5150,7 +5155,7 @@ void Net2Pipe::dump_queue_to_core_map_to_file(const std::string& output_dir, boo
             core_yaml["x"] = core.x;
             core_yaml["y"] = core.y;
             queue_yaml[cores_tag][to_string(core_idx)] = core_yaml;
-            core_idx++; 
+            core_idx++;
         }
         output_yaml[queue_name][to_string(buf_idx)] = queue_yaml;
     }
@@ -5162,7 +5167,7 @@ void insert_new_input_to_output_entry(
         std::map<router::unique_id_t, std::vector<router::unique_id_t>> &inputs_to_output_pipes_map,
         std::vector<router::unique_id_t> const& input_list,
         std::vector<router::unique_id_t> const& output_pipe_list) {
-    
+
     for (const auto& input: input_list) {
         if (inputs_to_output_pipes_map.find(input) == inputs_to_output_pipes_map.end()) {
             inputs_to_output_pipes_map.insert({input, {}});
@@ -5281,7 +5286,7 @@ bool Net2Pipe::check_pipe_inputs_periodic(const pipe_t& pipe, int& period, int& 
     return false;
   }
   std::string producer_name = epoch_context.buffer_op_or_queue_name_map.at(pipe.input_buffer_ids.at(0));
-  
+
   int scatter_gather_num_tiles;
   if (!is_output_scatter(producer_name, scatter_gather_num_tiles, epoch_context)) {
     return false;
@@ -5290,7 +5295,7 @@ bool Net2Pipe::check_pipe_inputs_periodic(const pipe_t& pipe, int& period, int& 
   int period_found = false;
   bool undersized_period_found = false;
   int max_undersized_period = -1;
-  
+
   for (int p = 1; p <= (num_inputs/2); p++) {
     if (((num_inputs % p) == 0) && (((p*scatter_gather_num_tiles) % pipe.consumer_tile_granularity) == 0)) {
       bool p_is_period = true;
@@ -5314,7 +5319,7 @@ bool Net2Pipe::check_pipe_inputs_periodic(const pipe_t& pipe, int& period, int& 
         else {
           undersized_period_found = true;
           max_undersized_period = p;
-        }        
+        }
       }
     }
   }
@@ -5368,7 +5373,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
             const bool not_a_fork = op_info.forked_dram_input_names.find(input_name) == op_info.forked_dram_input_names.end();
             if (not_a_fork and name_is_queue(input_name)) {
                 if( dram_group_mapping[input_name].find(op_info.name) == dram_group_mapping[input_name].end()) {
-                    dram_group_mapping[input_name][op_info.name] = {};    
+                    dram_group_mapping[input_name][op_info.name] = {};
                 }
             }
         }
@@ -5409,7 +5414,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
         const auto op_reader_name = dram_group_mapping[input_queue_name].find(op_name) != dram_group_mapping[input_queue_name].end() ?
                                     op_name :
                                     temporal_epoch_op_map.at(op_name).forked_dram_input_names.at(input_queue_name);
-                                    
+
         dram_group_pipes[input_queue_name][op_reader_name].push_back(pipe_unique_id);
     }
 
@@ -5435,7 +5440,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
 
     // record num readers per buffer
     std::unordered_map<uint64_t, int> total_readers_per_buffer;
-    
+
     for (const auto& [input_queue_name, op_readers] : dram_group_pipes_by_forks) {
         for (const auto& [op_reader_name, unique_input_pipes] : op_readers) {
             if(dram_group_mapping.at(input_queue_name).at(op_reader_name).size() == 0) { // TODO: This only works if there is a single dram reader with an internal pipe replica
@@ -5490,7 +5495,7 @@ void Net2Pipe::process_dram_fork_pipes(const std::unordered_map<string, tt_op_in
                         for (const auto& q_id : unique_queue_ids) {
                             current_reader_per_buffer[q_id]++;
                         }
-                    }                    
+                    }
                 }
             }
             else {
@@ -5550,7 +5555,7 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
             periodic_input_buffer_ids.push_back(pipe.input_buffer_ids[p]);
           }
           input_list_current_pipe = periodic_input_buffer_ids;
-          
+
         } else {
           input_list_current_pipe = pipe.input_buffer_ids;
         }
@@ -5584,7 +5589,7 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
         out << YAML::Value << YAML::BeginMap;
 
         out << SET_KEY_VAL("id", deterministic_id_map.get_deterministic_key(pipe_unique_id));
-        
+
         bool is_ethernet_pipe = this->is_ethernet_pipe(pipe, epoch_context);
         if (is_ethernet_pipe) {
             out << SET_KEY_VAL("ethernet_pipe", YAML::Flow << 1);
@@ -5696,9 +5701,9 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
                 const tt_xy_pair &core_xy = tt_xy_pair(it.x, it.y);
                 bool is_worker_core = soc_desc.is_worker_core(core_xy);
                 TT_ASSERT(consumer_is_worker_core == is_worker_core, "Net2pipe doesn't currently support pipes that scatter to a mix of tensix and non-tensix cores");
-                
+
                 const tt_cxy_pair &mcast_core = tt_cxy_pair(
-                    it.chip, 
+                    it.chip,
                     is_worker_core ? soc_desc.get_worker_core(core_xy) : core_xy
                 );
 
@@ -5738,7 +5743,7 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
 
 
 int Net2Pipe::get_dram_prefetch_noc_id(const std::string& queue_name, const std::string& op_name) const {
-  return 0; // FIXME imatosevic - do we need to optimize this ever? 
+  return 0; // FIXME imatosevic - do we need to optimize this ever?
 }
 
 
@@ -5756,7 +5761,7 @@ void Net2Pipe::get_op_core_routing_cxy(const temporal_epoch_context& epoch_conte
         x_coord = soc_descriptors.at(chip).worker_log_to_routing_x.at(x_coord);
         y_coord = soc_descriptors.at(chip).worker_log_to_routing_y.at(y_coord);
     }
-};  
+};
 
 void Net2Pipe::get_op_input_pipe_mcast_core_rc(
     const tt_op_info &op_info,
@@ -5784,7 +5789,7 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
             "queue_is_post_tm_prolog = {}", queue_is_post_tm_prolog
         );
     bool valid_scatter_op = name_is_op(input_name, epoch_context) || (name_is_queue(input_name) && ((epoch_context.queue_setting_map.at(input_name).prolog and not input_is_prolog_tm) || epoch_context.queue_setting_map.at(input_name).epilog));
-    
+
     bool scatter_pipe = pipe_outputs.size() > 1;
     bool scatter_pipe_with_duplicates = false;
     if (scatter_pipe) {
@@ -5798,7 +5803,7 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
             }
         }
     }
-    
+
     const bool is_prolog = is_name_prolog_queue(input_name, epoch_context);
 
     if (valid_scatter_op) {
@@ -5821,10 +5826,10 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
 
     bool x_mcast_noc1 = false;
     bool y_mcast_noc1 = true;
-    
+
     bool col_mcast_noc1 = op_info.grid_transpose ? x_mcast_noc1 : y_mcast_noc1;
     bool row_mcast_noc1 = op_info.grid_transpose ? y_mcast_noc1 : x_mcast_noc1;
-   
+
     bool op_input_row_mcast;
     bool op_input_col_mcast;
     bool op_input_noc1_mcast;
@@ -5862,10 +5867,10 @@ void Net2Pipe::get_op_input_pipe_mcast_core_rc(
         bool direct_mcast = adjacent_mcast && !scatter_pipe && all_inputs_on_same_core;
         int pipe_y, pipe_x;
         chip_id_t pipe_chip;
-        bool producer_side_unicast_pipe = 
+        bool producer_side_unicast_pipe =
             !mcast_pipe &&
             !scatter_pipe_with_duplicates &&
-            valid_scatter_op && 
+            valid_scatter_op &&
             all_inputs_on_same_core;
 
         bool use_last_input_pipe_coords = producer_side_unicast_pipe || direct_mcast;
@@ -5980,7 +5985,7 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
     if (this->config.is_feature_ethernet_multichip_compile_enabled) {
         cluster_description.specify_enabled_devices(temporal_epoch_chip_ids);
     }
-    
+
     log_debug(tt::LogNet2Pipe, "---------------------------");
     log_debug(tt::LogNet2Pipe, "Routing temporal epoch {}", temporal_epoch);
     log_debug(tt::LogNet2Pipe, "---------------------------");
@@ -6117,7 +6122,7 @@ uint64_t Net2Pipe::get_pad_buffer_id(const tt_op_info& op_info, temporal_epoch_c
     const std::string op_name = op_info.name;
     const n2p::padding_db_key key = {op_name, input_index, chip, core_y, core_x};
     const std::string& input_name = epoch_context.op_input_name_map.at(op_name).at(input_index);
-    
+
     // If we already created the buffer, just return the ID
     if(epoch_context.pad_buffers_db.find(key) != epoch_context.pad_buffers_db.end()) {
         if( not (name_is_queue(input_name) and not epoch_context.queue_setting_map.at(input_name).prolog)) {
@@ -6126,7 +6131,7 @@ uint64_t Net2Pipe::get_pad_buffer_id(const tt_op_info& op_info, temporal_epoch_c
         }
         return epoch_context.pad_buffers_db.at(key).uniqid;
     }
-    
+
     n2p::padding_buffer buf;
     const DataFormat data_format = op_info.input_data_formats.at(input_index);
     const TileDim tile_dim = op_info.input_tile_dims.at(input_index);
@@ -6178,7 +6183,7 @@ uint64_t Net2Pipe::get_pad_buffer_id(const tt_op_info& op_info, temporal_epoch_c
         const bool post_tm = name_is_queue(input_name) and
                              epoch_context.queue_setting_map.at(input_name).prolog and
                              post_tm_prolog;
-        
+
         int epoch_tiles = -1;
         if(name_is_queue(input_name)) {
             epoch_tiles = epoch_context.input_count * epoch_context.op_queue_output_buf_granularity.at(input_name);
@@ -6274,7 +6279,7 @@ void Net2Pipe::emit_padding_table() {
     out_yaml << YAML::BeginSeq;
     for (const auto& [df, t]: this->dram_pad_addr_table) {
         for (const auto& [pad_val, addr]: t) {
-            // TODO: if we start running out of space in the table, may need to do smarter per chip and channel allocations 
+            // TODO: if we start running out of space in the table, may need to do smarter per chip and channel allocations
             // At best we can specialize to: {chip, channel, address, num_tiles, dataformat, value}
             out_yaml << YAML::BeginMap;
             out_yaml << YAML::Key << "address";
@@ -6343,7 +6348,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
         const string consumer_name = pipe.consumer_name();
         auto& consumer_map = consumer_to_pipe_id_map[consumer_name][pipe.consumer_input_index()];
         if(pipe.has_consumer()) {
-        
+
             if(pipe.is_scatter()) {
                 for (const auto& buffer_ids: pipe.time_multiplexed_output_buffer_ids()) {
                     for (const auto& buffer_id: buffer_ids) {
@@ -6397,7 +6402,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
                 }
                 std::cout  << "\n";
             }
-        } 
+        }
     }
 
     for (const auto& [queue_name, queue_info]: this->parsed_netlist.queue_map) {
@@ -6430,13 +6435,13 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
                 }
                 std::cout  << "\n";
             }
-        } 
+        }
     }
-#endif 
+#endif
 
     YAML::Emitter out_yaml;
     out_yaml << YAML::BeginMap;
-#if 0    
+#if 0
     out_yaml << YAML::Key << "queues";
     out_yaml << YAML::Value;
     out_yaml << YAML::BeginMap;
@@ -6449,7 +6454,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
     for (const auto& [op_name, op_info]: temporal_epoch_op_map) {
         out_yaml << YAML::Key << op_name;
         out_yaml << YAML::Value;
-        out_yaml << YAML::BeginMap; // op detail     
+        out_yaml << YAML::BeginMap; // op detail
         out_yaml << YAML::Key << "inputs";
         out_yaml << YAML::Value;
         out_yaml << YAML::BeginSeq; // operands
@@ -6487,7 +6492,7 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
             }
         }
         out_yaml << YAML::EndSeq; // operands
-        
+
         out_yaml << YAML::Key << "outputs";
         out_yaml << YAML::Value;
         out_yaml << YAML::BeginSeq; // outputs
