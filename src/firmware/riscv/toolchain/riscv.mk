@@ -27,7 +27,7 @@ include $(BUDA_HOME)/infra/common.mk
 
 SFPI ?= $(BUDA_HOME)/third_party/sfpi
 RISCV_TOOLS_PREFIX := $(SFPI)/compiler/bin/riscv32-unknown-elf-
-# RISCV_TOOLS_PREFIX := /home/software/risc-v/riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-
+# RISCV_TOOLS_PREFIX := /proj_sw/ci/software/risc-v/riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-
 CXX := $(CCACHE) $(RISCV_TOOLS_PREFIX)g++
 CC  := $(CCACHE) $(RISCV_TOOLS_PREFIX)gcc
 AS  := $(CCACHE) $(RISCV_TOOLS_PREFIX)gcc

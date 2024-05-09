@@ -17,7 +17,7 @@ using namespace verif::stimulus;
 using namespace verif::random;
 
 const string BINARIES_WEKA_DIR_PATH = std::getenv("TT_BACKEND_CI_TEST_BINARIES_DIR") ? 
-                    std::getenv("TT_BACKEND_CI_TEST_BINARIES_DIR") : "/home/software/spatial2/backend/binaries/CI_PERF_TEST_BINARIES/";
+                    std::getenv("TT_BACKEND_CI_TEST_BINARIES_DIR") : "/proj_sw/ci/software/spatial2/backend/binaries/CI_PERF_TEST_BINARIES/";
 
 struct common_test_args {
     int backend_opt_level = 0;

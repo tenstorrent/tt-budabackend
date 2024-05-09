@@ -60,7 +60,7 @@ curl --header "PRIVATE-TOKEN: <token>" \
 1. Navigate to `./collected_for_release/demos` directory and run `make`
 2. Observe built app in `./demos/app`, run the app command:
 
-`LD_LIBRARY_PATH=../budabackend_lib/build/lib BUDA_HOME=../budabackend_lib/ ./app/test_standalone_runtime /home/software/spatial2/backend/binaries/CI_TTI_TEST_BINARIES_WH/bert.tti`
+`LD_LIBRARY_PATH=../budabackend_lib/build/lib BUDA_HOME=../budabackend_lib/ ./app/test_standalone_runtime /proj_sw/ci/software/spatial2/backend/binaries/CI_TTI_TEST_BINARIES_WH/bert.tti`
 
 
 ## Appendix - Release folder structure
