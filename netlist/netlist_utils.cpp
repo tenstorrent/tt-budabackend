@@ -1251,6 +1251,7 @@ bool netlist_utils::is_queueless_multichip_supported(const tt::ARCH& device) {
         case tt::ARCH::GRAYSKULL: return true;
         case tt::ARCH::WORMHOLE: return true;
         case tt::ARCH::WORMHOLE_B0: return true;
+        case tt::ARCH::BLACKHOLE: return true;
         default: return false;
     }
 }
