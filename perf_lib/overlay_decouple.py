@@ -62,7 +62,7 @@ def get_overlay_decouple_analysis_csv_labels(report_type: ReportType, generate_o
     elif report_type == ReportType.Pipe:
         label += (analyzer_operand_key, analyzer_src_dest_key, analyzer_pipe_type_key, analyzer_required_kernel_bw_key, analyzer_pipe_bw_key, analyzer_percent_diff_key,)
     elif report_type == ReportType.KernelPipe:
-        bw_bound_keys = (analyzer_bw_limited_factor_key, analyzer_slowest_operand_key, analyzer_bw_bound_runtime_key, 
+        bw_bound_keys = (analyzer_bw_limited_factor_key, analyzer_slowest_operand_key, analyzer_bw_bound_runtime_key,
                          analyzer_bw_bound_runtime_per_input_key, analyzer_bw_bound_math_util_key,)
         label += kernel_model_runtime_keys
         label += kernel_model_math_util_keys
@@ -90,11 +90,11 @@ def get_overlay_decouple_analysis_csv_labels(report_type: ReportType, generate_o
                 analyzer_kernel_runtime_key,
                 analyzer_kernel_runtime_per_input_key,
                 analyzer_bw_bound_runtime_key,
-                analyzer_bw_bound_runtime_per_input_key, 
+                analyzer_bw_bound_runtime_per_input_key,
             )
     else:
         raise Exception(f"Invalid report type {report_type}")
-    
+
     return list(label)
 
 def get_overlay_decouple_analysis_excel_configs(report_type: ReportType):
@@ -107,7 +107,7 @@ def get_overlay_decouple_analysis_excel_configs(report_type: ReportType):
             analyzer_kernel_runtime_key: [1]
         }
         labels_to_bold = [
-            analyzer_kernel_runtime_key, 
+            analyzer_kernel_runtime_key,
             analyzer_kernel_math_util_key
         ]
         labels_to_highlight_graded_color = [
@@ -136,12 +136,12 @@ def get_overlay_decouple_analysis_excel_configs(report_type: ReportType):
             get_input_operand_bw_key(0): [1],
         }
         labels_to_bold = [
-            analyzer_bw_bound_runtime_key, 
+            analyzer_bw_bound_runtime_key,
             analyzer_bw_bound_runtime_per_input_key,
             analyzer_bw_bound_math_util_key,
             analyzer_bw_limited_factor_key,
         ]
-        
+
         labels_to_highlight_graded_color = [
             analyzer_bw_bound_math_util_key,
         ]
@@ -163,7 +163,7 @@ def get_overlay_decouple_analysis_excel_configs(report_type: ReportType):
         report_config["excel_chart_label"] = excel_chart_label
     else:
         raise Exception(f"Invalid report type {report_type}")
-    
+
     return report_config
 
 def get_perf_info(perf_output_dir: str):
@@ -200,7 +200,7 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
     all_cores_kernels = []
     all_cores_pipes = []
     all_cores_results = []
-    
+
     core_op_perf: Union[Dict[str, AnalyzerOpPerf], Dict[CoreCoord, CorePerf]] = graph_perf.analyzer_op_perf if generate_op_report else graph_perf.all_cores
     for coord_label, core_perf in core_op_perf.items():
         op_name = coord_label if generate_op_report else coord_label.op_name
@@ -214,7 +214,7 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
         grid_size = str(graph.get_grid_size_for_op(op_name))
         all_input_trisc_bw = []
         all_input_brisc_bw = []
-        
+
         kernel_temp = [global_epoch_ids, program_names, graph_name, warnings]
         if not generate_op_report:
             kernel_temp += [coord]
@@ -241,7 +241,7 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
             actual_pipe_bw = ROUND(core_perf.get_brisc_input_bw(input_idx))
             all_input_brisc_bw.append(core_perf.get_brisc_input_bw(input_idx))
             percentage_of_difference = get_diff_percentage(required_kernel_bw, actual_pipe_bw)
-            
+
             kernel_temp = [global_epoch_ids, program_names, graph_name, warnings]
             if not generate_op_report:
                 kernel_temp += [coord]
@@ -258,7 +258,6 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
             all_cores_pipes.append(kernel_temp)
 
         outputs = graph.get_output_operands_for_op(op_name)
-        ASSERT(len(outputs) > 0, f"Number of output nodes for op {op_name} in graph {graph_name} program {program_names} is 0")
         output_name_all = ""
         any_queue = False
         any_op = False
@@ -278,7 +277,9 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
             pipe_type = "output-queue-pipe"
         elif any_op:
             pipe_type = "output-op-pipe"
-        
+        else:
+            pipe_type = "no-op-output-pipe"
+
         required_output_bw = ROUND(core_perf.get_trisc_output_bw())
         actual_output_bw = ROUND(core_perf.get_output_decouple_bw())
         percentage_of_difference_output = ROUND(get_diff_percentage(required_output_bw, actual_output_bw))
@@ -326,7 +327,7 @@ def get_all_perf(graph_perf:GraphPerf, graph: Graph, generate_op_report: bool):
             core_results.append(input_brisc_bw)
             input_trisc_bw = ROUND(all_input_trisc_bw[i])
             core_results.append(input_trisc_bw)
-        
+
         all_cores_results.append(core_results)
 
     return (all_cores_kernels, all_cores_pipes, all_cores_results)
@@ -336,19 +337,19 @@ def get_overlay_decouple_per_op_json(sorted_core_perf: List[List[str]], sorted_o
     op_measurements_key = "op-measurements"
     core_measurements_key = "core-measurements"
     json_report = {}
-    
+
     # Dump per-op measurements
     per_op_labels = get_overlay_decouple_analysis_csv_labels(ReportType.KernelPipe, True)
-    
+
     op_metadata_key_index_map: Dict[str, int] = {
         analyzer_global_epoch_ids_key: per_op_labels.index(analyzer_global_epoch_ids_key),
         analyzer_program_names_key: per_op_labels.index(analyzer_program_names_key),
         analyzer_graph_name_key: per_op_labels.index(analyzer_graph_name_key),
         analyzer_first_last_input_key: per_op_labels.index(analyzer_first_last_input_key),
         analyzer_grid_size_key: per_op_labels.index(analyzer_grid_size_key),
-        
+
     }
-    
+
     op_name_index = per_op_labels.index(analyzer_op_name_key)
     for op_entry in sorted_op_perf:
         op_name = op_entry[op_name_index]
@@ -356,11 +357,11 @@ def get_overlay_decouple_per_op_json(sorted_core_perf: List[List[str]], sorted_o
             json_report[op_name] = {}
             json_report[op_name][attributes_key] = {}
             json_report[op_name][op_measurements_key] = {}
-        
+
         # These are properties of the op and can be recorded once per op
         for metadata_key, metadata_key_index in op_metadata_key_index_map.items():
             json_report[op_name][attributes_key][metadata_key] = op_entry[metadata_key_index]
-            
+
         for i, measurement in enumerate(op_entry):
             measurement_key = per_op_labels[i]
             if measurement_key != analyzer_op_name_key and measurement_key not in op_metadata_key_index_map:
@@ -375,7 +376,7 @@ def get_overlay_decouple_per_op_json(sorted_core_perf: List[List[str]], sorted_o
         core_coord = "-".join(core_entry[core_coord_index].split(","))
         op_name = core_entry[op_name_index]
         ASSERT(op_name in json_report, "Op name should be recorded in report")
-        
+
         if core_measurements_key not in json_report[op_name]:
             json_report[op_name][core_measurements_key] = {}
 
@@ -384,8 +385,8 @@ def get_overlay_decouple_per_op_json(sorted_core_perf: List[List[str]], sorted_o
             measurement_key = per_core_labels[i]
             if measurement_key != analyzer_op_name_key and measurement_key != analyzer_core_coord_key and measurement_key not in op_metadata_key_index_map:
                 json_report[op_name][core_measurements_key][core_coord][measurement_key] = measurement
-                
-                
+
+
     return json_report
 
 def run_overlay_decouple(analysis_config: AnalysisConfig):
@@ -406,11 +407,11 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
             shutil.rmtree(reports_output_dir)
         os.mkdir(reports_output_dir)
         logger.info(f"Skipping test run since --skip-run is set. Reading perf results from {perf_results_dir}")
-    
+
     ASSERT(os.path.exists(perf_results_dir + "/graph_descriptor/"), f"graph_descriptor directory does not exist under {perf_results_dir}")
     perf_info_decoupled = get_perf_info(perf_results_dir)
     all_graphs = AllGraphs(perf_results_dir).all_graphs
-        
+
     graph_name_to_perf: Dict[str, Tuple[Graph, GraphPerf]] = {}
     summary_labels = get_overlay_decouple_analysis_csv_labels(report_type=ReportType.Summary, generate_op_report=GENERATE_OP_REPORT)
     summary_report_configs = get_overlay_decouple_analysis_excel_configs(report_type=ReportType.Summary)
@@ -421,7 +422,7 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
             continue
         logger.info(f"program_name {program}")
         assert "-" in program, "Format of program label in perf-info must be #-PROGRAM_NAME"
-        
+
         program_label = program[program.find("-")+1:]
         epochs = perf_info_decoupled[program]
         for epoch in epochs:
@@ -429,7 +430,7 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
             epoch_label = epoch[epoch.find("-")+1:]
             epoch_data = perf_info_decoupled[program][epoch]
             epoch_perf_output_dir = epoch_data["output_directory"]
-            
+
             decoupled_perf = EpochProp(epoch_perf_output_dir + RUNTIME_FILE_NAME)
             graph_perf = decoupled_perf.graph_perf
             ASSERT(epoch_label in all_graphs, f"graph with name {epoch_label} is not generated")
@@ -445,15 +446,15 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
         ASSERT(not os.path.exists(graph_dir_name), f"Analyzer results for graph {graph_name} exist under dir {graph_dir_name}")
         # logger.info(f"Generating the report for graph {graph_name} under path {graph_dir_name}")
         os.mkdir(graph_dir_name)
-        
+
         graph_perf.populate_analyzer_op_perf()
         (all_kernel_perf_epoch_per_op, all_pipe_perf_epoch_per_op, all_perf_epoch_per_op) = get_all_perf(graph_perf, graph, True)
         (all_kernel_perf_epoch_per_core, all_pipe_perf_epoch_per_core, all_perf_epoch_per_core) = get_all_perf(graph_perf, graph, False)
-        
+
         ##### Kernel report #####
         kernel_csv_path, kernel_excel_path, kernel_txt_path = [
-            graph_dir_name + KERNEL_REPORT_FILE_NAME_BASE + ".csv", 
-            graph_dir_name + KERNEL_REPORT_FILE_NAME_BASE + ".xlsx", 
+            graph_dir_name + KERNEL_REPORT_FILE_NAME_BASE + ".csv",
+            graph_dir_name + KERNEL_REPORT_FILE_NAME_BASE + ".xlsx",
             graph_dir_name + KERNEL_REPORT_FILE_NAME_BASE + ".txt",
         ]
         kernel_labels = get_overlay_decouple_analysis_csv_labels(ReportType.Kernel, GENERATE_OP_REPORT)
@@ -467,8 +468,8 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
 
         ##### Pipe report #####
         pipe_csv_path, pipe_excel_path, pipe_txt_path = [
-            graph_dir_name + PIPE_REPORT_FILE_NAME_BASE + ".csv", 
-            graph_dir_name + PIPE_REPORT_FILE_NAME_BASE + ".xlsx", 
+            graph_dir_name + PIPE_REPORT_FILE_NAME_BASE + ".csv",
+            graph_dir_name + PIPE_REPORT_FILE_NAME_BASE + ".xlsx",
             graph_dir_name + PIPE_REPORT_FILE_NAME_BASE + ".txt",
         ]
         pipe_labels = get_overlay_decouple_analysis_csv_labels(ReportType.Pipe, GENERATE_OP_REPORT)
@@ -482,9 +483,9 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
 
         ##### Kernel+Pipe report #####
         all_csv_path, all_excel_path, all_txt_path, all_op_json_path = [
-            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".csv", 
-            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".xlsx", 
-            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".txt", 
+            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".csv",
+            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".xlsx",
+            graph_dir_name + ALL_REPORT_FILE_NAME_BASE + ".txt",
             graph_dir_name + ALL_REPORT_PER_OP_JSON_NAME_BASE + ".json",
         ]
         all_labels = get_overlay_decouple_analysis_csv_labels(ReportType.KernelPipe, GENERATE_OP_REPORT)
@@ -498,9 +499,9 @@ def run_overlay_decouple(analysis_config: AnalysisConfig):
         all_report.write_table_str_to_file(all_txt_path)
         # all_report.create_excel_worksheet(all_excel_path)
         graph_per_op_json = get_overlay_decouple_per_op_json(sorted_core_perf, sorted_op_perf)
-        
+
         write_to_json_file(all_op_json_path, graph_per_op_json)
-        
+
         add_entries_to_summary_report(
             summary_report=summary_report,
             graph_perf_label=get_overlay_decouple_analysis_csv_labels(ReportType.KernelPipe, GENERATE_OP_REPORT),

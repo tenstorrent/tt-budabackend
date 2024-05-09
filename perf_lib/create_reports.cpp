@@ -49,7 +49,7 @@ bool is_op_decoupled(const PerfDesc &perf_desc, const string& op_name) {
 }
 
 inline void check_and_populate_per_thread_events(json &per_thread_events_map, const core_events& core, const tt_perf_device_alignment &device_alignment_info, const PerfDesc &perf_desc, const InstructionInfo &instr, map<uint, pair<string, uint64_t>>& input_to_longest_op, bool align_devices, bool versim) {
-    
+
     map<uint, outer_loop_events> all_outer_loop_events = core.all_outer_loop_events;
     for (const auto& outer_loop_to_event:all_outer_loop_events) {
         string input_key = "input-" + to_string(outer_loop_to_event.first);
@@ -99,7 +99,7 @@ inline void check_and_populate_per_thread_events(json &per_thread_events_map, co
         bool pack_end_exist     = outer_loop_to_event.second.pack_last_end                            != ULLONG_MAX;
         bool unpack_wait_exist  = outer_loop_to_event.second.total_wait_for_tile_after_first_unpack   > 0;
         bool math_activity_exist= core.math_activity != ULLONG_MAX;
-                
+
         if (unpack_start_exist && pack_end_exist && !is_op_decoupled(perf_desc, core.descriptor.op_name)) {
             uint64_t pack_end = outer_loop_to_event.second.pack_last_end;
             uint64_t unpack_start = outer_loop_to_event.second.unpack_first_instruction;
@@ -178,7 +178,7 @@ void calculate_and_populate_average_utilization_and_total_runtime(
     bool align_devices,
     bool versim
 ) {
-    
+
     string math_thread_name = thread_names.at(1);
     uint64_t first_unpack_first_input = ULLONG_MAX;
     uint64_t first_unpack_last_input = ULLONG_MAX;
@@ -186,7 +186,7 @@ void calculate_and_populate_average_utilization_and_total_runtime(
     uint64_t last_pack_first_input = ULLONG_MAX;
     uint64_t total_math_activity = ULLONG_MAX;
     pair<int, int> first_and_last_inputs = {-1, -1};
-    
+
     string op_name = core.descriptor.op_name;
 
     if (core.threads.find(math_thread_name) != core.threads.end()) {
@@ -241,7 +241,7 @@ void calculate_and_populate_average_utilization_and_total_runtime(
                 operand_key_str = "input-";
                 rebiased_operand_idx = operand_idx;
                 runtime = first_unpack_last_input - first_unpack_first_input;
-            } 
+            }
             else {
                 log_assert(operand_idx == PERF_MAX_NUM_INPUTS, "Currently only a single output operand is supported");
                 tile_size = get_tile_size(op_info.output_data_format);
@@ -433,18 +433,18 @@ json create_postprocess_report(
                             else {
                                 all_single_values.push_back(get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
                             }
-                        } 
+                        }
                         else if (thread_name == "BRISC") {
                             all_single_values.push_back(perf_event.first_val);
                         }
-                    } 
+                    }
                     else {
                         if (thread_name == "T0" or thread_name == "T2" or thread_name == "NCRISC" or thread_name == "BRISC") {
                             all_first_values.push_back(get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
                             all_second_values.push_back(get_cycle(device_alignment_info, instr, perf_event.second_val, align_devices, versim));
                             all_diffs.push_back(
                                 get_cycle(device_alignment_info, instr, perf_event.second_val, align_devices, versim) - get_cycle(device_alignment_info, instr, perf_event.first_val, align_devices, versim));
-                        } 
+                        }
                         else {
                             all_first_values.push_back(perf_event.first_val);
                             all_second_values.push_back(perf_event.second_val);
@@ -457,7 +457,7 @@ json create_postprocess_report(
                 // add event numbers to json reports
                 if (is_single_value_event) {
                     events_map[event_description]["value"] = all_single_values;
-                } 
+                }
                 else if (!is_single_value_event) {
                     vector<string> event_json_keys = {
                         (thread_name == "T1") ? "total-period"      : "start",
@@ -481,7 +481,7 @@ json create_postprocess_report(
                         else if (ncrisc_event_type == (uint)perf::NcriscEventType::STREAM_MISC_INFO) {
                             event_json_keys = { "time", "data", "diff" };
                             all_diffs.clear();
-                        }                        
+                        }
                         else if (ncrisc_event_type == (uint)perf::NcriscEventType::STREAM_INFO) {
                             event_json_keys = {
                                 "flags",
@@ -513,11 +513,11 @@ json create_postprocess_report(
                         events_map[event_description][event_json_keys.at(1)] = all_second_values;
                         if (thread_name == "T1") {
                             events_map[event_description][event_json_keys.at(2)] = single_event_type_math_util;
-                        } 
+                        }
                         else {
                             events_map[event_description][event_json_keys.at(2)] = all_diffs;
                         }
-                        
+
                     }
                 }
             }
@@ -526,11 +526,11 @@ json create_postprocess_report(
         }
 
         json per_thread_events_map;
-        
+
         check_and_populate_per_thread_events(per_thread_events_map, core, device_alignment_info, perf_desc, instr, input_to_longest_op, align_devices, versim);
-        
+
         for (const auto& outer_loop_to_event: core.all_outer_loop_events) {
-            
+
             bool pack_end_exist = outer_loop_to_event.second.pack_last_end != ULLONG_MAX;
             bool unpack_start_exist = outer_loop_to_event.second.unpack_first_instruction != ULLONG_MAX;
             uint input_idx = outer_loop_to_event.first;
@@ -557,11 +557,11 @@ json create_postprocess_report(
                 }
             }
         }
-        
+
         json inputs_common_events;
         inputs_common_events["op-type"] = core.descriptor.op_type;
         inputs_common_events["out-of-memory"] = core.out_of_memory;
-        
+
         log_assert(op_to_perf_model_desc.find(core.descriptor.op_name) != op_to_perf_model_desc.end(), "Performance model descriptor is not initialized for op {}", core.descriptor.op_name);
         const PostprocessModelDesc &perf_model_desc = op_to_perf_model_desc.at(core.descriptor.op_name);
         calculate_and_populate_average_utilization_and_total_runtime(core, inputs_common_events, device_alignment_info, perf_desc, graph, instr, perf_model_desc, align_devices, versim);
@@ -572,7 +572,7 @@ json create_postprocess_report(
     }
 
     json per_epoch_events_map;
-    
+
     int first_input_pack = -1;
     int last_input_pack = -1;
     for (auto& outer_loop_item: input_to_last_pack) {
@@ -707,7 +707,7 @@ json create_runtime_report(const json &all_events) {
             runtime_table[core_label.key()]["first-input-recorded"] = core_label_value["inputs-common-events"]["first-input-recorded"];
             runtime_table[core_label.key()]["last-input-recorded"] = core_label_value["inputs-common-events"]["last-input-recorded"];
             runtime_table[core_label.key()]["out-of-memory"] = core_label_value["inputs-common-events"]["out-of-memory"];
-            
+
 
             for (uint operand_idx = 0; operand_idx < PERF_MAX_NUM_INPUTS; operand_idx++) {
                 if (core_label_value["inputs-common-events"].contains("trisc-num-tiles-operand-input-" + to_string(operand_idx))) {
@@ -718,7 +718,7 @@ json create_runtime_report(const json &all_events) {
                 }
                 if (core_label_value["inputs-common-events"].contains("trisc-bw-operand-input-" + to_string(operand_idx))) {
                     runtime_table[core_label.key()]["trisc-bw-operand-input-" + to_string(operand_idx)] = core_label_value["inputs-common-events"]["trisc-bw-operand-input-" + to_string(operand_idx)];
-                } 
+                }
             }
 
             for (uint operand_idx = 0; operand_idx < PERF_MAX_NUM_OUTPUTS; operand_idx++) {
@@ -730,7 +730,7 @@ json create_runtime_report(const json &all_events) {
                 }
                 if (core_label_value["inputs-common-events"].contains("trisc-bw-operand-output-" + to_string(operand_idx))) {
                     runtime_table[core_label.key()]["trisc-bw-operand-output-" + to_string(operand_idx)] = core_label_value["inputs-common-events"]["trisc-bw-operand-output-" + to_string(operand_idx)];
-                }     
+                }
             }
 
             runtime_table[core_label.key()]["num-cycles-per-tensor"] = core_label_value["inputs-common-events"]["num-cycles-per-tensor"];
@@ -745,7 +745,7 @@ json create_runtime_report(const json &all_events) {
             if (core_label_value["inputs-common-events"].contains("packer-num-tiles")) {
                 runtime_table[core_label.key()]["packer-num-tiles"] = core_label_value["inputs-common-events"]["packer-num-tiles"];
             }
-            
+
             for (uint operand_idx = 0; operand_idx < PERF_MAX_NUM_INPUTS; operand_idx++) {
                 if (core_label_value["inputs-common-events"].contains("brisc-num-tiles-operand-input-" + to_string(operand_idx))) {
                     runtime_table[core_label.key()]["brisc-num-tiles-operand-input-" + to_string(operand_idx)] = core_label_value["inputs-common-events"]["brisc-num-tiles-operand-input-" + to_string(operand_idx)];
@@ -815,7 +815,7 @@ void create_runtime_table(const json &runtime_report, const string& output_dir) 
 
     log_assert(runtime_report.contains("per-epoch-events"), "The runtime report must always contain the per-epoch-events section");
     for (auto &core_label: runtime_report.items()) {
-    
+
         auto core_label_value = core_label.value();
         if (core_label.key() == "per-epoch-events") {
             continue;
@@ -831,7 +831,7 @@ void create_runtime_table(const json &runtime_report, const string& output_dir) 
         if (last_input_label != "N/A") {
             log_assert(core_label_value.contains(last_input_label), "Input label {} must exist under runtime report for core label {}", last_input_label, core_label.key());
         }
-        
+
         table.add_row({
             core_label.key(),
             runtime_report.at("per-epoch-events").at("device-id").dump(),
@@ -908,7 +908,7 @@ void create_op_report(const json &runtime_table, const string &output_dir, const
                             op_to_input_total_tensor_size[operand_idx][op_name] = op_value.at("trisc-total-tensor-size-operand-input-" + to_string(operand_idx)).get<uint64_t>();
                         } else {
                             log_assert(op_value.at("trisc-total-tensor-size-operand-input-" + to_string(operand_idx)).get<uint64_t>() == op_to_input_total_tensor_size[operand_idx].at(op_name), "The tiles size for each entry should match between all cores running the same op");
-                        }   
+                        }
                     }
                 }
                 for (uint8_t operand_idx = 0; operand_idx < PERF_MAX_NUM_OUTPUTS; operand_idx++) {
@@ -917,7 +917,7 @@ void create_op_report(const json &runtime_table, const string &output_dir, const
                             op_to_output_total_tensor_size[op_name] = op_value.at("trisc-total-tensor-size-operand-output-" + to_string(operand_idx)).get<uint64_t>();
                         } else {
                             log_assert(op_value.at("trisc-total-tensor-size-operand-output-" + to_string(operand_idx)).get<uint64_t>() == op_to_output_total_tensor_size.at(op_name), "The tiles size for each entry should match between all cores running the same op");
-                        }   
+                        }
                     }
                 }
                 op_to_num_cores[op_name] = 0;
@@ -955,7 +955,7 @@ void create_op_report(const json &runtime_table, const string &output_dir, const
             for (uint8_t operand_idx = 0; operand_idx < PERF_MAX_NUM_OUTPUTS; operand_idx++) {
                 if (op_value.contains("trisc-bw-operand-output-" + to_string(operand_idx))) {
                     op_to_core_report[op_name][core_loc]["trisc-bw-operand-output-" + to_string(operand_idx)] = op_value.at("trisc-bw-operand-output-" + to_string(operand_idx));
-                }  
+                }
             }
             if(op_value.at("first-input-recorded") != "N/A" and op_value.at("last-input-recorded") != "N/A" and op_to_math_activity.at(op_name) != ULONG_MAX){
                 stringstream first_input_info;
@@ -1055,7 +1055,7 @@ void create_op_report(const json &runtime_table, const string &output_dir, const
             op_to_core_report.at(op.key())["trisc-total-tensor-size-all-cores-operand-output-0"] = "N/A";
         }
     }
-    
+
     ofstream output_op_table(output_dir + op_table_json_name);
     output_op_table << std::setw(4) << op_to_core_report;
     output_op_table.flush();
@@ -1141,7 +1141,7 @@ json create_host_postprocess_report(
 
 void create_host_summary_postprocess_report(const string &host_summary_json_path, const json& host_report) {
     const uint thread_id = perf::get_thread_id();
-    
+
     json summary_report;
     if (fs::exists(host_summary_json_path)) {
         ifstream ifs(host_summary_json_path);
@@ -1324,12 +1324,12 @@ unordered_map<string, core_descriptor> generate_graph_descriptor_map(
     const std::unordered_map<string, tt_queue_wrap> &queues,
     const buda_SocDescriptor &soc_descriptor,
     const std::unordered_map<string, unordered_set<string>> &op_to_outputs) {
-    
+
     log_assert(report_output_dir != "", "Output directory cannot be empty");
     log_assert(fs::exists(report_output_dir), "Output directory for graph descriptor does not exist {}", report_output_dir);
     const string queue_label = "queue";
     const string op_label = "op";
-    
+
     ofstream output_file(report_output_dir + cores_to_ops_json_name);
     json all_cores_config;
     unordered_map<string, core_descriptor> core_to_op;
@@ -1353,10 +1353,10 @@ unordered_map<string, core_descriptor> generate_graph_descriptor_map(
         if (op_name == "Invalid") {
             continue;
         }
-        
+
         log_assert(graph_info.op_map.find(op_name) != graph_info.op_map.end(), "op_map of graph_info with graph_name {} does not contain op {}", graph_info.name, op_name);
-        log_assert(op_to_outputs.find(op_name) != op_to_outputs.end(), "op_to_outputs map is not initialized for op name {}", op_name);
-        const unordered_set<string> &actual_output_nodes = op_to_outputs.at(op_name);
+        unordered_set<string> empty_output_nodes;
+        const unordered_set<string> &actual_output_nodes = op_to_outputs.count(op_name) ? op_to_outputs.at(op_name) : empty_output_nodes;
         vector<string> input_vec = graph_info.op_map.at(op_name).input_names;
 
         vector<json> inputs;
@@ -1456,10 +1456,10 @@ void generate_queue_descriptor(
 
 void generate_metadata_reports(
     const string &report_output_dir,
-    const string &graph_name, 
+    const string &graph_name,
     const buda_SocDescriptor &sdesc,
     const tt_digraph &graph) {
-    
+
     const string arch_name_key = "arch_name";
     json metadata_json;
     const string graph_json_file_dir = report_output_dir + "/" + graph_name + ".json";
