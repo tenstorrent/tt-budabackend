@@ -42,8 +42,8 @@ def run(args, context, ui_state: UIState = None):
     )
 
     # From tt_epoch_dram_manager::tt_epoch_dram_manager and following the constants
-    EPOCH_Q_SLOT_SIZE = 32
-    EPOCH_Q_SLOTS_OFFSET = 32
+    EPOCH_Q_SLOT_SIZE = 64
+    EPOCH_Q_SLOTS_OFFSET = 64
     EPOCH_QUEUE_SIZE_BYTES = (
         grid_size_row
         * grid_size_col
