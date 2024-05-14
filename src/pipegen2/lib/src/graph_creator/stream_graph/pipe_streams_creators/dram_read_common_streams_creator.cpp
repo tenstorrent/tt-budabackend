@@ -733,22 +733,28 @@ namespace pipegen2
 
         if (stream_node->get_stream_type() == StreamType::Relay)
         {
-            log_assert(stream_node_buf_size_tiles <= max_dram_input_buffer_size_tiles,
-                       "DRAM relay input stream {} allocates a buffer of {} tiles, which is bigger than "
-                       "the limit of {} tiles", stream_node->get_stream_id(),
-                       stream_node_buf_size_tiles, max_dram_input_buffer_size_tiles);
+            if (stream_node_buf_size_tiles > max_dram_input_buffer_size_tiles)
+            {
+                log_warning(tt::LogPipegen2,
+                            "DRAM relay input stream {} allocates a buffer of {} tiles, which is bigger than "
+                            "the limit of {} tiles", stream_node->get_stream_id(),
+                            stream_node_buf_size_tiles, max_dram_input_buffer_size_tiles);
+            }
         }
         else if (stream_node->get_stream_type() == StreamType::Unpacker)
         {
             unsigned int unpacker_node_buf_size_tiles = unpacker_node->get_size_tiles();
             unsigned int max_buf_size_tiles = std::max(max_dram_input_buffer_size_tiles,
                                                        unpacker_node_buf_size_tiles);
-
-            log_assert(stream_node_buf_size_tiles <= max_buf_size_tiles,
-                       "DRAM unpacker input stream {} allocates a buffer of {} tiles, which is bigger than both "
-                       "the unpacker buffer size in tiles {} and PyBuda limit of {} tiles",
-                       stream_node->get_stream_id(), stream_node_buf_size_tiles, unpacker_node_buf_size_tiles,
-                       max_dram_input_buffer_size_tiles);
+            
+            if (stream_node_buf_size_tiles > max_buf_size_tiles)
+            {
+                log_warning(tt::LogPipegen2,
+                            "DRAM unpacker input stream {} allocates a buffer of {} tiles, which is bigger than both "
+                            "the unpacker buffer size in tiles {} and PyBuda limit of {} tiles",
+                            stream_node->get_stream_id(), stream_node_buf_size_tiles, unpacker_node_buf_size_tiles,
+                            max_dram_input_buffer_size_tiles);
+            }
         }
     }
 
