@@ -31,6 +31,14 @@ namespace fs = std::experimental::filesystem; // see comment above
 extern perf::tt_backend_perf backend_profiler;
 
 void tt_runtime::generate_soc_descriptor() {
+
+    // If running a TTI (already unzipped) and it comes with soc desc, use it, and update backend config.
+    if (config.tti && fs::exists(config.output_dir + "/device_desc.yaml")) {
+        config.soc_descriptor_path = config.output_dir + "/device_desc.yaml";
+        this->soc_descriptor_path = config.output_dir + "/device_desc.yaml";
+        return;
+    }
+
     // For runs where the tt_build directory is not deleted (Pybuda), the state encoded in the previous SOC descriptors must be cleared
     cleanup_stale_soc_descriptors();
     //Set SOC descriptor path to always be in the output dir to ensure consistency
