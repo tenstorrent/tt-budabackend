@@ -20,10 +20,16 @@ class matmul_op extends operation_constraints;
 
     rand bit sfpu_op_en;
     rand bit sfpu_pack_thread_en;
+    rand bit min_buffer_en;
+    rand bit min_buffer_input;
+    bit force_grad_acc = 0;
+    bit force_accumulate = 0;
 
-    function new(string name);
+    function new(string name, bit is_grad_acc = 0, bit is_acc_z = 0);
         super.new(name);
         this.node_type = "matmul";
+        force_grad_acc = is_grad_acc;
+        force_accumulate = is_acc_z;
 
         // Enabled features
         m_k_enabled = 1;
@@ -73,6 +79,14 @@ class matmul_op extends operation_constraints;
         }
     }
 
+    constraint rand_force_grad_acc {
+        gradient_op_en == force_grad_acc;
+    }
+
+    constraint rand_force_accumulate {
+        accumulate_en == force_accumulate;
+    }
+
     constraint rand_input_data_format {
         if (dest_data_format == int32) {
             input_0.data_format == int8;
@@ -120,12 +134,34 @@ class matmul_op extends operation_constraints;
         dest_data_format == int32 -> l1_acc_en == 0;
     }
 
+    constraint rand_output_data_format {
+        if (dest_data_format == int32) {
+            dequantize == 1 -> output_data_format inside {`FLOAT_OUTPUT_FORMATS};
+            dequantize == 0 -> output_data_format inside {int32, int8};
+            requantize == 1 -> output_data_format == int8;
+            relu_en    == 1 -> output_data_format == int8 || output_data_format == fp32;
+        } else {
+            output_data_format inside {`FLOAT_FORMATS};
+        }
+
+        // TODO: Check if this works for int32
+        untilize == 1 -> output_data_format inside {fp32, fp16_b, fp16};
+    }
+
+    constraint rand_sfpu_execution_en {
+        arch.sfpu_execution_en == 0 -> sfpu_op_en == 0;
+    }
+
+    constraint rand_l1_acc_arch_enabled {
+        arch.l1_acc_enable == 0 -> l1_acc_en == 0;
+    }
+
     constraint rand_kernel_broadcast {
         bias_en == 0 -> kernel_broadcast_en[2] == 0;
         quant_en == 0 -> kernel_broadcast_en[3] == 0;
+        kernel_broadcast_op_en dist {0:=80, 1:=20};
 
         foreach (in[i]) {
-            kernel_broadcast_en[i] dist { 0:=50, 1:=50 };
             kernel_broadcast_en[i] == 1 -> in[i].producer.tensor.grid_size_x == 1 && in[i].producer.tensor.grid_size_y == 1;
             kernel_broadcast_factors[i] < `MAX_L1_MEM_BUFFER_SIZE / `get_tile_size(in[i].producer.tensor.data_format);
             is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};
@@ -153,9 +189,10 @@ class matmul_op extends operation_constraints;
             kernel_broadcast_period_height[0] <= tensor.ublock_rt * tensor.mblock_m;
             kernel_broadcast_period_height[0] > 0;
 
-            kernel_broadcast_period_width[0] % (tensor.ublock_ct * tensor.mblock_n) == 0;
+            kernel_broadcast_period_width[0] % u_kt == 0;
             kernel_broadcast_period_width[0] <= input_0.ublock_ct * input_0.mblock_n;
             kernel_broadcast_period_width[0] > 0;
+            // kernel_broadcast_period_width[0] == u_kt;
 
             kernel_broadcast_factors[0] == kernel_broadcast_period_height[0] * kernel_broadcast_period_width[0];
             kernel_broadcast_factors[0] < tensor.mblock_m * tensor.mblock_n * tensor.ublock_rt * tensor.ublock_ct;
@@ -163,10 +200,10 @@ class matmul_op extends operation_constraints;
         }
 
         if (kernel_broadcast_en[0] && kernel_broadcast_factors[0] > 1 && tensor.ublock_ct < tensor.ublock_rt) {
-            kernel_broadcast_factors[0] % tensor.ublock_ct == 0;
+            kernel_broadcast_factors[0] % (tensor.ublock_rt * u_kt) == 0;
         }
         if (kernel_broadcast_en[1] && kernel_broadcast_factors[1] > 1 && tensor.ublock_ct >= tensor.ublock_rt) {
-            kernel_broadcast_factors[1] % (tensor.ublock_rt * u_kt) == 0;
+            kernel_broadcast_factors[1] % tensor.ublock_ct == 0;
         }
     }
 
@@ -187,11 +224,26 @@ class matmul_op extends operation_constraints;
         (input_0.out_tile_dim_r != 32 || input_0.out_tile_dim_c != 32 || input_1.out_tile_dim_r != 32 || input_1.out_tile_dim_c != 32 || tensor.out_tile_dim_c != 32 || tensor.out_tile_dim_r != 32) -> (sfpu_op_en == 0); // #2174
     }
 
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            if (bias_en == 0 && quant_en == 0) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
+            } else if (bias_en == 1 && quant_en == 0 || bias_en == 0 && quant_en == 1) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1;
+            } else {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1 || kernel_broadcast_en[3] == 1;
+            }
+        }
+    }
+
     virtual function write_attributes_to_file(int out_filehandle);
         super.write_attributes_to_file(out_filehandle);
         if (sfpu_op_en == 1) begin
             $fwrite(out_filehandle, "sfpu_op: gelu, ");
             $fwrite(out_filehandle, "sfpu_execution_thread: %0s, ", sfpu_pack_thread_en ? "pack" : "math");
+        end
+        if (min_buffer_en == 1) begin
+            $fwrite(out_filehandle, "min_buffer_input: %0d, ", min_buffer_input);
         end
     endfunction
 
@@ -216,7 +268,6 @@ class matmul_op extends operation_constraints;
             math_fidelity, 0, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
         cfg.Type = "AllClose";
         cfg.verbosity = "Concise";
-        cfg.check_tile_cols_range = 32;
         return cfg;
     endfunction
 

@@ -11,10 +11,12 @@ class binary_op extends operation_constraints;
     rand tensor_constraints input_1;
 
     rand e_binary_type binary_type;
+    bit force_grad_acc = 0;
 
-    function new(string name);
+    function new(string name, bit is_grad_acc = 0);
         super.new(name);
         this.node_type = "binary";
+        force_grad_acc = is_grad_acc;
 
         // Enabled features
         m_k_enabled = 0;
@@ -62,9 +64,14 @@ class binary_op extends operation_constraints;
         }
     }
 
+    constraint rand_force_grad_acc {
+        gradient_op_en == force_grad_acc;
+    }
+
     constraint rand_transpose {
         dest_data_format==int32 -> in[0].transpose_en == 0;
         in[0].transpose_en == 1 -> gradient_op_en == 0;
+        arch.transpose_input_0_binary == 0 -> in[0].transpose_en == 0;
     }
 
     constraint rand_node_used {
@@ -95,12 +102,32 @@ class binary_op extends operation_constraints;
 
     constraint rand_binary_constraints {
         binary_type == maximum -> gradient_op_en == 0;
+        arch.gradient_binary_multiply_constraint == 0 && binary_type != multiply -> gradient_op_en == 0;
+    
+    }
+
+    constraint rand_maximum_tiny_tiles {
+        input_0.out_tile_dim_r != 32 || input_0.out_tile_dim_c != 32 -> binary_type != maximum;
+    }
+
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
+        }
     }
 
     virtual function input_constraints get_op_input(int index);
         if (index == 0) return in[0];
         if (index == 1) return in[1];
         $fatal(0, "Invalid index %0d", index);
+    endfunction
+
+    virtual function s_comparison_config get_comparison_config(int num_inputs);
+        s_comparison_config cfg;
+        cfg = tst_cfg.get_binary_comparison_config(tensor.data_format);
+        cfg.Type = "AllClose";
+        cfg.verbosity = "Concise";
+        return cfg;
     endfunction
 
 endclass

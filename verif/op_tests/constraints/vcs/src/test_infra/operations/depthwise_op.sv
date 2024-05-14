@@ -67,16 +67,17 @@ class depthwise_op extends operation_constraints;
         }
     }
 
-    constraint rand_depthwise_math_fidelity {
-        math_fidelity == HiFi4;
-    }
-
     constraint rand_data_format {
         if (dest_data_format == int32) {
             input_0.data_format == int8;
             input_1.data_format == int8;
             input_bias.data_format == int32;
         }
+    }
+
+    constraint rand_restrict_depthwise_formats {
+        intermed_data_format inside {fp16, fp16_b, fp32, int32};
+        output_data_format inside {fp16, fp16_b, fp32, int32};
     }
 
     constraint rand_inner_dim {
@@ -127,11 +128,15 @@ class depthwise_op extends operation_constraints;
         }
     }
 
+    constraint rand_l1_acc_arch_enabled {
+        arch.l1_acc_enable == 0 -> l1_acc_en == 0;
+    }
+
     constraint rand_kernel_broadcast {
         bias_en == 0 -> kernel_broadcast_en[2] == 0;
+        kernel_broadcast_op_en dist {0:=80, 1:=20};
 
         foreach (in[i]) {
-            kernel_broadcast_en[i] dist { 0:=50, 1:=50 };
             kernel_broadcast_en[i] == 1 -> in[i].producer.tensor.grid_size_x == 1 && in[i].producer.tensor.grid_size_y == 1;
             kernel_broadcast_factors[i] < `MAX_L1_MEM_BUFFER_SIZE / `get_tile_size(in[i].producer.tensor.data_format);
             is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};
@@ -159,7 +164,7 @@ class depthwise_op extends operation_constraints;
             kernel_broadcast_period_height[0] <= tensor.ublock_rt * tensor.mblock_m;
             kernel_broadcast_period_height[0] > 0;
 
-            kernel_broadcast_period_width[0] % (tensor.ublock_ct * tensor.mblock_n) == 0;
+            kernel_broadcast_period_width[0] % (in[0].producer.tensor.ublock_ct * in[0].producer.tensor.mblock_n) == 0;
             kernel_broadcast_period_width[0] <= input_0.ublock_ct * input_0.mblock_n;
             kernel_broadcast_period_width[0] > 0;
 
@@ -167,15 +172,32 @@ class depthwise_op extends operation_constraints;
             kernel_broadcast_factors[0] < tensor.mblock_m * tensor.mblock_n * tensor.ublock_rt * tensor.ublock_ct;
             kernel_broadcast_factors[0] > 0;
         }
-        
 
         if (kernel_broadcast_en[0] && kernel_broadcast_factors[0] > 1 && tensor.ublock_ct < tensor.ublock_rt) {
-            kernel_broadcast_factors[0] % tensor.ublock_ct == 0;
+            kernel_broadcast_factors[0] % (tensor.ublock_rt * u_kt) == 0;
         }
         if (kernel_broadcast_en[1] && kernel_broadcast_factors[1] > 1 && tensor.ublock_ct >= tensor.ublock_rt) {
-            kernel_broadcast_factors[1] % (tensor.ublock_rt * u_kt) == 0;
+            kernel_broadcast_factors[1] % tensor.ublock_ct == 0;
         }
     }
+
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            if (bias_en == 0) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
+            } else {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1;
+            }
+        }
+    }
+
+    virtual function s_comparison_config get_comparison_config(int num_inputs);
+        s_comparison_config cfg = tst_cfg.get_matmul_comparison_config(tensor.data_format, num_inputs, m_k,
+            math_fidelity, 0, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
+        cfg.Type = "AllClose";
+        cfg.verbosity = "Concise";
+        return cfg;
+    endfunction
 
     virtual function integer get_num_inputs();
         if (bias_en == 1) return 3;

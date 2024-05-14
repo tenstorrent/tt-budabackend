@@ -124,6 +124,10 @@ class matmul_ident_op extends operation_constraints;
         }
     }
 
+    constraint rand_disable_bfp2_bfp4_input_data_format {
+        
+    }
+
     constraint rand_input_dims {
         input_0_weights.grid_size_x == 1;
 
@@ -165,10 +169,24 @@ class matmul_ident_op extends operation_constraints;
         dest_data_format == int32 -> l1_acc_en == 0;
     }
 
+    constraint rand_l1_acc_arch_enabled {
+        arch.l1_acc_enable == 0 -> l1_acc_en == 0;
+    }
+
     constraint rand_tile_dims {
         input_0_weights.enable_tiny_tile == 0;
         input_1_activations.out_tile_dim_c == tensor.out_tile_dim_c;
         input_2_encodings.enable_tiny_tile == 0;
+    }
+
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            if (bias_en == 0) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1;
+            } else {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1 || kernel_broadcast_en[3] == 1;
+            }
+        }
     }
 
     virtual function bit feeder_enabled(integer input_id);
@@ -205,7 +223,6 @@ class matmul_ident_op extends operation_constraints;
             math_fidelity, 0, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
         cfg.Type = "AllClose";
         cfg.verbosity = "Concise";
-        cfg.check_tile_cols_range = 32;
         return cfg;
     endfunction
 

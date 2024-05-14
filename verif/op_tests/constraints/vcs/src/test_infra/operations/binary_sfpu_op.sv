@@ -114,6 +114,11 @@ class binary_sfpu_op extends operation_constraints;
         in0_buffer + in1_buffer + out_buffer <= `MAX_L1_MEM_BUFFER_SIZE;
     }
 
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
+        }
+    }
 
     virtual function input_constraints get_op_input(int index);
         if (index == 0) return in[0];

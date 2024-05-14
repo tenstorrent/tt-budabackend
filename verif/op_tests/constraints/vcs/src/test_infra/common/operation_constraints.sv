@@ -3,12 +3,14 @@
 
 virtual class operation_constraints extends node_constraints;
     rand input_constraints in[];
+    rand architecture arch;
 
     rand bit[2:0] target_device;
     rand bit[3:0] grid_loc_x;
     rand bit[3:0] grid_loc_y;
 
     bit op_consumer_is_queue = 0;
+    rand e_vector_mode sfpu_vector_mode; 
 
     rand e_math_fidelity math_fidelity;
 
@@ -30,6 +32,7 @@ virtual class operation_constraints extends node_constraints;
     rand e_stoch_rnd_mode stoch_rnd_mode;
 
     bit relu_enabled = 0;
+    bit vector_mode_enabled = 0;
 
     rand bit relu_en;
     rand integer relu_threshold;
@@ -60,6 +63,7 @@ virtual class operation_constraints extends node_constraints;
     rand bit gradient_op_en;
 
     bit kernel_broadcast_enabled = 0;
+    rand bit kernel_broadcast_op_en;
     rand bit kernel_broadcast_en[];
     rand int kernel_broadcast_factors[];
     rand int kernel_broadcast_period_height[];
@@ -87,11 +91,11 @@ virtual class operation_constraints extends node_constraints;
     pure virtual function int get_max_inputs();
 
     constraint rand_kernel_broadcast {
+        kernel_broadcast_op_en dist {0:=80, 1:=20};
         foreach (in[i]) {
-            is_kernel_broadcast_per_t[i] dist {0:=1, 1:=99};
-            in[i].producer.tensor.t > 1 -> is_kernel_broadcast_per_t[i] == 1;
+            is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};
+            is_kernel_broadcast_per_t[i] == 0 -> in[i].producer.tensor.t == 1; 
             in[i].broadcast_en == 0 -> kernel_broadcast_en[i] == 0;
-            kernel_broadcast_en[i] dist { 0:=50, 1:=50 };
             kernel_broadcast_en[i] == 1 -> in[i].producer.tensor.grid_size_x == 1 && in[i].producer.tensor.grid_size_y == 1;
             kernel_broadcast_en[i] == 1 -> { // assume that ublock_order == r
                 kernel_broadcast_period_height[i] % in[i].post_tm_tensor.ublock_rt == 0;
@@ -101,6 +105,16 @@ virtual class operation_constraints extends node_constraints;
                 kernel_broadcast_factors[i] == kernel_broadcast_period_height[i] * kernel_broadcast_period_width[i];
                 kernel_broadcast_factors[i] < in[i].post_tm_tensor.mblock_m * in[i].post_tm_tensor.mblock_n * in[i].post_tm_tensor.ublock_rt * in[i].post_tm_tensor.ublock_ct;
                 kernel_broadcast_factors[i] > 0;
+            }
+        }
+    }
+
+    constraint rand_same_exponent_out_intermed {
+        if (arch.same_exponent_out_intermed == 0) {
+            if (gradient_op_en || m_k > 1) {
+                output_data_format inside {bfp2, bfp4, bfp8, fp16} && intermed_data_format inside {bfp2, bfp4, bfp8, fp16} ||
+                output_data_format inside {bfp2_b, bfp4_b, bfp8_b, fp16_b} && intermed_data_format inside {bfp2_b, bfp4_b, bfp8_b, fp16_b} ||
+                output_data_format == fp32 && intermed_data_format inside {bfp2_b, bfp4_b, bfp8_b, fp16_b};
             }
         }
     }
@@ -147,6 +161,15 @@ virtual class operation_constraints extends node_constraints;
         }
     }
 
+    constraint rand_disable_bfp2_bfp4_input_data_format {
+        foreach(in[i]) {
+            (in[i].producer.tensor.data_format != bfp2) &&
+            (in[i].producer.tensor.data_format != bfp2_b) &&
+            (in[i].producer.tensor.data_format != bfp4) &&
+            (in[i].producer.tensor.data_format != bfp4_b);
+        }
+    }
+
     constraint rand_dest_data_format {
         dest_data_format inside {int32, fp32, fp16_b, fp16};
     }
@@ -165,15 +188,13 @@ virtual class operation_constraints extends node_constraints;
     }
 
     constraint rand_output_data_format {
-        if (output_data_format != uint16) {
-            if (dest_data_format == int32) {
-                dequantize == 1 -> output_data_format inside {`FLOAT_OUTPUT_FORMATS};
-                dequantize == 0 -> output_data_format inside {int32, int8};
-                requantize == 1 -> output_data_format == int8;
-                relu_en    == 1 -> output_data_format == int8 || output_data_format == fp32;
-            } else {
-                output_data_format inside {`FLOAT_OUTPUT_FORMATS};
-            }
+        if (dest_data_format == int32) {
+            dequantize == 1 -> output_data_format inside {`FLOAT_OUTPUT_FORMATS};
+            dequantize == 0 -> output_data_format inside {int32, int8};
+            requantize == 1 -> output_data_format == int8;
+            relu_en    == 1 -> output_data_format == int8 || output_data_format == fp32;
+        } else {
+            output_data_format inside {`FLOAT_OUTPUT_FORMATS};
         }
 
         // TODO: Check if this works for int32
@@ -182,6 +203,10 @@ virtual class operation_constraints extends node_constraints;
 
     constraint rand_tiny_tiles {
         dest_data_format == int32 -> tensor.enable_tiny_tile == 0;
+    }
+
+    constraint rand_dest_int32_math_fidelity {
+        dest_data_format == int32 -> math_fidelity == HiFi4;
     }
 
     constraint rand_attributes_disabled {
@@ -222,11 +247,14 @@ virtual class operation_constraints extends node_constraints;
         }
     }
 
+    constraint rand_arch_srnd {
+       arch.srnd_enable == 0 -> srnd_en == 0;
+    }
+
     constraint rand_srnd_enable {
         // Stochastic rounding and Float32 dest accumulator are not supported together
         // Issue : #1816
         dest_data_format == fp32 -> srnd_en == 0;
-        dest_data_format != fp32 -> srnd_en == 1;
     }
 
     constraint rand_srnd_mode {
@@ -249,6 +277,7 @@ virtual class operation_constraints extends node_constraints;
 
     constraint rand_math_fidelity {
         dest_data_format == int32 -> math_fidelity == HiFi4;
+        math_fidelity == arch.math_fidelity;
     }
 
     constraint rand_untilize {
@@ -264,11 +293,22 @@ virtual class operation_constraints extends node_constraints;
             relu_en == 1 -> relu_mode == Max;
         }
 
+        // TODO: Bug #2573
+        output_data_format == fp32 -> relu_en == 0;
+
         // TODO: Bug #2274
         stoch_rnd_mode inside {None, Fpu};
 
         // TODO: Create issue and investigate
         tensor.enable_tiny_tile == 1 -> gradient_op_en == 0;
+    }
+
+    constraint rand_force_emulator_grid_size {
+        arch.force_emulator_grid_size == 1 -> {
+            foreach (in[i]) {
+                in[i].post_tm_tensor.grid_size_x dist {1:=50, 2:=50};
+            }
+        }
     }
 
     virtual function bit feeder_enabled(integer input_id);
@@ -289,7 +329,7 @@ virtual class operation_constraints extends node_constraints;
             $fwrite(out_filehandle, "relu_en: %0s, ", relu_en ? "true" : "false");
             $fwrite(out_filehandle, "relu_mode: %0s, ", get_relu_mode(relu_mode));
             if (dest_data_format == int32) begin
-                $fwrite(out_filehandle, "relu_threshold: %f, ", real'(relu_threshold_int)/100);
+                $fwrite(out_filehandle, "relu_threshold: %1d, ", relu_threshold_int/100);
             end else begin
                 $fwrite(out_filehandle, "relu_threshold: %f, ", real'(relu_threshold)/100);
             end      
@@ -410,7 +450,6 @@ virtual class operation_constraints extends node_constraints;
         cfg.check_pct = "0.9";
         cfg.check_pcc = "0.99";
         cfg.verbosity = "Concise";
-        cfg.check_tile_cols_range = 32;
         return cfg;
     endfunction
 endclass

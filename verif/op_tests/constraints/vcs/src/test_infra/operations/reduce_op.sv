@@ -24,7 +24,6 @@ class reduce_op extends operation_constraints;
         bias_enabled = 0;
         l1_acc_enabled = 0;
         gradient_op_enabled = 0;
-
     endfunction
 
     virtual function void initialize_inputs();

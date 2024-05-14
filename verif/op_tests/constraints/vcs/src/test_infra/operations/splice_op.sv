@@ -130,6 +130,20 @@ class splice_op extends operation_constraints;
         input_buffer0 + input_buffer1 + input_buffer2 + input_buffer3 + output_buffer >= 0;
     }
 
+    constraint rand_kernel_broadcast_freq {
+        kernel_broadcast_op_en == 1 -> {
+            if (num_inputs == 1) {
+                kernel_broadcast_en[0] == 1;
+            } else if (num_inputs == 2) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
+            } else if (num_inputs == 3) {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1;
+            } else {
+                kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1 || kernel_broadcast_en[3] == 1;
+            }
+        }
+    }
+
     virtual function bit has_attributes();
         return 1;
     endfunction
