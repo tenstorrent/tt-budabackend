@@ -27,6 +27,7 @@ from verif.common.test_utils import (
     get_epoch_dir,
     get_logger,
     get_netlist_arch,
+    get_netlist_name,
     setup_logger,
 )
 
@@ -150,11 +151,14 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                 blob1_path = os.path.join(out_dir, f"{blob_prefix}_blob1.yaml")
                 blob2_path = os.path.join(out_dir, f"{blob_prefix}_blob2.yaml")
 
+                netlist_name = get_netlist_name(netlist)
+
                 PipegenRunner.run_pipegen(
                     pipegen_yaml_path,
                     blob1_path,
                     arch,
                     EPOCH_ID,
+                    netlist_name,
                     perf_mode.value,
                     perf_level.value,
                     soc_descr,
@@ -166,6 +170,7 @@ def main(arch: str, out_dir: str = None, netlist: str = None) -> None:
                     blob2_path,
                     arch,
                     EPOCH_ID,
+                    netlist_name,
                     perf_mode.value,
                     perf_level.value,
                     soc_descr,

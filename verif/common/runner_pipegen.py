@@ -17,6 +17,7 @@ from verif.common.runner_utils import (
     DEFAULT_SUBPROCESS_TIMEOUT,
     WorkerResult,
     execute_in_parallel,
+    fetch_custom_env_configs,
     get_arch_bin_dir,
     get_soc_file,
     run_cmd,
@@ -58,6 +59,7 @@ class PipegenWorkerConfig:
     arch: DeviceArchs
     epoch_id: str
     pipegen_path: str
+    netlist_name: str
 
 
 class PipegenRunner:
@@ -96,7 +98,7 @@ class PipegenRunner:
         --------------------------------------------------
         .
         |-- pipegen_yamls_dir
-        |   |-- filtered_yamls_Nothing
+        |   |-- filtered_yamls_Everything
         |   |   |-- grayskull
         |   |   |   |-- 1xlink
         |   |   |   |   `-- pipegen_0.yaml
@@ -113,7 +115,7 @@ class PipegenRunner:
         |       |       `-- pipegen_0.yaml
         |       `-- wormhole_b0
         `-- pipegen_out_dir
-            |-- filtered_yamls_Nothing
+            |-- filtered_yamls_Everything
             |   |-- grayskull
             |   |   |-- 1xlink
             |   |   |   `-- blob_0.yaml
@@ -234,6 +236,7 @@ class PipegenRunner:
                     arch=arch,
                     epoch_id=epoch_id,
                     pipegen_path=os.path.join(bin_dir, PIPEGEN_BIN_NAME),
+                    netlist_name=os.path.basename(output_folder),
                 )
             )
 
@@ -258,6 +261,7 @@ class PipegenRunner:
             worker_config.blob_yaml_path,
             worker_config.arch,
             worker_config.epoch_id,
+            worker_config.netlist_name,
             pipegen_path=worker_config.pipegen_path,
         )
         return WorkerResult(cmd, err)
@@ -267,6 +271,7 @@ class PipegenRunner:
         blob_yaml_path: str,
         arch: str,
         epoch_id: str,
+        netlist_name: str = None,
         perf_dump_mode: int = DEFAULT_PERF_DUMP_MODE,
         perf_dump_level: int = DEFAULT_PERF_DUMP_LEVEL,
         soc_descriptor: str = None,
@@ -282,10 +287,12 @@ class PipegenRunner:
             Pipegen yaml path.
         blob_yaml_path: str
             Output blob yaml path.
-        epoch_id: str
-            Epoch id.
         arch: str
             Device architecture.
+        epoch_id: str
+            Epoch id.
+        netlist_name: str
+            Name of the netlist used. Needed for custom env configs.
         perf_dump_mode: int
             Performance dump mode to use.
         perf_dump_level: int
@@ -317,7 +324,9 @@ class PipegenRunner:
             soc_descriptor,
             pipegen_path,
         )
-        result = run_cmd(pipegen_cmd, arch, timeout)
+
+        custom_env_configs = fetch_custom_env_configs().get(netlist_name, {})
+        result = run_cmd(pipegen_cmd, arch, custom_env_configs, timeout)
         if result.returncode != 0:
             if os.path.exists(blob_yaml_path):
                 os.remove(blob_yaml_path)
@@ -342,9 +351,9 @@ class PipegenRunner:
         Example command
         ---------------
         build_archs/wormhole_b0/bin/pipegen2
-            out/a/output_filter/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile/pipegen_0.yaml
+            out/a/output_filter/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile/pipegen_0.yaml
             ./soc_descriptors/wormhole_b0_8x10.yaml
-            out/a/output_pipegen/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml
+            out/a/output_pipegen/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml
             0
             0x200
         """

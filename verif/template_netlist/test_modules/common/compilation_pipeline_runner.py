@@ -8,13 +8,14 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
 from typing import Dict, List, Tuple
-import yaml
 
+import yaml
 from util import get_git_root
 
 from verif.common.runner_blobgen import BLOBGEN_RB_PATH, BlobgenRunner
 from verif.common.runner_net2pipe import Net2PipeRunner
 from verif.common.runner_pipegen import PipegenRunner
+from verif.common.test_utils import get_netlist_name
 from verif.template_netlist.scripts.utility.generate_netlists_from_configs import (
     generate_netlists_from_configs,
 )
@@ -185,6 +186,7 @@ class CompilationPipelineRunner:
                 ),
                 arch=arch,
                 epoch_id="0",
+                netlist_name=get_netlist_name(netlist_path),
                 throw_if_error=True
             )
             shutil.copy2(

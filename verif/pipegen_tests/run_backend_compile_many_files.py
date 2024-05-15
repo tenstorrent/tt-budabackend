@@ -65,7 +65,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--netlists",
         type=str,
-        required=True,
+        required=False,
         default=None,
         help="Folder where netlists are stored",
     )
@@ -136,9 +136,9 @@ if __name__ == "__main__":
         os.path.join(args.log_out_root, f"run_backend_compile_{timestamp}.log")
     )
 
-    pipegen_filters = [FilterType.Nothing]
+    pipegen_filters = [FilterType.Everything]
 
-    if args.out_net2pipe:
+    if args.netlists and args.out_net2pipe:
         Net2PipeRunner.generate_net2pipe_outputs(
             args.netlists,
             args.out_net2pipe,

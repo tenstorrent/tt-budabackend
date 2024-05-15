@@ -101,7 +101,7 @@ class PipegenFilterRunner:
         |                   |-- queue_to_consumer.yaml
         |                   `-- queue_to_producer.yaml
         `-- out_dir
-            |-- filtered_yamls_Nothing
+            |-- filtered_yamls_Everything
             |   |-- grayskull
             |   |   |-- 1xlink
             |   |   |   `-- pipegen_0.yaml
@@ -155,19 +155,19 @@ class PipegenFilterRunner:
 
         pipegen_yamls_value = mp.Value("i", 0)
         num_processed = execute_in_parallel(
-            PipegenFilterRunner.__filter_netlist_yamls_worker,
+            PipegenFilterRunner.filter_netlist_yamls_worker,
             worker_configs,
-            PipegenFilterRunner.__init_global_pipegen_filter_sync_vars,
+            PipegenFilterRunner.init_global_pipegen_filter_sync_vars,
             pipegen_yamls_value,
         )
 
         logger.info(f"Filtered {sum(num_processed)} pipegen yamls.\n")
 
-    def __init_global_pipegen_filter_sync_vars(pipegen_yamls_value: mp.Value):
+    def init_global_pipegen_filter_sync_vars(pipegen_yamls_value: mp.Value):
         global filtered_pipegen_yamls_count_sync
         filtered_pipegen_yamls_count_sync = pipegen_yamls_value
 
-    def __filter_netlist_yamls_worker(
+    def filter_netlist_yamls_worker(
         worker_config: PipegenYamlFilterWorkerConfig,
     ) -> int:
         netlist_dir = worker_config.netlist_dir
@@ -191,7 +191,7 @@ class PipegenFilterRunner:
 
             # Check if pipegen.yaml exists, if not, skip this epoch.
             if os.path.isfile(pipegen_yaml_path):
-                if filter_type == FilterType.Nothing:
+                if filter_type == FilterType.Everything:
                     os.system(
                         f"cp {pipegen_yaml_path} {filtered_netlist_dir}/pipegen_{epoch_id}.yaml"
                     )

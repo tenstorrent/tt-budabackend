@@ -24,6 +24,32 @@ Example vscode launch config:
 }
 Example command line:
     python3 verif/pipegen_tests/netlist_collector.py --out-dir out/output_netlist_collector --builds-dir build_archs
+
+Note: Use following commands prior to executing this script to gather generated perf test netlists:
+    rm -rf build
+    ARCH_NAME=wormhole_b0 make -j --debug build_hw verif/netlist_tests loader/tests netlist_analyzer
+    ./perf_lib/op_perf_test.py --op-name matmul --run-kernel-suite --netlists-output-dir ./perf-test-netlists/matmul-kernel-push
+    ./perf_lib/op_perf_test.py --op-name binary --run-kernel-suite --netlists-output-dir ./perf-test-netlists/binary-kernel-push
+    ./perf_lib/op_perf_test.py --op-name unary --run-kernel-suite --netlists-output-dir ./perf-test-netlists/unary-kernel-push
+    ./perf_lib/op_perf_test.py --op-name dram_read --run-kernel-suite --netlists-output-dir ./perf-test-netlists/dram-read-kernel-push
+    ./perf_lib/op_perf_test.py --op-name dram_write --run-kernel-suite --netlists-output-dir ./perf-test-netlists/dram-write-kernel-push
+    ./perf_lib/op_perf_test.py --op-name unary --reblocking-mode gather --netlists-output-dir ./perf-test-netlists/unary-gather-push
+    ./perf_lib/op_perf_test.py --op-name matmul --run-single-op --dram-assignment-mode round_robin --netlists-output-dir ./perf-test-netlists/matmul-single-op-push
+    ./perf_lib/op_perf_test.py --op-name binary --run-single-op --dram-assignment-mode round_robin --netlists-output-dir ./perf-test-netlists/binary-single-op-push
+    ./perf_lib/op_perf_test.py --op-name unary --nightly --netlists-output-dir ./perf-test-netlists/unary-kernel-nightly
+    ./perf_lib/op_perf_test.py --op-name binary --nightly --netlists-output-dir ./perf-test-netlists/binary-kernel-nightly
+    rm -rf build
+    ARCH_NAME=grayskull make -j --debug build_hw verif/netlist_tests loader/tests netlist_analyzer
+    ./perf_lib/op_perf_test.py --op-name matmul --run-kernel-suite --netlists-output-dir ./perf-test-netlists/matmul-kernel-push
+    ./perf_lib/op_perf_test.py --op-name binary --run-kernel-suite --netlists-output-dir ./perf-test-netlists/binary-kernel-push
+    ./perf_lib/op_perf_test.py --op-name unary --run-kernel-suite --netlists-output-dir ./perf-test-netlists/unary-kernel-push
+    ./perf_lib/op_perf_test.py --op-name dram_read --run-kernel-suite --netlists-output-dir ./perf-test-netlists/dram-read-kernel-push
+    ./perf_lib/op_perf_test.py --op-name dram_write --run-kernel-suite --netlists-output-dir ./perf-test-netlists/dram-write-kernel-push
+    ./perf_lib/op_perf_test.py --op-name unary --reblocking-mode gather --netlists-output-dir ./perf-test-netlists/unary-gather-push
+    ./perf_lib/op_perf_test.py --op-name matmul --run-single-op --dram-assignment-mode round_robin --netlists-output-dir ./perf-test-netlists/matmul-single-op-push
+    ./perf_lib/op_perf_test.py --op-name binary --run-single-op --dram-assignment-mode round_robin --netlists-output-dir ./perf-test-netlists/binary-single-op-push
+    ./perf_lib/op_perf_test.py --op-name unary --nightly --netlists-output-dir ./perf-test-netlists/unary-kernel-nightly
+    ./perf_lib/op_perf_test.py --op-name binary --nightly --netlists-output-dir ./perf-test-netlists/binary-kernel-nightly
 """
 from __future__ import annotations
 

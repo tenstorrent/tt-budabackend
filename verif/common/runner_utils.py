@@ -6,13 +6,14 @@ Utility functions related to running external processes.
 """
 from __future__ import annotations
 
+import json
 import multiprocessing as mp
 import os
 import subprocess
 from dataclasses import dataclass
 from itertools import repeat
 from subprocess import TimeoutExpired
-from typing import List
+from typing import Dict, List
 
 from verif.common.test_utils import DeviceArchs, get_logger
 
@@ -24,6 +25,7 @@ DEFAULT_HARVESTED_WORMHOLE_B0_SOC = "./soc_descriptors/wormhole_b0_80_harvested.
 DEFAULT_GRAYSKULL_SOC = "./soc_descriptors/grayskull_10x12.yaml"
 DEFAULT_SUBPROCESS_TIMEOUT = 180
 TIMEOUT_RETCODE = 1001
+CUSTOM_ENV_CONFIGS_FILE = "./verif/common/custom_env_per_netlist.json"
 
 logger = get_logger(__name__)
 
@@ -72,9 +74,9 @@ def run_diff(folder1: str, folder2: str):
 
 
 def run_cmd(
-    command: str, arch: str, timeout=DEFAULT_SUBPROCESS_TIMEOUT
+    command: str, arch: str, custom_env: Dict = {}, timeout=DEFAULT_SUBPROCESS_TIMEOUT
 ) -> subprocess.CompletedProcess:
-    env = {}
+    env = custom_env
     if arch:
         env["ARCH_NAME"] = arch
     cmd = command.split()
@@ -252,3 +254,10 @@ def __log_running_progress(current_iter: int, total_iters: int, item_name: str):
         logger.info(
             f"Finished running {item_name} on {current_iter} / {total_iters} items."
         )
+
+
+def fetch_custom_env_configs():
+    if not os.path.exists(CUSTOM_ENV_CONFIGS_FILE):
+        return {}
+    with open(CUSTOM_ENV_CONFIGS_FILE, "r") as file:
+        return json.load(file)

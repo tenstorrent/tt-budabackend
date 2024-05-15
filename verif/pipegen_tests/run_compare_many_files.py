@@ -40,6 +40,8 @@ import argparse
 import os
 from datetime import datetime
 
+from compare_blobs import BlobComparatorCaller
+
 from verif.common.runner_compare import CompareFilesRunner
 from verif.common.test_utils import get_logger, setup_logger
 
@@ -83,13 +85,35 @@ if __name__ == "__main__":
         default=-1,
         help="Number of samples to compare. DEFAULT: all existing files will be used.",
     )
-    parser.add_argument("--force-run-filter", default=False, action="store_true")
+    parser.add_argument(
+        "--sg_comparison_strategy",
+        type=str,
+        required=False,
+        default=None,
+        help=(
+            "How to compare stream graphs in blob.yamls. "
+            "Note that this only makes sense in case of comparing blob.yamls. "
+            "If this is not defined, a default byte-to-byte comparison is used. "
+            "If it is defined, blob_comparator will be invoked. "
+            "DEFAULT: None"
+        ),
+    )
 
     args = parser.parse_args()
 
     timestamp = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
     setup_logger(os.path.join(args.log_out_root, f"run_compare_{timestamp}.log"))
 
+    comparison_function = (
+        BlobComparatorCaller(args.sg_comparison_strategy)
+        if args.sg_comparison_strategy
+        else CompareFilesRunner.compare_file_worker
+    )
+
     CompareFilesRunner.compare_all_outputs(
-        args.original_dir, args.new_dir, args.filename_filter, args.num_samples
+        args.original_dir,
+        args.new_dir,
+        args.filename_filter,
+        args.num_samples,
+        comparison_function=comparison_function,
     )

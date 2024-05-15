@@ -72,7 +72,7 @@ class BlobgenRunner:
         --------------------------------------------------
         .
         |-- blob_yaml_path
-        |   |-- filtered_yamls_Nothing
+        |   |-- filtered_yamls_Everything
         |   |   |-- grayskull
         |   |   |   |-- 1xlink
         |   |   |   |   `-- blob_0.yaml
@@ -90,7 +90,7 @@ class BlobgenRunner:
         |   `-- pipegen.log
         `-- blobgen_out_dir
             |-- blobgen.log
-            |-- filtered_yamls_Nothing
+            |-- filtered_yamls_Everything
             |   |-- grayskull
             |   |   |-- 1xlink
             |   |   |   |-- pipegen_epoch0_0_0_0.hex
@@ -178,64 +178,42 @@ class BlobgenRunner:
         with open(get_soc_file(arch), "r") as yaml_file:
             soc_desc = yaml.safe_load(yaml_file)
 
-        if "physical" in soc_desc:
-            noc_x_size = soc_desc["physical"]["x_size"]
-            noc_y_size = soc_desc["physical"]["y_size"]
-        else:
-            noc_x_size = soc_desc["grid"]["x_size"]
-            noc_y_size = soc_desc["grid"]["y_size"]
-
-        chip = soc_desc["arch_name"].lower()
-        noc_version = soc_desc["features"]["overlay"]["version"]
-        tensix_mem_size = soc_desc["worker_l1_size"]
-
-        # get noc translation id enabled only if keys features and noc exist
-        # otherwise, set noc_translation_id_enabled to False
-        if "features" in soc_desc and "noc" in soc_desc["features"]:
-            noc_translation_id_enabled = int(
-                bool(soc_desc["features"]["noc"]["translation_id_enabled"])
-            )
-        else:
-            noc_translation_id_enabled = 0
-
-        OVERLAY_BLOB_BASE = 143488
-        ETH_OVERLAY_BLOB_BASE = 131200
-        eth_cores = soc_desc["eth"]
-        if "eth" in soc_desc:
-            eth_cores = soc_desc["eth"]
-            tensix_mem_size_eth = soc_desc["eth_l1_size"]
-            # transpose eth cores so that we first put y coord and then x coord
-            eth_cores = [eth_core.split("-")[::-1] for eth_core in eth_cores]
-            eth_cores = [f"{eth_core[0]}-{eth_core[1]}" for eth_core in eth_cores]
-            eth_cores_comma_str = ",".join(eth_cores)
-
-            blob_section_start = OVERLAY_BLOB_BASE
-            blob_section_start_eth = ETH_OVERLAY_BLOB_BASE
-            data_buffer_space_base_eth = 163840
-
-        chip_ids = extract_chip_ids_from_blob_yaml(blob_yaml_path)
-        noc_x_logical_size = soc_desc["grid"]["x_size"]
-        noc_y_logical_size = soc_desc["grid"]["y_size"]
-
         blobgen_cmd = BlobgenRunner.__get_blobgen_cmd(
             blob_rb_path,
             blob_out_dir,
             blob_yaml_path,
             epoch_id,
-            noc_x_size,
-            noc_y_size,
-            chip,
-            noc_version,
-            tensix_mem_size,
-            chip_ids,
-            noc_translation_id_enabled,
-            noc_x_logical_size,
-            noc_y_logical_size,
-            tensix_mem_size_eth,
-            eth_cores_comma_str,
-            blob_section_start,
-            blob_section_start_eth,
-            data_buffer_space_base_eth,
+            noc_x_size=(
+                soc_desc["physical"]["x_size"]
+                if "physical" in soc_desc
+                else soc_desc["grid"]["x_size"]
+            ),
+            noc_y_size=(
+                soc_desc["physical"]["y_size"]
+                if "physical" in soc_desc
+                else soc_desc["grid"]["y_size"]
+            ),
+            chip=soc_desc["arch_name"].lower(),
+            noc_version=soc_desc["features"]["overlay"]["version"],
+            tensix_mem_size=soc_desc["worker_l1_size"],
+            chip_ids=extract_chip_ids_from_blob_yaml(blob_yaml_path),
+            noc_translation_id_enabled=int(
+                bool(soc_desc["features"]["noc"]["translation_id_enabled"])
+                if "features" in soc_desc and "noc" in soc_desc["features"]
+                else False
+            ),
+            noc_x_logical_size=soc_desc["grid"]["x_size"],
+            noc_y_logical_size=soc_desc["grid"]["y_size"],
+            tensix_mem_size_eth=soc_desc["eth_l1_size"],
+            eth_cores_comma_str=BlobgenRunner.__convert_cores_from_soc_format(
+                soc_desc["eth"]
+            ),
+            worker_cores_comma_str=BlobgenRunner.__convert_cores_from_soc_format(
+                soc_desc["functional_workers"]
+            ),
+            blob_section_start=143488,
+            blob_section_start_eth=131200,
+            data_buffer_space_base_eth=163840,
         )
 
         blobgen_cmd.replace("\n", " ")
@@ -263,6 +241,14 @@ class BlobgenRunner:
         )
         return WorkerResult(cmd, err)
 
+    def __convert_cores_from_soc_format(cores: list[str]):
+        # transpose cores so that we first put y coord and then x coord
+        cores = [core.split("-")[::-1] for core in cores]
+        cores = [f"{core[0]}-{core[1]}" for core in cores]
+        cores_comma_str = ",".join(cores)
+
+        return cores_comma_str
+
     def __get_blobgen_cmd(
         blob_rb_path: str,
         blob_out_dir: str,
@@ -279,6 +265,7 @@ class BlobgenRunner:
         noc_y_logical_size: int,
         tensix_mem_size_eth: int,
         eth_cores_comma_str: str,
+        worker_cores_comma_str: str,
         blob_section_start: int,
         blob_section_start_eth: int,
         data_buffer_space_base_eth: int,
@@ -287,9 +274,9 @@ class BlobgenRunner:
         Example command
         ---------------
         ruby ./src/overlay/blob_gen.rb
-            --blob_out_dir out/a/output_blobgen/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile
+            --blob_out_dir out/a/output_blobgen/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile
             --graph_yaml 1
-            --graph_input_file out/a/output_pipegen/filtered_yamls_Nothing/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml
+            --graph_input_file out/a/output_pipegen/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml
             --graph_name pipegen_epoch0
             --noc_x_size 10
             --noc_y_size 12
@@ -302,6 +289,7 @@ class BlobgenRunner:
             --noc_y_logical_size 12
             --tensix_mem_size_eth 262144
             --eth_cores 0-9,0-1,0-8,0-2,0-7,0-3,0-6,0-4,6-9,6-1,6-8,6-2,6-7,6-3,6-6,6-4
+            --worker_cores 1-1,1-2,1-3,1-4,1-6,1-7,1-8,1-9,2-1,2-2,2-3,2-4,2-6,2-7,2-8,2-9,3-1,3-2,3-3,3-4,3-6,3-7,3-8,3-9,4-1,4-2,4-3,4-4,4-6,4-7,4-8,4-9,5-1,5-2,5-3,5-4,5-6,5-7,5-8,5-9,7-1,7-2,7-3,7-4,7-6,7-7,7-8,7-9,8-1,8-2,8-3,8-4,8-6,8-7,8-8,8-9,9-1,9-2,9-3,9-4,9-6,9-7,9-8,9-9,10-1,10-2,10-3,10-4,10-6,10-7,10-8,10-9,11-1,11-2,11-3,11-4,11-6,11-7,11-8,11-9
             --blob_section_start 143488
             --blob_section_start_eth 131200
             --data_buffer_space_base_eth 163840
@@ -324,6 +312,7 @@ class BlobgenRunner:
             f"--noc_y_logical_size {','.join([str(noc_y_logical_size)]*len(chip_ids))} "
             f"--tensix_mem_size_eth {str(tensix_mem_size_eth)} "
             f"--eth_cores {eth_cores_comma_str} "
+            f"--worker_cores {worker_cores_comma_str} "
             f"--blob_section_start {str(blob_section_start)} "
             f"--blob_section_start_eth {str(blob_section_start_eth)} "
             f"--data_buffer_space_base_eth {str(data_buffer_space_base_eth)} "

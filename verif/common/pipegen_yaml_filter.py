@@ -12,7 +12,7 @@ from verif.common.pipegen_yaml_filter_utils import *
 
 class FilterType(IntEnum):
     # Experimental filters
-    Nothing = 0  # Filters nothing
+    Everything = 0  # Everything passes through this filter
     DirectPipes_L1_L1 = 1  # packer->pipe->unpacker
     DirectPipes_DRAM_L1 = 2  # dram->pipe->unpacker
     DirectPipes_L1_DRAM = 3  # packer->pipe->dram

@@ -8,11 +8,13 @@ Functions for running net2pipe commands.
 import os
 import random
 from dataclasses import dataclass
+from typing import Dict
 
 from verif.common.runner_utils import (
     DEFAULT_BIN_DIR,
     WorkerResult,
     execute_in_parallel,
+    fetch_custom_env_configs,
     get_arch_bin_dir,
     get_cluster_descriptors,
     get_soc_file,
@@ -223,6 +225,9 @@ class Net2PipeRunner:
             Return code and net2pipe command.
         """
         cluster_descriptors = get_cluster_descriptors(arch)
+        custom_env_configs = fetch_custom_env_configs().get(
+            get_netlist_name(netlist_path), {}
+        )
         ret_code = 1
         net2pipe_cmd = "<no command ran>"
         for cluster_descriptor in cluster_descriptors:
@@ -231,7 +236,7 @@ class Net2PipeRunner:
             net2pipe_cmd = Net2PipeRunner.__get_net2pipe_cmd(
                 netlist_path, out_dir, bin_dir, arch, cluster_descriptor
             )
-            result = run_cmd(net2pipe_cmd, arch)
+            result = run_cmd(net2pipe_cmd, arch, custom_env_configs)
             ret_code = result.returncode
             if ret_code == 0:
                 break

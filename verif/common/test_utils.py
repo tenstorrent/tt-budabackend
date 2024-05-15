@@ -152,27 +152,19 @@ def print_thread_info(
         lock.release()
 
 
+
 def get_netlist_arch(netlist_path: str) -> list[str]:
     """Parses architecture names from given netlist."""
     try:
         with open(netlist_path, "r") as input_yaml_file:
-            # It's very slow to load the whole yaml file just to read the supported archs.
-            yaml_dict = yaml.safe_load(input_yaml_file.read())
-            devices_key = "devices"
-            arch_key = "arch"
-            if (
-                yaml_dict is None
-                or devices_key not in yaml_dict
-                or arch_key not in yaml_dict[devices_key]
-            ):
-                return []
-            arch = yaml_dict[devices_key][arch_key]
-            if not type(arch) is list:
-                arch = [arch]
-
-            arch = [x.lower() for x in arch]
-
-            return arch
+            # Line looks like this arch: [grayskull, wormhole]
+            # or like this arch: grayskull
+            for line in input_yaml_file:
+                if "arch:" in line:
+                    arch = line.split(":")[1].strip()
+                    arch = arch.replace("[", "").replace("]", "").replace(",", "")
+                    arch = arch.split()
+                    return [x.lower() for x in arch]
     except:
         return []
 

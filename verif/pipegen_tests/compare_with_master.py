@@ -1,6 +1,32 @@
 # SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 
 # SPDX-License-Identifier: Apache-2.0
+"""
+Testing between pipegen2 from master and pipegen2 with your changes.
+
+Example commands for creating a sample with netlists:
+    mkdir -p out/netlists
+    cp verif/graph_tests/netlists/*.yaml out/netlists/
+
+Build pipegen on master (remember to use stash if you have any changes):
+    git checkout master
+    verif/pipegen_tests/build_all_archs.sh build_master
+    git checkout -
+
+Build pipegen on your change and copy master_pipegen:
+    verif/pipegen_tests/build_all_archs.sh
+    cp build_master/wormhole_b0/bin/pipegen2 build_archs/wormhole_b0/bin/pipegen2_master
+    cp build_master/grayskull/bin/pipegen2 build_archs/grayskull/bin/pipegen2_master
+
+Create python virtual environment:
+    verif/pipegen_tests/create_env.sh
+    source verif/pipegen_tests/env/bin/activate
+
+This script run example:
+    python3 verif/pipegen_tests/compare_with_master.py --out out --netlists out/netlists \
+        --builds-dir build_archs --pipegens-bin-dir build_archs/wormhole_b0/bin \
+        --arch wormhole_b0
+"""
 import argparse
 import os
 
@@ -9,11 +35,15 @@ from pipegen_refactor_test import (
     FILTERED_YAMLS_OUT_DIR_NAME,
     StreamGraphComparisonStrategy,
     compare_pipegens_on_yamls,
-    filter_yamls,
 )
 
 from verif.common.pipegen_yaml_filter import FilterType
+from verif.common.runner_net2pipe import Net2PipeRunner
+from verif.common.runner_pipegen_filter import PipegenFilterRunner
 from verif.common.runner_utils import DEFAULT_BIN_DIR, DEFAULT_TOP_LEVEL_BUILD_DIR
+from verif.common.test_utils import setup_logger
+
+NET2PIPE_OUT_DIR_NAME = "net2pipe_out"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -72,30 +102,36 @@ if __name__ == "__main__":
     parser.add_argument("--force-run-filter", default=False, action="store_true")
 
     args = parser.parse_args()
+    log_path = os.path.join(args.out, f"compare_with_master.log")
+    setup_logger(log_path)
 
     # Pick some or leave as is to run all existing filters starting from UnicastPipe.
     filters = [f for f in FilterType if f.value >= FilterType.UnicastPipe.value]
 
+    # Don't filter anything, all pipes pass this filter.
+    # filters = [FilterType.Everything]
+
     # Run filters.
     for f in filters:
         filtered_yamls_dir_name = f"{FILTERED_YAMLS_OUT_DIR_NAME}_{f.name}"
-        if (
-            os.path.exists(f"{args.out}/{filtered_yamls_dir_name}")
-            and not args.force_run_filter
-        ):
-            continue
 
-        os.makedirs(f"{args.out}/{filtered_yamls_dir_name}", exist_ok=True)
         print(f"Running filter {f.name}")
 
         try:
-            filter_yamls(
+            net2pipe_out_dir = os.path.join(args.out, NET2PIPE_OUT_DIR_NAME)
+            Net2PipeRunner.generate_net2pipe_outputs(
                 args.netlists,
-                f,
-                args.out,
-                filtered_yamls_dir_name,
+                net2pipe_out_dir,
                 args.builds_dir,
+                overwrite=args.force_run_filter,
+            )
+
+            PipegenFilterRunner.filter_pipegen_yamls(
+                net2pipe_out_dir,
+                args.out,
+                f,
                 args.num_samples,
+                overwrite=args.force_run_filter,
             )
         except Exception as e:
             print(f"Exception occurred during filtering {f.name}: {e}")

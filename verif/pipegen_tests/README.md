@@ -62,6 +62,27 @@ The default behavior is to skip each of the steps for which the output folder al
 You can take advantage of this behavior if you're changing (for example) only pipegen, and know that net2pipe binaries and their outputs are exactly the same.
 In that case, you can just use the same --out_net2pipe location in the following command for generating the other set of files.
 
+Note that you can also omit some of the arguments. Here's a part of the code which explains script behavior based on which arguments are provided:
+```
+if args.netlists and args.out_net2pipe:
+    Net2PipeRunner.generate_net2pipe_outputs
+
+if args.out_net2pipe and args.out_pipegen_filter:
+	for filter in pipegen_filters:
+		PipegenFilterRunner.filter_pipegen_yamls
+
+if args.out_pipegen_filter and args.out_pipegen:
+	PipegenRunner.generate_pipegen_outputs
+elif args.out_net2pipe and args.out_pipegen:
+	PipegenRunner.generate_pipegen_outputs
+
+if args.out_pipegen and args.out_blobgen:
+	BlobgenRunner.generate_blobgen_outputs
+```
+
+If you need just blob.yamls, you can remove --out_blobgen and --blobgen_path to skip running blobgen.
+If you need just pipegen.yamls, you can further remove --out-pipegen to skip running pipegen.
+
 ## Generate Blobgen master outputs
 
 If you are on a branch with your local changes, and want to generate outputs from code present on master branch
@@ -77,11 +98,6 @@ python3 verif/pipegen_tests/run_backend_compile_many_files.py \
 --out_blobgen /localdev/$USER/work/output_blobgen_master \
 --blobgen_path ./src/overlay/blob_gen.rb
 ```
-
-## Generate just Net2Pipe or just Pipegen outputs
-
-If you need just blob.yamls, you can remove --out_blobgen and --blobgen_path to skip running blobgen.
-If you need just pipegen.yamls, you can further remove --out-pipegen to skip running pipegen.
 
 ## Compare outputs
 
@@ -101,6 +117,16 @@ python3 verif/pipegen_tests/run_compare_many_files.py \
 --original_dir /localdev/$USER/work/output_pipegen_master \
 --new_dir /localdev/$USER/work/output_pipegen \
 --filename_filter "*blob_[0-9]*.yaml"
+```
+
+To test pipegen changes and compare generated blob.yamls using custom comparison strategy, you can use this command:
+```
+python3 verif/pipegen_tests/run_compare_many_files.py \
+--log_out_root out  \
+--original_dir /localdev/$USER/work/output_pipegen_master \
+--new_dir /localdev/$USER/work/output_pipegen \
+--filename_filter "*blob_[0-9]*.yaml" \
+--sg_comparison_strategy edges
 ```
 
 To test net2pipe changes and compare generated pipegen.yamls, you can use this command:

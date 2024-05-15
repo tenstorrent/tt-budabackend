@@ -33,6 +33,7 @@ from verif.common.test_utils import (
     create_dir_if_not_exist,
     create_or_clean_dir,
     get_epoch_dir,
+    get_netlist_name,
     print_fail,
     print_success,
     print_warning,
@@ -335,11 +336,12 @@ def get_overlay_output_hash(netlist_path: str, temp_dir: str, arch_name: str) ->
     # Running pipegen
     epoch_id = 0
     epoch_dir = get_epoch_dir(temp_dir, epoch_id)
+    netlist_name = get_netlist_name(netlist_path)
     while os.path.isdir(epoch_dir):
         pipegen_yaml_path = f"{epoch_dir}/pipegen.yaml"
         blob_yaml_path = f"{epoch_dir}/blob.yaml"
         PipegenRunner.run_pipegen(
-            pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id, throw_if_error=True
+            pipegen_yaml_path, blob_yaml_path, arch_name, epoch_id, netlist_name, throw_if_error=True
         )
         epoch_id = epoch_id + 1
         epoch_dir = get_epoch_dir(temp_dir, epoch_id)
