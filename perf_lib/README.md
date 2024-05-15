@@ -119,7 +119,7 @@ tar czf tt_build/tmp_tar.tar.gz tt_build/test_out/perf_results
 ```
 and on local machine
 ```
-scp aus-gs-02:<PATH_TO_REPO>/tt_build/tmp_tar.tar.gz ~/Downloads
+scp aus-gs-03:<PATH_TO_REPO>/tt_build/tmp_tar.tar.gz ~/Downloads
 ```
 
 # Performance Check
