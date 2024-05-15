@@ -1,0 +1,68 @@
+# Configuration for test
+test-config:
+  extra-config:
+    math-op: &math-op datacopy
+    num-outputs: 4
+    num-output0-tiles: &num-output0-tiles 4
+    num-output1-tiles: &num-output1-tiles 2
+    num-output2-tiles: &num-output2-tiles 7
+    num-output3-tiles: &num-output3-tiles 3
+  tensor-config:
+    input0:
+      dims: [1, 16, 32, 32]
+      data-format: Bfp8
+      stimulus-config:
+        min: -2.0
+        max: 2.0
+      stream-config:
+        type: input
+        stream-id: 8
+        src-name: srcA
+    output0:
+      dims: [1, *num-output0-tiles, 32, 32]
+      data-format: Bfp8
+      stream-config:
+        type: output
+        stream-id: 24
+    output1:
+      dims: [1, *num-output1-tiles, 32, 32]
+      data-format: Bfp8
+      stream-config:
+        type: output
+        stream-id: 25
+    output2:
+      dims: [1, *num-output2-tiles, 32, 32]
+      data-format: Bfp8
+      stream-config:
+        type: output
+        stream-id: 26
+    output3:
+      dims: [1, *num-output3-tiles, 32, 32]
+      data-format: Bfp8
+      stream-config:
+        type: output
+        stream-id: 27
+
+
+# Kernel Configuration
+#   -- Lists the kernels used + a sub-op param
+#      --  Sub-ops are a vector of operations that get appended to the base-name.  
+#          This is for ctest kernels that use kernel name to differentiate behaviour, 
+#          but the base kernel is the same.  
+kernels-config:
+  0-0:
+    unpack-kernel:
+      base-name: ctest_unpack_A
+    math-kernel:
+      base-name: ctest_stream_math_eltwise_unary # stream uses tile sync mode between math and dest
+      sub-ops: [*math-op]
+    pack-kernel:
+      base-name: ctest_stream_pack_multi_out
+
+# Overlay blob generation controls 
+#   -- Can be used to override tile-size etc which infra will try to generate from test-spec.
+#   -- Verbose flag to see exact configuration passed to overlay-generation script
+overlay-config:
+  graph_name: unary_multi_out_streaming_test
+  output_data_offset: 131072 
+  verbose: 0

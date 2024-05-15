@@ -1,0 +1,77 @@
+# Copy of verif/multichip_tests/wh_multichip/netlist_wh_multichip_gather_scatter_with_optimized_gather.yaml
+# Sanity test for FW ethernet pipes.
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  past_value:   {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 8, mblock: [57, 64], ublock: [1, 1], ublock_order: c, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  output:       {input: index_51.dc.buffer.1, type: queue, entries: 1,
+  grid_size: [7, 8], t: 8, mblock: [4, 2], ublock: [2, 4], ublock_order: c, df: Float16_b, target_device: 1, loc: dram, dram: [
+    [0, 0x31000000], [0, 0x31200000], [0, 0x31400000], [0, 0x31600000], [0, 0x31800000], [0, 0x31a00000], [0, 0x31c00000], [0, 0x31e00000],
+    [0, 0x32000000], [0, 0x32200000], [0, 0x32400000], [0, 0x32600000], [0, 0x32800000], [0, 0x32a00000], [0, 0x32c00000], [0, 0x32e00000],
+    [0, 0x33000000], [0, 0x33200000], [0, 0x33400000], [0, 0x33600000], [0, 0x33800000], [0, 0x33a00000], [0, 0x33c00000], [0, 0x33e00000],
+    [0, 0x34000000], [0, 0x34200000], [0, 0x34400000], [0, 0x34600000], [0, 0x34800000], [0, 0x34a00000], [0, 0x34c00000], [0, 0x34e00000],
+    [0, 0x35000000], [0, 0x35200000], [0, 0x35400000], [0, 0x35600000], [0, 0x35800000], [0, 0x35a00000], [0, 0x35c00000], [0, 0x35e00000],
+    [0, 0x36000000], [0, 0x36200000], [0, 0x36400000], [0, 0x36600000], [0, 0x36800000], [0, 0x36a00000], [0, 0x36c00000], [0, 0x36e00000],
+    [0, 0x37000000], [0, 0x37200000], [0, 0x37400000], [0, 0x37600000], [0, 0x37800000], [0, 0x37a00000], [0, 0x37c00000], [0, 0x37e00000] #,
+    # [0, 0x38000000], [0, 0x38200000], [0, 0x38400000], [0, 0x38600000], [0, 0x38800000], [0, 0x38a00000], [0, 0x38c00000], [0, 0x38e00000]
+  ]}
+
+graphs:
+  fwd_0_0_temporal_epoch_0:
+    target_device: 0
+    input_count: 1
+    index_51.dc.select.0: {type: splice, grid_loc: [0, 0], grid_size: [1, 8], inputs: [past_value],
+         t: 32, mblock: [56, 1], ublock: [1, 2], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
+         input_0_tms: [hslice: 4],
+         attributes: {input0: [0, 56, 57]}}
+  fwd_0_1_temporal_epoch_0:
+    target_device: 1
+    input_count: 1
+    index_51.dc.buffer.1: {type: nop, grid_loc: [1, 0], grid_size: [7, 8], inputs: [index_51.dc.select.0],
+         t: 8, mblock: [4, 2], ublock: [2, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_0_tms: [hstack: 4]}
+
+programs:
+  - run_fwd_0:
+    - param: [$p_loop_count]
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0_shadow: 0, $gptr_q4_shadow: 0, $gptr_q9_shadow: 0, $gptr_q0: 0, $lptr_q0: 0, $lptr_q1: 0, $lptr_q2: 0, $gptr_q2: 0, $gptr_q3: 0, $lptr_q3: 0, $lptr_q4: 0, $gptr_q5: 0, $lptr_q5: 0, $gptr_q6: 0, $lptr_q12: 0, $gptr_q1: 0, $lptr_q8: 0, $lptr_q11: 0, $gptr_q10: 0, $gptr_q12: 0, $lptr_q10: 0, $lptr_q7: 0, $gptr_q11: 0, $lptr_q9: 0, $gptr_q8: 0, $gptr_q9: 0, $gptr_q4: 0, $gptr_q7: 0, $lptr_q6: 0}
+    - loop: $p_loop_count
+    -   varinst: [$gptr_q9, set, $gptr_q9_shadow]
+    -   varinst: [$gptr_q4, set, $gptr_q4_shadow]
+    -   varinst: [$gptr_q0, set, $gptr_q0_shadow]
+    -   execute: {graph_name: fwd_0_0_temporal_epoch_0, queue_settings: {
+               past_value: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q5, rd_ptr_global: $gptr_q5}
+    }}
+    -   execute: {graph_name: fwd_0_1_temporal_epoch_0, queue_settings: {
+    }}
+    -   varinst: [$gptr_q0_shadow, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q1, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q1, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q2, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q3, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q3, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q4_shadow, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q5, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q6, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q4, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q5, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q6, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q7, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q7, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q10, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q10, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q11, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$gptr_q12, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q11, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q12, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+

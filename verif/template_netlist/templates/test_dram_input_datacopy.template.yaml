@@ -1,0 +1,70 @@
+# input_grid_size_r = $TEMPLATE_input_grid_size_r
+# input_grid_size_c = $TEMPLATE_input_grid_size_c
+
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_input_entries
+    grid_size: [$TEMPLATE_input_grid_size_r, $TEMPLATE_input_grid_size_c]
+    t: $TEMPLATE_input_t
+    mblock: [$TEMPLATE_input_mb_r, $TEMPLATE_input_mb_c]
+    ublock: [$TEMPLATE_input_ub_r, $TEMPLATE_input_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input_dram_buffers
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: $TEMPLATE_output_entries
+    grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+    t: $TEMPLATE_output_t
+    mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+    ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output_dram_buffers
+    ublock_order: $TEMPLATE_output_ublock_order
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: $TEMPLATE_input_count
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_op_loc_r, $TEMPLATE_op_loc_c] 
+      grid_size: [$TEMPLATE_output_grid_size_r, $TEMPLATE_output_grid_size_c]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: $TEMPLATE_output_ublock_order
+      buf_size_mb: $TEMPLATE_output_buf_size_mb
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: $TEMPLATE_output_t
+      mblock: [$TEMPLATE_output_mb_r, $TEMPLATE_output_mb_c]
+      ublock: [$TEMPLATE_output_ub_r, $TEMPLATE_output_ub_c]
+      input_0_tms: [$TEMPLATE_tms]
+      
+programs:
+  - program0:
+      - var : [$c_loop_count]
+      - staticvar: {$lptr : 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - varinst: [$gptr, incwrap, $TEMPLATE_input_count, $TEMPLATE_queue_wrap_size] # add two variables
+      - endloop 
+
+
+

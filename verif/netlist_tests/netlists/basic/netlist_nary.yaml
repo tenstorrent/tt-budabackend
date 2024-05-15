@@ -1,0 +1,62 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x11000000]]}
+  q1    : {type: queue, input: HOST   , entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x12000000]]}
+  q2    : {type: queue, input: HOST   , entries: 1, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x13000000]]}
+  q3    : {type: queue, input: HOST   , entries: 1, grid_size: [1, 1], t: 1, mblock: [8, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x14000000]]}
+  output: {type: queue, input: unary0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [4, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x15000000]]}
+
+graphs:
+  test_unary:
+    target_device: 0
+    input_count: 1
+    unary0: {
+      type: splice, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0, q1, q2, q3], in_df: [Float16, Float16, Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [4, 2], ublock: [1, 1],
+      input_0_tms: [broadcast: {r: 2}],
+      attributes: { input0: [0, 1, 2], input1: [1, 3, 3], input2: [4, 1, 2], input3: [5, 3, 3]}  
+    }
+
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          q2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0},
+          q3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.0
+    check_pcc: 0.98
+    #verbosity: Verbose
+    verbosity: AllFails
+  stimulus-config:
+    type: Constant
+    constant_value: 0
+    overrides:
+      q0:
+        type: DebugTileId
+        debug_tile_id_base: 0
+        debug_tile_id_step: 1
+      q1:
+        type: DebugTileId
+        debug_tile_id_base: 0
+        debug_tile_id_step: 1
+      q2:
+        type: DebugTileId
+        debug_tile_id_base: 0
+        debug_tile_id_step: 1
+      q3:
+        type: DebugTileId
+        debug_tile_id_base: 0
+        debug_tile_id_step: 1

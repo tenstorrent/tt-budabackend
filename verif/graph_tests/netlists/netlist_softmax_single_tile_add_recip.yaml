@@ -1,0 +1,51 @@
+devices:
+  arch: [grayskull, wormhole]
+
+queues:
+  input_activation: {type: queue, input: HOST,  entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  input_constant  : {type: queue, input: HOST,  entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x21000000]]}
+  output_softmax  : {type: queue, input: recip, entries: 2, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x22000000]]}
+
+graphs:
+  softmax_single_tile_add_recip:
+    target_device: 0
+    input_count: 1
+    sum:   {type: add,        grid_loc: [0, 1], grid_size: [1, 1], inputs: [input_activation, input_constant], t: 1, mblock: [1, 1], ublock: [1, 1], in_df: [Float16_b, Float16_b], acc_df: Float16_b, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+    recip: {type: reciprocal, grid_loc: [0, 2], grid_size: [1, 1], inputs: [sum                             ], t: 1, mblock: [1, 1], ublock: [1, 1], in_df: [Float16_b],            acc_df: Float16_b, out_df: Float16_b, intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3}
+
+programs:
+  - run_softmax_single_tile_add_recip:
+    - var: [$c_one, $c_zero, $gptr_q0, $gptr_q1, $c_num_microbatches, $lptr_q0, $lptr_q1]
+    - varinst: [$c_zero, set, 0]
+    - varinst: [$c_one, set, 1]
+    - varinst: [$c_num_microbatches, set, 1]
+    - loop: $c_num_microbatches
+    -   execute: {
+          graph_name: softmax_single_tile_add_recip,
+          queue_settings: {
+               input_constant:   {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+               input_activation: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}
+          }
+        }
+    -   varinst: [$lptr_q0, add, $lptr_q0, $c_one]
+    -   varinst: [$gptr_q0, add, $gptr_q0, $c_one]
+    -   varinst: [$lptr_q1, add, $lptr_q1, $c_one]
+    -   varinst: [$gptr_q1, add, $gptr_q1, $c_one]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.80
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -0.999
+    uniform_upper_bound: 0.99
+    overrides:
+      input_constant: 
+        type: Constant
+        constant_value: 1.0

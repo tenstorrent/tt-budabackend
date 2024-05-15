@@ -1,0 +1,61 @@
+# TODO - Common section to be shred across variants.
+# List out all the op variants to be tested
+common:
+  some: thing
+variants:
+  default:
+    # Common section for shared configuration for all tests for this op variant
+    # FIXME - Not yet supported
+    common:
+      perf-config:
+        checkers-fast: true
+      rbg-config:
+        edges:
+          - [[op_a, 0], [op_b, 0]]
+          - [[op_b, 0], [op_c, 0]]
+    tests:
+      tiny:
+        perf-config:
+          perf-test: true
+          device-vs-model-en-checker: false
+          device-vs-model-cycles-rtol: 1.0
+          perf-decouple-modes: [["None"]]
+          perf-decouple-op: "target_op"
+        rbg-config:
+         -
+          config:
+            # Single Core
+            min-ops: 3
+            max-ops: 3
+            hw-grid-r: 10
+            hw-grid-c: 12
+            max-tensor-dim-r: 4
+            min-tensor-dim-r: 4
+            max-tensor-dim-c: 4
+            min-tensor-dim-c: 4
+            max-tensor-dim-z: 1
+            min-tensor-dim-z: 1
+            max-tensor-dim-w: 1
+            min-tensor-dim-w: 1
+            max-core-dim-r: 1
+            min-core-dim-r: 1
+            max-core-dim-c: 1
+            min-core-dim-c: 1
+            max-batch-size: 1
+            min-batch-size: 1
+            data-formats: Bfp8_b
+            conv-kernel-sizes: 3,5,7
+            single-graph-data-format: True
+          nodes:
+            - name: feeder_op
+              types:
+                - tt_eltwise_unary_op
+            - name: target_op
+              types:
+                - OP_UNDER_TEST
+            - name: drainer_op
+              types:
+                - tt_eltwise_unary_op
+          edges:
+            - [[feeder_op, 0], [target_op, 0]]
+            - [[target_op, 0], [drainer_op, 0]]

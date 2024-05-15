@@ -1,0 +1,89 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 2]
+    ublock: [2, 4]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000000]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 2]
+    ublock: [4, 4]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x20000000]]
+
+  output:
+    type: queue
+    input: target_op
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 2]
+    ublock: [2, 4]
+    df: Bfp8_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x30000000]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    target_op: 
+      type: matmul
+      grid_loc: [1, 0]
+      grid_size: [1, 1]
+      inputs: [dram_input0, dram_input1] 
+      in_df: [Bfp8_b, Bfp8_b] 
+      acc_df: Bfp8_b
+      out_df: Bfp8_b
+      intermed_df: Bfp8_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: LoFi
+      attributes: {m_k: 2, u_kt: 4}
+      untilize_output: false
+      t: 1
+      mblock: [2, 2]
+      ublock: [2, 4]
+      input_0_tms: []
+      input_1_tms: []
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         dram_input0: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         dram_input1: {prologue: true, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+performance-check:
+  config-0:
+    program-name: program0
+    graph-name: test_op
+    target-ops: [target_op]
+    target-inputs: [0]
+    math-utilization:
+      expected: 75
+      rtol: 0.10

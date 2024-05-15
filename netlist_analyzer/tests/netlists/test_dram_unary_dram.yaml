@@ -1,0 +1,37 @@
+devices:
+    arch: grayskull
+  
+queues:
+  q0      : {type: queue, input: HOST   , entries: 256, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x12000000], [0, 0x14000000], [0, 0x16000000]]} # 16kB per core
+  output0 : {type: queue, input: unary0 , entries: 256, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000], [0, 0x22000000], [0, 0x24000000], [0, 0x26000000]]}
+  
+  q1      : {type: queue, input: HOST   , entries: 256, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x18000000], [0, 0x1a000000], [0, 0x1c000000], [0, 0x1e000000]]} # 16kB per core
+  output1 : {type: queue, input: unary1 , entries: 256, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [4, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x28000000], [0, 0x2a000000], [0, 0x2c000000], [0, 0x2e000000]]}
+  
+graphs:
+  test_unary0:
+    target_device: 0
+    input_count: 256 
+    unary0: {type: datacopy, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [4, 2]}
+    
+  test_unary1:
+    target_device: 0
+    input_count: 256
+    unary1: {type: datacopy, grid_loc: [0, 0], grid_size: [2, 2], inputs: [q1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [4, 2]}
+    
+programs:
+  - program0:
+      - staticvar: {$q_rdptr0: 0}
+      - var: {$c_num_loops: 1, $c_incr: 1}
+      - loop: $c_num_loops
+      - execute: {graph_name: test_unary0, queue_settings: {
+          q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - execute: {graph_name: test_unary1, queue_settings: {
+          q1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $q_rdptr0, rd_ptr_global: $q_rdptr0}}}
+      - varinst: [$q_rdptr0, incwrap, $c_incr, 2]
+      - endloop 
+
+test-config:
+  io-config:
+    inputs: [q0, q1]
+    outputs: [output0, output1]

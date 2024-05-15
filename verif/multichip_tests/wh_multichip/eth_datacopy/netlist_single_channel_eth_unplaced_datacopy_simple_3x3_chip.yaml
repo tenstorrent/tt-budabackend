@@ -1,0 +1,69 @@
+devices:
+ arch: [wormhole,wormhole_b0]
+
+queues:
+  q0    : {type: queue, input: HOST   , entries: 512, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 0, loc: dram, dram: [
+    [0, 0x30000000]
+    
+    ]}
+  output: {type: queue, input: unary1 , entries: 512, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 2], df: Float16, target_device: 8, loc: dram, dram: [
+    [0, 0x30000000] 
+  ]}
+
+graphs:
+  test_unary_chip0:
+    target_device: 0
+    input_count: 256
+    unary0: {type: gelu, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+    eth_datacopy: {type: ethernet_datacopy,  grid_size: [1,1], attributes: {dest_device: 8}, inputs: [unary0], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+
+  test_unary_chip1:
+    target_device: 1
+    input_count: 256
+
+  test_unary_chip2:
+    target_device: 2
+    input_count: 256
+
+  test_unary_chip3:
+    target_device: 3
+    input_count: 256
+
+  test_unary_chip4:
+    target_device: 4
+    input_count: 256
+
+  test_unary_chip5:
+    target_device: 5
+    input_count: 256
+
+  test_unary_chip6:
+    target_device: 6
+    input_count: 256
+
+  test_unary_chip7:
+    target_device: 7
+    input_count: 256
+
+  test_unary_chip8:
+    target_device: 8
+    input_count: 256
+    unary1: {type: datacopy, grid_loc: [0, 0], grid_size: [1, 1], inputs: [eth_datacopy], acc_df: Float16, in_df: [Float16], out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 1, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [2, 2], input_0_tms: []}
+
+programs:
+  - program0:
+      - staticvar: {$lptr: 0, $gptr: 0, $5: 1, $microbatch: 256, $8: 1024}
+      - loop: $5
+      - execute: {graph_name: test_unary_chip0, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - execute: {graph_name: test_unary_chip1, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip2, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip3, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip4, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip5, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip6, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip7, queue_settings: {}}
+      - execute: {graph_name: test_unary_chip8, queue_settings: {}}
+      - varinst: [$gptr, incwrap, $microbatch, $8] # add two variables
+      - varinst: [$lptr, incwrap, $microbatch, $8] # add two variables
+      - endloop: 
+

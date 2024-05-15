@@ -1,0 +1,3 @@
+#!/bin/bash
+cat /localhome/rjakovljevic/work/budabackend/verif/graph_tests/netlists/z3/test_datacopy_matmul_multiple_tms_and_reblock_20220818_143343/test_059a314b7543e4b3f2bbc25245ed94fb/netlist_059a314b7543e4b3f2bbc25245ed94fb.yaml
+./build/test/verif/graph_tests/test_graph --netlist /localhome/rjakovljevic/work/budabackend/verif/graph_tests/netlists/z3/test_datacopy_matmul_multiple_tms_and_reblock_20220818_143343/test_059a314b7543e4b3f2bbc25245ed94fb/netlist_059a314b7543e4b3f2bbc25245ed94fb.yaml --silicon --timeout 500 > >(tee /localhome/rjakovljevic/work/budabackend/verif/graph_tests/netlists/z3/test_datacopy_matmul_multiple_tms_and_reblock_20220818_143343/test_059a314b7543e4b3f2bbc25245ed94fb/run.log) 2>&1

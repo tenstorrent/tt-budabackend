@@ -1,0 +1,60 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  input0:  {type: queue, input: HOST, entries: 24, grid_size: [1, 1], t: 5, mblock: [2, 1], ublock: [2, 1], df: UInt8, target_device: 0, loc: dram, dram: [[4, 0x17aeaf00]]}
+  input1:  {type: queue, input: HOST, entries: 24, grid_size: [1, 1], t: 5, mblock: [1, 2], ublock: [1, 2], df: UInt8, target_device: 0, loc: dram, dram: [[4, 0x1bc0c560]]}
+  output: {type: queue, input: op0 , entries: 24, grid_size: [1, 1], t: 5, mblock: [2, 2], ublock: [2, 2], df: UInt8, target_device: 0, loc: dram, dram: [[4, 0x317306a0]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    op0: 
+      type: matmul
+      grid_loc: [0, 0]   # [r,c]
+      grid_size: [1, 1] # [r,c]
+      inputs: [input0, input1] 
+      in_df: [UInt8, UInt8] 
+      acc_df: Int32
+      out_df: UInt8
+      intermed_df: UInt8
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 1, u_kt: 1, l1_acc: False}
+      untilize_output: false 
+      t: 5
+      mblock: [2, 2]
+      ublock: [2, 2]
+      input_0_tms:
+      input_1_tms: None
+      
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst : [$c_input_count, set, 1]
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 48] # add two variables
+      - varinst: [$gptr, incwrap, $c_input_count, 48] # add two variables
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: Exact
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.85
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 0.0
+    uniform_upper_bound: 5.0

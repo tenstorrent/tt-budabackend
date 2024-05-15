@@ -1,0 +1,78 @@
+devices:
+  arch: [grayskull, wormhole_b0]
+
+queues:
+  in_0:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 3, mblock: [7, 5], ublock: [3, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  in_1:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 3, mblock: [5, 2], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
+  output0:  {type: queue, input: op0 , entries: 2, grid_size: [1, 1], t: 3, mblock: [7, 2], ublock: [3, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 2
+    op0: 
+      type: fused_op
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [in_0, in_1]
+      in_df: [Float16_b, Float16_b]
+      acc_df: Float16_b
+      out_df: Float16_b
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi3
+      untilize_output: false 
+      gradient_op: false
+      attributes: {fused_op_id: 0}
+      t: 3
+      mblock: [7, 2]
+      ublock: [3, 2]
+
+programs:
+  - program0:
+      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+      - var: [$ramrdptr, $ramwrptr]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         in_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      -   varinst: [$lptr, incwrap, $c_input_count, 4]
+      -   varinst: [$gptr, incwrap, $c_input_count, 4]
+      - endloop 
+
+fused_ops:
+  0: 
+    inputs: 2
+    intermediates: 3
+    schedules: 
+      -
+        - abs: { type: abs, inputs: [input0], mblock: [7, 5], ublock: [3, 2], output: intermed0}
+        - exp: { type: exp, inputs: [intermed0], mblock: [7, 5], ublock: [3, 2], pop: [intermed0], output: intermed2}
+        - matmul: { type: matmul, inputs: [intermed2, input1], mblock: [7, 2], ublock: [3, 2], pop: [intermed2], attributes: {m_k: 5, u_kt: 2}, output: intermed1}
+      -
+        - nop: { type: nop, inputs: [intermed1], mblock: [7, 2], ublock: [3, 2], pop: [intermed1], output: output}
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    # overrides:
+    #   in_0:
+    #     type: DebugTileId
+    #     debug_tile_id_base: 0
+    #     debug_tile_id_step: 1
+    #   in_1:
+    #     type: DebugTileId
+    #     debug_tile_id_base: 0
+    #     debug_tile_id_step: 1

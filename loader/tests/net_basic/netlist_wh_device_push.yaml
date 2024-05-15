@@ -1,0 +1,33 @@
+devices:
+    arch: [grayskull, wormhole, wormhole_b0]
+  
+queues:
+  input: {input: HOST, type: queue, entries: 512, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  output : {type: queue, input: unary0 , entries: 512, grid_size: [1, 1], t: 1, mblock: [12, 32], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+
+graphs:
+  test_unary:
+    target_device: 0
+    input_count: 256
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [3, 1], inputs: [input], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [2, 8], ublock: [2, 4]}
+
+programs:
+  - program_unary:
+      - var: {$c_loop_count: 1, $c_input_count: 256, $c_input_wrap: 1024}
+      - staticvar: {$lptr: 0, $gptr: 0}
+      - loop: $c_loop_count
+      - execute: {graph_name: test_unary, queue_settings: {
+          input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, $c_input_wrap] # incr ptr by input_count
+      - varinst: [$gptr, incwrap, $c_input_count, $c_input_wrap] # incr ptr by input_count
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    verbosity: Concise
+    method: tilizedtensor
+    check_pct: 0.99
+    check_pcc: 0.99

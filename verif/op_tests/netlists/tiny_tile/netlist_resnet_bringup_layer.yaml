@@ -1,0 +1,83 @@
+# git checkout ff89988c
+# pytest pybuda/test/benchmark/benchmark.py -m resnet_bringup_layer -c head -opt 3 --loop_count 1 -mb 64 --trace verbose
+
+devices:
+  arch: wormhole_b0
+
+queues:
+
+  # input
+  x:                                                                                  {input: HOST, type: queue, entries: 1, grid_size: [1, 7], t: 1, mblock: [1, 56], ublock: [1, 1], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x30000000], [2, 0x30000000], [3, 0x30000000], [4, 0x30000000], [5, 0x30000000], [0, 0x38000000], [1, 0x38000000]], tile_dim: [16, 32]}
+
+  # output
+  resnet_bringup_head.output_resnet_bringup_head.conv:                                {input: resnet_bringup_head.output_resnet_bringup_head.conv_tm_nop, type: queue, entries: 1, grid_size: [2, 2], t: 2, mblock: [1, 49], ublock: [1, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x20000000], [1, 0x20000000], [2, 0x20000000], [3, 0x20000000]]}
+
+  # parameter
+  resnet_bringup_head.conv.weights_fork_clone55:                                      {input: HOST, type: ram, entries: 1, grid_size: [4, 1], t: 1, mblock: [1, 1], ublock: [1, 2], tile_dim: [16, 32], ublock_order: r, df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0xefb12c0], [0, 0x4fb1940], [1, 0x4fb2300], [2, 0x4fb2300]]}
+
+  # constant
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0:   {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 7], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[1, 0x7fb0900], [2, 0x7fb0900], [3, 0x7fb0900], [4, 0x7fb0900], [5, 0x7fb0900], [0, 0xafb0900], [1, 0xafb0900]]}
+  lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1:   {input: HOST, type: ram, entries: 1, grid_size: [7, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x7fb0900], [1, 0x7fb12c0], [2, 0x7fb12c0], [3, 0x7fb12c0], [4, 0x7fb12c0], [5, 0x7fb12c0], [1, 0xbfb12c0]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    buf_x: {type: nop, grid_loc: [0, 0], grid_size: [7, 1], inputs: [x],
+         t: 2, mblock: [7, 1], ublock: [4, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_0_tms: [transpose, vslice: 2], tile_dim: [32, 16]}
+    resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2: {type: matmul, grid_loc: [0, 1], grid_size: [7, 1], inputs: [lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0, buf_x, lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1],
+         t: 2, mblock: [14, 1], ublock: [8, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Bfp8_b, RawUInt32], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Bfp8_b, math_fidelity: LoFi,
+         attributes: {fracture_factor: 1, identity: true, m_k: 2, num_index_tiles: 1, num_sparse_tiles: 7, sparse_tile_ptr_bits: 5, u_kt: 98}, tile_dim: [32, 16]}
+    resnet_bringup_head.conv.dc.matmul.12: {type: matmul, grid_loc: [0, 2], grid_size: [7, 1], inputs: [resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2, resnet_bringup_head.conv.weights_fork_clone55],
+         t: 2, mblock: [7, 1], ublock: [4, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b, Bfp8_b], out_df: Bfp8_b, intermed_df: Bfp8_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_1_tms: [broadcast: {c: 2}, hslice: 2], input_0_tms: [vslice: 4, hstack: 4],
+         attributes: {m_k: 4, min_buffer_input: 0, u_kt: 1} }
+
+    resnet_bringup_head.output_resnet_bringup_head.conv_tm_nop: {type: nop, grid_loc: [0, 3], grid_size: [2, 2], inputs: [resnet_bringup_head.conv.dc.matmul.12],
+         t: 2, mblock: [1, 49], ublock: [1, 2], buf_size_mb: 2, ublock_order: r, in_df: [Bfp8_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: LoFi,
+         input_0_tms: [transpose]}
+
+
+programs:
+  - run_fwd:
+    - var: {$gptr_q1: 0, $lptr_q1: 0, $c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               x: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {prologue: true, epilogue: false, zero: False, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+               resnet_bringup_head.conv.weights_fork_clone55: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: 1
+    uniform_upper_bound: 1
+    set_tile_rows: [1, 8]
+    set_tile_cols: [1, 32]
+    overrides:
+      lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.0:
+        type: sparse
+        matmul_ident_name: resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2
+      lc.input_tensor.resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.1:
+        type: sparse_encoding
+        matmul_ident_name: resnet_bringup_head.conv.dc.sparse_matmul.9.dc.sparse_matmul.1.lc2
+        zero_strip_freq: 0.5  # a strip/block is zero. This will cover zero strip in the first/last position too.
+        zero_ublock_freq: 0.9 # an ublock within non-zero strip is zero. Ensure that non-zero strip contains an non-zero ublock.
+        zero_tile_freq: 0.9   # a tile within non-zero ublock is zero. Ensure that non-zero ublock contains a non-zero tile.
+        enc_tile_byte_size: 4096
+

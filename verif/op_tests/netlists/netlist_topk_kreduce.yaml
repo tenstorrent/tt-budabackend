@@ -1,0 +1,96 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  inputs:  {type: queue, input: HOST       , entries: 16, grid_size: [1, 8], t: 1, mblock: [1, 32], ublock: [1, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1d5c0f60], [0, 0x1e5c0f60], [0, 0x1f5c0f60], [0, 0x205c0f60], [0, 0x215c0f60], [0, 0x225c0f60], [0, 0x235c0f60], [0, 0x245c0f60]]}
+  indices: {type: queue, input: HOST       , entries: 16, grid_size: [1, 8], t: 1, mblock: [1, 32], ublock: [1, 4], df: UInt16   , target_device: 0, loc: dram, dram: [[1, 0x1d5c0f60], [1, 0x1e5c0f60], [1, 0x1f5c0f60], [1, 0x205c0f60], [1, 0x215c0f60], [1, 0x225c0f60], [1, 0x235c0f60], [1, 0x245c0f60]]}
+  output:  {type: queue, input: op1        , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1] , ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x1d5c0f60]]}
+  output1: {type: queue, input: op0_data   , entries: 16, grid_size: [1, 8], t: 1, mblock: [1, 1] , ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x1d5c0f60], [3, 0x1e5c0f60], [3, 0x1f5c0f60], [3, 0x205c0f60], [3, 0x215c0f60], [3, 0x225c0f60], [3, 0x235c0f60], [3, 0x245c0f60]]}
+  output2: {type: queue, input: op0_indices, entries: 16, grid_size: [1, 8], t: 1, mblock: [1, 1] , ublock: [1, 1], df: UInt16   , target_device: 0, loc: dram, dram: [[4, 0x1d5c0f60], [4, 0x1e5c0f60], [4, 0x1f5c0f60], [4, 0x205c0f60], [4, 0x215c0f60], [4, 0x225c0f60], [4, 0x235c0f60], [4, 0x245c0f60]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 16
+    op0_data:
+      type: topk
+      grid_loc: [0, 0]
+      grid_size: [1, 8]
+      inputs: [inputs, indices]
+      in_df: [Float16_b, UInt16]
+      acc_df: Float16_b
+      out_df: Float16_b
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 32, u_kt: 4, k: 32, sort: "max", kreduce: false}
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+    op0_indices:
+      type: topk
+      grid_loc: [1, 0]
+      grid_size: [1, 8]
+      inputs: [inputs, indices]
+      in_df: [Float16_b, UInt16]
+      acc_df: Float16_b
+      out_df: UInt16
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 32, u_kt: 4, k: 32, sort: "argmax", kreduce: false}
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+    op1:
+      type: topk
+      grid_loc: [2, 0]
+      grid_size: [1, 1]
+      inputs: [op0_data, op0_indices]
+      in_df: [Float16_b, UInt16]
+      acc_df: Float16_b
+      out_df: Float16_b
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 2, u_kt: 4, k: 32, sort: "max", kreduce: true}
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 16]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         inputs: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         indices: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 32]
+      - varinst: [$gptr, incwrap, $c_input_count, 32]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.01
+    check_pct: 1.0
+    check_pcc: 0.99999
+    verbosity: Concise
+    check_tile_cols_range: [1,32]
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 10.0
+    overrides:
+      indices:
+        type: StepRowwise
+        step_start: 0
+        step_increment: 1

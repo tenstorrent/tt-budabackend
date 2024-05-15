@@ -1,0 +1,122 @@
+devices:
+  arch: wormhole_b0
+
+queues:
+  dram_input0:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 60]
+    ublock: [1, 1]
+    ublock_order: r
+    df: Bfp2_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000000]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [58, 1]
+    ublock: [32, 2]
+    ublock_order: r
+    df: Float16_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x100a5020]]
+
+  dram_input2:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 12]
+    ublock: [1, 1]
+    ublock_order: r
+    df: RawUInt32
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x1faff040]]
+
+  output:
+    type: queue
+    input: target_op
+    entries: 1
+    grid_size: [1, 1]
+    t: 11
+    mblock: [2, 1]
+    ublock: [2, 2]
+    ublock_order: r
+    df: Float16_b
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x1fc82060]]
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count:  1
+    target_op: 
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [dram_input0, dram_input1, dram_input2]
+      in_df: [Bfp2_b, Float16_b, RawUInt32]
+      acc_df: Float16_b
+      out_df: Float16_b
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi2
+      attributes: {m_k: 58, u_kt: 32, identity: true, num_sparse_tiles: 60, num_index_tiles: 12, sparse_tile_ptr_bits: 6, sparse_ublock_idx_bits: 10, act_t: 1}
+      untilize_output: false
+      t: 11
+      mblock: [2, 1]
+      ublock: [2, 2]
+      input_0_tms: []
+      input_1_tms: []
+
+programs:
+  - program0:
+      - var: [$lptr, $gptr, $c_loop_count, $c_input_count, $c_zero]
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_zero, set, 0]  # load loop count
+      - varinst: [$c_input_count, set, 1]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         dram_input0: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
+         dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         dram_input2: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+      - varinst: [$lptr, add, $lptr, $c_input_count] # add two variables
+      - varinst: [$gptr, add, $gptr, $c_input_count] # add two variables
+      - endloop 
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.3
+    check_pct: 0.0
+    check_pcc: 0.9
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -2.0
+    uniform_upper_bound: 2.0
+    overrides:
+      dram_input0:
+        type: sparse
+        matmul_ident_name: target_op
+      dram_input2:
+        type: sparse_encoding
+        matmul_ident_name: target_op
+        zero_strip_freq: 0.8  # a strip/block is zero. This will cover zero strip in the first/last position too.
+        zero_ublock_freq: 0.8 # an ublock within non-zero strip is zero. Ensure that non-zero strip contains an non-zero ublock.
+        zero_tile_freq: 0.0   # a tile within non-zero ublock is zero. Ensure that non-zero ublock contains a non-zero tile.
+        enc_tile_byte_size: 4096

@@ -1,0 +1,138 @@
+devices:
+  arch: grayskull
+
+queues:
+
+  # input
+  input_1_add_and_norm_a_plus_b:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 8], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+  input_0_add_and_norm_a_plus_b:                          {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 8], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  add_and_norm.output_add_and_norm_bias:                  {input: add_and_norm_bias, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 64], ublock: [1, 1], df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # parameter
+  add_and_norm.bias:                                      {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 8], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x30000000]]}
+  add_and_norm.weights:                                   {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 8], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x30041020]]}
+
+  # constant
+  lc.input_tensor.add_and_norm.bias_s_brcst_m2_0_0.0:     {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x30000000]]}
+  lc.input_tensor.add_and_norm_mean.0:                    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x30000000]]}
+  lc.input_tensor.add_and_norm_var.0:                     {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x30000000]]}
+  constant_1_add_and_norm_var_plus_eps:                   {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x30000840]]}
+  lc.input_tensor.add_and_norm_recip_s_brcst_m1_0_0.0:    {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x30020820]]}
+  lc.input_tensor.add_and_norm.weights_s_brcst_m2_0_0.0:  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30041020]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    add_and_norm.bias_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [0, 0], grid_size: [1, 8], inputs: [lc.input_tensor.add_and_norm.bias_s_brcst_m2_0_0.0, add_and_norm.bias],
+         t: 1, mblock: [1, 1], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    add_and_norm_a_plus_b: {type: add, grid_loc: [1, 0], grid_size: [1, 8], inputs: [input_0_add_and_norm_a_plus_b, input_1_add_and_norm_a_plus_b],
+         t: 1, mblock: [1, 8], ublock: [2, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add_and_norm_mean.lc1: {type: matmul, grid_loc: [1, 8], grid_size: [1, 1], inputs: [add_and_norm_a_plus_b, lc.input_tensor.add_and_norm_mean.0],
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}],
+         attributes: {m_k: 64, u_kt: 1}}
+    add_and_norm_sub: {type: subtract, grid_loc: [1, 9], grid_size: [1, 1], inputs: [add_and_norm_a_plus_b, add_and_norm_mean.lc1],
+         t: 1, mblock: [2, 64], ublock: [1, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    add_and_norm_sq: {type: multiply, grid_loc: [1, 10], grid_size: [1, 1], inputs: [add_and_norm_sub, add_and_norm_sub],
+         t: 1, mblock: [1, 16], ublock: [2, 4], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add_and_norm_var.lc1: {type: matmul, grid_loc: [1, 11], grid_size: [1, 1], inputs: [add_and_norm_sq, lc.input_tensor.add_and_norm_var.0],
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 64}],
+         attributes: {m_k: 16, u_kt: 4}}
+    add_and_norm_var_plus_eps: {type: add, grid_loc: [2, 0], grid_size: [1, 1], inputs: [add_and_norm_var.lc1, constant_1_add_and_norm_var_plus_eps],
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}]}
+    add_and_norm_sqrt: {type: sqrt, grid_loc: [2, 1], grid_size: [1, 1], inputs: [add_and_norm_var_plus_eps],
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add_and_norm_recip: {type: reciprocal, grid_loc: [2, 2], grid_size: [1, 1], inputs: [add_and_norm_sqrt],
+         t: 1, mblock: [1, 1], ublock: [2, 1], buf_size_mb: 2, ublock_order: c, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+    add_and_norm_recip_s_brcst_m1_0_0.lc1: {type: matmul, grid_loc: [2, 3], grid_size: [1, 1], inputs: [add_and_norm_recip, lc.input_tensor.add_and_norm_recip_s_brcst_m1_0_0.0],
+         t: 1, mblock: [2, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    add_and_norm_output: {type: multiply, grid_loc: [2, 4], grid_size: [1, 1], inputs: [add_and_norm_sub, add_and_norm_recip_s_brcst_m1_0_0.lc1],
+         t: 1, mblock: [2, 8], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {c: 64}]}
+    add_and_norm.weights_s_brcst_m2_0_0.lc1: {type: matmul, grid_loc: [3, 0], grid_size: [1, 8], inputs: [lc.input_tensor.add_and_norm.weights_s_brcst_m2_0_0.0, add_and_norm.weights],
+         t: 1, mblock: [1, 1], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 1, u_kt: 1}}
+    add_and_norm_weights: {type: multiply, grid_loc: [4, 0], grid_size: [1, 8], inputs: [add_and_norm_output, add_and_norm.weights_s_brcst_m2_0_0.lc1],
+         t: 1, mblock: [2, 1], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}]}
+    add_and_norm_bias: {type: add, grid_loc: [5, 0], grid_size: [1, 8], inputs: [add_and_norm_weights, add_and_norm.bias_s_brcst_m2_0_0.lc1], untilize_output: true,
+         t: 1, mblock: [2, 1], ublock: [1, 8], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         input_1_tms: [broadcast: {r: 2}]}
+
+
+programs:
+  - run_fwd:
+    - param: [$p_microbatch_count]
+    - var: {$c_microbatch_size: 1, $c_zero: 0, $c_one: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $p_microbatch_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               lc.input_tensor.add_and_norm.bias_s_brcst_m2_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               add_and_norm.bias: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               lc.input_tensor.add_and_norm_mean.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.add_and_norm_var.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               constant_1_add_and_norm_var_plus_eps: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.add_and_norm_recip_s_brcst_m1_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               lc.input_tensor.add_and_norm.weights_s_brcst_m2_0_0.0: {prologue: true, epilogue: false, zero: False, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
+               add_and_norm.weights: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero},
+               input_0_add_and_norm_a_plus_b: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               input_1_add_and_norm_a_plus_b: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.90
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      lc.input_tensor..*_s_brcst_m2.*:
+        type: Constant
+        constant_value: 1.0
+        set_tile_cols: [1 ,1]
+      lc.input_tensor..*_s_brcst_m1.*:   
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+      lc.input_tensor.add_and_norm_mean.0:        
+        type: Constant
+        constant_value: 0.00048828125 # equal to 1/N where N is the size of the reduce dimension
+      lc.input_tensor.add_and_norm_var.0: 
+        type: Constant
+        constant_value: 0.00048828125
+        set_tile_cols: [1, 1]
+      constant_1_add_and_norm_var_plus_eps:
+        type: Constant
+        constant_value: 0.00001
+        set_tile_cols: [1, 1]
+      .*\.weights: 
+        type: Normal
+        normal_mean: 0.0
+        normal_stddev: 0.01
+        set_tile_rows: [1, 1]
+      add_and_norm.bias:
+        type: Constant
+        constant_value: 0.25
+        set_tile_rows: [1, 1]
+  io-config:
+    inputs: [input_0_add_and_norm_a_plus_b, input_1_add_and_norm_a_plus_b]
+    outputs: [add_and_norm.output_add_and_norm_bias]
+
+

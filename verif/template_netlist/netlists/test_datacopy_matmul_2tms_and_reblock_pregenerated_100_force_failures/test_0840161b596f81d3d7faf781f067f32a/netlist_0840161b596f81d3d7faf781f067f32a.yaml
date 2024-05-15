@@ -1,0 +1,124 @@
+# test_config_id=89
+devices:
+  arch: grayskull
+
+queues:
+  dram_input0:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [8, 1]
+    t: 18
+    mblock: [2, 1]
+    ublock: [1, 6]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[7, 0x10000020], [7, 0x100db640], [7, 0x101b6c60], [7, 0x10292280], [7, 0x1036d8a0], [7, 0x10448ec0], [7, 0x105244e0], [7, 0x105ffb00]]
+
+  dram_input1:
+    type: queue
+    input: HOST
+    entries: 2
+    grid_size: [1, 8]
+    t: 6
+    mblock: [18, 1]
+    ublock: [1, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000060], [3, 0x100db680], [3, 0x101b6ca0], [3, 0x102922c0], [3, 0x1036d8e0], [3, 0x10448f00], [3, 0x10524520], [3, 0x105ffb40]]
+
+  dram_output:
+    type: queue
+    input: op0
+    entries: 2
+    grid_size: [6, 6]
+    t: 2
+    mblock: [4, 2]
+    ublock: [2, 4]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[0, 0x10000040], [0, 0x10082060], [0, 0x10104080], [0, 0x101860a0], [0, 0x102080c0], [0, 0x1028a0e0], [0, 0x1030c100], [0, 0x1038e120], [0, 0x10410140], [0, 0x10492160], [0, 0x10514180], [0, 0x105961a0], [0, 0x106181c0], [0, 0x1069a1e0], [0, 0x1071c200], [0, 0x1079e220], [0, 0x10820240], [0, 0x108a2260], [0, 0x10924280], [0, 0x109a62a0], [0, 0x10a282c0], [0, 0x10aaa2e0], [0, 0x10b2c300], [0, 0x10bae320], [0, 0x10c30340], [0, 0x10cb2360], [0, 0x10d34380], [0, 0x10db63a0], [0, 0x10e383c0], [0, 0x10eba3e0], [0, 0x10f3c400], [0, 0x10fbe420], [0, 0x11040440], [0, 0x110c2460], [0, 0x11144480], [0, 0x111c64a0]]
+
+graphs:
+  test_multi_tm_datacopy_matmul:
+    target_device: 0
+    input_count: 2
+    feeder0:
+      type: datacopy
+      grid_loc: [0, 8]
+      grid_size: [8, 1]
+      inputs: [dram_input0]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 18
+      mblock: [2, 1]
+      ublock: [1, 6]
+    feeder1:
+      type: datacopy
+      grid_loc: [6, 0]
+      grid_size: [1, 8]
+      inputs: [dram_input1]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 6
+      mblock: [18, 1]
+      ublock: [1, 2]
+    op0:
+      type: matmul
+      grid_loc: [0, 0]
+      grid_size: [6, 6]
+      inputs: [feeder0, feeder1]
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 1
+      math_fidelity: HiFi4
+      attributes: {m_k: 18, u_kt: 1}
+      untilize_output: false
+      t: 2
+      mblock: [4, 2]
+      ublock: [2, 4]
+      input_0_tms: [hstack: 3, vstack: 3]
+      input_1_tms: [hslice: 2, hstack: 6]
+
+programs:
+  - test_multi_tm_datacopy_matmul_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_datacopy_matmul,
+          queue_settings: {
+            dram_input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+            dram_input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 2 # input_count
+    minibatch_count: 1 # host loop iterations# Generation Command: SEED=701 ARCH_NAME=grayskull verif/template_netlist/run_generate_ci_tests.sh test_modules.test_datacopy_matmul_multiple_tms_and_reblock verif/graph_tests/netlists/z3/test_datacopy_matmul_2tms_and_reblock_20220928_091831 104 1

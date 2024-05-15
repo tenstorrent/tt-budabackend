@@ -1,0 +1,114 @@
+# Untilize directly to queue allocated in host memory
+
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+  in0:            {type: queue, input: HOST    , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  e2e_fwd0_fwd1:  {type: queue, input: unary0  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+  e2e_fwd1_bwd2:  {type: queue, input: unary1  , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x21000000]]}
+  e2e_bwd2_bwd3:  {type: queue, input: binary0 , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x22000000]]}
+  out0:           {type: queue, input: binary1 , entries: 80, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+
+graphs:
+  fwd0:
+    target_device: 0
+    input_count: 4
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [in0], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  fwd1:
+    target_device: 0
+    input_count: 4
+    unary1: {type: nop, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_fwd0_fwd1], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  bwd2:
+    target_device: 0
+    input_count: 4
+    binary0: {type: add, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_fwd1_bwd2, in0], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [1, 1], ublock: [1, 1]}
+  bwd3:
+    target_device: 0
+    input_count: 4
+    binary1: {type: add, grid_loc: [0, 0], grid_size: [1, 1], inputs: [e2e_bwd2_bwd3, in0], in_df: [Float16, Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: true, t: 1, mblock: [1, 1], ublock: [1, 1]}
+
+programs:
+
+  # TODO - Add outer loop in test, or consider merging these into same program, and putting outer loop there.
+
+  - run_fwd:
+      - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $lptr_q1: 0, $gptr_q1: 0, $gptr_q0_shadow: 0}
+      - var: {$c_microbatches: 4, $c_input_count: 4, $c_input_wrap: 160, $c_e2e_wrap: 32}
+
+      - varinst: [$gptr_q0, set, $gptr_q0_shadow] # Outside of microbatch loop.
+
+      - loop: $c_microbatches
+      - execute: {graph_name: fwd0, queue_settings: {
+          in0:           {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+      - execute: {graph_name: fwd1, queue_settings: {
+          e2e_fwd0_fwd1: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1}}}
+
+      - varinst: [$lptr_q0,        incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr_q0_shadow, incwrap, $c_input_count, $c_input_wrap] # Increment shadow variable only.
+
+      - varinst: [$lptr_q1,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+      - varinst: [$gptr_q1,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+
+      - endloop
+
+
+  # Above reads 0-3 for each loop. (not true, local rdptr is advanced)
+
+  - run_bwd:
+      - staticvar: {$lptr_q0: 0, $gptr_q0: 0, $lptr_q1: 0, $gptr_q1: 0, $lptr_q2: 0, $gptr_q2: 0, $lptr_q3: 0, $gptr_q3: 0, $gptr_q0_shadow: 0}
+      - var: {$c_microbatches: 4, $c_input_count: 4, $c_input_wrap: 160, $c_e2e_wrap: 32}
+
+
+      - loop: $c_microbatches
+
+      - varinst: [$gptr_q0, set, $gptr_q0_shadow] # Outside of microbatch loop.
+
+      - execute: {graph_name: bwd2, queue_settings: { # FIXME
+          e2e_fwd1_bwd2: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q1, rd_ptr_global: $gptr_q1},
+          in0:           {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}}}
+
+      # Hmmmm is this correct? It matches training netlist, but I thought it felt weird to me. popping early?
+      - varinst: [$lptr_q0,        incwrap, $c_input_count, $c_input_wrap] # incr and wrap # Yes.
+      - varinst: [$gptr_q0_shadow, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+
+
+      # Okay
+      - varinst: [$lptr_q1,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+      - varinst: [$gptr_q1,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+
+
+      - execute: {graph_name: bwd3, queue_settings: {
+          e2e_bwd2_bwd3: {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2},
+          in0:           {prologue: false, epilogue: false, zero: false,  rd_ptr_local: $lptr_q3, rd_ptr_global: $gptr_q3}}}
+
+
+      # Okay:
+      - varinst: [$lptr_q2,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+      - varinst: [$gptr_q2,        incwrap, $c_input_count, $c_e2e_wrap] # incr and wrap
+      - varinst: [$lptr_q3,        incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - varinst: [$gptr_q3,        incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+
+      # Can e2e be smaller?
+
+
+      # - varinst: [$lptr_q0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      # - varinst: [$gptr_q0, incwrap, $c_input_count, $c_input_wrap] # incr and wrap
+      - endloop
+
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.50
+    check_pcc: 0.92
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 0.1
+  io-config:
+    inputs: [in0]
+    outputs: [out0]

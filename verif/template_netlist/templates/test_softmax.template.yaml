@@ -1,0 +1,309 @@
+# test_softmax
+# test_config_id=$TEMPLATE_test_config_id
+# input_activations_size_r=$TEMPLATE_input_activations_size_r
+# input_activations_size_c=$TEMPLATE_input_activations_size_c
+
+devices:
+  arch: $TEMPLATE_arch_name
+
+queues:
+  # input
+  input_activations:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_1,
+      grid_size: [$TEMPLATE_grid_size_0_var_2, $TEMPLATE_grid_size_1_var_3],
+      t: $TEMPLATE_t_var_4,
+      mblock: [$TEMPLATE_mblock_0_var_5, $TEMPLATE_mblock_1_var_6],
+      ublock: [$TEMPLATE_ublock_0_var_7, $TEMPLATE_ublock_1_var_8],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_9,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_10,
+      $TEMPLATE_loc_var_10: $TEMPLATE_loc_var_181,
+    }
+  # output
+  SoftmaxTest.output_softmax:
+    {
+      input: softmax.dc.multiply.5,
+      type: queue,
+      entries: $TEMPLATE_entries_var_12,
+      grid_size: [$TEMPLATE_grid_size_0_var_13, $TEMPLATE_grid_size_1_var_14],
+      t: $TEMPLATE_t_var_15,
+      mblock: [$TEMPLATE_mblock_0_var_16, $TEMPLATE_mblock_1_var_17],
+      ublock: [$TEMPLATE_ublock_0_var_18, $TEMPLATE_ublock_1_var_19],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_20,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_21,
+      $TEMPLATE_loc_var_21: $TEMPLATE_loc_var_182,
+    }
+  # constant
+  lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_23,
+      grid_size: [$TEMPLATE_grid_size_0_var_24, $TEMPLATE_grid_size_1_var_25],
+      t: $TEMPLATE_t_var_26,
+      mblock: [$TEMPLATE_mblock_0_var_27, $TEMPLATE_mblock_1_var_28],
+      ublock: [$TEMPLATE_ublock_0_var_29, $TEMPLATE_ublock_1_var_30],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_31,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_32,
+      $TEMPLATE_loc_var_32: $TEMPLATE_loc_var_183,
+    }
+  lc.input_tensor.softmax.dc.reduce_sum.3.0:
+    {
+      input: HOST,
+      type: queue,
+      entries: $TEMPLATE_entries_var_34,
+      grid_size: [$TEMPLATE_grid_size_0_var_35, $TEMPLATE_grid_size_1_var_36],
+      t: $TEMPLATE_t_var_37,
+      mblock: [$TEMPLATE_mblock_0_var_38, $TEMPLATE_mblock_1_var_39],
+      ublock: [$TEMPLATE_ublock_0_var_40, $TEMPLATE_ublock_1_var_41],
+      ublock_order: r,
+      df: $TEMPLATE_df_var_42,
+      target_device: 0,
+      loc: $TEMPLATE_loc_var_43,
+      $TEMPLATE_loc_var_43: $TEMPLATE_loc_var_184,
+    }
+
+graphs:
+  # forward
+  fwd_0:
+    target_device: 0
+    input_count: $TEMPLATE_input_count_var_45
+    softmax.dc.reduce_max.0:
+      {
+        type: reduce,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_46, $TEMPLATE_grid_loc_1_var_47],
+        grid_size: [$TEMPLATE_grid_size_0_var_48, $TEMPLATE_grid_size_1_var_49],
+        inputs: [input_activations],
+        t: $TEMPLATE_t_var_50,
+        mblock: [$TEMPLATE_mblock_0_var_51, $TEMPLATE_mblock_1_var_52],
+        ublock: [$TEMPLATE_ublock_0_var_53, $TEMPLATE_ublock_1_var_54],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_185],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_55,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_56],
+        out_df: $TEMPLATE_out_df_var_57,
+        intermed_df: $TEMPLATE_intermed_df_var_58,
+        acc_df: $TEMPLATE_acc_df_var_59,
+        math_fidelity: HiFi3,
+        attributes: { dim: c, m_k: $TEMPLATE_m_k_var_60, type: max, u_kt: $TEMPLATE_u_kt_var_61 },
+      }
+    softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_62, $TEMPLATE_grid_loc_1_var_63],
+        grid_size: [$TEMPLATE_grid_size_0_var_64, $TEMPLATE_grid_size_1_var_65],
+        inputs:
+          [
+            softmax.dc.reduce_max.0,
+            lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0,
+          ],
+        t: $TEMPLATE_t_var_66,
+        mblock: [$TEMPLATE_mblock_0_var_67, $TEMPLATE_mblock_1_var_68],
+        ublock: [$TEMPLATE_ublock_0_var_69, $TEMPLATE_ublock_1_var_70],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_186, $TEMPLATE_input_buf_min_size_tiles_1_var_187],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_71,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_72, $TEMPLATE_in_df_1_var_73],
+        out_df: $TEMPLATE_out_df_var_74,
+        intermed_df: $TEMPLATE_intermed_df_var_75,
+        acc_df: $TEMPLATE_acc_df_var_76,
+        math_fidelity: HiFi3,
+        attributes: { m_k: $TEMPLATE_m_k_var_77, u_kt: $TEMPLATE_u_kt_var_78 },
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_79 }, broadcast: { r: $TEMPLATE_r_var_80 }],
+      }
+    softmax.dc.subtract.1:
+      {
+        type: subtract,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_81, $TEMPLATE_grid_loc_1_var_82],
+        grid_size: [$TEMPLATE_grid_size_0_var_83, $TEMPLATE_grid_size_1_var_84],
+        inputs: [input_activations, softmax.dc.reduce_max.0_s_brcst_m1_0_0.lc1],
+        t: $TEMPLATE_t_var_85,
+        mblock: [$TEMPLATE_mblock_0_var_86, $TEMPLATE_mblock_1_var_87],
+        ublock: [$TEMPLATE_ublock_0_var_88, $TEMPLATE_ublock_1_var_89],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_188, $TEMPLATE_input_buf_min_size_tiles_1_var_189],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_90,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_91, $TEMPLATE_in_df_1_var_92],
+        out_df: $TEMPLATE_out_df_var_93,
+        intermed_df: $TEMPLATE_intermed_df_var_94,
+        acc_df: $TEMPLATE_acc_df_var_95,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_96 }],
+      }
+    softmax.dc.exp.2:
+      {
+        type: exp,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_97, $TEMPLATE_grid_loc_1_var_98],
+        grid_size: [$TEMPLATE_grid_size_0_var_99, $TEMPLATE_grid_size_1_var_100],
+        inputs: [softmax.dc.subtract.1],
+        t: $TEMPLATE_t_var_101,
+        mblock: [$TEMPLATE_mblock_0_var_102, $TEMPLATE_mblock_1_var_103],
+        ublock: [$TEMPLATE_ublock_0_var_104, $TEMPLATE_ublock_1_var_105],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_190],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_106,
+        ublock_order: c,
+        in_df: [$TEMPLATE_in_df_0_var_107],
+        out_df: $TEMPLATE_out_df_var_108,
+        intermed_df: $TEMPLATE_intermed_df_var_109,
+        acc_df: $TEMPLATE_acc_df_var_110,
+        math_fidelity: HiFi3,
+        attributes: { approximate_mode: false },
+      }
+    softmax.dc.reduce_sum.3.lc1:
+      {
+        type: matmul,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_111, $TEMPLATE_grid_loc_1_var_112],
+        grid_size: [$TEMPLATE_grid_size_0_var_113, $TEMPLATE_grid_size_1_var_114],
+        inputs: [softmax.dc.exp.2, lc.input_tensor.softmax.dc.reduce_sum.3.0],
+        t: $TEMPLATE_t_var_115,
+        mblock: [$TEMPLATE_mblock_0_var_116, $TEMPLATE_mblock_1_var_117],
+        ublock: [$TEMPLATE_ublock_0_var_118, $TEMPLATE_ublock_1_var_119],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_191, $TEMPLATE_input_buf_min_size_tiles_1_var_192],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_120,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_121, $TEMPLATE_in_df_1_var_122],
+        out_df: $TEMPLATE_out_df_var_123,
+        intermed_df: $TEMPLATE_intermed_df_var_124,
+        acc_df: $TEMPLATE_acc_df_var_125,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { z: $TEMPLATE_z_var_126 }, broadcast: { r: $TEMPLATE_r_var_127 }],
+        attributes: { m_k: $TEMPLATE_m_k_var_128, u_kt: $TEMPLATE_u_kt_var_129 },
+      }
+    softmax.dc.reciprocal.4:
+      {
+        type: reciprocal,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_130, $TEMPLATE_grid_loc_1_var_131],
+        grid_size: [$TEMPLATE_grid_size_0_var_132, $TEMPLATE_grid_size_1_var_133],
+        inputs: [softmax.dc.reduce_sum.3.lc1],
+        t: $TEMPLATE_t_var_134,
+        mblock: [$TEMPLATE_mblock_0_var_135, $TEMPLATE_mblock_1_var_136],
+        ublock: [$TEMPLATE_ublock_0_var_137, $TEMPLATE_ublock_1_var_138],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_193],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_139,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_140],
+        out_df: $TEMPLATE_out_df_var_141,
+        intermed_df: $TEMPLATE_intermed_df_var_142,
+        acc_df: $TEMPLATE_acc_df_var_143,
+        math_fidelity: HiFi3,
+      }
+    buffer_0_softmax.dc.exp.2_softmax.dc.multiply.5:
+      {
+        type: nop,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_144, $TEMPLATE_grid_loc_1_var_145],
+        grid_size: [$TEMPLATE_grid_size_0_var_146, $TEMPLATE_grid_size_1_var_147],
+        inputs: [softmax.dc.exp.2],
+        t: $TEMPLATE_t_var_148,
+        mblock: [$TEMPLATE_mblock_0_var_149, $TEMPLATE_mblock_1_var_150],
+        ublock: [$TEMPLATE_ublock_0_var_151, $TEMPLATE_ublock_1_var_152],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_194],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_153,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_154],
+        out_df: $TEMPLATE_out_df_var_155,
+        intermed_df: $TEMPLATE_intermed_df_var_156,
+        acc_df: $TEMPLATE_acc_df_var_157,
+        math_fidelity: HiFi3,
+      }
+    softmax.dc.multiply.5:
+      {
+        type: multiply,
+        grid_loc: [$TEMPLATE_grid_loc_0_var_158, $TEMPLATE_grid_loc_1_var_159],
+        grid_size: [$TEMPLATE_grid_size_0_var_160, $TEMPLATE_grid_size_1_var_161],
+        inputs:
+          [
+            buffer_0_softmax.dc.exp.2_softmax.dc.multiply.5,
+            softmax.dc.reciprocal.4,
+          ],
+        untilize_output: $TEMPLATE_untilize_output_var_162,
+        t: $TEMPLATE_t_var_163,
+        mblock: [$TEMPLATE_mblock_0_var_164, $TEMPLATE_mblock_1_var_165],
+        ublock: [$TEMPLATE_ublock_0_var_166, $TEMPLATE_ublock_1_var_167],
+        input_buf_min_size_tiles: [$TEMPLATE_input_buf_min_size_tiles_0_var_195, $TEMPLATE_input_buf_min_size_tiles_1_var_196],
+        buf_size_mb: $TEMPLATE_buf_size_mb_var_168,
+        ublock_order: r,
+        in_df: [$TEMPLATE_in_df_0_var_169, $TEMPLATE_in_df_1_var_170],
+        out_df: $TEMPLATE_out_df_var_171,
+        intermed_df: $TEMPLATE_intermed_df_var_172,
+        acc_df: $TEMPLATE_acc_df_var_173,
+        math_fidelity: HiFi3,
+        input_1_tms: [broadcast: { c: $TEMPLATE_c_var_174 }],
+      }
+
+programs:
+  # forward
+  - run_fwd:
+      - param: [$p_microbatch_count, $p_microbatch_size]
+      - staticvar: { $gptr_q0: 0, $lptr_q0: 0 }
+      - var: { $c_zero: 0, $c_wrap: 2 }
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]
+      - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count]
+      - loop: $p_microbatch_count
+      - execute:
+          {
+            graph_name: fwd_0,
+            queue_settings:
+              {
+                input_activations:
+                  {
+                    prologue: $TEMPLATE_prologue_var_175,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $lptr_q0,
+                    rd_ptr_global: $gptr_q0,
+                  },
+                lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_176,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+                lc.input_tensor.softmax.dc.reduce_sum.3.0:
+                  {
+                    prologue: $TEMPLATE_prologue_var_177,
+                    epilogue: false,
+                    zero: false,
+                    rd_ptr_local: $c_zero,
+                    rd_ptr_global: $c_zero,
+                  },
+              },
+          }
+      - varinst: [$gptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - varinst: [$lptr_q0, incwrap, $p_microbatch_size, $c_wrap]
+      - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pcc: 0.99
+    check_pct: 0.8
+    verbosity: Concise
+  stimulus-config:
+    type: Uniform
+    uniform_lower_bound: -1.0
+    uniform_upper_bound: 1.0
+    overrides:
+      lc.input_tensor.softmax.dc.reduce_max.0_s_brcst_m1_0_0.0:
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+      lc.input_tensor.softmax.dc.reduce_sum.3.0:
+        type: Constant
+        constant_value: 1.0
+        set_tile_rows: [1, 1]
+  test-args:
+    minibatch_count: $TEMPLATE_minibatch_count_var_178
+    microbatch_count: $TEMPLATE_microbatch_count_var_179
+    microbatch_size: $TEMPLATE_microbatch_size_var_180

@@ -1,0 +1,172 @@
+# input_grid_size_r = $TEMPLATE_input_grid_size_r
+# input_grid_size_c = $TEMPLATE_input_grid_size_c
+
+devices:
+  arch: $TEMPLATE_device
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_input_grid_size_r, $TEMPLATE_input_grid_size_c]
+    t: $TEMPLATE_input_t
+    mblock: [$TEMPLATE_input_mb_r, $TEMPLATE_input_mb_c]
+    ublock: [$TEMPLATE_input_ub_r, $TEMPLATE_input_ub_c]
+    df: $TEMPLATE_input_data_format
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_input_dram_buffers
+
+  dram_output0:
+    type: queue
+    input: datacopy0
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_output0_grid_size_r, $TEMPLATE_output0_grid_size_c]
+    t: $TEMPLATE_output0_t
+    mblock: [$TEMPLATE_output0_mb_r, $TEMPLATE_output0_mb_c]
+    ublock: [$TEMPLATE_output0_ub_r, $TEMPLATE_output0_ub_c]
+    df: $TEMPLATE_out_data_format
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output0_dram_buffers
+
+  dram_output1:
+    type: queue
+    input: datacopy1
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_output1_grid_size_r, $TEMPLATE_output1_grid_size_c]
+    t: $TEMPLATE_output1_t
+    mblock: [$TEMPLATE_output1_mb_r, $TEMPLATE_output1_mb_c]
+    ublock: [$TEMPLATE_output1_ub_r, $TEMPLATE_output1_ub_c]
+    df: $TEMPLATE_out_data_format
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output1_dram_buffers
+    
+  dram_output2:
+    type: queue
+    input: datacopy2
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_output2_grid_size_r, $TEMPLATE_output2_grid_size_c]
+    t: $TEMPLATE_output2_t
+    mblock: [$TEMPLATE_output2_mb_r, $TEMPLATE_output2_mb_c]
+    ublock: [$TEMPLATE_output2_ub_r, $TEMPLATE_output2_ub_c]
+    df: $TEMPLATE_out_data_format
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output2_dram_buffers
+
+  dram_output3:
+    type: queue
+    input: datacopy3
+    entries: $TEMPLATE_entries
+    grid_size: [$TEMPLATE_output3_grid_size_r, $TEMPLATE_output3_grid_size_c]
+    t: $TEMPLATE_output3_t
+    mblock: [$TEMPLATE_output3_mb_r, $TEMPLATE_output3_mb_c]
+    ublock: [$TEMPLATE_output3_ub_r, $TEMPLATE_output3_ub_c]
+    df: $TEMPLATE_out_data_format
+    target_device: 0
+    loc: dram
+    dram: $TEMPLATE_output3_dram_buffers
+
+graphs:
+  test_tm:
+    target_device: 0
+    input_count: $TEMPLATE_input_count
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_op0_loc_r, $TEMPLATE_op0_loc_c]
+      grid_size: [$TEMPLATE_op0_grid_size_r, $TEMPLATE_op0_grid_size_c]
+      inputs: [dram_input] 
+      in_df: [$TEMPLATE_input_data_format]
+      acc_df: Float16
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_untilize_output0
+      t: $TEMPLATE_op0_t
+      mblock: [$TEMPLATE_op0_mb_r, $TEMPLATE_op0_mb_c]
+      ublock: [$TEMPLATE_op0_ub_r, $TEMPLATE_op0_ub_c]
+      input_0_tms: $TEMPLATE_input0_tms
+    datacopy1: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_op1_loc_r, $TEMPLATE_op1_loc_c]
+      grid_size: [$TEMPLATE_op1_grid_size_r, $TEMPLATE_op1_grid_size_c]
+      inputs: [dram_input] 
+      in_df: [$TEMPLATE_input_data_format]
+      acc_df: Float16
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_untilize_output1 
+      t: $TEMPLATE_op1_t
+      mblock: [$TEMPLATE_op1_mb_r, $TEMPLATE_op1_mb_c]
+      ublock: [$TEMPLATE_op1_ub_r, $TEMPLATE_op1_ub_c]
+      input_0_tms: $TEMPLATE_input1_tms
+    datacopy2: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_op2_loc_r, $TEMPLATE_op2_loc_c]
+      grid_size: [$TEMPLATE_op2_grid_size_r, $TEMPLATE_op2_grid_size_c]
+      inputs: [dram_input] 
+      in_df: [$TEMPLATE_input_data_format]
+      acc_df: Float16
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_untilize_output2 
+      t: $TEMPLATE_op2_t
+      mblock: [$TEMPLATE_op2_mb_r, $TEMPLATE_op2_mb_c]
+      ublock: [$TEMPLATE_op2_ub_r, $TEMPLATE_op2_ub_c]
+      input_0_tms: $TEMPLATE_input2_tms
+    datacopy3: 
+      type: datacopy 
+      grid_loc: [$TEMPLATE_op3_loc_r, $TEMPLATE_op3_loc_c]
+      grid_size: [$TEMPLATE_op3_grid_size_r, $TEMPLATE_op3_grid_size_c]
+      inputs: [dram_input] 
+      in_df: [$TEMPLATE_input_data_format]
+      acc_df: Float16
+      out_df: $TEMPLATE_out_data_format  
+      intermed_df: $TEMPLATE_out_data_format 
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: $TEMPLATE_math_fidelity 
+      untilize_output: $TEMPLATE_untilize_output3 
+      t: $TEMPLATE_op3_t
+      mblock: [$TEMPLATE_op3_mb_r, $TEMPLATE_op3_mb_c]
+      ublock: [$TEMPLATE_op3_ub_r, $TEMPLATE_op3_ub_c]
+      input_0_tms: $TEMPLATE_input3_tms
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr : 0, $gptr : 0}
+      - varinst: [$c_loop_count, set, $TEMPLATE_loop_count]  # load loop count
+      - varinst: [$c_input_count, set, $TEMPLATE_input_count]  # load loop count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_tm, queue_settings: {
+          dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      - varinst: [$gptr, incwrap, $c_input_count, $TEMPLATE_queue_wrap_size]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: $TEMPLATE_loop_count
+  comparison-config:
+    type: $TEMPLATE_comparison_config_type
+    atol: $TEMPLATE_comparison_config_atol
+    rtol: $TEMPLATE_comparison_config_rtol
+    check_pct: $TEMPLATE_comparison_config_check_pct
+    check_pcc: $TEMPLATE_comparison_config_check_pcc
+    verbosity: $TEMPLATE_comparison_config_verbosity
+  stimulus-config:
+    type: $TEMPLATE_stimulus_config_type
+    uniform_lower_bound: $TEMPLATE_stimulus_config_uniform_lower_bound
+    uniform_upper_bound: $TEMPLATE_stimulus_config_uniform_upper_bound

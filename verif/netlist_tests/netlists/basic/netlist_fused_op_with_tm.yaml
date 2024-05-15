@@ -1,0 +1,54 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  q0:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  q1:                  {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x20000000]]}
+
+  # output
+  output:  {input: _fused_op_0_output_nop_0, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: host, host: [0x0]}
+
+  # parameter
+  r0:    {input: HOST, type: ram, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 2], ublock: [2, 2], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[1, 0x4fb0900]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 1
+    matmul: {type: matmul, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0, r0],
+         t: 1, mblock: [2, 2], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {m_k: 2, u_kt: 2}}
+    _fused_op_0: {type: fused_op, grid_loc: [0, 1], grid_size: [1, 1], inputs: [q1, matmul],
+         t: 1, mblock: [2, 2], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
+         attributes: {fused_op_id: 0}, input_0_tms: [broadcast: {c: 4}]}
+    _fused_op_0_output_nop_0: {type: nop, grid_loc: [0, 2], grid_size: [1, 1], inputs: [_fused_op_0], untilize_output: true,
+         t: 1, mblock: [2, 2], ublock: [2, 2], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3}
+
+
+programs:
+  - program0:
+    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: 1
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               q0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               q1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
+               r0: {prologue: true, epilogue: false, zero: False, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}} }
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+    - endloop
+
+
+fused_ops:
+  0:
+    inputs: 2
+    intermediates: 2
+    schedules: 
+      -
+        - add: { type: add, inputs: [input1, input0], input_1_tms: [tile_broadcast: c], mblock: [2, 2], ublock: [2, 2], output: intermed0}
+        - reciprocal: { type: reciprocal, inputs: [intermed0], mblock: [2, 2], ublock: [2, 2], output: intermed1}
+        - sqrt: { type: sqrt, inputs: [intermed0], pop: [intermed0], mblock: [2, 2], ublock: [2, 2], output: dest}
+        - exp: { type: exp, inputs: [dest], mblock: [2, 2], ublock: [2, 2], output: dest}
+        - mul: { type: multiply, inputs: [dest, intermed1], pop: [intermed1], mblock: [2, 2], ublock: [2, 2], output: output}

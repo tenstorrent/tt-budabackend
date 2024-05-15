@@ -1,0 +1,66 @@
+devices:
+  arch: [wormhole_b0]
+
+queues:
+  inputs:  {type: queue, input: HOST, entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 32], ublock: [1, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1d5c0f60]]}
+  indices: {type: queue, input: HOST, entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 32], ublock: [1, 4], df: UInt16, target_device: 0, loc: dram, dram: [[0, 0x23d16a60]]}
+  output:  {type: queue, input: op0 , entries: 16, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x25247780]]}
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 8
+    op0: 
+      type: topk 
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [inputs, indices]
+      in_df: [Float16_b, UInt16]
+      acc_df: Float16_b
+      out_df: Float16_b
+      intermed_df: Float16_b
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi2
+      attributes: {m_k: 32, u_kt: 4, k: 32, sort: "max", kreduce: false}
+      t: 1
+      mblock: [1, 1]
+      ublock: [1, 1]
+
+programs:
+  - program0:
+      - var : [$c_loop_count, $c_input_count]
+      - staticvar : {$lptr: 0, $gptr: 0}
+      - varinst: [$c_loop_count, set, 1]  # load loop count
+      - varinst: [$c_input_count, set, 8]  # load input count
+      - loop: $c_loop_count
+      - execute: {graph_name: test_op, queue_settings: {
+         inputs: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
+         indices: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+      - varinst: [$lptr, incwrap, $c_input_count, 32]
+      - varinst: [$gptr, incwrap, $c_input_count, 32]
+      - endloop 
+
+test-config:
+  test-args:
+    program_loop_count: 1
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.01
+    check_pct: 1.0
+    check_pcc: 0.99999
+    verbosity: Concise
+    check_tile_cols_range: [1,32]
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 1.0
+    # type: Step
+    # step_start: 200
+    # step_increment: 200
+    overrides:
+      indices:
+        type: Step
+        step_start: 0
+        step_increment: 1

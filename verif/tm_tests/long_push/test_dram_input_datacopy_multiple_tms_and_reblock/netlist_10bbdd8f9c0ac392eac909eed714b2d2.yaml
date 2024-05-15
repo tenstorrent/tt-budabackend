@@ -1,0 +1,76 @@
+devices:
+  arch: grayskull
+
+queues:
+  dram_input:
+    type: queue
+    input: HOST
+    entries: 1
+    grid_size: [1, 10]
+    t: 2
+    mblock: [9, 4]
+    ublock: [4, 2]
+    df: Float16
+    target_device: 0
+    loc: dram
+    dram: [[7, 0x10000020], [7, 0x10124840], [7, 0x10249060], [7, 0x1036d880], [7, 0x104920a0], [7, 0x105b68c0], [7, 0x106db0e0], [7, 0x107ff900], [7, 0x10924120], [7, 0x10a48940]]
+
+  dram_output:
+    type: queue
+    input: datacopy0
+    entries: 1
+    grid_size: [9, 4]
+    t: 20
+    mblock: [1, 1]
+    ublock: [8, 1]
+    df: Float16
+    ublock_order: c
+    target_device: 0
+    loc: dram
+    dram: [[3, 0x10000040], [3, 0x10051460], [3, 0x100a2880], [3, 0x100f3ca0], [3, 0x101450c0], [3, 0x101964e0], [3, 0x101e7900], [3, 0x10238d20], [3, 0x1028a140], [3, 0x102db560], [3, 0x1032c980], [3, 0x1037dda0], [3, 0x103cf1c0], [3, 0x104205e0], [3, 0x10471a00], [3, 0x104c2e20], [3, 0x10514240], [3, 0x10565660], [3, 0x105b6a80], [3, 0x10607ea0], [3, 0x106592c0], [3, 0x106aa6e0], [3, 0x106fbb00], [3, 0x1074cf20], [3, 0x1079e340], [3, 0x107ef760], [3, 0x10840b80], [3, 0x10891fa0], [3, 0x108e33c0], [3, 0x109347e0], [3, 0x10985c00], [3, 0x109d7020], [3, 0x10a28440], [3, 0x10a79860], [3, 0x10acac80], [3, 0x10b1c0a0]]
+
+graphs:
+  test_multi_tm_dram_op:
+    target_device: 0
+    input_count: 1
+    datacopy0: 
+      type: datacopy 
+      grid_loc: [0, 4] 
+      grid_size: [9, 4]
+      inputs: [dram_input] 
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16  
+      intermed_df: Float16
+      ublock_order: c
+      buf_size_mb: 1
+      math_fidelity: HiFi3 
+      untilize_output: false 
+      t: 20
+      mblock: [1, 1]
+      ublock: [8, 1]
+      input_0_tms: [vstack: 2, hslice: 20]
+      
+programs:
+  - multi_tm_test_program:
+    - param: [$p_microbatch_count, $p_microbatch_size]
+    - staticvar: [$lptr, $gptr]
+    - var: {$c_zero: 0, $c_wrap: 2}                         # c_wrap = 2 - finally need to be equal to 2*entries == 2*microbatch_size*microbatch_count
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_size]  # c_wrap = 2*microbatch_size
+    - varinst: [$c_wrap, mul, $c_wrap, $p_microbatch_count] # c_wrap = 2*microbatch_size*microbatch_count
+    - loop: $p_microbatch_count #loop over number of microbatches that make a minibatch
+    -   execute: {
+          graph_name: test_multi_tm_dram_op,
+          queue_settings: {
+               dram_input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}
+          }
+        }
+    -   varinst: [$lptr, incwrap, $p_microbatch_size, $c_wrap]
+    -   varinst: [$gptr, incwrap, $p_microbatch_size, $c_wrap]
+    - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 1 # input_count
+    minibatch_count: 1 # host loop iterations

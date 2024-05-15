@@ -1,0 +1,44 @@
+devices:
+  arch: [grayskull, wormhole, wormhole_b0]
+
+queues:
+
+  # input
+  input_0_max0:                          {input: HOST, type: queue, entries: 16, grid_size: [1, 1], t: 2, mblock: [24, 6], ublock: [1, 2], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+
+  # output
+  ModuleBuilder.simple_max.output_max0:  {input: max0, type: queue, entries: 16, grid_size: [1, 1], t: 2, mblock: [6, 1], ublock: [4, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+
+graphs:
+  fwd_0:
+    target_device: 0
+    input_count: 2
+    max0: {type: reduce, grid_loc: [0, 0], grid_size: [2, 1], inputs: [input_0_max0], untilize_output: true,
+         t: 2, mblock: [3, 1], ublock: [4, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16], out_df: Float16, intermed_df: Float16, acc_df: Float16, math_fidelity: LoFi,
+         attributes: {dim: c, type: max, m_k: 6, u_kt: 2}}
+
+
+programs:
+  - run_fwd:
+    - var: {$c_microbatch_size: 2, $c_one: 1, $c_zero: 0, $c_loop_count: 1}
+    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+    - loop: $c_loop_count
+    -   execute: {graph_name: fwd_0, queue_settings: {
+               input_0_max0: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
+    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 32]
+    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 32]
+    - endloop
+
+test-config:
+  comparison-config:
+    type: AllCloseHw
+    atol: 0.01
+    rtol: 0.15
+    check_pct: 0.9
+    check_pcc: 0.99
+    verbosity: Concise
+  stimulus-config:
+    type: Normal
+    normal_mean: 0.0
+    normal_stddev: 4.0
+
