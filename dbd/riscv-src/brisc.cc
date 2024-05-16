@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // An example of a simple C++ program that can be compiled with the RISC-V GCC toolchain.
 #include <stdint.h>
 

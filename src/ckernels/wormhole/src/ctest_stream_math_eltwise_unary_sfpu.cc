@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include "llk_param_structs.h"
 #include "ctest_stream_math_eltwise_unary_params.h"
 #include "llk_math_eltwise_unary_datacopy.h"

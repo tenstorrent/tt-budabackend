@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+
+# SPDX-License-Identifier: Apache-2.0
+
 ####
 
 MEM_WORD_BYTES = 16

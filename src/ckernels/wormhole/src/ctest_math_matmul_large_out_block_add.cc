@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
 
 #include "llk_math_matmul.h"
 #include "llk_math_eltwise_unary_datacopy.h"

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
 
 #include "llk_math_reduce.h"
 #include "ctest_math_reduce_params.h"

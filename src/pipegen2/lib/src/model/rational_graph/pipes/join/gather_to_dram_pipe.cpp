@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include "model/rational_graph/pipes/join/gather_to_dram_pipe.h"
 #include "device/tt_xy_pair.h"
 

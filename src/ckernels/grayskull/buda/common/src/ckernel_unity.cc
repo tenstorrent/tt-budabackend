@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // combining multiple C++ source files into a single file
 // to reduce the overhead of the compilation process and 
 // improve build times

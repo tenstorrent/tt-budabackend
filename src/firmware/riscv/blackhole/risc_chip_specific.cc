@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include "risc_chip_specific.h"
 #include "stream_interface.h"
 #include "dram_address_map.h"

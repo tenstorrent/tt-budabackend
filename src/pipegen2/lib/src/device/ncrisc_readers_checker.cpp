@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include "device/ncrisc_readers_checker.h"
 
 #include "device/core_resources_constants.h"

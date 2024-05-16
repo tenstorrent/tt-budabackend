@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
 
 #include "hlks/inc/hlk_api.h"
 #include "llk_param_structs.h"

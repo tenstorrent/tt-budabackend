@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+
+# SPDX-License-Identifier: Apache-2.0
 
 $extra_tile_header_buffer_size = (2 * 32 * 1024)
 msg_info_buf_size = 16 * 2048
