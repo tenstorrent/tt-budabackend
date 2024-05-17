@@ -228,7 +228,6 @@ inline void risc_get_epoch_dram_ptrs(uint32_t &epoch_command, uint32_t &dram_dec
   while (!ncrisc_noc_reads_flushed(loading_noc, NCRISC_RD_DEF_TRID));
   volatile uint32_t *noc_read_dest_buf_ptr = (uint32_t *)(noc_read_dest_buf_ptr_addr); 
   uint64_t dram_addr_offset_combined; // Combined overlay+trisc+etc binaries addr
-  uint64_t dram_addr_offset_trisc;    // trisc-only binaries addr (to save space)
   uint32_t dram_coord_x;
   uint32_t dram_coord_y;
   // Resolve the location of the epoch binaries from the command.
@@ -307,7 +306,7 @@ inline __attribute__((section("code_l1"))) void risc_get_epoch_varinst_info(epoc
 }
 
 #ifdef ERISC
-void __attribute__((section("code_l1"))) __attribute__((no_inline)) run_epoch(
+void __attribute__((section("code_l1"))) run_epoch(
 #else
 void run_epoch(
 #endif

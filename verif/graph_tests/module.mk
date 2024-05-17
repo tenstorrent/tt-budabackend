@@ -12,9 +12,9 @@ VERIF_GRAPH_TESTS_DEPS = $(addprefix $(OBJDIR)/, $(VERIF_GRAPH_TESTS_SRCS:.cpp=.
 
 -include $(VERIF_GRAPH_TESTS_DEPS)
 # Each module has a top level target as the entrypoint which must match the subdir name
-verif/graph_tests: $(VERIF_GRAPH_TESTS) 
-verif/graph_tests/all: $(VERIF_GRAPH_TESTS)
-verif/graph_tests/%: $(TESTDIR)/verif/graph_tests/%;
+verif/graph_tests: build_hw $(VERIF_GRAPH_TESTS) 
+verif/graph_tests/all: build_hw $(VERIF_GRAPH_TESTS)
+verif/graph_tests/%: build_hw $(TESTDIR)/verif/graph_tests/%;
 
 verif/graph_tests/clean:
 	@echo $(VERIF_GRAPH_TESTS)

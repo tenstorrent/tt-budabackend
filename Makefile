@@ -116,7 +116,7 @@ YAML_PATH=$(TT_MODULES)/versim/$(ARCH_NAME)/headers/vendor/yaml-cpp/include
 endif
 
 #WARNINGS ?= -Wall -Wextra
-WARNINGS ?= -Wdelete-non-virtual-dtor -Wreturn-type -Wswitch -Wuninitialized -Wno-unused-parameter
+WARNINGS ?= -Werror -Wdelete-non-virtual-dtor -Wreturn-type -Wswitch -Wuninitialized -Wno-unused-parameter
 CC ?= $(CCACHE_CMD) gcc
 CXX ?= $(CCACHE_CMD) g++
 DEVICE_CXX = g++
@@ -265,3 +265,10 @@ include dbd/module.mk
 include verif/op_tests/tools/spm/module.mk
 include py_api/module.mk
 include netlist_analyzer/module.mk
+
+# all targets, added for convenience
+all: backend build_hw compile_trisc/tests dbd docs/public eager_backend golden loader/tests \
+     netlist_analyzer ops py_api runtime/tests src/net2hlks tb/llk_tb \
+     verif verif/directed_tests verif/error_tests verif/graph_tests verif/op_tests verif/tm_tests \
+     netlist/unit_tests src/net2pipe/unit_tests src/pipegen2/unit_tests
+     # These are not working yet: dbdtests netlist/tests unit_tests

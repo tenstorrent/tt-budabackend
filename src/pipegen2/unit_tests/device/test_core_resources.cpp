@@ -291,7 +291,7 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraOverlayBlobSpace_SanityCheck)
     unsigned int extra_blob_space = 0xF000;
     unsigned int total_blob_size = l1_mem::address_map::OVERLAY_BLOB_SIZE + extra_blob_space;
 
-    const L1Buffer* l1_current_data_buffer;
+    const L1Buffer* l1_current_data_buffer = nullptr;
     EXPECT_NO_THROW(
         l1_current_data_buffer = worker_core_resources.allocate_l1_extra_overlay_blob_space(
             total_blob_size, false));

@@ -929,7 +929,6 @@ void poll_dram_ptrs(void * pFunction, uint32_t &num_active_dram_queues, dram_q_s
     curr_dram_q_state->dram_q_state_flags &= ~DRAM_Q_PTRS_LOADED_FLAG;
     volatile uint32_t tt_l1_ptr * l1_ptr_addr = curr_dram_q_state->l1_dram_ptrs;
     volatile dram_io_state_t tt_l1_ptr * l1_ptrs = (volatile dram_io_state_t tt_l1_ptr *)l1_ptr_addr;
-    uint32_t input_noc = (curr_dram_q_state->dram_q_state_flags & DRAM_Q_INPUT_NOC_FLAG) >> 1;
     uint32_t ptr_read_pending = curr_dram_q_state->dram_ptr_incoming_q_slots & DRAM_PTR_UPDATE_PENDING_MASK;
     if (ptr_read_pending && (reads_flushed || check_packet_end_marker((uint32_t)(&(l1_ptr_addr[DRAM_HEADER_LAST]))))) {
       uint32_t l1_dram_incoming_ptr_index = curr_dram_q_state->l1_dram_incoming_ptr_index;

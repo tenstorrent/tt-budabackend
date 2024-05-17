@@ -285,7 +285,7 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1ExtraOverlayBlobSpace_Alloc
     unsigned int extra_blob_space = (get_available_space() + 0xF000) & 0xFFFFF000;
     unsigned int total_blob_size = get_overlay_blob_size() + extra_blob_space;
 
-    const L1Buffer* l1_current_data_buffer;
+    const L1Buffer* l1_current_data_buffer = nullptr;
     EXPECT_NO_THROW(
         l1_current_data_buffer =
         m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false));
