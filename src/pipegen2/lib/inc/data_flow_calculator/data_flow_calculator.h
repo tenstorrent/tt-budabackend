@@ -13,21 +13,23 @@
 #include "model/data_flow/data_flow_node.h"
 #include "model/rational_graph/rational_graph.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 class RGBaseNode;
 class RGBasePipe;
 class SubgraphLeafGroups;
 
-class DataFlowCalculator {
-   public:
+class DataFlowCalculator
+{
+public:
     // Constructor.
     DataFlowCalculator(const RationalGraph* rational_graph, unsigned int max_num_tiles_per_phase);
 
     // Returns data flow information for the given rational graph.
     DataFlowInfo get_data_flow_info();
 
-   protected:
+protected:
     // Creates connected data flow graphs from a given rational graph.
     std::vector<std::unique_ptr<DataFlowGraph>> create_data_flow_graphs();
 
@@ -38,17 +40,17 @@ class DataFlowCalculator {
     void calculate_transfers(const SubgraphLeafGroups* subgraph_leaf_groups);
 
     // Calculates transfer limits for a given data flow graph (determined by the list of root and leaf nodes).
-    void calculate_transfer_limits(const std::vector<DataFlowNode*> root_nodes,
-                                   const std::vector<DataFlowNode*> leaf_nodes);
+    void calculate_transfer_limits(
+        const std::vector<DataFlowNode*> root_nodes, const std::vector<DataFlowNode*> leaf_nodes);
 
-   private:
+private:
     // Returns data flow information for the given data flow graph.
     DataFlowInfo get_data_flow_info(const DataFlowGraph* df_graph);
 
     // Creates a data flow info object by extracting required information from all nodes in the data flow graph.
     DataFlowInfo create_data_flow_info(const DataFlowGraph* data_flow_graph);
 
-   private:
+private:
     // Maximum number of phases we can have in one iteration on single source path.
     static constexpr unsigned int c_max_num_phases_per_iteration = 15;
 

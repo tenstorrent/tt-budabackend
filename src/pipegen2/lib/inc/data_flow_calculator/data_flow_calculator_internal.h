@@ -5,12 +5,14 @@
 
 #include <vector>
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 class DataFlowGraph;
 class DataFlowNode;
 
-namespace data_flow_internal {
+namespace data_flow_internal
+{
 
 // Finds all root nodes in a given data flow graph.
 std::vector<DataFlowNode*> find_root_nodes(const DataFlowGraph* data_flow_graph);

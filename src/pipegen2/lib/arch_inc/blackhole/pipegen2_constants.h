@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-namespace pipegen2 {
-namespace constants {
+namespace pipegen2
+{
+namespace constants
+{
 
 // Logical location that is not mapped to a physical location.
 constexpr int unmapped_logical_location = 255;

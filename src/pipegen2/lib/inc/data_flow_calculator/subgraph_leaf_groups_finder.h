@@ -6,12 +6,14 @@
 #include <memory>
 #include <vector>
 
-namespace pipegen2 {
+namespace pipegen2
+{
 class DataFlowNode;
 class SubgraphLeafGroups;
 
-class SubgraphLeafGroupsFinder {
-   public:
+class SubgraphLeafGroupsFinder
+{
+public:
     // Finds leaf groups in the data flow graph and returns SubgraphLeafGroups object that contains leaf groups.
     std::unique_ptr<SubgraphLeafGroups> find_leaf_groups(const std::vector<DataFlowNode*>& root_nodes);
 };

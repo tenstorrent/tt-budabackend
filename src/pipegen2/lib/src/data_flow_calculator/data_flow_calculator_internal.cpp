@@ -9,23 +9,31 @@
 #include "model/data_flow/data_flow_node.h"
 #include "utils/logger.hpp"
 
-namespace pipegen2 {
-namespace data_flow_internal {
+namespace pipegen2
+{
+namespace data_flow_internal
+{
 
-std::vector<DataFlowNode*> find_root_nodes(const DataFlowGraph* data_flow_graph) {
+std::vector<DataFlowNode*> find_root_nodes(const DataFlowGraph* data_flow_graph)
+{
     std::vector<DataFlowNode*> root_nodes;
     std::vector<DataFlowNode*> padding_root_nodes;
-    for (const std::unique_ptr<DataFlowNode>& df_node : data_flow_graph->get_nodes()) {
-        log_assert(!df_node->is_isolated_node(), "Expecting non-isolated nodes in graph but found node {}",
-                   df_node->get_id());
+    for (const std::unique_ptr<DataFlowNode>& df_node : data_flow_graph->get_nodes())
+    {
+        log_assert(
+            !df_node->is_isolated_node(), "Expecting non-isolated nodes in graph but found node {}", df_node->get_id());
 
-        if (!df_node->is_root_node()) {
+        if (!df_node->is_root_node())
+        {
             continue;
         }
 
-        if (df_node->is_padding()) {
+        if (df_node->is_padding())
+        {
             padding_root_nodes.push_back(df_node.get());
-        } else {
+        }
+        else
+        {
             root_nodes.push_back(df_node.get());
         }
     }
@@ -38,13 +46,16 @@ std::vector<DataFlowNode*> find_root_nodes(const DataFlowGraph* data_flow_graph)
     return root_nodes;
 }
 
-std::vector<DataFlowNode*> find_leaf_nodes(const DataFlowGraph* data_flow_graph) {
+std::vector<DataFlowNode*> find_leaf_nodes(const DataFlowGraph* data_flow_graph)
+{
     std::vector<DataFlowNode*> leaf_nodes;
-    for (const std::unique_ptr<DataFlowNode>& df_node : data_flow_graph->get_nodes()) {
-        log_assert(!df_node->is_isolated_node(), "Expecting non-isolated nodes in graph but found node {}",
-                   df_node->get_id());
+    for (const std::unique_ptr<DataFlowNode>& df_node : data_flow_graph->get_nodes())
+    {
+        log_assert(
+            !df_node->is_isolated_node(), "Expecting non-isolated nodes in graph but found node {}", df_node->get_id());
 
-        if (df_node->is_leaf_node()) {
+        if (df_node->is_leaf_node())
+        {
             leaf_nodes.push_back(df_node.get());
         }
     }

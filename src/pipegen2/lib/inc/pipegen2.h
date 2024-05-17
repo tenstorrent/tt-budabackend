@@ -11,7 +11,8 @@
 #include "model/fork_join_graph/fork_join_graph_collection.h"
 #include "model/stream_graph/stream_graph_collection.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 class L1Buffer;
 class PipeGraph;
@@ -19,8 +20,9 @@ class RationalGraph;
 class ResourceManager;
 class StreamGraph;
 
-class Pipegen2 {
-   public:
+class Pipegen2
+{
+public:
     // Constructs Pipegen2 based on SOC descriptors yaml.
     // In case when device has no harvested chips, SOC descriptors yaml should contain
     // the SOC descriptor definition that each of the device chips will use.
@@ -38,13 +40,14 @@ class Pipegen2 {
     std::unique_ptr<StreamGraphCollection> create_stream_graphs(const std::string& pipegen_yaml_path, int epoch_num);
 
     // Writes stream and firmware configurations into blob yaml for all stream graphs in the collection.
-    void output_blob_yaml(const StreamGraphCollection* stream_graph_collection, const std::string& blob_yaml_path,
-                          int perf_dump_info);
+    void output_blob_yaml(
+        const StreamGraphCollection* stream_graph_collection, const std::string& blob_yaml_path, int perf_dump_info);
 
     // Outputs input buffer usage analysis for all inputs that have under 100% usage during FW iteration.
-    static void output_input_buffer_usage_analysis(const int epoch_num,
-                                                   const StreamGraphCollection* stream_graph_collection,
-                                                   const std::string& input_buffer_usage_analysis_path);
+    static void output_input_buffer_usage_analysis(
+        const int epoch_num,
+        const StreamGraphCollection* stream_graph_collection,
+        const std::string& input_buffer_usage_analysis_path);
 
     // Outputs analysis of L1 memory allocations by stream buffers.
     void output_memory_allocations(const std::string& log_path, const int temporal_epoch);
@@ -52,7 +55,7 @@ class Pipegen2 {
     // Outputs all L1 data buffers allocated per worker core location.
     std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> get_all_worker_l1_data_buffers() const;
 
-   private:
+private:
     // Creates pipe graph from the input net2pipe pipegen yaml.
     void create_pipe_graph(const std::string& pipegen_yaml_path);
 

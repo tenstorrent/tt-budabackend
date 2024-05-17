@@ -9,7 +9,8 @@
 // Forward declarations.
 class buda_SocDescriptor;
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Converts given physical core coordinates to logical coordinates.
 tt_cxy_pair convert_physical_core_to_logical(
