@@ -17,7 +17,7 @@ from verif.common.runner_utils import (
     DEFAULT_SUBPROCESS_TIMEOUT,
     WorkerResult,
     execute_in_parallel,
-    fetch_custom_env_configs,
+    fetch_custom_env_config,
     get_arch_bin_dir,
     get_soc_file,
     run_cmd,
@@ -325,7 +325,7 @@ class PipegenRunner:
             pipegen_path,
         )
 
-        custom_env_configs = fetch_custom_env_configs().get(netlist_name, {})
+        custom_env_configs = fetch_custom_env_config(netlist_name)
         result = run_cmd(pipegen_cmd, arch, custom_env_configs, timeout)
         if result.returncode != 0:
             if os.path.exists(blob_yaml_path):

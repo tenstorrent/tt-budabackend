@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import os
+import string
 import subprocess
 from dataclasses import dataclass
 from itertools import repeat
@@ -256,8 +257,23 @@ def __log_running_progress(current_iter: int, total_iters: int, item_name: str):
         )
 
 
-def fetch_custom_env_configs():
-    if not os.path.exists(CUSTOM_ENV_CONFIGS_FILE):
-        return {}
+def fetch_custom_env_config(netlist_name: str):
     with open(CUSTOM_ENV_CONFIGS_FILE, "r") as file:
-        return json.load(file)
+        envs_per_netlists = json.load(file)
+        if netlist_name in envs_per_netlists:
+            return envs_per_netlists[netlist_name]
+        # In case of blackbox test netlists, an MD5 hash is appended to the beginning of the netlist.
+        # This might incur some false positives, but is unlikely to happen with a small set of netlists,
+        # and it is also unlikely to cause any issues.
+        # MD5 hash is a 32-character hex string.
+        netlist_name_tokens = netlist_name.split("_")
+        possible_md5_hash = netlist_name_tokens[0]
+        if (
+            len(netlist_name_tokens) > 1
+            and len(possible_md5_hash) == 32
+            and all(c in string.hexdigits for c in possible_md5_hash)
+        ):
+            new_netlist_name = "_".join(netlist_name_tokens[1:])
+            if new_netlist_name in envs_per_netlists:
+                return envs_per_netlists[new_netlist_name]
+        return {}
