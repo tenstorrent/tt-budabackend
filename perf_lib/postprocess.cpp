@@ -1545,21 +1545,25 @@ void process_all_instructions_and_create_reports(
     log_debug(tt::LogPerfPostProcess, "Extracting intermediate yamls from dram dump.");
     log_info(tt::LogPerfPostProcess, "Processing all instructions...");
     for (const auto &[device_id, device_start_cycle] : perf_state.get_device_alignment_info().device_id_to_start_cycle) {
+        vector<int> instruction_idxs;
         vector<InstructionInfo*> device_instructions;
-        for (InstructionInfo &instr: all_instructions) {
+        for (int instr_idx = 0; instr_idx < all_instructions.size(); instr_idx++) {
+            InstructionInfo &instr = all_instructions.at(instr_idx);
             if (instr.device_id != device_id) {
                 continue;
             }
+            instruction_idxs.push_back(instr_idx);
             device_instructions.push_back(&instr);
         }
         log_assert(sdesc_per_chip.find(device_id) != sdesc_per_chip.end(), "Could not find soc descriptor for device id {}", device_id);
         std::unordered_map<string, std::shared_ptr<stringstream>> device_intermed_dumps = extract_core_events_from_device_dram_dump(device_instructions, all_dram_events, perf_state.get_perf_desc(), &sdesc_per_chip.at(device_id));
-        for (InstructionInfo* instr : device_instructions) {
+        for (int device_instr_idx = 0; device_instr_idx < device_instructions.size(); device_instr_idx++) {
+            InstructionInfo *instr = device_instructions.at(device_instr_idx);
             log_assert(instr->intermed_dump_key  != "", "All intermediate yaml files must be dumped.");
             log_assert(instr->output_dir_path    != "", "All output directory paths must have been set.");
             log_assert(device_intermed_dumps.find(instr->intermed_dump_key) != device_intermed_dumps.end(), "Could not find intermed dump for instruction {}", instr->intermed_dump_key);
             parse_intermed_dump_and_create_reports(*(device_intermed_dumps.at(instr->intermed_dump_key)), *instr, perf_state, versim);
-            log_info(tt::LogPerfPostProcess, "Finished perf-postprocess for program {}, graph {}, epoch {}/{}", instr->program_name, instr->graph_name, instr->instr_id_global, all_instructions.size()-1);
+            log_info(tt::LogPerfPostProcess, "Finished perf-postprocess for program {}, graph {}, epoch {}/{}", instr->program_name, instr->graph_name, instruction_idxs.at(device_instr_idx), all_instructions.size() - 1);
         }
     }
 }
