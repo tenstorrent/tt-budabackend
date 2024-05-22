@@ -36,18 +36,14 @@ void IntermediateBufferHandler::handle(PipeGraph& pipe_graph)
         std::unique_ptr<PGPipe> pipe = std::make_unique<PGPipe>(pipe_output_buf->get_id() - 1);
         // TODO temporary fix as a way to indicate this is a dummy pipe with invalid location. Planning to move
         // all of this to RG creator.
-        pipe->add_mcast_core_logical_location(tt_cxy_pair(0 /* chip_id */,
-                                                            constants::unmapped_logical_location,
-                                                            constants::unmapped_logical_location));
+        pipe->add_mcast_core_logical_location(
+            tt_cxy_pair(0 /* chip_id */, constants::unmapped_logical_location, constants::unmapped_logical_location));
         pipe->add_input_buffer_id(pipe_input_buf->get_id());
-        pipe_graph_creator_internal::connect_pipe_with_input_buffer(pipe.get(), 
-                                                                    pipe_input_buf->get_id(), 
-                                                                    *m_pipe_graph_info);
+        pipe_graph_creator_internal::connect_pipe_with_input_buffer(
+            pipe.get(), pipe_input_buf->get_id(), *m_pipe_graph_info);
         pipe->add_output_buffer_id(pipe_output_buf->get_id());
-        pipe_graph_creator_internal::connect_pipe_with_output_buffer(pipe.get(), 
-                                                                        0 /* scatter_index */, 
-                                                                        pipe_output_buf->get_id(),
-                                                                        *m_pipe_graph_info);
+        pipe_graph_creator_internal::connect_pipe_with_output_buffer(
+            pipe.get(), 0 /* scatter_index */, pipe_output_buf->get_id(), *m_pipe_graph_info);
 
         const PGBuffer* shared_buf = pipe_graph.get_shared_output_buffer(buf->get_id());
         if (shared_buf != nullptr)
@@ -57,9 +53,8 @@ void IntermediateBufferHandler::handle(PipeGraph& pipe_graph)
             buf->set_shared_space_buffer_id(shared_buf->get_id());
             pipe_input_buf->set_shared_space_buffer_id(shared_buf->get_id());
             pipe->add_input_buffer_id(shared_buf->get_id());
-            pipe_graph_creator_internal::connect_pipe_with_input_buffer(pipe.get(), 
-                                                                        shared_buf->get_id(), 
-                                                                        *m_pipe_graph_info);
+            pipe_graph_creator_internal::connect_pipe_with_input_buffer(
+                pipe.get(), shared_buf->get_id(), *m_pipe_graph_info);
         }
 
         newly_created_buffers.push_back(std::move(pipe_input_buf));
@@ -72,4 +67,4 @@ void IntermediateBufferHandler::handle(PipeGraph& pipe_graph)
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

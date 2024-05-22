@@ -14,4 +14,4 @@ public:
     void populate_with_stream_info(const StreamGraphCollection* stream_graph_collection);
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

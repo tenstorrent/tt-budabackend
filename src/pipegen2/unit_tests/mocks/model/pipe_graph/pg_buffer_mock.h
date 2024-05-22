@@ -11,10 +11,7 @@ namespace pipegen2
 class PGBufferMock : public PGBuffer
 {
 public:
-    PGBufferMock(NodeId id)
-    {
-        set_id(id);
-    }
+    PGBufferMock(NodeId id) { set_id(id); }
 
     PGBufferMock(
         const BufferType buffer_type,
@@ -136,7 +133,7 @@ public:
     std::vector<std::string> to_json_list_of_strings_all_attributes()
     {
         return {
-            "buffer_"+ std::to_string(get_id()) + ":",
+            "buffer_" + std::to_string(get_id()) + ":",
             "buffer_type: " + convert_buffer_type_to_string(get_type()),
             "uniqid: " + std::to_string(get_id()),
             "id: " + std::to_string(get_operand_id()),
@@ -192,22 +189,18 @@ public:
             "is_padding: " + std::to_string(is_padding() ? 1 : 0),
             "use_ethernet_fw_stream: " + std::to_string(get_use_ethernet_fw_stream() ? 1 : 0),
             "overlay_blob_size: " + std::to_string(get_overlay_blob_size()),
-            "is_post_tm_relay_buf: " + std::to_string(is_post_tm_relay_buf() ? 1 : 0)
-        };
+            "is_post_tm_relay_buf: " + std::to_string(is_post_tm_relay_buf() ? 1 : 0)};
     }
 
     std::vector<std::string> to_json_list_of_strings_id_only()
     {
-        return {
-            "buffer_"+ std::to_string(get_id()) + ":",
-            "uniqid: " + std::to_string(get_id())
-        };
+        return {"buffer_" + std::to_string(get_id()) + ":", "uniqid: " + std::to_string(get_id())};
     }
 
 private:
     std::string convert_buffer_type_to_string(const BufferType& type)
     {
-        switch(type)
+        switch (type)
         {
             case BufferType::kDramProlog:
                 return "dram_prolog";
@@ -230,7 +223,7 @@ private:
             case BufferType::kPrologRelay:
                 return "prolog_relay";
             default:
-                return "unknown"; 
+                return "unknown";
         }
     }
 
@@ -243,7 +236,6 @@ private:
         oss << "]";
         return oss.str();
     }
-
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -13,9 +13,7 @@ namespace pipegen2
 class IntermediateBufferHandler : public IPipeGraphHandler
 {
 public:
-    IntermediateBufferHandler(PipeGraphInfo* pipe_graph_info) : m_pipe_graph_info(pipe_graph_info) 
-    {
-    }
+    IntermediateBufferHandler(PipeGraphInfo* pipe_graph_info) : m_pipe_graph_info(pipe_graph_info) {}
 
     // Handle the creation of intermediate buffers in a given pipe graph.
     void handle(PipeGraph& pipe_graph) override;
@@ -25,4 +23,4 @@ private:
     PipeGraphInfo* m_pipe_graph_info;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

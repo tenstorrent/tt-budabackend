@@ -1,20 +1,24 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "data_flow_calculator/data_flow_calculator.h"
+
 #include <memory>
 #include <vector>
 
 #include "gtest/gtest.h"
 
-#include "data_flow_calculator/data_flow_calculator.h"
-#include "mocks/model/rational_graph/rg_nodes_mocks.h"
-#include "mocks/model/rational_graph/rg_pipes_mocks.h"
 #include "model/rational_graph/nodes/serial_fork_node.h"
 #include "model/rational_graph/nodes/virtual_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
 #include "pipegen2_constants.h"
+
+#include "mocks/model/rational_graph/rg_nodes_mocks.h"
+#include "mocks/model/rational_graph/rg_pipes_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -39,21 +43,18 @@ protected:
         return m_rg_nodes.back().get();
     }
 
-    RGBaseNode* create_packer_node(unsigned int size_tiles,
-                                   unsigned int num_epoch_tiles,
-                                   unsigned int tiles_per_input,
-                                   unsigned int num_scatter_chunks,
-                                   unsigned int scatter_gather_num_tiles)
+    RGBaseNode* create_packer_node(
+        unsigned int size_tiles,
+        unsigned int num_epoch_tiles,
+        unsigned int tiles_per_input,
+        unsigned int num_scatter_chunks,
+        unsigned int scatter_gather_num_tiles)
     {
-        return create_rg_node(
-            std::make_unique<PackerInputNodeMock>(
-                ++m_node_id, size_tiles, num_epoch_tiles, tiles_per_input, num_scatter_chunks, scatter_gather_num_tiles));
+        return create_rg_node(std::make_unique<PackerInputNodeMock>(
+            ++m_node_id, size_tiles, num_epoch_tiles, tiles_per_input, num_scatter_chunks, scatter_gather_num_tiles));
     }
 
-    RGBaseNode* create_virtual_node()
-    {
-        return create_rg_node(std::make_unique<VirtualNode>(++m_node_id));
-    }
+    RGBaseNode* create_virtual_node() { return create_rg_node(std::make_unique<VirtualNode>(++m_node_id)); }
 
     RGBaseNode* create_serial_fork_node(unsigned int scatter_index)
     {
@@ -62,8 +63,7 @@ protected:
 
     RGBaseNode* create_unpacker_node(unsigned int size_tiles, unsigned int transfer_granularity)
     {
-        return create_rg_node(
-            std::make_unique<UnpackerOutputNodeMock>(++m_node_id, size_tiles, transfer_granularity));
+        return create_rg_node(std::make_unique<UnpackerOutputNodeMock>(++m_node_id, size_tiles, transfer_granularity));
     }
 
     RGBasePipe* create_rg_pipe(std::unique_ptr<RGBasePipe>&& rg_pipe)
@@ -74,9 +74,8 @@ protected:
     }
 
     // Creates appropriate fork pipe and connects forked node on input and virtual nodes on output.
-    RGBasePipe* create_fork_pipe_block(DataFlowType dataflow_type,
-                                       RGBaseNode* forked_node,
-                                       std::vector<RGBaseNode*> virt_nodes)
+    RGBasePipe* create_fork_pipe_block(
+        DataFlowType dataflow_type, RGBaseNode* forked_node, std::vector<RGBaseNode*> virt_nodes)
     {
         std::unique_ptr<RGBasePipe> fork_pipe;
         if (dataflow_type == DataFlowType::Serial)
@@ -101,9 +100,7 @@ protected:
     }
 
     // Creates appropriate unicast pipe and connects input and output nodes.
-    RGBasePipe* create_unicast_block(RGBaseNode* input_node,
-                                     RGBaseNode* output_node,
-                                     unsigned int repeat_input = 1)
+    RGBasePipe* create_unicast_block(RGBaseNode* input_node, RGBaseNode* output_node, unsigned int repeat_input = 1)
     {
         std::unique_ptr<RGBasePipe> unicast_pipe = std::make_unique<UnicastPipeMock>(++m_pipe_id);
 
@@ -128,8 +125,11 @@ protected:
 TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ParallelWithSerialForkCombination)
 {
     RGBaseNode* root_packer_node = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 10 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        10 /* scatter_gather_num_tiles */);
 
     RGBaseNode* virt_node_1 = create_virtual_node();
     RGBaseNode* virt_node_2 = create_virtual_node();
@@ -167,8 +167,8 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ParallelWithSerialForkCombin
             unsigned int prev_phase_offset = 0;
             for (size_t i = 0; i < pipe->get_output_nodes().size(); ++i)
             {
-                const std::vector<PhaseInfo>& pipe_to_node_phases = data_flow_info.get_edge_phases(
-                    pipe.get(), pipe->get_output_nodes()[i]);
+                const std::vector<PhaseInfo>& pipe_to_node_phases =
+                    data_flow_info.get_edge_phases(pipe.get(), pipe->get_output_nodes()[i]);
                 EXPECT_GT(pipe_to_node_phases.size(), 0);
 
                 if (i == 0)
@@ -190,14 +190,14 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ParallelWithSerialForkCombin
             continue;
         }
 
-        const std::vector<PhaseInfo>& node_to_pipe_phases = data_flow_info.get_edge_phases(
-            node.get(), node->get_output_pipe());
+        const std::vector<PhaseInfo>& node_to_pipe_phases =
+            data_flow_info.get_edge_phases(node.get(), node->get_output_pipe());
         EXPECT_GT(node_to_pipe_phases.size(), 0);
 
         if (node->get_input_pipe())
         {
-            const std::vector<PhaseInfo>& pipe_to_node_phases = data_flow_info.get_edge_phases(
-                node->get_input_pipe(), node.get());
+            const std::vector<PhaseInfo>& pipe_to_node_phases =
+                data_flow_info.get_edge_phases(node->get_input_pipe(), node.get());
             EXPECT_GT(pipe_to_node_phases.size(), 0);
         }
     }
@@ -206,14 +206,17 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ParallelWithSerialForkCombin
 TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, SenderPhaseAccumulation)
 {
     RGBaseNode* root_packer_node = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 1 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        1 /* scatter_gather_num_tiles */);
 
     RGBaseNode* unicast_pipe_input_virt_node = create_virtual_node();
     create_fork_pipe_block(DataFlowType::Parallel, root_packer_node, {unicast_pipe_input_virt_node});
 
     // Let transfer granularity be 5 tiles so that 2K is not a multiple of it.
-    RGBaseNode* unpacker_node = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */ );
+    RGBaseNode* unpacker_node = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */);
     RGBasePipe* unicast_pipe = create_unicast_block(unicast_pipe_input_virt_node, unpacker_node, 1 /* repeat_input */);
 
     const unsigned int max_num_tiles_per_phase = 64;
@@ -233,25 +236,27 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, SenderPhaseAccumulation)
     const std::vector<PhaseInfo>& node_to_pipe_phases =
         data_flow_info.get_edge_phases(unicast_pipe_input_virt_node, unicast_pipe);
 
-    const std::vector<PhaseInfo>& pipe_to_node_phases =
-        data_flow_info.get_edge_phases(unicast_pipe, unpacker_node);
+    const std::vector<PhaseInfo>& pipe_to_node_phases = data_flow_info.get_edge_phases(unicast_pipe, unpacker_node);
 
     EXPECT_GT(node_to_pipe_phases.size(), pipe_to_node_phases.size());
 
-    check_phase_alignment(node_to_pipe_phases, pipe_to_node_phases,
-                          data_flow_info.get_max_num_tiles_per_phase(unpacker_node));
+    check_phase_alignment(
+        node_to_pipe_phases, pipe_to_node_phases, data_flow_info.get_max_num_tiles_per_phase(unpacker_node));
 }
 
 TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ThrowsOnAccessingNonExistentEdgePhases)
 {
     RGBaseNode* root_packer_node = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 1 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        1 /* scatter_gather_num_tiles */);
 
     RGBaseNode* virt_node = create_virtual_node();
     create_fork_pipe_block(DataFlowType::Parallel, root_packer_node, {virt_node});
 
-    RGBaseNode* unpacker_node = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */ );
+    RGBaseNode* unpacker_node = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */);
     RGBasePipe* unicast_pipe = create_unicast_block(virt_node, unpacker_node, 1 /* repeat_input */);
 
     RationalGraph rg(std::move(m_rg_nodes), std::move(m_rg_pipes), false /* is_doing_pcie_transfer */);
@@ -273,8 +278,11 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, ThrowsOnAccessingNonExistent
 TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, IsolatedDataFlowGraphGetsSkipped)
 {
     RGBaseNode* root_packer_node = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 1 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        1 /* scatter_gather_num_tiles */);
 
     RationalGraph rg(std::move(m_rg_nodes), std::move(m_rg_pipes), false /* is_doing_pcie_transfer */);
     DataFlowCalculator dfc(&rg, constants::general_max_num_tiles_per_phase);
@@ -294,19 +302,25 @@ TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, IsolatedDataFlowGraphGetsSki
 TEST_F(Pipegen2_DataFlowCalculator_GetDataFlowInfo, MultipleDisconnectedDataFlowGraphs)
 {
     RGBaseNode* root_packer_node_1 = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 1 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        1 /* scatter_gather_num_tiles */);
     RGBaseNode* virt_node_1 = create_virtual_node();
     create_fork_pipe_block(DataFlowType::Parallel, root_packer_node_1, {virt_node_1});
-    RGBaseNode* unpacker_node_1 = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */ );
+    RGBaseNode* unpacker_node_1 = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */);
     RGBasePipe* unicast_pipe_1 = create_unicast_block(virt_node_1, unpacker_node_1, 1 /* repeat_input */);
 
     RGBaseNode* root_packer_node_2 = create_packer_node(
-        2 /* size_tiles */, 40 /* num_epoch_tiles */, 1 /* tiles_per_input */,
-        20 /* num_scatter_chunks */, 1 /* scatter_gather_num_tiles */);
+        2 /* size_tiles */,
+        40 /* num_epoch_tiles */,
+        1 /* tiles_per_input */,
+        20 /* num_scatter_chunks */,
+        1 /* scatter_gather_num_tiles */);
     RGBaseNode* virt_node_2 = create_virtual_node();
     create_fork_pipe_block(DataFlowType::Parallel, root_packer_node_2, {virt_node_2});
-    RGBaseNode* unpacker_node_2 = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */ );
+    RGBaseNode* unpacker_node_2 = create_unpacker_node(10 /* size_tiles */, 5 /* transfer_granularity */);
     RGBasePipe* unicast_pipe_2 = create_unicast_block(virt_node_2, unpacker_node_2, 1 /* repeat_input */);
 
     RationalGraph rg(std::move(m_rg_nodes), std::move(m_rg_pipes), false /* is_doing_pcie_transfer */);

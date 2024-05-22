@@ -9,12 +9,14 @@
 #include <string>
 #include <vector>
 
+// clang-format off
 #include "common/base_types.hpp"
 #include "common/buda_soc_descriptor.h"
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
 
 #include "model/typedefs.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -27,8 +29,8 @@ public:
     // should contain the SOC descriptor definition that each of the device chips will use. Otherwise, when device has
     // harvested chips, SOC descriptors yaml should contain just paths to multiple SOC descriptor yamls, one for each of
     // device chips.
-    static std::unique_ptr<SoCInfo> parse_from_yaml(const std::string& soc_descriptors_yaml_path,
-                                                    const std::vector<ChipId>& chip_ids);
+    static std::unique_ptr<SoCInfo> parse_from_yaml(
+        const std::string& soc_descriptors_yaml_path, const std::vector<ChipId>& chip_ids);
 
     // Destructor, necessary for forward declarations of classes in smart pointer members.
     virtual ~SoCInfo();
@@ -58,10 +60,11 @@ public:
     tt_cxy_pair convert_logical_to_physical_worker_core_coords(const tt_cxy_pair& logical_coords) const;
 
     // Returns NOC address of a given dram buffer.
-    std::uint64_t get_dram_buffer_noc_address(const std::uint64_t dram_buf_addr,
-                                              const ChipId chip_id,
-                                              const unsigned int channel,
-                                              const unsigned int subchannel) const;
+    std::uint64_t get_dram_buffer_noc_address(
+        const std::uint64_t dram_buf_addr,
+        const ChipId chip_id,
+        const unsigned int channel,
+        const unsigned int subchannel) const;
 
     // Returns NOC address through a PCIe core for a given buffer PCIe address.
     std::uint64_t get_buffer_noc_address_through_pcie(const std::uint64_t pcie_buf_addr, const ChipId chip_id) const;
@@ -77,9 +80,10 @@ public:
     std::uint64_t get_local_dram_buffer_noc_address(const std::uint64_t dram_buf_noc_addr) const;
 
     // Returns local PCIe address, without the notion of the PCIe core location.
-    std::uint64_t get_local_pcie_buffer_address(const std::uint64_t l1_buffer_address,
-                                                const tt_cxy_pair& worker_core_location,
-                                                const bool is_pcie_downstream) const;
+    std::uint64_t get_local_pcie_buffer_address(
+        const std::uint64_t l1_buffer_address,
+        const tt_cxy_pair& worker_core_location,
+        const bool is_pcie_downstream) const;
 
     // Converts core coordinates from harvested SoC descriptor to original coordinate system.
     // NOTE: This feature is only enabled on some WH devices which have translation tables enabled on device,
@@ -98,8 +102,8 @@ protected:
 
     // Checks if SOC descriptors yaml contains paths to multiple descriptors and returns them, otherwise returns only
     // path to the SOC descriptors yaml.
-    static std::map<ChipId, std::string> get_soc_descriptors_paths(const std::string& soc_descriptors_yaml_path,
-                                                                   const std::vector<ChipId>& chip_ids);
+    static std::map<ChipId, std::string> get_soc_descriptors_paths(
+        const std::string& soc_descriptors_yaml_path, const std::vector<ChipId>& chip_ids);
 
     // Returns a soc descriptor instance for a given chip id.
     const buda_SocDescriptor* get_soc_descriptor(const ChipId chip_id) const;
@@ -111,4 +115,4 @@ protected:
     std::map<ChipId, std::unique_ptr<buda_SocDescriptor>> m_soc_descriptors;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -23,4 +23,4 @@ private:
     void check_fork_join_hang(const ForkJoinPath* first_path, const ForkJoinPath* second_path) const;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

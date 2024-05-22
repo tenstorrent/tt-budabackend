@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class DramParallelForkPipe : public ForkPipe
+class DramParallelForkPipe : public ForkPipe
+{
+public:
+    DramParallelForkPipe(const tt_cxy_pair& physical_location) :
+        ForkPipe(RGPipeType::DramParallelFork, DataFlowType::Parallel, RGPipeProperties(), physical_location)
     {
-    public:
-        DramParallelForkPipe(const tt_cxy_pair& physical_location) :
-            ForkPipe(RGPipeType::DramParallelFork, DataFlowType::Parallel, RGPipeProperties(), physical_location)
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

@@ -17,9 +17,8 @@ public:
     void add_buffer_with_id(NodeId buffer_id, PGBuffer* pg_buffer);
 
     // Adds a scatter pipe input of a specific PGBuffer to the scatter inputs map, with a specific offset.
-    void add_scatter_buffer_pipe_input(NodeId node_id, 
-                                       const std::unique_ptr<PGBuffer>& pg_buffer, 
-                                       const unsigned int offset);
+    void add_scatter_buffer_pipe_input(
+        NodeId node_id, const std::unique_ptr<PGBuffer>& pg_buffer, const unsigned int offset);
 
     // Checks if a PGBuffer with a specific id exists.
     bool buffer_with_id_exists(NodeId buffer_id) const;
@@ -38,7 +37,7 @@ private:
     std::unordered_map<NodeId, PGPipe::Input> m_scatter_buffer_pipe_inputs;
 
     // Buffers in the pipe graph, mapped by their ID.
-    std::unordered_map<NodeId, PGBuffer*> m_buffers_per_id;    
+    std::unordered_map<NodeId, PGBuffer*> m_buffers_per_id;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

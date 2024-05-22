@@ -75,7 +75,7 @@ bool PostTMPipeHandler::can_do_post_tm_connections_optimization(const PGPipe* sr
     // Buffer in between pipes has to be post TM relay non-forked buffer.
     const PGBuffer* middle_buffer = src_pipe->get_single_output_buffer();
 
-    // Relay buffer can be omitted for the Post TM multicast case since there is no need for multicast as the tiles can 
+    // Relay buffer can be omitted for the Post TM multicast case since there is no need for multicast as the tiles can
     // directly be prefetched to all destination cores.
     if (!middle_buffer->has_single_output() || !middle_buffer->is_post_tm_relay_buf())
     {
@@ -106,7 +106,7 @@ void PostTMPipeHandler::detach_inputs(PGPipe* original_pipe, PGPipe* new_pipe)
 {
     // Detach dest pipe from its inputs.
     new_pipe->remove_all_inputs();
-    
+
     std::unordered_set<PGBuffer*> replaced_buffers;
     for (PGPipe::Input& src_pipe_input : original_pipe->get_inputs())
     {
@@ -126,26 +126,24 @@ void PostTMPipeHandler::detach_inputs(PGPipe* original_pipe, PGPipe* new_pipe)
 }
 
 void PostTMPipeHandler::decompose_post_tm_multicast_pipe(
-    PipeGraph& pipe_graph, 
-    PGPipe* prefetch_post_tm_pipe, 
-    std::vector<std::unique_ptr<PGPipe>>& pipes_to_add)
+    PipeGraph& pipe_graph, PGPipe* prefetch_post_tm_pipe, std::vector<std::unique_ptr<PGPipe>>& pipes_to_add)
 {
     // Make a new post TM prefetch pipe for every output buffer.
-    for (unsigned int output_buffer_index = 0; 
-            output_buffer_index < prefetch_post_tm_pipe->get_output_buffers()[0].size(); 
-            ++output_buffer_index)
+    for (unsigned int output_buffer_index = 0;
+         output_buffer_index < prefetch_post_tm_pipe->get_output_buffers()[0].size();
+         ++output_buffer_index)
     {
         PGBuffer* output_buffer = prefetch_post_tm_pipe->get_output_buffers()[0][output_buffer_index];
-        std::unique_ptr<PGPipe> new_post_tm_prefetch_pipe = 
-                        std::make_unique<PGPipe>(prefetch_post_tm_pipe->get_id() + output_buffer_index + 1);
+        std::unique_ptr<PGPipe> new_post_tm_prefetch_pipe =
+            std::make_unique<PGPipe>(prefetch_post_tm_pipe->get_id() + output_buffer_index + 1);
         new_post_tm_prefetch_pipe->add_output_buffer_id(output_buffer->get_id());
         new_post_tm_prefetch_pipe->add_output_buffer(output_buffer, 0 /* scatter_index */);
         detach_inputs(prefetch_post_tm_pipe, new_post_tm_prefetch_pipe.get());
         copy_original_post_tm_pipe_attributes(prefetch_post_tm_pipe, new_post_tm_prefetch_pipe.get());
         new_post_tm_prefetch_pipe->add_mcast_core_logical_location(
-                                                                tt_cxy_pair((output_buffer->get_logical_location())));
+            tt_cxy_pair((output_buffer->get_logical_location())));
         pipes_to_add.push_back(std::move(new_post_tm_prefetch_pipe));
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

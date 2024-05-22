@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/worker_core_resources_gs.h"
+
 #include <set>
 #include <stdexcept>
 
@@ -9,13 +12,14 @@
 #include "l1_address_map.h"
 #include "stream_io_map.h"
 
-#include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
 #include "device/l1/l1_buffer.h"
-#include "device/worker_core_resources_gs.h"
 #include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
+
+#include "core_resources_unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -76,8 +80,7 @@ TEST(Pipegen2_CoreResources, AllocateGeneralPurposeStream_ProperAllocatedStreamS
 
     // Should contain only one stream id from the beginning of extra streams range.
     EXPECT_EQ(
-        worker_core_resources.get_allocated_stream_ids(),
-        std::set<StreamId>{static_cast<StreamId>(END_IO_STREAM + 1)});
+        worker_core_resources.get_allocated_stream_ids(), std::set<StreamId>{static_cast<StreamId>(END_IO_STREAM + 1)});
 }
 
 /**********************************************************************************************************************
@@ -91,19 +94,14 @@ TEST(Pipegen2_CoreResources, AllocateKernelInput_RepeatedCallsUntilExcThrown)
     WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_kernel_inputs;
 
-    for (unsigned int input_index = 0;
-         input_index < core_resources_constants::max_kernel_inputs_count;
-         input_index++)
+    for (unsigned int input_index = 0; input_index < core_resources_constants::max_kernel_inputs_count; input_index++)
     {
         expected_kernel_inputs.push_back(input_index);
     }
 
     // Expecting kernel inputs to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<unsigned int, OutOfCoreResourcesException>(
-        [&]() -> unsigned int
-        {
-            return worker_core_resources.allocate_kernel_input();
-        },
+        [&]() -> unsigned int { return worker_core_resources.allocate_kernel_input(); },
         expected_kernel_inputs,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -128,8 +126,7 @@ TEST(Pipegen2_CoreResources, AllocateKernelOutput_RepeatedCallsUntilExcThrown)
     WorkerCoreResourcesGS worker_core_resources(core_physical_location, core_logical_location);
     std::vector<StreamId> expected_kernel_outputs;
 
-    for (unsigned int output_index = 0;
-         output_index < core_resources_constants::max_kernel_outputs_count;
+    for (unsigned int output_index = 0; output_index < core_resources_constants::max_kernel_outputs_count;
          output_index++)
     {
         expected_kernel_outputs.push_back(output_index);
@@ -137,10 +134,7 @@ TEST(Pipegen2_CoreResources, AllocateKernelOutput_RepeatedCallsUntilExcThrown)
 
     // Expecting kernel outputs to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<unsigned int, OutOfCoreResourcesException>(
-        [&]() -> unsigned int
-        {
-            return worker_core_resources.allocate_kernel_output();
-        },
+        [&]() -> unsigned int { return worker_core_resources.allocate_kernel_output(); },
         expected_kernel_outputs,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -193,7 +187,8 @@ TEST(Pipegen2_CoreResources, AllocateL1TileHeaderBuffer_SanityCheck)
 
     // The first allocated tile header buffer is allocated in predesignated space for a single tile header buffer.
     const L1Buffer* tile_header_buffer = worker_core_resources.allocate_l1_tile_header_buffer(0);
-    EXPECT_EQ(tile_header_buffer->get_address(), worker_core_resources_constants::l1_predefined_tile_header_buffer_address);
+    EXPECT_EQ(
+        tile_header_buffer->get_address(), worker_core_resources_constants::l1_predefined_tile_header_buffer_address);
 
     unsigned int tile_header_buff_expected_addr = l1_data_buffers_space_end_address;
     // All the following allocations will end up in l1 data buffer space.
@@ -233,12 +228,11 @@ TEST(Pipegen2_CoreResources, AllocateL1StreamBuffer_SanityCheck)
     unsigned int allocated_l1_data_buffers_size = available_space - 1;
 
     EXPECT_NO_THROW(
-        l1_current_data_buffer = worker_core_resources.allocate_l1_stream_buffer(
-            &stream_node, allocated_l1_data_buffers_size));
+        l1_current_data_buffer =
+            worker_core_resources.allocate_l1_stream_buffer(&stream_node, allocated_l1_data_buffers_size));
     EXPECT_EQ(
         l1_current_data_buffer->get_address(), l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
 }
 
 /**********************************************************************************************************************
@@ -265,12 +259,11 @@ TEST(Pipegen2_CoreResources, AllocateL1NcriscFallbackBuffer_SanityCheck)
     unsigned int allocated_l1_data_buffers_size = available_space - 1;
 
     EXPECT_NO_THROW(
-        l1_current_data_buffer = worker_core_resources.allocate_l1_ncrisc_fallback_buffer(
-            allocated_l1_data_buffers_size));
+        l1_current_data_buffer =
+            worker_core_resources.allocate_l1_ncrisc_fallback_buffer(allocated_l1_data_buffers_size));
     EXPECT_EQ(
         l1_current_data_buffer->get_address(), l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
 }
 
 /**********************************************************************************************************************
@@ -293,14 +286,10 @@ TEST(Pipegen2_CoreResources, AllocateL1ExtraOverlayBlobSpace_SanityCheck)
 
     const L1Buffer* l1_current_data_buffer = nullptr;
     EXPECT_NO_THROW(
-        l1_current_data_buffer = worker_core_resources.allocate_l1_extra_overlay_blob_space(
-            total_blob_size, false));
-    EXPECT_EQ(
-        l1_current_data_buffer->get_address(), l1_data_buffers_space_start_address);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), extra_blob_space);
+        l1_current_data_buffer = worker_core_resources.allocate_l1_extra_overlay_blob_space(total_blob_size, false));
+    EXPECT_EQ(l1_current_data_buffer->get_address(), l1_data_buffers_space_start_address);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), extra_blob_space);
 }
-
 
 /**********************************************************************************************************************
     Tests for function: get_tile_header_buffer_address

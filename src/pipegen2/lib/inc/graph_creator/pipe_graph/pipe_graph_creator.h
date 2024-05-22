@@ -33,7 +33,7 @@ private:
     void find_pipe_graph_nodes_connections(PipeGraph& pipe_graph);
 
     // Function which uses handlers circumvent shortcomings of pipegen.yaml on the given PipeGraph.
-    // TODO: Once net2pipe is fixed, we will have all info needed to properly create a read-only pipe graph, 
+    // TODO: Once net2pipe is fixed, we will have all info needed to properly create a read-only pipe graph,
     // with no need to change it.
     void patch_deficiencies(PipeGraph& pipe_graph);
 
@@ -41,4 +41,4 @@ private:
     PipeGraphInfo m_pipe_graph_info;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

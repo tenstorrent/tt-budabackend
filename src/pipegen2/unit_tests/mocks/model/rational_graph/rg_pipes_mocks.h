@@ -12,18 +12,13 @@ namespace pipegen2
 class UnicastPipeMock : public UnicastPipe
 {
 public:
-    UnicastPipeMock(NodeId pipe_id) : UnicastPipe(RGPipeProperties(pipe_id), tt_cxy_pair())
-    {
-    }
+    UnicastPipeMock(NodeId pipe_id) : UnicastPipe(RGPipeProperties(pipe_id), tt_cxy_pair()) {}
 };
 
 class ParallelForkPipeMock : public ParallelForkPipe
 {
 public:
-    ParallelForkPipeMock(NodeId pipe_id) : ParallelForkPipe(tt_cxy_pair())
-    {
-        m_pipe_properties.set_pipe_id(pipe_id);
-    }
+    ParallelForkPipeMock(NodeId pipe_id) : ParallelForkPipe(tt_cxy_pair()) { m_pipe_properties.set_pipe_id(pipe_id); }
 };
 
 class SerialForkPipeMock : public SerialForkPipe
@@ -40,11 +35,12 @@ class RGPipeStructuralMock : public RGBasePipe
 {
 public:
     RGPipeStructuralMock(NodeId pipe_id = -1) :
-        RGBasePipe(RGPipeType::Union /* pipe_type */,
-                   DataFlowType::Parallel /* data_flow_type */,
-                   RGPipeProperties(pipe_id),
-                   tt_cxy_pair() /* physical_location */)
+        RGBasePipe(
+            RGPipeType::Union /* pipe_type */,
+            DataFlowType::Parallel /* data_flow_type */,
+            RGPipeProperties(pipe_id),
+            tt_cxy_pair() /* physical_location */)
     {
     }
 };
-} // namespace pipegen2
+}  // namespace pipegen2

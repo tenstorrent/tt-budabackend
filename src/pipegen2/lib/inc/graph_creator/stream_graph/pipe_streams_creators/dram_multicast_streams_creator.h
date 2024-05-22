@@ -7,27 +7,26 @@
 
 namespace pipegen2
 {
-    class DramReadCommonStreamsCreator;
-    class UnpackerOutputNode;
+class DramReadCommonStreamsCreator;
+class UnpackerOutputNode;
 
-    class DramMulticastStreamsCreator : public PipeStreamsCreator
-    {
-    public:
-        DramMulticastStreamsCreator(
-            std::unique_ptr<NcriscCreator> ncrisc_creator,
-            std::unique_ptr<StreamCreator> stream_creator,
-            ResourceManager* resource_manager,
-            std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>* virt_node_to_stream_node);
+class DramMulticastStreamsCreator : public PipeStreamsCreator
+{
+public:
+    DramMulticastStreamsCreator(
+        std::unique_ptr<NcriscCreator> ncrisc_creator,
+        std::unique_ptr<StreamCreator> stream_creator,
+        ResourceManager* resource_manager,
+        std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>* virt_node_to_stream_node);
 
-        // Necessary for forward declarations of classes in smart pointer members.
-        ~DramMulticastStreamsCreator();
+    // Necessary for forward declarations of classes in smart pointer members.
+    ~DramMulticastStreamsCreator();
 
-    private:
-        std::vector<std::unique_ptr<StreamNode>> create_streams_internal(
-            const RGBasePipe* pipe,
-            const DataFlowInfo& data_flow_info) override;
+private:
+    std::vector<std::unique_ptr<StreamNode>> create_streams_internal(
+        const RGBasePipe* pipe, const DataFlowInfo& data_flow_info) override;
 
-        // Dram read common streams creator instance.
-        std::unique_ptr<DramReadCommonStreamsCreator> m_dram_read_common_streams_creator;
-    };
-}
+    // Dram read common streams creator instance.
+    std::unique_ptr<DramReadCommonStreamsCreator> m_dram_read_common_streams_creator;
+};
+}  // namespace pipegen2

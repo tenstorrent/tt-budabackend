@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "graph_creator/stream_graph/ncrisc_creators/dram_scatter_offset_compressor.h"
 
 #include <vector>
 
 #include "gtest/gtest.h"
+// clang-format on
 
 using namespace pipegen2;
 
 // Helper function used to run the test case - creates compressor instance and runs it on the input vector.
 // It then compares the size of the expected and the observed output as well as the value of every element
 // in those two vectors.
-void run_dram_scatter_offset_compression_test(const std::vector<std::uint64_t>& input,
-                                              const std::vector<std::uint64_t>& expected_output)
+void run_dram_scatter_offset_compression_test(
+    const std::vector<std::uint64_t>& input, const std::vector<std::uint64_t>& expected_output)
 {
     DramScatterOffsetCompressor compressor(input);
     const std::vector<std::uint64_t> observed_output = compressor.compress_dram_scatter_offsets();
@@ -44,39 +46,85 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_BadWrap)
     const std::uint64_t value_which_causes_bad_wrap = 0xFFFFFFFFFF;
 
     const std::vector<std::uint64_t> input{
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        2, 3, 4, 5, 6, 7, 8, 9, 10,
-        3, 4, 5, 6, 7, 8, 9, 10, 11,
-        value_which_causes_bad_wrap, 14, 15,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        value_which_causes_bad_wrap,
+        14,
+        15,
 
         // Just a random pattern which should not be compressed.
-        2, 4, 3, 46, 67, 87, 834, 643, 347, 54, 7567, 5685, 234,
-        2464, 457, 458, 68, 23, 36, 5474, 85668,
-        12, 65, 76, 2, 5, 765, 235, 3463, 65
-    };
+        2,
+        4,
+        3,
+        46,
+        67,
+        87,
+        834,
+        643,
+        347,
+        54,
+        7567,
+        5685,
+        234,
+        2464,
+        457,
+        458,
+        68,
+        23,
+        36,
+        5474,
+        85668,
+        12,
+        65,
+        76,
+        2,
+        5,
+        765,
+        235,
+        3463,
+        65};
 
     const std::vector<std::uint64_t> expected_output{
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        2, 3, 4, 5, 6, 7, 8, 9, 10,
-        3, 4, 5, 6, 7, 8, 9, 10, 11,
-        value_which_causes_bad_wrap, 14, 15,
+        1,    2,   3,  4,  5,  6,    7,     8,   9,   2,  3,    4,    5,   6,
+        7,    8,   9,  10, 3,  4,    5,     6,   7,   8,  9,    10,   11,  value_which_causes_bad_wrap,
+        14,   15,
 
-        2, 4, 3, 46, 67, 87, 834, 643, 347, 54, 7567, 5685, 234,
-        2464, 457, 458, 68, 23, 36, 5474, 85668,
-        12, 65, 76, 2, 5, 765, 235, 3463, 65
-    };
+        2,    4,   3,  46, 67, 87,   834,   643, 347, 54, 7567, 5685, 234, 2464,
+        457,  458, 68, 23, 36, 5474, 85668, 12,  65,  76, 2,    5,    765, 235,
+        3463, 65};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
 
 TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_LengthNotDivisibleByPatternSize)
 {
-    const std::vector<std::uint64_t> input{
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        2, 3, 4, 5, 6, 7, 8, 9, 10,
-        3, 4, 5, 6, 7, 8, 9, 10, 11,
-        4, 5, 6
-    };
+    const std::vector<std::uint64_t> input{1, 2, 3,  4, 5, 6, 7, 8, 9, 2, 3,  4,  5, 6, 7,
+                                           8, 9, 10, 3, 4, 5, 6, 7, 8, 9, 10, 11, 4, 5, 6};
 
     const std::vector<std::uint64_t> expected_output{1, 2, 3, 4, 5, 6, 7, 8, 9, 0x8000000200000009, 1, 4, 5, 6};
 
@@ -85,10 +133,7 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_LengthNotD
 
 TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_CompressHalfPatternLength)
 {
-    const std::vector<std::uint64_t> input{
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        2, 3, 4, 5, 6, 7, 8, 9, 10
-    };
+    const std::vector<std::uint64_t> input{1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
     const std::vector<std::uint64_t> expected_output{1, 2, 3, 4, 5, 6, 7, 8, 9, 0x8000000100000009, 1};
 
@@ -118,19 +163,16 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_LargeInput
 TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_MultipleCompressions)
 {
     const std::vector<std::uint64_t> input{
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        2, 3, 4, 5, 6, 7, 8, 9, 10,
-        3, 4, 5, 6, 7, 8, 9, 10, 11,
+        1,    2,    3,    4,    5,    6,    7,    8,    9,    2,    3,    4,    5,    6,    7,
+        8,    9,    10,   3,    4,    5,    6,    7,    8,    9,    10,   11,
 
-        88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108,
-        1088, 1090, 1092, 1094, 1096, 1098, 1100, 1102, 1104, 1106, 1108,
-        2088, 2090, 2092, 2094, 2096, 2098, 2100, 2102, 2104, 2106, 2108,
-        3088, 3090, 3092, 3094, 3096, 3098, 3100, 3102, 3104, 3106, 3108
-    };
+        88,   90,   92,   94,   96,   98,   100,  102,  104,  106,  108,  1088, 1090, 1092, 1094,
+        1096, 1098, 1100, 1102, 1104, 1106, 1108, 2088, 2090, 2092, 2094, 2096, 2098, 2100, 2102,
+        2104, 2106, 2108, 3088, 3090, 3092, 3094, 3096, 3098, 3100, 3102, 3104, 3106, 3108};
 
     const std::vector<std::uint64_t> expected_output{
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 0x8000000200000009, 1,
-        88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 0x800000030000000b, 1000};
+        1,  2,  3,  4,  5,   6,   7,   8,   9,   0x8000000200000009, 1,   88, 90,
+        92, 94, 96, 98, 100, 102, 104, 106, 108, 0x800000030000000b, 1000};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
@@ -158,15 +200,13 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_SanityTest
         0x410bee9a0, 0x410bf6380, 0x410bfdd60, 0x410c05740, 0x410e76180, 0x410e7db60, 0x410e85540, 0x410e8cf20,
         0x410e94900, 0x410e9c2e0, 0x410ea3cc0, 0x410eab6a0, 0x410eb3080, 0x410ebaa60, 0x410ec2440, 0x410ec9e20,
         0x410ed1800, 0x410ed91e0, 0x410ee0bc0, 0x410ee85a0, 0x410eeff80, 0x410ef7960, 0x410eff340, 0x410f06d20,
-        0x410f0e700, 0x410f160e0, 0x410f1dac0, 0x410f254a0, 0x410f2ce80, 0x410f34860, 0x410f3c240
-    };
+        0x410f0e700, 0x410f160e0, 0x410f1dac0, 0x410f254a0, 0x410f2ce80, 0x410f34860, 0x410f3c240};
 
     const std::vector<std::uint64_t> expected_output{
-        0x41019b580, 0x4101a2f60, 0x4101aa940, 0x4101b2320, 0x4101b9d00, 0x4101c16e0, 0x4101c90c0, 0x4101d0aa0,
-        0x4101d8480, 0x4101dfe60, 0x4101e7840, 0x4101ef220, 0x4101f6c00, 0x4101fe5e0, 0x410205fc0, 0x41020d9a0,
-        0x410215380, 0x41021cd60, 0x410224740, 0x41022c120, 0x410233b00, 0x41023b4e0, 0x410242ec0, 0x41024a8a0,
-        0x410252280, 0x410259c60, 0x410261640, 0x800000040000001b, 0x336b00
-    };
+        0x41019b580, 0x4101a2f60, 0x4101aa940, 0x4101b2320,        0x4101b9d00, 0x4101c16e0, 0x4101c90c0, 0x4101d0aa0,
+        0x4101d8480, 0x4101dfe60, 0x4101e7840, 0x4101ef220,        0x4101f6c00, 0x4101fe5e0, 0x410205fc0, 0x41020d9a0,
+        0x410215380, 0x41021cd60, 0x410224740, 0x41022c120,        0x410233b00, 0x41023b4e0, 0x410242ec0, 0x41024a8a0,
+        0x410252280, 0x410259c60, 0x410261640, 0x800000040000001b, 0x336b00};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
@@ -184,15 +224,13 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_SanityTest
         0x18a1048f7c0, 0x18a10490000, 0x18a104928a0, 0x18a10495140, 0x18a104979e0, 0x18a1049a280, 0x18a10490820,
         0x18a104930c0, 0x18a10495960, 0x18a10498200, 0x18a1049aaa0, 0x18a10491040, 0x18a104938e0, 0x18a10496180,
         0x18a10498a20, 0x18a1049b2c0, 0x18a10491860, 0x18a10494100, 0x18a104969a0, 0x18a10499240, 0x18a1049bae0,
-        0x18a10492080, 0x18a10494920, 0x18a104971c0, 0x18a10499a60, 0x18a1049c300
-    };
+        0x18a10492080, 0x18a10494920, 0x18a104971c0, 0x18a10499a60, 0x18a1049c300};
 
     const std::vector<std::uint64_t> expected_output{
-        0x18a10476980, 0x18a10479220, 0x18a1047bac0, 0x18a1047e360, 0x18a10480c00, 0x18a104771a0, 0x18a10479a40,
-        0x18a1047c2e0, 0x18a1047eb80, 0x18a10481420, 0x18a104779c0, 0x18a1047a260, 0x18a1047cb00, 0x18a1047f3a0,
-        0x18a10481c40, 0x18a104781e0, 0x18a1047aa80, 0x18a1047d320, 0x18a1047fbc0, 0x18a10482460, 0x18a10478a00,
-        0x18a1047b2a0, 0x18a1047db40, 0x18a104803e0, 0x18a10482c80, 0x8000000200000019, 0xcb40
-    };
+        0x18a10476980, 0x18a10479220, 0x18a1047bac0, 0x18a1047e360, 0x18a10480c00,      0x18a104771a0, 0x18a10479a40,
+        0x18a1047c2e0, 0x18a1047eb80, 0x18a10481420, 0x18a104779c0, 0x18a1047a260,      0x18a1047cb00, 0x18a1047f3a0,
+        0x18a10481c40, 0x18a104781e0, 0x18a1047aa80, 0x18a1047d320, 0x18a1047fbc0,      0x18a10482460, 0x18a10478a00,
+        0x18a1047b2a0, 0x18a1047db40, 0x18a104803e0, 0x18a10482c80, 0x8000000200000019, 0xcb40};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
@@ -206,13 +244,19 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_SanityTest
         0x187100b03c0, 0x18710054d00, 0x187100b0c80, 0x1871005bee0, 0x187100b7e60, 0x1871005c7a0, 0x187100b8720,
         0x18710063980, 0x187100bf900, 0x18710064240, 0x187100c01c0, 0x1871006b420, 0x187100c73a0, 0x1871006bce0,
         0x187100c7c60, 0x18710072ec0, 0x187100cee40, 0x18710073780, 0x187100cf700, 0x1871007a960, 0x187100d68e0,
-        0x1871007b220, 0x187100d71a0, 0x18710082400, 0x187100de380, 0x18710082cc0, 0x187100dec40
-    };
+        0x1871007b220, 0x187100d71a0, 0x18710082400, 0x187100de380, 0x18710082cc0, 0x187100dec40};
 
     const std::vector<std::uint64_t> expected_output{
-        0x1871002df20, 0x18710089ea0, 0x1871002e7e0, 0x1871008a760, 0x187100359c0, 0x18710091940, 0x18710036280,
-        0x18710092200, 0x8000000500000008, 0xf540
-    };
+        0x1871002df20,
+        0x18710089ea0,
+        0x1871002e7e0,
+        0x1871008a760,
+        0x187100359c0,
+        0x18710091940,
+        0x18710036280,
+        0x18710092200,
+        0x8000000500000008,
+        0xf540};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
@@ -241,14 +285,12 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_SanityTest
         0x722baab40, 0x722baab40, 0x72c928820, 0x72c928820, 0x73271ac60, 0x73271ac60, 0x73d61aa00, 0x73d61aa00,
         0x73e34d880, 0x73e34d880, 0x710105220, 0x710105220, 0x7109cb600, 0x7109cb600, 0x714cb2740, 0x714cb2740,
         0x71a55a460, 0x71a55a460, 0x71d119bc0, 0x71d119bc0, 0x71fb6da80, 0x71fb6da80, 0x722bab360, 0x722bab360,
-        0x72c929040, 0x72c929040, 0x73271b480, 0x73271b480, 0x73d61b220, 0x73d61b220, 0x73e34e0a0, 0x73e34e0a0
-    };
+        0x72c929040, 0x72c929040, 0x73271b480, 0x73271b480, 0x73d61b220, 0x73d61b220, 0x73e34e0a0, 0x73e34e0a0};
 
     const std::vector<std::uint64_t> expected_output{
-        0x710101940, 0x710101940, 0x7109c7d20, 0x7109c7d20, 0x714caee60, 0x714caee60, 0x71a556b80, 0x71a556b80,
-        0x71d1162e0, 0x71d1162e0, 0x71fb6a1a0, 0x71fb6a1a0, 0x722ba7a80, 0x722ba7a80, 0x72c925760, 0x72c925760,
-        0x732717ba0, 0x732717ba0, 0x73d617940, 0x73d617940, 0x73e34a7c0, 0x73e34a7c0, 0x8000000700000016, 0x820
-    };
+        0x710101940, 0x710101940, 0x7109c7d20, 0x7109c7d20, 0x714caee60, 0x714caee60, 0x71a556b80,        0x71a556b80,
+        0x71d1162e0, 0x71d1162e0, 0x71fb6a1a0, 0x71fb6a1a0, 0x722ba7a80, 0x722ba7a80, 0x72c925760,        0x72c925760,
+        0x732717ba0, 0x732717ba0, 0x73d617940, 0x73d617940, 0x73e34a7c0, 0x73e34a7c0, 0x8000000700000016, 0x820};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }
@@ -260,13 +302,23 @@ TEST(Pipegen2_DramScatterOffsetCompressor, CompressDramScatterOffsets_SanityTest
         0x736f8b000, 0x71e66c160, 0x736f8a7e0, 0x736f8b820, 0x710f53e20, 0x710f54e60, 0x71e66c980, 0x710f54640,
         0x710f55680, 0x71e66d1a0, 0x71e66d9c0, 0x736f8c040, 0x736f8d080, 0x71e66e1e0, 0x736f8c860, 0x736f8d8a0,
         0x710f55ea0, 0x710f56ee0, 0x71e66ea00, 0x710f566c0, 0x710f57700, 0x71e66f220, 0x71e66fa40, 0x736f8e0c0,
-        0x736f8f100, 0x71e670260, 0x736f8e8e0, 0x736f8f920
-    };
+        0x736f8f100, 0x71e670260, 0x736f8e8e0, 0x736f8f920};
 
     const std::vector<std::uint64_t> expected_output{
-        0x710f51da0, 0x710f52de0, 0x71e66a900, 0x710f525c0, 0x710f53600, 0x71e66b120, 0x71e66b940, 0x736f89fc0,
-        0x736f8b000, 0x71e66c160, 0x736f8a7e0, 0x736f8b820, 0x800000020000000c, 0x2080
-    };
+        0x710f51da0,
+        0x710f52de0,
+        0x71e66a900,
+        0x710f525c0,
+        0x710f53600,
+        0x71e66b120,
+        0x71e66b940,
+        0x736f89fc0,
+        0x736f8b000,
+        0x71e66c160,
+        0x736f8a7e0,
+        0x736f8b820,
+        0x800000020000000c,
+        0x2080};
 
     run_dram_scatter_offset_compression_test(input, expected_output);
 }

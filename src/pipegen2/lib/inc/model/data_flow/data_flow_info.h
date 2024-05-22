@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <map>
 #include <cstdint>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -22,13 +22,12 @@ struct PhaseInfo
     unsigned int data_offset;
     unsigned int num_msgs;
 
-    PhaseInfo(unsigned int phase_offset, unsigned int data_offset, unsigned int num_msgs)
-        : phase_offset(phase_offset), data_offset(data_offset), num_msgs(num_msgs)
+    PhaseInfo(unsigned int phase_offset, unsigned int data_offset, unsigned int num_msgs) :
+        phase_offset(phase_offset), data_offset(data_offset), num_msgs(num_msgs)
     {
     }
 
-    PhaseInfo(unsigned int phase_offset, unsigned int num_msgs)
-        : PhaseInfo(phase_offset, 0 /* data_offset */, num_msgs)
+    PhaseInfo(unsigned int phase_offset, unsigned int num_msgs) : PhaseInfo(phase_offset, 0 /* data_offset */, num_msgs)
     {
     }
 };
@@ -59,7 +58,7 @@ private:
     friend class DataFlowCalculator;
 
     // Internal helper class used to model phases on an edge between node and a pipe or pipe and a node.
-    template<typename Source, typename Destination>
+    template <typename Source, typename Destination>
     class DataFlowEdges
     {
     public:
@@ -75,9 +74,8 @@ private:
         // Saves list of phases on a given edge from source to desination.
         void set_edge_phases(const Source* source, const Destination* dest, const std::vector<PhaseInfo>& phases)
         {
-            m_phases_on_edge.emplace(std::piecewise_construct,
-                                     std::forward_as_tuple(source, dest),
-                                     std::forward_as_tuple(phases));
+            m_phases_on_edge.emplace(
+                std::piecewise_construct, std::forward_as_tuple(source, dest), std::forward_as_tuple(phases));
         }
 
         // Checks if the edge phases iterator is a valid iterator.
@@ -154,4 +152,4 @@ private:
     std::unordered_map<const RGBasePipe*, unsigned int> m_pipe_2_subtree_divisor;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

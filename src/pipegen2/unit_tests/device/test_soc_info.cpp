@@ -5,17 +5,20 @@
 #include <stdexcept>
 #include <vector>
 
+// clang-format off
 #include <gtest/gtest.h>
 
 #include "device/tt_xy_pair.h"
 #include "noc_parameters.h"
 
-#include "device/core_resources_unit_test_utils.h"
 #include "device/soc_info_constants.h"
+#include "pipegen2_exceptions.h"
+
+#include "device/core_resources_unit_test_utils.h"
 #include "mocks/device/soc_info_mocks.h"
 #include "soc_info_unit_test_utils.h"
-#include "pipegen2_exceptions.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -27,10 +30,7 @@ using namespace unit_test_utils;
 class Pipegen2_SoCInfo : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        create_soc_info_mock();
-    }
+    void SetUp() override { create_soc_info_mock(); }
 
     // Creates SoCDescriptorFileMock instead of reading from disk and based on it creates SoCInfoMock object.
     void create_soc_info_mock()
@@ -134,8 +134,7 @@ TEST_F(Pipegen2_SoCInfo, GetWorkerCoresPhysicalLocations_ExpectingExactReturnVal
 {
     // Expecting that SoCInfo object contains same worker cores as in soc descriptor.
     expect_equivalent_vectors(
-        m_soc_info->get_worker_cores_physical_locations(m_chip_id),
-        m_soc_descriptor_file_mock->get_worker_cores());
+        m_soc_info->get_worker_cores_physical_locations(m_chip_id), m_soc_descriptor_file_mock->get_worker_cores());
 }
 
 /**********************************************************************************************************************
@@ -147,8 +146,7 @@ TEST_F(Pipegen2_SoCInfo, GetEthernetCoresPhysicalLocations_ExpectingExactReturnV
 {
     // Expecting that SoCInfo object contains same ethernet cores as in soc descriptor.
     expect_equivalent_vectors(
-        m_soc_info->get_ethernet_cores_physical_locations(m_chip_id),
-        m_soc_descriptor_file_mock->get_ethernet_cores());
+        m_soc_info->get_ethernet_cores_physical_locations(m_chip_id), m_soc_descriptor_file_mock->get_ethernet_cores());
 }
 
 /**********************************************************************************************************************
@@ -159,9 +157,7 @@ TEST_F(Pipegen2_SoCInfo, GetEthernetCoresPhysicalLocations_ExpectingExactReturnV
 TEST_F(Pipegen2_SoCInfo, GetEthernetChannelCorePhysicalLocation_AlwaysThrowsExc)
 {
     // Ethernet channel must be within [0, num_eth_cores-1] range. Everything outside of that will throw an error.
-    EXPECT_THROW(
-        m_soc_info->get_ethernet_channel_core_physical_location(m_chip_id, -1),
-        std::runtime_error);
+    EXPECT_THROW(m_soc_info->get_ethernet_channel_core_physical_location(m_chip_id, -1), std::runtime_error);
 
     std::size_t expected_number_eth_cores = m_soc_descriptor_file_mock->get_ethernet_cores().size();
 
@@ -179,8 +175,8 @@ TEST_F(Pipegen2_SoCInfo, GetEthernetChannelCorePhysicalLocation_ExpectingExactRe
     {
         tt_cxy_pair eth_channel_core_location;
         EXPECT_NO_THROW(
-            eth_channel_core_location = m_soc_info->get_ethernet_channel_core_physical_location(
-                m_chip_id, eth_channel));
+            eth_channel_core_location =
+                m_soc_info->get_ethernet_channel_core_physical_location(m_chip_id, eth_channel));
 
         EXPECT_EQ(eth_channel_core_location, tt_cxy_pair(m_chip_id, expected_eth_cores[eth_channel]));
     }
@@ -195,8 +191,7 @@ TEST_F(Pipegen2_SoCInfo, GetDramCoresPhysicalLocations_ExpectingExactReturnValue
 {
     // Expecting that SoCInfo object contains same dram cores as in soc descriptor.
     expect_equivalent_vectors(
-        m_soc_info->get_dram_cores_physical_locations(m_chip_id),
-        m_soc_descriptor_file_mock->get_dram_cores());
+        m_soc_info->get_dram_cores_physical_locations(m_chip_id), m_soc_descriptor_file_mock->get_dram_cores());
 }
 
 /**********************************************************************************************************************
@@ -221,47 +216,47 @@ TEST_F(Pipegen2_SoCInfo, GetDramCoresPhysicalLocationsOfFirstSubchannel_Expectin
 
 TEST_F(Pipegen2_SoCInfo_GS, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingExactReturnValue)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 5, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 5, 1)};
 
     EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
-                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
+        m_soc_info.get(), logical_locations, expected_physical_coordinates));
 }
 
 TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingExactReturnValue)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
     EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
-                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
+        m_soc_info.get(), logical_locations, expected_physical_coordinates));
 }
 
 TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectingExactReturnValue)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 0, 0), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
     EXPECT_NO_THROW(verify_convert_logical_to_physical_worker_core_coords(
-                        m_soc_info.get(), logical_locations, expected_physical_coordinates));
+        m_soc_info.get(), logical_locations, expected_physical_coordinates));
 }
 
 TEST_F(Pipegen2_SoCInfo_GS, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
     verify_throws_proper_exception<NoPhysicalCoreException>(
         [&]()
@@ -269,19 +264,16 @@ TEST_F(Pipegen2_SoCInfo_GS, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConve
             verify_convert_logical_to_physical_worker_core_coords(
                 m_soc_info.get(), logical_locations, expected_physical_coordinates);
         },
-        [&](const NoPhysicalCoreException& ex)
-        {
-            verify_no_physical_core_exception(ex, logical_locations[0]);
-        });
+        [&](const NoPhysicalCoreException& ex) { verify_no_physical_core_exception(ex, logical_locations[0]); });
 }
 
 TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
     verify_throws_proper_exception<NoPhysicalCoreException>(
         [&]()
@@ -289,19 +281,16 @@ TEST_F(Pipegen2_SoCInfo_WH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConve
             verify_convert_logical_to_physical_worker_core_coords(
                 m_soc_info.get(), logical_locations, expected_physical_coordinates);
         },
-        [&](const NoPhysicalCoreException& ex)
-        {
-            verify_no_physical_core_exception(ex, logical_locations[0]);
-        });
+        [&](const NoPhysicalCoreException& ex) { verify_no_physical_core_exception(ex, logical_locations[0]); });
 }
 
 TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConversionThrow)
 {
-    std::vector<tt_cxy_pair> logical_locations =
-        {tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
+    std::vector<tt_cxy_pair> logical_locations = {
+        tt_cxy_pair(m_chip_id, 100, 100), tt_cxy_pair(m_chip_id, 0, 5), tt_cxy_pair(m_chip_id, 4, 0)};
 
-    std::vector<tt_cxy_pair> expected_physical_coordinates =
-        {tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
+    std::vector<tt_cxy_pair> expected_physical_coordinates = {
+        tt_cxy_pair(m_chip_id, 1, 1), tt_cxy_pair(m_chip_id, 1, 7), tt_cxy_pair(m_chip_id, 6, 1)};
 
     verify_throws_proper_exception<NoPhysicalCoreException>(
         [&]()
@@ -309,10 +298,7 @@ TEST_F(Pipegen2_SoCInfo_BH, ConvertLogicalToPhysicalWorkerCoreCoords_ExpectConve
             verify_convert_logical_to_physical_worker_core_coords(
                 m_soc_info.get(), logical_locations, expected_physical_coordinates);
         },
-        [&](const NoPhysicalCoreException& ex)
-        {
-            verify_no_physical_core_exception(ex, logical_locations[0]);
-        });
+        [&](const NoPhysicalCoreException& ex) { verify_no_physical_core_exception(ex, logical_locations[0]); });
 }
 
 /**********************************************************************************************************************
@@ -334,8 +320,7 @@ TEST_F(Pipegen2_SoCInfo, GetDramBufferNocAddress_ExpectingExactReturnValue)
     const std::uint64_t expected_noc_address = NOC_XY_ADDR(noc_dram_core.x, noc_dram_core.y, dram_buf_addr);
 
     EXPECT_EQ(
-        m_soc_info->get_dram_buffer_noc_address(dram_buf_addr, m_chip_id, channel, subchannel),
-        expected_noc_address);
+        m_soc_info->get_dram_buffer_noc_address(dram_buf_addr, m_chip_id, channel, subchannel), expected_noc_address);
 }
 
 /**********************************************************************************************************************
@@ -350,9 +335,7 @@ TEST_F(Pipegen2_SoCInfo, GetBufferNocAddressThroughPcie_ExpectingExactReturnValu
     const std::uint64_t pcie_buf_addr = 0x1234;
     const std::uint64_t expected_noc_address = NOC_XY_ADDR(noc_pcie_core.x, noc_pcie_core.y, pcie_buf_addr);
 
-    EXPECT_EQ(
-        m_soc_info->get_buffer_noc_address_through_pcie(pcie_buf_addr, m_chip_id),
-        expected_noc_address);
+    EXPECT_EQ(m_soc_info->get_buffer_noc_address_through_pcie(pcie_buf_addr, m_chip_id), expected_noc_address);
 }
 
 /**********************************************************************************************************************
@@ -384,10 +367,7 @@ TEST_F(Pipegen2_SoCInfo_WH, GetHostNocAddressThroughPcie_ExpectingExactReturnVal
     tt_xy_pair expected_first_pcie_core = m_soc_descriptor_file_mock->get_pcie_cores().front();
 
     verify_get_host_noc_address_through_pcie(
-        m_soc_info.get(),
-        expected_first_pcie_core,
-        m_chip_id,
-        soc_info_constants::wh_pcie_host_noc_address_offset);
+        m_soc_info.get(), expected_first_pcie_core, m_chip_id, soc_info_constants::wh_pcie_host_noc_address_offset);
 }
 
 TEST_F(Pipegen2_SoCInfo_BH, GetHostNocAddressThroughPcie_ExpectingExactReturnValue)
@@ -408,9 +388,7 @@ TEST_F(Pipegen2_SoCInfo, GetLocalDramBufferNocAddress_ExpectingExactReturnValue)
     // Bits left from NOC_ADDR_LOCAL_BITS should get zeroed out after the function call.
     const std::uint64_t dram_buf_noc_addr = expected_local_dram_buf_noc_addr + (3ULL << (NOC_ADDR_LOCAL_BITS + 2));
 
-    EXPECT_EQ(
-        m_soc_info->get_local_dram_buffer_noc_address(dram_buf_noc_addr),
-        expected_local_dram_buf_noc_addr);
+    EXPECT_EQ(m_soc_info->get_local_dram_buffer_noc_address(dram_buf_noc_addr), expected_local_dram_buf_noc_addr);
 }
 
 /**********************************************************************************************************************

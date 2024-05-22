@@ -8,13 +8,12 @@
 
 namespace pipegen2
 {
-    
+
 class ForkJoinNode
 {
 public:
-    ForkJoinNode(const PGBuffer* unpacker_buffer, 
-                 const PGBuffer* packer_buffer, 
-                 const ResourceManager* resource_manager);
+    ForkJoinNode(
+        const PGBuffer* unpacker_buffer, const PGBuffer* packer_buffer, const ResourceManager* resource_manager);
 
     ForkJoinNode(const PGBuffer* packer_buffer, const ResourceManager* resource_manager);
 
@@ -24,9 +23,9 @@ public:
 
     void set_input_node(const ForkJoinNode* input_node) { m_fork_join_input_node = input_node; }
 
-    void set_num_tiles_per_iteration(const unsigned int num_tiles_per_iteration) 
-    { 
-        m_num_tiles_per_iteration = num_tiles_per_iteration; 
+    void set_num_tiles_per_iteration(const unsigned int num_tiles_per_iteration)
+    {
+        m_num_tiles_per_iteration = num_tiles_per_iteration;
     }
 
     const unsigned int get_tiles_per_input_unpacker() const { return m_tiles_per_input_unpacker; }
@@ -80,4 +79,4 @@ private:
     tt_cxy_pair m_physical_location;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

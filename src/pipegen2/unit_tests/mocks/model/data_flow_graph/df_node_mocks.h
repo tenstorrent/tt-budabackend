@@ -52,4 +52,4 @@ public:
     MOCK_METHOD(unsigned int, get_num_tiles_per_input, (), (const, override));
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

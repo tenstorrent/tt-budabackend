@@ -6,12 +6,15 @@
 
 #include <memory>
 
+// clang-format off
 #include "device/tt_arch_types.h"
 
 #include "device/resource_manager.h"
 #include "device/worker_core_resources.h"
-#include "mocks/device/soc_info_mocks.h"
 #include "model/typedefs.h"
+
+#include "mocks/device/soc_info_mocks.h"
+// clang-format on
 
 std::unique_ptr<pipegen2::WorkerCoreResources> verify_create_worker_core_resources(tt::ARCH arch);
 

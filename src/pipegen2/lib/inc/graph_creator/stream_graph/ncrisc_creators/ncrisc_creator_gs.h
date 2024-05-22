@@ -7,10 +7,10 @@
 
 namespace pipegen2
 {
-    // Implements NCRISC config creation for Grayskull architecture.
-    class NcriscCreatorGS : public NcriscCreator
-    {
-    public:
-        NcriscCreatorGS(): NcriscCreator() {}
-    };
-}
+// Implements NCRISC config creation for Grayskull architecture.
+class NcriscCreatorGS : public NcriscCreator
+{
+public:
+    NcriscCreatorGS() : NcriscCreator() {}
+};
+}  // namespace pipegen2

@@ -13,10 +13,7 @@ class DataFlowNode;
 class DataFlowNodeInput
 {
 public:
-    DataFlowNodeInput(DataFlowNode* df_node, unsigned int offset) :
-        m_df_node(df_node), m_offset(offset)
-    {
-    }
+    DataFlowNodeInput(DataFlowNode* df_node, unsigned int offset) : m_df_node(df_node), m_offset(offset) {}
 
     DataFlowNode* get_node() const { return m_df_node; }
 
@@ -64,4 +61,4 @@ private:
     // Size of the input range.
     unsigned int m_range_size;
 };
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -5,18 +5,21 @@
 
 #include <vector>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
 
 #include "device/soc_info.h"
 #include "model/typedefs.h"
+// clang-format on
 
 // Helper function used to compare equality of two vectors, disregarding chip attribute in the first one.
-void expect_equivalent_vectors(const std::vector<tt_cxy_pair>& vector_cxy_pairs,
-                               const std::vector<tt_xy_pair>& vector_xy_pairs);
+void expect_equivalent_vectors(
+    const std::vector<tt_cxy_pair>& vector_cxy_pairs, const std::vector<tt_xy_pair>& vector_xy_pairs);
 
 // Helper function used to compare equality of two nested vectors, disregarding chip attribute in the first one.
-void expect_equivalent_vectors(const std::vector<std::vector<tt_cxy_pair>>& nested_vector_cxy_pairs,
-                               const std::vector<std::vector<tt_xy_pair>>& nested_vector_xy_pairs);
+void expect_equivalent_vectors(
+    const std::vector<std::vector<tt_cxy_pair>>& nested_vector_cxy_pairs,
+    const std::vector<std::vector<tt_xy_pair>>& nested_vector_xy_pairs);
 
 // Helper function used to test convert_logical_to_physical_worker_core_coords.
 void verify_convert_logical_to_physical_worker_core_coords(

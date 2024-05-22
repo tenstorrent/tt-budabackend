@@ -30,4 +30,4 @@ public:
     static unsigned int get_output_index(int operand_id);
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -3,20 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+// clang-format off
 #include "model/pipe_graph/pg_pipe.h"
+
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 namespace pipegen2
 {
 
 class PGPipeMock : public PGPipe
 {
-
 public:
-    PGPipeMock(const NodeId id)
-    {
-        set_id(id);
-    }
+    PGPipeMock(const NodeId id) { set_id(id); }
 
     PGPipeMock(
         const NodeId id,
@@ -38,7 +37,7 @@ public:
         const std::vector<int>& dram_pipe_reader_index,
         const std::vector<NodeId>& input_list,
         const std::vector<NodeId>& output_list,
-        const std::vector<NodeId>& output_padding_list)    
+        const std::vector<NodeId>& output_padding_list)
     {
         set_id(id);
         set_pipe_periodic_repeat(periodic_repeat);
@@ -65,7 +64,7 @@ public:
     std::vector<std::string> to_json_list_of_strings_all_attributes()
     {
         return {
-            "pipe_"+ std::to_string(get_id()) + ":",
+            "pipe_" + std::to_string(get_id()) + ":",
             "id: " + std::to_string(get_id()),
             "pipe_periodic_repeat: " + std::to_string(get_pipe_periodic_repeat()),
             "pipe_consumer_repeat: " + std::to_string(get_consumer_repeat()),
@@ -80,26 +79,21 @@ public:
             "dis_gather_opt: " + std::to_string(is_gather_optimization_disabled() ? 1 : 0),
             "direct_mcast: " + std::to_string(is_packer_multicast_optimization_enabled() ? 1 : 0),
             "op_input_dram_io_buf_size_tiles: " + std::to_string(get_op_input_dram_io_buf_size_tiles()),
-            "mcast_core_rc: " + unit_test_utils::convert_to_string(
-                flatten_vector_of_locations(get_mcast_core_logical_locations())), 
-            "dram_pipe_total_readers: " + unit_test_utils::convert_to_string( 
-                get_dram_pipe_total_readers()), 
-            "dram_pipe_reader_index: " + unit_test_utils::convert_to_string( 
-                get_dram_pipe_reader_index()), 
-            "input_list: " + unit_test_utils::convert_to_string(get_input_buffers_ids()), 
-            "output_list: " + convert_nested_lists_to_string(get_output_buffers_ids()), 
-            "output_padding_list: " + unit_test_utils::convert_to_string(get_output_padding_buffers_ids()), 
+            "mcast_core_rc: " +
+                unit_test_utils::convert_to_string(flatten_vector_of_locations(get_mcast_core_logical_locations())),
+            "dram_pipe_total_readers: " + unit_test_utils::convert_to_string(get_dram_pipe_total_readers()),
+            "dram_pipe_reader_index: " + unit_test_utils::convert_to_string(get_dram_pipe_reader_index()),
+            "input_list: " + unit_test_utils::convert_to_string(get_input_buffers_ids()),
+            "output_list: " + convert_nested_lists_to_string(get_output_buffers_ids()),
+            "output_padding_list: " + unit_test_utils::convert_to_string(get_output_padding_buffers_ids()),
         };
     }
 
     std::vector<std::string> to_json_list_of_strings_id_only()
     {
-        return {
-            "pipe_"+ std::to_string(get_id()) + ":",
-            "id: " + std::to_string(get_id())
-        };
+        return {"pipe_" + std::to_string(get_id()) + ":", "id: " + std::to_string(get_id())};
     }
-    
+
 private:
     static std::vector<std::uint64_t> flatten_vector_of_locations(const std::vector<tt_cxy_pair>& vector_of_locations)
     {
@@ -120,7 +114,7 @@ private:
         for (int i = 0; i < input_vector.size(); i++)
         {
             oss << unit_test_utils::convert_to_string(input_vector[i]);
-            if (i != input_vector.size()-1) 
+            if (i != input_vector.size() - 1)
             {
                 oss << ", ";
             }
@@ -129,7 +123,6 @@ private:
         oss << "]";
         return oss.str();
     }
-
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

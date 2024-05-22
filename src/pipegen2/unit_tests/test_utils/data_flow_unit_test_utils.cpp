@@ -102,7 +102,7 @@ void verify_sources_and_destinations(
 }
 
 void verify_data_flow_graph_node_ids(
-        DataFlowGraph* data_flow_graph, const std::unordered_set<NodeId>& expected_node_ids)
+    DataFlowGraph* data_flow_graph, const std::unordered_set<NodeId>& expected_node_ids)
 {
     EXPECT_EQ(data_flow_graph->get_nodes().size(), expected_node_ids.size());
 
@@ -162,9 +162,10 @@ void verify_data_flow_nodes_num_iterations(
     }
 }
 
-void check_phase_alignment(const std::vector<PhaseInfo>& sender_phases,
-                           const std::vector<PhaseInfo>& receiver_phases,
-                           const unsigned int receiver_max_num_tiles_per_phase)
+void check_phase_alignment(
+    const std::vector<PhaseInfo>& sender_phases,
+    const std::vector<PhaseInfo>& receiver_phases,
+    const unsigned int receiver_max_num_tiles_per_phase)
 {
     size_t sender_phase_index = 0;
     for (const PhaseInfo& receiver_phase : receiver_phases)
@@ -182,13 +183,14 @@ void check_phase_alignment(const std::vector<PhaseInfo>& sender_phases,
     }
 }
 
-void verify_transfer_limits(DataFlowNode* df_node,
-                            bool expected_is_on_single_source_path,
-                            unsigned int expected_num_iterations,
-                            unsigned int expected_tiles_to_send,
-                            unsigned int expected_number_of_paths_through_df_node,
-                            unsigned int expected_subtree_common_divisor,
-                            unsigned int expected_max_num_tiles_per_phase)
+void verify_transfer_limits(
+    DataFlowNode* df_node,
+    bool expected_is_on_single_source_path,
+    unsigned int expected_num_iterations,
+    unsigned int expected_tiles_to_send,
+    unsigned int expected_number_of_paths_through_df_node,
+    unsigned int expected_subtree_common_divisor,
+    unsigned int expected_max_num_tiles_per_phase)
 {
     EXPECT_EQ(df_node->is_on_single_source_path(), expected_is_on_single_source_path);
     EXPECT_EQ(df_node->get_num_iterations(), expected_num_iterations);
@@ -198,5 +200,5 @@ void verify_transfer_limits(DataFlowNode* df_node,
     EXPECT_EQ(df_node->get_max_num_tiles_per_phase(), expected_max_num_tiles_per_phase);
 }
 
-} // namespace unit_test_utils
-} // namespace pipegen2
+}  // namespace unit_test_utils
+}  // namespace pipegen2

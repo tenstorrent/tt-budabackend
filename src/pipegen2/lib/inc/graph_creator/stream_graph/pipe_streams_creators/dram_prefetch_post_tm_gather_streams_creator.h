@@ -24,10 +24,9 @@ public:
 
 private:
     std::vector<std::unique_ptr<StreamNode>> create_streams_internal(
-        const RGBasePipe* pipe,
-        const DataFlowInfo& data_flow_info) override;
+        const RGBasePipe* pipe, const DataFlowInfo& data_flow_info) override;
 
     std::unique_ptr<DramReadCommonStreamsCreator> m_dram_read_common_streams_creator;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class NonSharedIntermedPipe : public DirectPipe
+class NonSharedIntermedPipe : public DirectPipe
+{
+public:
+    NonSharedIntermedPipe(NodeId pipe_id) :
+        DirectPipe(RGPipeType::NonSharedIntermed, RGPipeProperties(pipe_id), tt_cxy_pair())
     {
-    public:
-        NonSharedIntermedPipe(NodeId pipe_id) :
-            DirectPipe(RGPipeType::NonSharedIntermed, RGPipeProperties(pipe_id), tt_cxy_pair())
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

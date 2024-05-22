@@ -5,11 +5,13 @@
 
 #include <iostream>
 
+// clang-format off
 #include "dram_address_map.h"
 #include "host_mem_address_map.h"
 #include "noc/noc_parameters.h"
 
 #include "device/perf_info_manager_internal.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -76,10 +78,9 @@ std::map<tt_cxy_pair, std::vector<uint64_t>> PerfInfoManager::get_dram_perf_buf_
     return workers_to_info;
 }
 
-bool PerfInfoManager::is_perf_dump_enabled() const
-{
-    return m_device_perf_mode != PerfDumpMode::kDisabled;
-}
+// TODO: move function definition to perf_info_manager.h. We are not moving it during applying clang
+// to pipegen2 since it would make rebase much more difficult
+bool PerfInfoManager::is_perf_dump_enabled() const { return m_device_perf_mode != PerfDumpMode::kDisabled; }
 
 void PerfInfoManager::calculate_dram_perf_info()
 {
@@ -103,10 +104,7 @@ void PerfInfoManager::calculate_dram_perf_info()
     }
 }
 
-void PerfInfoManager::add_chip(std::unique_ptr<Chip> chip)
-{
-    m_chips.push_back(std::move(chip));
-}
+void PerfInfoManager::add_chip(std::unique_ptr<Chip> chip) { m_chips.push_back(std::move(chip)); }
 
 void PerfInfoManager::map_workers_to_dram_banks()
 {
@@ -175,4 +173,4 @@ void PerfInfoManager::calculate_host_spill_perf_info()
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

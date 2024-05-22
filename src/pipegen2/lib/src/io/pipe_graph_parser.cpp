@@ -16,10 +16,11 @@ void PipeGraphParser::parse_graph(PipeGraph& pipe_graph, const std::string& pipe
         std::ifstream pipegen_yaml_stream(pipegen_yaml_path);
         pipe_graph_parser_internal::parse_graph(pipe_graph, pipegen_yaml_stream);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        throw InvalidPipegenYamlException("Can't parse pipegen yaml file " + pipegen_yaml_path +  " : " + std::string(e.what()));
+        throw InvalidPipegenYamlException(
+            "Can't parse pipegen yaml file " + pipegen_yaml_path + " : " + std::string(e.what()));
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

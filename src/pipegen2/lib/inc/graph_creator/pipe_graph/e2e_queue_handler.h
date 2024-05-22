@@ -16,4 +16,4 @@ public:
     void handle(PipeGraph& pipe_graph) override;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

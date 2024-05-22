@@ -5,9 +5,9 @@
 
 namespace pipegen2
 {
-    void StreamCreatorGS::configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config)
-    {
-        base_stream_config.set_local_receiver(true);
-        base_stream_config.set_local_receiver_tile_clearing(true);
-    }
+void StreamCreatorGS::configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config)
+{
+    base_stream_config.set_local_receiver(true);
+    base_stream_config.set_local_receiver_tile_clearing(true);
 }
+}  // namespace pipegen2

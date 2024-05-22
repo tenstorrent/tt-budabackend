@@ -24,4 +24,4 @@ private:
     std::vector<std::unique_ptr<ForkJoinGraph>> m_fork_join_graphs;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

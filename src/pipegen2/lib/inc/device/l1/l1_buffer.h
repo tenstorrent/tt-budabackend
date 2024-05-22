@@ -7,13 +7,17 @@
 
 #include "device/tt_xy_pair.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Base class modelling memory allocation on core's L1 memory.
-class L1Buffer {
-   public:
-    L1Buffer(const tt_cxy_pair& core_physical_location, const unsigned int address, const unsigned int size)
-        : m_address(address), m_size(size) {}
+class L1Buffer
+{
+public:
+    L1Buffer(const tt_cxy_pair& core_physical_location, const unsigned int address, const unsigned int size) :
+        m_address(address), m_size(size)
+    {
+    }
 
     virtual ~L1Buffer() = default;
 
@@ -27,7 +31,7 @@ class L1Buffer {
     // Returns a string with formatted allocation info.
     virtual std::string get_allocation_info() const = 0;
 
-   private:
+private:
     // Physical coordinates of core on which this buffer is stored.
     const tt_cxy_pair m_core_physical_location;
 

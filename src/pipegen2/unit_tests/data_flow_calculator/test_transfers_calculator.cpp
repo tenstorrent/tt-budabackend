@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "data_flow_calculator/transfers_calculator.h"
 
 #include <memory>
@@ -12,10 +13,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "model/data_flow/subgraph_leaf_groups.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -35,10 +38,7 @@ using ::testing::Return;
 class Pipegen2_TransfersCalculator_CalculatePhases : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        m_node_id = 100;
-    }
+    void SetUp() override { m_node_id = 100; }
 
     std::unique_ptr<DataFlowNodeMock> make_df_node_mock(
         unsigned int tiles_to_send,
@@ -62,25 +62,36 @@ protected:
     std::unique_ptr<DataFlowNodeMock> make_root_df_node_mock(
         unsigned int tiles_to_send, unsigned int max_tiles_per_phase)
     {
-        return make_df_node_mock(tiles_to_send, max_tiles_per_phase, 1 /* input_group_count */,
-                                 -1 /* leaf_subgraph_id */, 1 /* number_of_unique_df_paths */);
+        return make_df_node_mock(
+            tiles_to_send,
+            max_tiles_per_phase,
+            1 /* input_group_count */,
+            -1 /* leaf_subgraph_id */,
+            1 /* number_of_unique_df_paths */);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_union_df_node_mock(
         unsigned int tiles_to_send, unsigned int max_tiles_per_phase, unsigned int input_group_count)
     {
         // For union node number of unique data flow paths will be the input group count.
-        return make_df_node_mock(tiles_to_send, max_tiles_per_phase, input_group_count,
-                                 -1 /* leaf_subgraph_id */, input_group_count /* number_of_unique_df_paths */);
+        return make_df_node_mock(
+            tiles_to_send,
+            max_tiles_per_phase,
+            input_group_count,
+            -1 /* leaf_subgraph_id */,
+            input_group_count /* number_of_unique_df_paths */);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_parallel_fork_df_node_mock(
         unsigned int tiles_to_send, unsigned int max_tiles_per_phase)
     {
-        return make_df_node_mock(tiles_to_send, max_tiles_per_phase, 1 /* input_group_count */,
-                                 -1 /* leaf_subgraph_id */, 1 /* number_of_unique_df_paths */);
+        return make_df_node_mock(
+            tiles_to_send,
+            max_tiles_per_phase,
+            1 /* input_group_count */,
+            -1 /* leaf_subgraph_id */,
+            1 /* number_of_unique_df_paths */);
     }
-
 
     std::unique_ptr<DataFlowNodeMock> make_leaf_df_node_mock(
         unsigned int max_tiles_per_phase,
@@ -95,8 +106,8 @@ protected:
         // a test setup error and not production code error, but using gtest asserts for convenience.
         EXPECT_THAT(root_to_leaf_path_indexes, Each(Lt(num_root_to_leaf_paths)));
 
-        m_num_root_to_leaf_paths_per_subgraph[leaf_subgraph_id] = std::max(
-            num_root_to_leaf_paths, m_num_root_to_leaf_paths_per_subgraph[leaf_subgraph_id]);
+        m_num_root_to_leaf_paths_per_subgraph[leaf_subgraph_id] =
+            std::max(num_root_to_leaf_paths, m_num_root_to_leaf_paths_per_subgraph[leaf_subgraph_id]);
 
         std::unique_ptr<DataFlowNodeMock> df_node = make_df_node_mock(
             0 /* tiles_to_send */, max_tiles_per_phase, input_group_count, leaf_subgraph_id, number_of_unique_df_paths);
@@ -120,8 +131,8 @@ protected:
     // Creates a subgraph leaf groups objects based on the configuration of the created leaf nodes in the test setup.
     std::unique_ptr<SubgraphLeafGroups> make_subgraph_leaf_groups()
     {
-        std::unique_ptr<SubgraphLeafGroups> subgraph_leaf_groups = std::make_unique<SubgraphLeafGroups>(
-            m_num_root_to_leaf_paths_per_subgraph);
+        std::unique_ptr<SubgraphLeafGroups> subgraph_leaf_groups =
+            std::make_unique<SubgraphLeafGroups>(m_num_root_to_leaf_paths_per_subgraph);
 
         for (auto& [df_node, root_to_leaf_path_indexes] : m_node_to_root_to_leaf_path_indexes)
         {
@@ -149,13 +160,13 @@ protected:
 
 TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, SubgraphLeafClusterWithEmptyLeafGroups)
 {
-    std::unique_ptr<DataFlowNodeMock> root_node = make_root_df_node_mock(
-        3 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> root_node =
+        make_root_df_node_mock(3 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
 
-    std::unique_ptr<DataFlowNodeMock> parallel_fork_node_1 = make_parallel_fork_df_node_mock(
-        3 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
-    std::unique_ptr<DataFlowNodeMock> parallel_fork_node_2 = make_parallel_fork_df_node_mock(
-        3 /* tiles_to_send */, 200 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> parallel_fork_node_1 =
+        make_parallel_fork_df_node_mock(3 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> parallel_fork_node_2 =
+        make_parallel_fork_df_node_mock(3 /* tiles_to_send */, 200 /* max_tiles_per_phase */);
 
     std::unique_ptr<DataFlowNodeMock> leaf_node_1 = make_leaf_df_node_mock(
         2000 /* max_tiles_per_phase */,
@@ -172,13 +183,12 @@ TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, SubgraphLeafClusterWithEmpt
         1 /* num_root_to_leaf_paths */,
         1 /* number_of_unique_df_paths */);
 
-    connect_data_flow_graph({
-        make_df_edge(root_node, parallel_fork_node_1),
-        make_df_edge(root_node, parallel_fork_node_2),
+    connect_data_flow_graph(
+        {make_df_edge(root_node, parallel_fork_node_1),
+         make_df_edge(root_node, parallel_fork_node_2),
 
-        make_df_edge(parallel_fork_node_1, leaf_node_1, {0, 3, 9} /* offsets */),
-        make_df_edge(parallel_fork_node_2, leaf_node_2, {9, 0} /* offsets */)
-    });
+         make_df_edge(parallel_fork_node_1, leaf_node_1, {0, 3, 9} /* offsets */),
+         make_df_edge(parallel_fork_node_2, leaf_node_2, {9, 0} /* offsets */)});
 
     // Subgraph 0 is leaf_node_1, subgraph 1 is empty, subgraph 2 is leaf_node_2.
     insert_empty_leaf_group(1 /* leaf_subgraph_id */);
@@ -189,42 +199,42 @@ TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, SubgraphLeafClusterWithEmpt
 
     // Verify sending phases on parallel forks.
     const std::vector<PhaseInfo>& pf_1_sending_phases = parallel_fork_node_1->get_sending_phases(leaf_node_1.get());
-    verify_phases(pf_1_sending_phases, {
-        PhaseInfo(c_start_phase_offset, 0 /* data_offset */, 6 /* num_msgs */),
-        PhaseInfo(c_start_phase_offset + 1, 9 /* data_offset */, 3 /* num_msgs */)
-    });
+    verify_phases(
+        pf_1_sending_phases,
+        {PhaseInfo(c_start_phase_offset, 0 /* data_offset */, 6 /* num_msgs */),
+         PhaseInfo(c_start_phase_offset + 1, 9 /* data_offset */, 3 /* num_msgs */)});
 
     const std::vector<PhaseInfo>& pf_2_sending_phases = parallel_fork_node_2->get_sending_phases(leaf_node_2.get());
-    verify_phases(pf_2_sending_phases, {
-        PhaseInfo(c_start_phase_offset, 9 /* data_offset */, 3 /* num_msgs */),
-        PhaseInfo(c_start_phase_offset + 1, 0 /* data_offset */, 3 /* num_msgs */)
-    });
+    verify_phases(
+        pf_2_sending_phases,
+        {PhaseInfo(c_start_phase_offset, 9 /* data_offset */, 3 /* num_msgs */),
+         PhaseInfo(c_start_phase_offset + 1, 0 /* data_offset */, 3 /* num_msgs */)});
 
     // Verify receiving phases on leaf nodes.
     const std::map<unsigned int, std::vector<PhaseInfo>>& leaf_1_receiving_phases =
         leaf_node_1->get_receiving_phases_per_input_group();
     EXPECT_EQ(leaf_1_receiving_phases.size(), 1);
     EXPECT_THAT(leaf_1_receiving_phases, Contains(Key(0)));
-    verify_phases(leaf_1_receiving_phases.at(0), { PhaseInfo(c_start_phase_offset, 9 /* num_msgs */) });
+    verify_phases(leaf_1_receiving_phases.at(0), {PhaseInfo(c_start_phase_offset, 9 /* num_msgs */)});
 
     const std::map<unsigned int, std::vector<PhaseInfo>>& leaf_2_receiving_phases =
         leaf_node_2->get_receiving_phases_per_input_group();
     EXPECT_EQ(leaf_2_receiving_phases.size(), 1);
     EXPECT_THAT(leaf_2_receiving_phases, Contains(Key(0)));
-    verify_phases(leaf_2_receiving_phases.at(0), { PhaseInfo(c_start_phase_offset, 6 /* num_msgs */) });
+    verify_phases(leaf_2_receiving_phases.at(0), {PhaseInfo(c_start_phase_offset, 6 /* num_msgs */)});
 }
 
 TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, PhasesFromFirstLeafCopiedToAllMulticastDests)
 {
-    std::unique_ptr<DataFlowNodeMock> root_node_1 = make_root_df_node_mock(
-        2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
-    std::unique_ptr<DataFlowNodeMock> root_node_2 = make_root_df_node_mock(
-        2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
-    std::unique_ptr<DataFlowNodeMock> root_node_3 = make_root_df_node_mock(
-        2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> root_node_1 =
+        make_root_df_node_mock(2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> root_node_2 =
+        make_root_df_node_mock(2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
+    std::unique_ptr<DataFlowNodeMock> root_node_3 =
+        make_root_df_node_mock(2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */);
 
-    std::unique_ptr<DataFlowNodeMock> union_node = make_union_df_node_mock(
-        2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */, 3 /* input_group_count */);
+    std::unique_ptr<DataFlowNodeMock> union_node =
+        make_union_df_node_mock(2 /* tiles_to_send */, 2000 /* max_tiles_per_phase */, 3 /* input_group_count */);
 
     std::unique_ptr<DataFlowNodeMock> leaf_node_1 = make_leaf_df_node_mock(
         2000 /* max_tiles_per_phase */,
@@ -248,15 +258,14 @@ TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, PhasesFromFirstLeafCopiedTo
         3 /* num_root_to_leaf_paths */,
         3 /* number_of_unique_df_paths */);
 
-    connect_data_flow_graph({
-        make_df_edge(root_node_1, union_node),
-        make_df_edge(root_node_2, union_node),
-        make_df_edge(root_node_3, union_node),
+    connect_data_flow_graph(
+        {make_df_edge(root_node_1, union_node),
+         make_df_edge(root_node_2, union_node),
+         make_df_edge(root_node_3, union_node),
 
-        make_df_edge(union_node, leaf_node_1),
-        make_df_edge(union_node, leaf_node_2),
-        make_df_edge(union_node, leaf_node_3)
-    });
+         make_df_edge(union_node, leaf_node_1),
+         make_df_edge(union_node, leaf_node_2),
+         make_df_edge(union_node, leaf_node_3)});
 
     std::unique_ptr<SubgraphLeafGroups> subgraph_leaf_groups = make_subgraph_leaf_groups();
 
@@ -265,11 +274,11 @@ TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, PhasesFromFirstLeafCopiedTo
 
     // Verify that union has the same sending phases towards all multicast destinations.
     const std::vector<PhaseInfo>& original_sending_phases = union_node->get_sending_phases(leaf_node_1.get());
-    verify_phases(original_sending_phases, {
-        PhaseInfo(c_start_phase_offset, 0 /* data_offset */, 2 /* num_msgs */),
-        PhaseInfo(c_start_phase_offset + 1, 0 /* data_offset */, 2 /* num_msgs */),
-        PhaseInfo(c_start_phase_offset + 2, 0 /* data_offset */, 2 /* num_msgs */)
-    });
+    verify_phases(
+        original_sending_phases,
+        {PhaseInfo(c_start_phase_offset, 0 /* data_offset */, 2 /* num_msgs */),
+         PhaseInfo(c_start_phase_offset + 1, 0 /* data_offset */, 2 /* num_msgs */),
+         PhaseInfo(c_start_phase_offset + 2, 0 /* data_offset */, 2 /* num_msgs */)});
     verify_phases(original_sending_phases, union_node->get_sending_phases(leaf_node_2.get()));
     verify_phases(original_sending_phases, union_node->get_sending_phases(leaf_node_3.get()));
 
@@ -278,15 +287,11 @@ TEST_F(Pipegen2_TransfersCalculator_CalculatePhases, PhasesFromFirstLeafCopiedTo
         leaf_node_1->get_receiving_phases_per_input_group();
     EXPECT_EQ(original_receiving_phases_per_input_group.size(), 3);
 
-    verify_phases(original_receiving_phases_per_input_group.at(0), {
-        PhaseInfo(c_start_phase_offset, 2 /* num_msgs */)
-    });
-    verify_phases(original_receiving_phases_per_input_group.at(1), {
-        PhaseInfo(c_start_phase_offset + 1, 2 /* num_msgs */)
-    });
-    verify_phases(original_receiving_phases_per_input_group.at(2), {
-        PhaseInfo(c_start_phase_offset + 2, 2 /* num_msgs */)
-    });
+    verify_phases(original_receiving_phases_per_input_group.at(0), {PhaseInfo(c_start_phase_offset, 2 /* num_msgs */)});
+    verify_phases(
+        original_receiving_phases_per_input_group.at(1), {PhaseInfo(c_start_phase_offset + 1, 2 /* num_msgs */)});
+    verify_phases(
+        original_receiving_phases_per_input_group.at(2), {PhaseInfo(c_start_phase_offset + 2, 2 /* num_msgs */)});
 
     for (const auto& [input_group_idx, original_phases_for_input_group] : original_receiving_phases_per_input_group)
     {

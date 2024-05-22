@@ -20,4 +20,4 @@ public:
     virtual void handle(PipeGraph& pipe_graph) = 0;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

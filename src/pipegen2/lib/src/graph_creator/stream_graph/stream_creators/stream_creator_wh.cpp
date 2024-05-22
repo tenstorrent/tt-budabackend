@@ -5,8 +5,8 @@
 
 namespace pipegen2
 {
-    void StreamCreatorWH::configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config)
-    {
-        base_stream_config.set_receiver_endpoint(true);
-    }
+void StreamCreatorWH::configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config)
+{
+    base_stream_config.set_receiver_endpoint(true);
 }
+}  // namespace pipegen2

@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "pipegen2_location_utils.h"
 
+// clang-format off
 #include "common/buda_soc_descriptor.h"
-#include "model/pipe_graph/pipe_graph.h"
 #include "utils/logger.hpp"
+
+#include "model/pipe_graph/pipe_graph.h"
+// clang-format on
 
 namespace pipegen2
 {

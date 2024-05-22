@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/worker_core_resources.h"
 
+// clang-format off
 #include "l1_address_map.h"
 #include "noc/noc_overlay_parameters.h"
 #include "stream_io_map.h"
@@ -10,18 +11,21 @@
 #include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
 #include "pipegen2_exceptions.h"
+// clang-format on
 
 namespace pipegen2
 {
 
-WorkerCoreResources::WorkerCoreResources(const tt_cxy_pair& core_physical_location, const tt_cxy_pair& core_logical_location) :
-    CoreResources(core_physical_location,
-                  core_logical_location,
-                  static_cast<StreamId>(END_IO_STREAM + 1),
-                  static_cast<StreamId>(NOC_NUM_STREAMS - 1),
-                  l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
-                  l1_mem::address_map::MAX_SIZE,
-                  worker_core_resources_constants::l1_predefined_tile_header_buffer_address)
+WorkerCoreResources::WorkerCoreResources(
+    const tt_cxy_pair& core_physical_location, const tt_cxy_pair& core_logical_location) :
+    CoreResources(
+        core_physical_location,
+        core_logical_location,
+        static_cast<StreamId>(END_IO_STREAM + 1),
+        static_cast<StreamId>(NOC_NUM_STREAMS - 1),
+        l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
+        l1_mem::address_map::MAX_SIZE,
+        worker_core_resources_constants::l1_predefined_tile_header_buffer_address)
 {
 }
 
@@ -31,7 +35,7 @@ StreamId WorkerCoreResources::allocate_packer_stream(int operand_id)
     {
         throw IllegalCoreResourceAllocationException(
             "Trying to allocate packer stream on a worker core " + get_physical_location().str() +
-            " with invalid operand ID: " + std::to_string(operand_id) + ".",
+                " with invalid operand ID: " + std::to_string(operand_id) + ".",
             get_physical_location(),
             IllegalCoreResourceAllocationException::CoreResourceType::kPackerStreams);
     }
@@ -42,7 +46,7 @@ StreamId WorkerCoreResources::allocate_packer_stream(int operand_id)
     {
         throw OutOfCoreResourcesException(
             "Trying to allocate packer stream on a worker core " + get_physical_location().str() +
-            ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
+                ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kPackerStreams,
@@ -60,7 +64,7 @@ StreamId WorkerCoreResources::allocate_unpacker_stream(int operand_id)
     {
         throw IllegalCoreResourceAllocationException(
             "Trying to allocate unpacker stream on a worker core " + get_physical_location().str() +
-            " with invalid operand ID: " + std::to_string(operand_id) + ".",
+                " with invalid operand ID: " + std::to_string(operand_id) + ".",
             get_physical_location(),
             IllegalCoreResourceAllocationException::CoreResourceType::kUnpackerStreams);
     }
@@ -71,7 +75,7 @@ StreamId WorkerCoreResources::allocate_unpacker_stream(int operand_id)
     {
         throw OutOfCoreResourcesException(
             "Trying to allocate unpacker stream on a worker core " + get_physical_location().str() +
-            ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
+                ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kUnpackerStreams,
@@ -89,7 +93,7 @@ StreamId WorkerCoreResources::allocate_intermed_stream(int operand_id)
     {
         throw IllegalCoreResourceAllocationException(
             "Trying to allocate intermediate stream on a worker core " + get_physical_location().str() +
-            ", with invalid operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
+                ", with invalid operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
             IllegalCoreResourceAllocationException::CoreResourceType::kIntermediateStreams);
     }
@@ -100,7 +104,7 @@ StreamId WorkerCoreResources::allocate_intermed_stream(int operand_id)
     {
         throw OutOfCoreResourcesException(
             "Trying to allocate intermediate stream on a worker core " + get_physical_location().str() +
-            ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
+                ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kIntermediateStreams,
@@ -120,7 +124,7 @@ StreamId WorkerCoreResources::allocate_packer_multicast_stream(int operand_id)
     {
         throw OutOfCoreResourcesException(
             "Trying to allocate packer-multicast stream on a worker core " + get_physical_location().str() +
-            ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
+                ", with operand ID: " + std::to_string(operand_id) + ", which was already allocated.",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kPackerMulticastStreams,
@@ -139,8 +143,8 @@ StreamId WorkerCoreResources::get_next_available_general_purpose_stream_id()
         const unsigned int available_extra_streams = calculate_general_purpose_streams_count();
         throw OutOfCoreResourcesException(
             "Out of available extra streams on a worker core " + get_physical_location().str() +
-            ". Total number of available extra streams per worker core is " +
-            std::to_string(available_extra_streams) + ".",
+                ". Total number of available extra streams per worker core is " +
+                std::to_string(available_extra_streams) + ".",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
@@ -152,4 +156,4 @@ StreamId WorkerCoreResources::get_next_available_general_purpose_stream_id()
     return stream_id;
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

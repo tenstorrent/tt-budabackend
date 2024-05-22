@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-
 #include "device/ncrisc_input_node_readers_checker.h"
 
 #include <string>
@@ -40,11 +39,11 @@ void NcriscInputNodeForkLimitsChecker::check_forking_factor(const DramParallelFo
 
         throw InvalidPipeGraphSpecificationException(
             node_type + " node with ID " + std::to_string(ncrisc_input_node->get_id()) +
-            " exceeds maximum number of streams reading from it (" + std::to_string(forking_factor) + " out of " +
-            std::to_string(core_resources_constants::max_ncrisc_input_node_readers) + ").",
+                " exceeds maximum number of streams reading from it (" + std::to_string(forking_factor) + " out of " +
+                std::to_string(core_resources_constants::max_ncrisc_input_node_readers) + ").",
             std::nullopt,
             ncrisc_input_node->get_physical_location());
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

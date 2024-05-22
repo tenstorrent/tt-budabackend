@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+// clang-format off
 #include "device/tt_xy_pair.h"
 
 #include "core_resources.h"
 #include "model/typedefs.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -53,4 +55,4 @@ private:
     StreamId get_next_available_general_purpose_stream_id() override;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

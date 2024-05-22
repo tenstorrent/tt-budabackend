@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "data_flow_calculator/data_flow_graph_creator.h"
 
 #include <memory>
@@ -12,15 +13,17 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
-#include "mocks/model/rational_graph/rg_nodes_mocks.h"
-#include "mocks/model/rational_graph/rg_pipes_mocks.h"
 #include "model/data_flow/data_flow_graph.h"
 #include "model/rational_graph/rational_graph.h"
 #include "model/rational_graph/nodes/base_rg_node.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
+#include "mocks/model/rational_graph/rg_nodes_mocks.h"
+#include "mocks/model/rational_graph/rg_pipes_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -59,10 +62,7 @@ public:
 class Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        m_rg_node_id = 100;
-    }
+    void SetUp() override { m_rg_node_id = 100; }
 
     std::pair<RGBaseNode*, NodeId> make_rg_node_mock()
     {
@@ -73,8 +73,7 @@ protected:
     }
 
     RGBasePipe* make_rg_pipe_mock(
-        const std::vector<PipeInput>& pipe_inputs,
-        const std::vector<const RGBaseNode*>& pipe_outputs)
+        const std::vector<PipeInput>& pipe_inputs, const std::vector<const RGBaseNode*>& pipe_outputs)
     {
         m_rg_pipes.push_back(std::make_unique<NiceMock<RGPipeStructuralMock>>());
         RGBasePipe* rg_pipe = m_rg_pipes.back().get();
@@ -159,12 +158,12 @@ TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, SingleConnectionWithM
     verify_sources_and_destinations(src_df_node, {}, {dest_df_node});
     verify_sources_and_destinations(dest_df_node, {src_df_node}, {});
 
-    verify_data_flow_inputs(dest_df_node, {
-        DataFlowNodeInput(src_df_node, 0),
-        DataFlowNodeInput(src_df_node, 1),
-        DataFlowNodeInput(src_df_node, 2),
-        DataFlowNodeInput(src_df_node, 3)
-    });
+    verify_data_flow_inputs(
+        dest_df_node,
+        {DataFlowNodeInput(src_df_node, 0),
+         DataFlowNodeInput(src_df_node, 1),
+         DataFlowNodeInput(src_df_node, 2),
+         DataFlowNodeInput(src_df_node, 3)});
 }
 
 TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, SingleConnectionWithMultiplePipeInputsAndOutputs)
@@ -213,8 +212,10 @@ TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, GatherNode)
     auto [dest_rg_node, dest_node_id] = make_rg_node_mock();
 
     make_rg_pipe_mock(
-        {PipeInput(src_rg_node_1, 0), PipeInput(src_rg_node_2, 55),
-         PipeInput(src_rg_node_1, 1), PipeInput(src_rg_node_3, 42)},
+        {PipeInput(src_rg_node_1, 0),
+         PipeInput(src_rg_node_2, 55),
+         PipeInput(src_rg_node_1, 1),
+         PipeInput(src_rg_node_3, 42)},
         {dest_rg_node});
 
     std::vector<std::unique_ptr<DataFlowGraph>> df_graphs = create_data_flow_graphs();
@@ -233,12 +234,12 @@ TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, GatherNode)
     verify_sources_and_destinations(src_df_node_3, {}, {dest_df_node});
     verify_sources_and_destinations(dest_df_node, {src_df_node_1, src_df_node_2, src_df_node_3}, {});
 
-    verify_data_flow_inputs(dest_df_node, {
-        DataFlowNodeInput(src_df_node_1, 0),
-        DataFlowNodeInput(src_df_node_2, 55),
-        DataFlowNodeInput(src_df_node_1, 1),
-        DataFlowNodeInput(src_df_node_3, 42)
-    });
+    verify_data_flow_inputs(
+        dest_df_node,
+        {DataFlowNodeInput(src_df_node_1, 0),
+         DataFlowNodeInput(src_df_node_2, 55),
+         DataFlowNodeInput(src_df_node_1, 1),
+         DataFlowNodeInput(src_df_node_3, 42)});
 }
 
 TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, ForkNode)
@@ -276,8 +277,7 @@ TEST_F(Pipegen2_DataFlowGraphCreator_CreateDataFlowGraphs, ForkNode)
     verify_data_flow_inputs(
         fork_df_node_1,
         {DataFlowNodeInput(src_df_node, 4), DataFlowNodeInput(src_df_node, 2), DataFlowNodeInput(src_df_node, 6)});
-    verify_data_flow_inputs(
-        fork_df_node_2, {DataFlowNodeInput(src_df_node, 0), DataFlowNodeInput(src_df_node, 0)});
+    verify_data_flow_inputs(fork_df_node_2, {DataFlowNodeInput(src_df_node, 0), DataFlowNodeInput(src_df_node, 0)});
     verify_data_flow_inputs(dest_df_node_1, {DataFlowNodeInput(fork_df_node_1, 0)});
     verify_data_flow_inputs(dest_df_node_2, {DataFlowNodeInput(fork_df_node_2, 0)});
 }

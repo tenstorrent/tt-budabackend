@@ -6,10 +6,12 @@
 #include <map>
 #include <vector>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
 
 #include "device/perf_info_enums.h"
 #include "device/soc_info.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -17,7 +19,7 @@ namespace pipegen2
 // Forward declaration.
 namespace perf_info_manager_internal
 {
-    class Chip;
+class Chip;
 }
 
 class PerfInfoManager
@@ -74,4 +76,4 @@ private:
     std::vector<std::unique_ptr<perf_info_manager_internal::Chip>> m_chips;
 };
 
-} // namspace pipegen2
+}  // namespace pipegen2

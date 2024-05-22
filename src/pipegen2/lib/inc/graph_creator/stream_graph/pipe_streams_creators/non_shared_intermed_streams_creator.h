@@ -8,24 +8,23 @@
 
 namespace pipegen2
 {
-    class NonSharedIntermedStreamsCreator : public PipeStreamsCreator
+class NonSharedIntermedStreamsCreator : public PipeStreamsCreator
+{
+public:
+    NonSharedIntermedStreamsCreator(
+        std::unique_ptr<NcriscCreator> ncrisc_creator,
+        std::unique_ptr<StreamCreator> stream_creator,
+        ResourceManager* resource_manager,
+        std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>* virt_node_to_stream_node) :
+        PipeStreamsCreator(
+            std::move(ncrisc_creator), std::move(stream_creator), resource_manager, virt_node_to_stream_node)
     {
-    public:
-        NonSharedIntermedStreamsCreator(
-            std::unique_ptr<NcriscCreator> ncrisc_creator,
-            std::unique_ptr<StreamCreator> stream_creator,
-            ResourceManager* resource_manager,
-            std::unordered_map<const VirtualNode*, StreamPhasesCommonConfig>* virt_node_to_stream_node) :
-            PipeStreamsCreator(std::move(ncrisc_creator), std::move(stream_creator), resource_manager,
-                               virt_node_to_stream_node)
-        {
-        }
+    }
 
-        ~NonSharedIntermedStreamsCreator() = default;
+    ~NonSharedIntermedStreamsCreator() = default;
 
-    private:
-        std::vector<std::unique_ptr<StreamNode>> create_streams_internal(
-            const RGBasePipe* pipe,
-            const DataFlowInfo& data_flow_info) override;
-    };
-}
+private:
+    std::vector<std::unique_ptr<StreamNode>> create_streams_internal(
+        const RGBasePipe* pipe, const DataFlowInfo& data_flow_info) override;
+};
+}  // namespace pipegen2

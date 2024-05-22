@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/worker_core_resources_gs.h"
+#include "device/worker_core_resources_wh.h"
+
 #include <set>
 
 #include <gtest/gtest.h>
@@ -8,14 +12,14 @@
 #include "noc/noc_overlay_parameters.h"
 #include "stream_io_map.h"
 
-#include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
-#include "device/worker_core_resources_gs.h"
-#include "device/worker_core_resources_wh.h"
 #include "model/typedefs.h"
 #include "pipegen2_exceptions.h"
+
+#include "core_resources_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -35,10 +39,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
     for (unsigned int operand_id = OPERAND_INPUT_START_INDEX; operand_id < OPERAND_OUTPUT_START_INDEX; operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_packer_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_packer_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
                 verify_illegal_resource_allocation_exception(
@@ -52,13 +53,10 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_InvalidOperandID)
     for (unsigned int operand_id = OPERAND_RELAY_START_INDEX; operand_id < MAX_NUM_OPERANDS; operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_packer_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_packer_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
-                 verify_illegal_resource_allocation_exception(
+                verify_illegal_resource_allocation_exception(
                     ex,
                     physical_core_location,
                     logical_core_location,
@@ -76,10 +74,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateTwiceForSameOper
     EXPECT_NO_THROW(worker_core_resources.allocate_packer_stream(OPERAND_OUTPUT_START_INDEX));
 
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            worker_core_resources.allocate_packer_stream(OPERAND_OUTPUT_START_INDEX);
-        },
+        [&]() { worker_core_resources.allocate_packer_stream(OPERAND_OUTPUT_START_INDEX); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -100,10 +95,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocatePackerStream_AllocateAllValidOperandI
     {
         StreamId expected_allocated_stream = OperandStreamMap::get_operand_stream_id(operand_id);
         verify_no_throw_and_return_value_eq<StreamId>(
-            [&]() -> StreamId
-            {
-                return worker_core_resources.allocate_packer_stream(operand_id);
-            },
+            [&]() -> StreamId { return worker_core_resources.allocate_packer_stream(operand_id); },
             expected_allocated_stream);
     }
 }
@@ -136,15 +128,11 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
 
     // We should be able to allocate unpacker stream only for valid input operand ID. Everything else should throw an
     // error.
-    for (unsigned int operand_id = OPERAND_OUTPUT_START_INDEX;
-         operand_id < OPERAND_INTERMEDIATES_START_INDEX;
+    for (unsigned int operand_id = OPERAND_OUTPUT_START_INDEX; operand_id < OPERAND_INTERMEDIATES_START_INDEX;
          operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_unpacker_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_unpacker_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
                 verify_illegal_resource_allocation_exception(
@@ -158,10 +146,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_InvalidOperandID)
     for (unsigned int operand_id = OPERAND_RELAY_START_INDEX; operand_id < MAX_NUM_OPERANDS; operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_unpacker_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_unpacker_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
                 verify_illegal_resource_allocation_exception(
@@ -182,10 +167,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateTwiceForSameOp
     EXPECT_NO_THROW(worker_core_resources.allocate_unpacker_stream(OPERAND_INPUT_START_INDEX));
 
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            worker_core_resources.allocate_unpacker_stream(OPERAND_INPUT_START_INDEX);
-        },
+        [&]() { worker_core_resources.allocate_unpacker_stream(OPERAND_INPUT_START_INDEX); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -206,24 +188,17 @@ TEST(Pipegen2_WorkerCoreResources, AllocateUnpackerStream_AllocateAllValidOperan
     {
         StreamId expected_allocated_stream = OperandStreamMap::get_operand_stream_id(operand_id);
         verify_no_throw_and_return_value_eq<StreamId>(
-            [&]() -> StreamId
-            {
-                return worker_core_resources.allocate_unpacker_stream(operand_id);
-            },
+            [&]() -> StreamId { return worker_core_resources.allocate_unpacker_stream(operand_id); },
             expected_allocated_stream);
     }
 
     // Intermediate operand IDs are also considered input operand IDs.
-    for (unsigned int operand_id = OPERAND_INTERMEDIATES_START_INDEX;
-         operand_id < OPERAND_RELAY_START_INDEX;
+    for (unsigned int operand_id = OPERAND_INTERMEDIATES_START_INDEX; operand_id < OPERAND_RELAY_START_INDEX;
          operand_id++)
     {
         StreamId expected_allocated_stream = OperandStreamMap::get_operand_stream_id(operand_id);
         verify_no_throw_and_return_value_eq<StreamId>(
-            [&]() -> StreamId
-            {
-                return worker_core_resources.allocate_unpacker_stream(operand_id);
-            },
+            [&]() -> StreamId { return worker_core_resources.allocate_unpacker_stream(operand_id); },
             expected_allocated_stream);
     }
 }
@@ -254,15 +229,11 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
 
     // We should be able to allocate intermed stream only for valid intermed operand ID. Everything else should throw an
     // error.
-    for (unsigned int operand_id = OPERAND_INPUT_START_INDEX;
-         operand_id < OPERAND_INTERMEDIATES_START_INDEX;
+    for (unsigned int operand_id = OPERAND_INPUT_START_INDEX; operand_id < OPERAND_INTERMEDIATES_START_INDEX;
          operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_intermed_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_intermed_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
                 verify_illegal_resource_allocation_exception(
@@ -276,10 +247,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_InvalidOperandID)
     for (unsigned int operand_id = OPERAND_RELAY_START_INDEX; operand_id < MAX_NUM_OPERANDS; operand_id++)
     {
         verify_throws_proper_exception<IllegalCoreResourceAllocationException>(
-            [&]()
-            {
-                worker_core_resources.allocate_intermed_stream(operand_id);
-            },
+            [&]() { worker_core_resources.allocate_intermed_stream(operand_id); },
             [&](const IllegalCoreResourceAllocationException& ex)
             {
                 verify_illegal_resource_allocation_exception(
@@ -300,10 +268,7 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateTwiceForSameOp
     EXPECT_NO_THROW(worker_core_resources.allocate_intermed_stream(OPERAND_INTERMEDIATES_START_INDEX));
 
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            worker_core_resources.allocate_intermed_stream(OPERAND_INTERMEDIATES_START_INDEX);
-        },
+        [&]() { worker_core_resources.allocate_intermed_stream(OPERAND_INTERMEDIATES_START_INDEX); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -320,16 +285,12 @@ TEST(Pipegen2_WorkerCoreResources, AllocateIntermedStream_AllocateAllValidOperan
 {
     WorkerCoreResourcesGS worker_core_resources({0, 0, 0}, {0, 0, 0});
 
-    for (unsigned int operand_id = OPERAND_INTERMEDIATES_START_INDEX;
-         operand_id < OPERAND_RELAY_START_INDEX;
+    for (unsigned int operand_id = OPERAND_INTERMEDIATES_START_INDEX; operand_id < OPERAND_RELAY_START_INDEX;
          operand_id++)
     {
         StreamId expected_allocated_stream = OperandStreamMap::get_operand_stream_id(operand_id);
         verify_no_throw_and_return_value_eq<StreamId>(
-            [&]() -> StreamId
-            {
-                return worker_core_resources.allocate_intermed_stream(operand_id);
-            },
+            [&]() -> StreamId { return worker_core_resources.allocate_intermed_stream(operand_id); },
             expected_allocated_stream);
     }
 }
@@ -412,7 +373,7 @@ TEST(Pipegen2_WorkerCoreResources, GetNextAvailableGeneralPurposeStreamId_Repeat
 
     // Expecting streams to be allocated in a certain order.
     for (uint8_t stream_id = static_cast<StreamId>(END_IO_STREAM + 1); /* extra streams range start */
-         stream_id <= static_cast<StreamId>(NOC_NUM_STREAMS - 1); /* extra streams range end */
+         stream_id <= static_cast<StreamId>(NOC_NUM_STREAMS - 1);      /* extra streams range end */
          stream_id++)
     {
         expected_stream_ids.push_back(stream_id);
@@ -420,10 +381,7 @@ TEST(Pipegen2_WorkerCoreResources, GetNextAvailableGeneralPurposeStreamId_Repeat
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return worker_core_resources.allocate_general_purpose_stream();
-        },
+        [&]() -> StreamId { return worker_core_resources.allocate_general_purpose_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {

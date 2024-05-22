@@ -16,4 +16,4 @@ public:
     NcriscCreatorBH() : NcriscCreatorWH() {}
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

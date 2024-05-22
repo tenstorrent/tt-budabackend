@@ -3,15 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <gmock/gmock.h>
 #include <memory>
 #include <unordered_map>
+
+// clang-format off
+#include <gmock/gmock.h>
 
 #include "device/soc_info.h"
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
 
 #include "model/typedefs.h"
+// clang-format on
 
 // Forward declaration.
 class buda_SocDescriptor;
@@ -128,4 +131,4 @@ public:
     tt::ARCH get_arch() const override { return tt::ARCH::BLACKHOLE; }
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

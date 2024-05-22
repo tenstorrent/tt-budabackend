@@ -9,7 +9,8 @@
 
 #include "device/tt_xy_pair.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 class L1Buffer;
 class TileHeaderL1Buffer;
@@ -18,13 +19,15 @@ class StreamNode;
 // Class modelling memory layout of core's L1 memory. Since some buffers are allocated at the beginning of data buffers
 // space, and majority of others from the end to beginning in order in which allocation methods are called, two separate
 // containers are used to model those two sections of memory in order to have efficient insert method.
-class L1DataBuffersMemoryLayout {
-   public:
-    L1DataBuffersMemoryLayout(const tt_cxy_pair& core_physical_location, 
-                              const tt_cxy_pair& core_logical_location,
-                              const unsigned int l1_data_buffers_space_start_address,
-                              const unsigned int l1_data_buffers_space_end_address,
-                              const unsigned int l1_predefined_tile_header_buffer_address);
+class L1DataBuffersMemoryLayout
+{
+public:
+    L1DataBuffersMemoryLayout(
+        const tt_cxy_pair& core_physical_location,
+        const tt_cxy_pair& core_logical_location,
+        const unsigned int l1_data_buffers_space_start_address,
+        const unsigned int l1_data_buffers_space_end_address,
+        const unsigned int l1_predefined_tile_header_buffer_address);
 
     // Destructor, necessary for forward declarations of classes in smart pointer members.
     ~L1DataBuffersMemoryLayout();
@@ -48,8 +51,8 @@ class L1DataBuffersMemoryLayout {
     // Allocates extra chunk of space in L1 memory reserved for overlay blob and keeps track of that allocation. Memory
     // is allocated at the beginning of L1 data buffers space and can be allocated only once. Returns object
     // representing that memory chunk.
-    const L1Buffer* allocate_l1_extra_overlay_blob_space(const unsigned int total_blob_size,
-                                                         const bool is_ethernet_core);
+    const L1Buffer* allocate_l1_extra_overlay_blob_space(
+        const unsigned int total_blob_size, const bool is_ethernet_core);
 
     // Checks if core is out of L1 memory for data buffers space and throws an exception if it is.
     void check_if_out_of_l1_data_buffers_memory();
@@ -59,20 +62,20 @@ class L1DataBuffersMemoryLayout {
 
     // Returns a string with formatted allocation info.
     std::string get_allocation_info() const;
-    
+
     // Returns vector of all L1 buffers kept in this layout in rising order or buffer addresses.
     // TODO this is a temporary API to support L1 profiler from runtime. We don't want to couple runtime code to pipegen
     // objects, thus better API should be devised.
     std::vector<const L1Buffer*> get_all_allocated_buffers() const;
 
-   private:
+private:
     // Allocates memory for data buffer in L1 and returns the allocation address.
     // Memory is allocated from the end of L1 data buffers space towards beginning.
     unsigned int allocate_space_for_l1_data_buffer(const unsigned int size_in_bytes);
 
     // Calculates additional space in L1 to be used as extra overlay blob space.
-    static unsigned int calculate_extra_blob_space_to_allocate(unsigned int blob_size_in_bytes,
-                                                               const bool is_ethernet_core);
+    static unsigned int calculate_extra_blob_space_to_allocate(
+        unsigned int blob_size_in_bytes, const bool is_ethernet_core);
 
     // Stores buffer in layout and returns pointer to buffer object.
     const L1Buffer* store_buffer(std::unique_ptr<L1Buffer>&& l1_buffer);

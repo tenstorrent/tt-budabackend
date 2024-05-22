@@ -7,12 +7,14 @@
 #include <set>
 #include <unordered_map>
 
+// clang-format off
 #include "common/buda_soc_descriptor.h"
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
 #include "utils/logger.hpp"
 
 #include "src/pipegen2/unit_tests/mocks/device/soc_info_mocks.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -50,15 +52,15 @@ std::unique_ptr<SoCDescriptorFileMock> SoCDescriptorFileMock::get_instance(const
 {
     switch (arch)
     {
-    case tt::ARCH::GRAYSKULL:
-        return std::make_unique<GSSoCDescriptorFileMock>();
-    case tt::ARCH::WORMHOLE:
-    case tt::ARCH::WORMHOLE_B0:
-        return std::make_unique<WHSoCDescriptorFileMock>();
-    case tt::ARCH::BLACKHOLE:
-        return std::make_unique<BHSoCDescriptorFileMock>();
-    default:
-        log_assert(false, "Unsupported device architecture");
+        case tt::ARCH::GRAYSKULL:
+            return std::make_unique<GSSoCDescriptorFileMock>();
+        case tt::ARCH::WORMHOLE:
+        case tt::ARCH::WORMHOLE_B0:
+            return std::make_unique<WHSoCDescriptorFileMock>();
+        case tt::ARCH::BLACKHOLE:
+            return std::make_unique<BHSoCDescriptorFileMock>();
+        default:
+            log_assert(false, "Unsupported device architecture");
     }
 }
 
@@ -121,10 +123,7 @@ std::vector<tt_xy_pair> GSSoCDescriptorFileMock::get_ethernet_cores() const
     return {};
 }
 
-std::vector<tt_xy_pair> GSSoCDescriptorFileMock::get_pcie_cores() const
-{
-    return {tt_xy_pair(0, 4)};
-}
+std::vector<tt_xy_pair> GSSoCDescriptorFileMock::get_pcie_cores() const { return {tt_xy_pair(0, 4)}; }
 
 std::vector<std::vector<tt_xy_pair>> GSSoCDescriptorFileMock::get_dram_cores() const
 {
@@ -179,17 +178,25 @@ std::vector<tt_xy_pair> WHSoCDescriptorFileMock::get_worker_cores() const
 std::vector<tt_xy_pair> WHSoCDescriptorFileMock::get_ethernet_cores() const
 {
     return {
-      tt_xy_pair(9, 0), tt_xy_pair(1, 0), tt_xy_pair(8, 0), tt_xy_pair(2, 0),
-      tt_xy_pair(7, 0), tt_xy_pair(3, 0), tt_xy_pair(6, 0), tt_xy_pair(4, 0),
-      tt_xy_pair(9, 6), tt_xy_pair(1, 6), tt_xy_pair(8, 6), tt_xy_pair(2, 6),
-      tt_xy_pair(7, 6), tt_xy_pair(3, 6), tt_xy_pair(6, 6), tt_xy_pair(4, 6)
-    };
+        tt_xy_pair(9, 0),
+        tt_xy_pair(1, 0),
+        tt_xy_pair(8, 0),
+        tt_xy_pair(2, 0),
+        tt_xy_pair(7, 0),
+        tt_xy_pair(3, 0),
+        tt_xy_pair(6, 0),
+        tt_xy_pair(4, 0),
+        tt_xy_pair(9, 6),
+        tt_xy_pair(1, 6),
+        tt_xy_pair(8, 6),
+        tt_xy_pair(2, 6),
+        tt_xy_pair(7, 6),
+        tt_xy_pair(3, 6),
+        tt_xy_pair(6, 6),
+        tt_xy_pair(4, 6)};
 }
 
-std::vector<tt_xy_pair> WHSoCDescriptorFileMock::get_pcie_cores() const
-{
-    return {tt_xy_pair(0, 3)};
-}
+std::vector<tt_xy_pair> WHSoCDescriptorFileMock::get_pcie_cores() const { return {tt_xy_pair(0, 3)}; }
 
 std::vector<std::vector<tt_xy_pair>> WHSoCDescriptorFileMock::get_dram_cores() const
 {
@@ -199,20 +206,12 @@ std::vector<std::vector<tt_xy_pair>> WHSoCDescriptorFileMock::get_dram_cores() c
         {tt_xy_pair(5, 0), tt_xy_pair(5, 1), tt_xy_pair(5, 11)},
         {tt_xy_pair(5, 2), tt_xy_pair(5, 9), tt_xy_pair(5, 10)},
         {tt_xy_pair(5, 3), tt_xy_pair(5, 4), tt_xy_pair(5, 8)},
-        {tt_xy_pair(5, 5), tt_xy_pair(5, 6), tt_xy_pair(5, 7)}
-    };
+        {tt_xy_pair(5, 5), tt_xy_pair(5, 6), tt_xy_pair(5, 7)}};
 }
 
 std::vector<tt_xy_pair> WHSoCDescriptorFileMock::get_dram_cores_physical_locations_of_first_subchannel() const
 {
-    return {
-        tt_xy_pair(0, 0),
-        tt_xy_pair(0, 5),
-        tt_xy_pair(5, 0),
-        tt_xy_pair(5, 2),
-        tt_xy_pair(5, 3),
-        tt_xy_pair(5, 5)
-    };
+    return {tt_xy_pair(0, 0), tt_xy_pair(0, 5), tt_xy_pair(5, 0), tt_xy_pair(5, 2), tt_xy_pair(5, 3), tt_xy_pair(5, 5)};
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

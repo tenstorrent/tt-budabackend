@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "data_flow_calculator/subgraph_leaf_groups_finder_internal.h"
 
 #include <memory>
@@ -12,10 +13,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "model/data_flow/subgraph_leaf_groups.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -60,8 +63,7 @@ protected:
     }
 
     std::unique_ptr<DataFlowNodeMock> create_and_configure_df_node_mock(
-        DataFlowType data_flow_type,
-        unsigned int num_root_to_leaf_paths)
+        DataFlowType data_flow_type, unsigned int num_root_to_leaf_paths)
     {
         std::unique_ptr<DataFlowNodeMock> df_node_mock = std::make_unique<NiceMock<DataFlowNodeMock>>();
 
@@ -86,11 +88,10 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, DirectPathUn
     std::unique_ptr<DataFlowNodeMock> mid2_df_node = make_df_node_mock();
     std::unique_ptr<DataFlowNodeMock> leaf_df_node = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, mid1_df_node),
-        make_df_edge(mid1_df_node, mid2_df_node),
-        make_df_edge(mid2_df_node, leaf_df_node)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, mid1_df_node),
+         make_df_edge(mid1_df_node, mid2_df_node),
+         make_df_edge(mid2_df_node, leaf_df_node)});
 
     data_flow_internal::find_leaf_subgraphs(root_df_node.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
@@ -113,12 +114,11 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, DirectPathMu
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2 = make_leaf_df_node_mock();
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_3 = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, mid_df_node),
-        make_df_edge(mid_df_node, leaf_df_node_1),
-        make_df_edge(mid_df_node, leaf_df_node_2),
-        make_df_edge(mid_df_node, leaf_df_node_3)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, mid_df_node),
+         make_df_edge(mid_df_node, leaf_df_node_1),
+         make_df_edge(mid_df_node, leaf_df_node_2),
+         make_df_edge(mid_df_node, leaf_df_node_3)});
 
     data_flow_internal::find_leaf_subgraphs(root_df_node.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
@@ -155,15 +155,13 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, MultipleRoot
 
     std::unique_ptr<DataFlowNodeMock> leaf_df_node = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node_1, gather_df_node),
-        make_df_edge(root_df_node_2, gather_df_node),
-        make_df_edge(root_df_node_3, gather_df_node),
-        make_df_edge(gather_df_node, leaf_df_node)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node_1, gather_df_node),
+         make_df_edge(root_df_node_2, gather_df_node),
+         make_df_edge(root_df_node_3, gather_df_node),
+         make_df_edge(gather_df_node, leaf_df_node)});
 
-    data_flow_internal::find_leaf_subgraphs(
-        root_df_node_1.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
+    data_flow_internal::find_leaf_subgraphs(root_df_node_1.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
     int discarded_subgraph_id = 44;
     data_flow_internal::find_leaf_subgraphs(
@@ -187,14 +185,13 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, ParallelFork
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2 = make_leaf_df_node_mock();
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_3 = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, pf_df_node_1),
-        make_df_edge(pf_df_node_1, leaf_df_node_1),
-        make_df_edge(root_df_node, pf_df_node_2),
-        make_df_edge(pf_df_node_2, leaf_df_node_2),
-        make_df_edge(root_df_node, pf_df_node_3),
-        make_df_edge(pf_df_node_3, leaf_df_node_3)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, pf_df_node_1),
+         make_df_edge(pf_df_node_1, leaf_df_node_1),
+         make_df_edge(root_df_node, pf_df_node_2),
+         make_df_edge(pf_df_node_2, leaf_df_node_2),
+         make_df_edge(root_df_node, pf_df_node_3),
+         make_df_edge(pf_df_node_3, leaf_df_node_3)});
 
     data_flow_internal::find_leaf_subgraphs(root_df_node.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
@@ -223,17 +220,16 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, ParallelFork
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_3_1 = make_leaf_df_node_mock();
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_3_2 = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, pf_df_node_1),
-        make_df_edge(pf_df_node_1, leaf_df_node_1_1),
-        make_df_edge(pf_df_node_1, leaf_df_node_1_2),
-        make_df_edge(root_df_node, pf_df_node_2),
-        make_df_edge(pf_df_node_2, leaf_df_node_2_1),
-        make_df_edge(pf_df_node_2, leaf_df_node_2_2),
-        make_df_edge(root_df_node, pf_df_node_3),
-        make_df_edge(pf_df_node_3, leaf_df_node_3_1),
-        make_df_edge(pf_df_node_3, leaf_df_node_3_2)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, pf_df_node_1),
+         make_df_edge(pf_df_node_1, leaf_df_node_1_1),
+         make_df_edge(pf_df_node_1, leaf_df_node_1_2),
+         make_df_edge(root_df_node, pf_df_node_2),
+         make_df_edge(pf_df_node_2, leaf_df_node_2_1),
+         make_df_edge(pf_df_node_2, leaf_df_node_2_2),
+         make_df_edge(root_df_node, pf_df_node_3),
+         make_df_edge(pf_df_node_3, leaf_df_node_3_1),
+         make_df_edge(pf_df_node_3, leaf_df_node_3_2)});
 
     data_flow_internal::find_leaf_subgraphs(root_df_node.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
@@ -309,20 +305,19 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, ParallelFork
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2_1 = make_leaf_df_node_mock();
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2_2 = make_leaf_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, pf_df_node_1),
-        make_df_edge(root_df_node, pf_df_node_2),
-        make_df_edge(pf_df_node_1, sf_df_node_1_1),
-        make_df_edge(pf_df_node_1, sf_df_node_1_2),
-        make_df_edge(pf_df_node_1, sf_df_node_1_3),
-        make_df_edge(pf_df_node_2, sf_df_node_2_1),
-        make_df_edge(pf_df_node_2, sf_df_node_2_2),
-        make_df_edge(sf_df_node_1_1, leaf_df_node_1_1),
-        make_df_edge(sf_df_node_1_2, leaf_df_node_1_2),
-        make_df_edge(sf_df_node_1_3, leaf_df_node_1_3),
-        make_df_edge(sf_df_node_2_1, leaf_df_node_2_1),
-        make_df_edge(sf_df_node_2_2, leaf_df_node_2_2)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, pf_df_node_1),
+         make_df_edge(root_df_node, pf_df_node_2),
+         make_df_edge(pf_df_node_1, sf_df_node_1_1),
+         make_df_edge(pf_df_node_1, sf_df_node_1_2),
+         make_df_edge(pf_df_node_1, sf_df_node_1_3),
+         make_df_edge(pf_df_node_2, sf_df_node_2_1),
+         make_df_edge(pf_df_node_2, sf_df_node_2_2),
+         make_df_edge(sf_df_node_1_1, leaf_df_node_1_1),
+         make_df_edge(sf_df_node_1_2, leaf_df_node_1_2),
+         make_df_edge(sf_df_node_1_3, leaf_df_node_1_3),
+         make_df_edge(sf_df_node_2_1, leaf_df_node_2_1),
+         make_df_edge(sf_df_node_2_2, leaf_df_node_2_2)});
 
     data_flow_internal::find_leaf_subgraphs(root_df_node.get(), m_subgraph_id, m_max_root_to_leaf_paths_per_subgraph);
 
@@ -345,37 +340,29 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafSubgraphs, ParallelFork
 class Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        m_node_id = 100;
-    }
+    void SetUp() override { m_node_id = 100; }
 
     std::unique_ptr<DataFlowNodeMock> make_df_node_mock()
     {
-        return create_and_configure_df_node_mock(c_unassigned_leaf_subgraph_id,
-                                                 std::nullopt /* root_to_leaf_path_index */);
+        return create_and_configure_df_node_mock(
+            c_unassigned_leaf_subgraph_id, std::nullopt /* root_to_leaf_path_index */);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_leaf_df_node_mock(int leaf_subgraph_id)
     {
-        return create_and_configure_df_node_mock(leaf_subgraph_id,
-                                                 std::nullopt /* root_to_leaf_path_index */);
+        return create_and_configure_df_node_mock(leaf_subgraph_id, std::nullopt /* root_to_leaf_path_index */);
     }
 
-    std::unique_ptr<DataFlowNodeMock> make_parallel_fork_df_node_mock()
-    {
-        return make_df_node_mock();
-    }
+    std::unique_ptr<DataFlowNodeMock> make_parallel_fork_df_node_mock() { return make_df_node_mock(); }
 
     std::unique_ptr<DataFlowNodeMock> make_serial_fork_df_node_mock(unsigned int root_to_leaf_path_index)
     {
-        return create_and_configure_df_node_mock(c_unassigned_leaf_subgraph_id,
-                                                 std::make_optional(root_to_leaf_path_index));
+        return create_and_configure_df_node_mock(
+            c_unassigned_leaf_subgraph_id, std::make_optional(root_to_leaf_path_index));
     }
 
     std::unique_ptr<DataFlowNodeMock> create_and_configure_df_node_mock(
-        int leaf_subgraph_id,
-        std::optional<unsigned int> root_to_leaf_path_index)
+        int leaf_subgraph_id, std::optional<unsigned int> root_to_leaf_path_index)
     {
         std::unique_ptr<DataFlowNodeMock> df_node_mock = std::make_unique<NiceMock<DataFlowNodeMock>>();
 
@@ -398,9 +385,9 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph, Data
 {
     std::unique_ptr<DataFlowNodeMock> data_flow_node = make_df_node_mock();
 
-    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = { {0u, 1u} };
+    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {{0u, 1u}};
     SubgraphLeafGroups subgraph_leaf_groups(root_to_leaf_paths_per_subgrpah);
-    m_node_visit_count = { {data_flow_node.get(), 1u} };
+    m_node_visit_count = {{data_flow_node.get(), 1u}};
 
     data_flow_internal::find_leaf_groups_per_subgraph(
         data_flow_node.get(), m_node_visit_count, 0 /* root_to_leaf_path_index */, &subgraph_leaf_groups);
@@ -416,8 +403,10 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph, Leaf
         [&]()
         {
             data_flow_internal::find_leaf_groups_per_subgraph(
-                leaf_df_node.get(), m_node_visit_count,
-                0 /* root_to_leaf_path_index */, nullptr /* subgraph_leaf_groups */);
+                leaf_df_node.get(),
+                m_node_visit_count,
+                0 /* root_to_leaf_path_index */,
+                nullptr /* subgraph_leaf_groups */);
         },
         "^Expecting leaf node [0-9]+ to have leaf subgraph id assigned.*");
 }
@@ -434,16 +423,15 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph, Mult
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_4 = make_leaf_df_node_mock(0 /* leaf_subgraph_id */);
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_5 = make_leaf_df_node_mock(0 /* leaf_subgraph_id */);
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, mid_df_node),
-        make_df_edge(mid_df_node, leaf_df_node_1),
-        make_df_edge(mid_df_node, leaf_df_node_2),
-        make_df_edge(mid_df_node, leaf_df_node_3),
-        make_df_edge(mid_df_node, leaf_df_node_4),
-        make_df_edge(mid_df_node, leaf_df_node_5)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, mid_df_node),
+         make_df_edge(mid_df_node, leaf_df_node_1),
+         make_df_edge(mid_df_node, leaf_df_node_2),
+         make_df_edge(mid_df_node, leaf_df_node_3),
+         make_df_edge(mid_df_node, leaf_df_node_4),
+         make_df_edge(mid_df_node, leaf_df_node_5)});
 
-    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {{ 0u, 1u }};
+    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {{0u, 1u}};
     SubgraphLeafGroups subgraph_leaf_groups(root_to_leaf_paths_per_subgrpah);
 
     data_flow_internal::find_leaf_groups_per_subgraph(
@@ -477,17 +465,16 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph, Mult
 
     std::unique_ptr<DataFlowNodeMock> leaf_df_node = make_leaf_df_node_mock(0 /* leaf_subgraph_id */);
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node_1, union_df_node),
-        make_df_edge(root_df_node_2, union_df_node),
-        make_df_edge(root_df_node_3, union_df_node),
-        make_df_edge(union_df_node, leaf_df_node)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node_1, union_df_node),
+         make_df_edge(root_df_node_2, union_df_node),
+         make_df_edge(root_df_node_3, union_df_node),
+         make_df_edge(union_df_node, leaf_df_node)});
 
     union_df_node->set_number_of_unique_df_paths(3);
     leaf_df_node->set_number_of_unique_df_paths(3);
 
-    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {{ 0u, 3u }};
+    std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {{0u, 3u}};
     SubgraphLeafGroups subgraph_leaf_groups(root_to_leaf_paths_per_subgrpah);
 
     data_flow_internal::find_leaf_groups_per_subgraph(
@@ -537,23 +524,22 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinderInternal_FindLeafGroupsPerSubgraph, Para
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2_1 = make_leaf_df_node_mock(1 /* leaf_subgraph_id */);
     std::unique_ptr<DataFlowNodeMock> leaf_df_node_2_2 = make_leaf_df_node_mock(1 /* leaf_subgraph_id */);
 
-    connect_data_flow_graph({
-        make_df_edge(root_df_node, pf_df_node_1),
-        make_df_edge(root_df_node, pf_df_node_2),
-        make_df_edge(pf_df_node_1, sf_df_node_1_1),
-        make_df_edge(pf_df_node_1, sf_df_node_1_2),
-        make_df_edge(pf_df_node_1, sf_df_node_1_3),
-        make_df_edge(pf_df_node_2, sf_df_node_2_1),
-        make_df_edge(pf_df_node_2, sf_df_node_2_2),
-        make_df_edge(sf_df_node_1_1, leaf_df_node_1_1),
-        make_df_edge(sf_df_node_1_2, leaf_df_node_1_2),
-        make_df_edge(sf_df_node_1_3, leaf_df_node_1_3),
-        make_df_edge(sf_df_node_2_1, leaf_df_node_2_1),
-        make_df_edge(sf_df_node_2_2, leaf_df_node_2_2)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(root_df_node, pf_df_node_1),
+         make_df_edge(root_df_node, pf_df_node_2),
+         make_df_edge(pf_df_node_1, sf_df_node_1_1),
+         make_df_edge(pf_df_node_1, sf_df_node_1_2),
+         make_df_edge(pf_df_node_1, sf_df_node_1_3),
+         make_df_edge(pf_df_node_2, sf_df_node_2_1),
+         make_df_edge(pf_df_node_2, sf_df_node_2_2),
+         make_df_edge(sf_df_node_1_1, leaf_df_node_1_1),
+         make_df_edge(sf_df_node_1_2, leaf_df_node_1_2),
+         make_df_edge(sf_df_node_1_3, leaf_df_node_1_3),
+         make_df_edge(sf_df_node_2_1, leaf_df_node_2_1),
+         make_df_edge(sf_df_node_2_2, leaf_df_node_2_2)});
 
     std::unordered_map<unsigned int, unsigned int> root_to_leaf_paths_per_subgrpah = {
-        { 0u, num_root_to_leaf_paths_0 }, { 1u, num_root_to_leaf_paths_1 }};
+        {0u, num_root_to_leaf_paths_0}, {1u, num_root_to_leaf_paths_1}};
     SubgraphLeafGroups subgraph_leaf_groups(root_to_leaf_paths_per_subgrpah);
 
     data_flow_internal::find_leaf_groups_per_subgraph(

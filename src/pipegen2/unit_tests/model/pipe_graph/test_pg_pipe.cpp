@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "model/pipe_graph/pg_pipe.h"
 
-#include "test_utils/unit_test_utils.h"
-
 #include <gtest/gtest.h>
+
+#include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -23,7 +25,7 @@ TEST(Pipegen2_PGPipe, GetInputs_GetInputsOfNonScatterIndex)
     pg_buffer2.set_id(200);
     pg_pipe.add_input_buffer(&pg_buffer1);
     pg_pipe.add_input_buffer(&pg_buffer2);
-    const std::vector<PGPipe::Input>& inputs = pg_pipe.get_inputs(0); 
+    const std::vector<PGPipe::Input>& inputs = pg_pipe.get_inputs(0);
     EXPECT_EQ(inputs.size(), 2);
     EXPECT_EQ(inputs[0].get_buffer()->get_id(), 100);
     EXPECT_EQ(inputs[1].get_buffer()->get_id(), 200);
@@ -40,7 +42,7 @@ TEST(Pipegen2_PGPipe, GetInputs_GetInputsOfScatterIndex)
     output_padding_buffer.set_id(200);
     pg_pipe.add_input_buffer(&input_buffer);
     pg_pipe.add_output_padding_buffer(&output_padding_buffer, 1);
-    const std::vector<PGPipe::Input>& inputs = pg_pipe.get_inputs(1); 
+    const std::vector<PGPipe::Input>& inputs = pg_pipe.get_inputs(1);
     EXPECT_EQ(inputs.size(), 1);
     EXPECT_EQ(inputs[0].get_buffer()->get_id(), 200);
 }
@@ -117,12 +119,7 @@ TEST(Pipegen2_PGPipe, GetSingleOutputBuffer_HasOuputBuffer)
 TEST(Pipegen2_PGPipe, GetSingleOutputBuffer_HasNoOuputBuffers)
 {
     PGPipe pg_pipe;
-    verify_log_assert(
-        [&]()
-        {
-           pg_pipe.get_single_output_buffer();
-        },
-        "^Pipe does not have only one output buffer!.*");
+    verify_log_assert([&]() { pg_pipe.get_single_output_buffer(); }, "^Pipe does not have only one output buffer!.*");
 }
 
 TEST(Pipegen2_PGPipe, GetSingleOutputBuffer_HasMultipleOutputBuffers)
@@ -132,12 +129,7 @@ TEST(Pipegen2_PGPipe, GetSingleOutputBuffer_HasMultipleOutputBuffers)
     PGBuffer output_buffer2;
     pg_pipe.add_output_buffer(&output_buffer1, 0);
     pg_pipe.add_output_buffer(&output_buffer2, 1);
-    verify_log_assert(
-        [&]()
-        {
-           pg_pipe.get_single_output_buffer();
-        },
-        "^Pipe does not have only one output buffer!.*");
+    verify_log_assert([&]() { pg_pipe.get_single_output_buffer(); }, "^Pipe does not have only one output buffer!.*");
 }
 
 /**********************************************************************************************************************
@@ -248,10 +240,7 @@ TEST(Pipegen2_PGPipe, AddOutputPaddingBuffer_WrongScatterGatherNumTiles)
     output_padding_buffer.set_scatter_gather_num_tiles(11);
     pg_pipe.add_input_buffer(&input_buffer);
     verify_log_assert(
-        [&]()
-        {
-           pg_pipe.add_output_padding_buffer(&output_padding_buffer, 2);
-        },
+        [&]() { pg_pipe.add_output_padding_buffer(&output_padding_buffer, 2); },
         "^Expecting output padding buffer to have scatter_gather_num_tiles which divides total number of"
         "messages pipe transfers per scatter index.*");
 }
@@ -308,10 +297,10 @@ TEST(Pipegen2_PGPipe, IsConnectingL1Buffers_IsConnectingL1Buffers)
     PGBuffer output_buffer;
     input_buffer.set_dram_buf_flag(true);
     input_buffer.set_dram_buf_streaming(false);
-    input_buffer.set_operand_id(22); 
+    input_buffer.set_operand_id(22);
     output_buffer.set_dram_buf_flag(true);
     output_buffer.set_dram_buf_streaming(false);
-    output_buffer.set_operand_id(23); 
+    output_buffer.set_operand_id(23);
     pg_pipe.add_input_buffer(&input_buffer);
     pg_pipe.add_output_buffer(&output_buffer, 0);
     EXPECT_TRUE(pg_pipe.is_connecting_l1_buffers());
@@ -328,7 +317,7 @@ TEST(Pipegen2_PGPipe, IsConnectingL1Buffers_IsNotConnectingL1Buffers)
     input_buffer.set_prefetch_type(PrefetchType::POST_TM);
     output_buffer.set_dram_buf_flag(true);
     output_buffer.set_dram_buf_streaming(false);
-    output_buffer.set_operand_id(23); 
+    output_buffer.set_operand_id(23);
     pg_pipe.add_input_buffer(&input_buffer);
     pg_pipe.add_output_buffer(&output_buffer, 0);
     EXPECT_FALSE(pg_pipe.is_connecting_l1_buffers());
@@ -345,11 +334,11 @@ TEST(Pipegen2_PGPipe, HasNonPrefetchPreTmDramInput_HasNonPrefetchPreTmDramInput)
     PGBuffer input_buffer2;
     input_buffer1.set_dram_buf_flag(true);
     input_buffer1.set_dram_buf_streaming(false);
-    input_buffer1.set_operand_id(22); 
+    input_buffer1.set_operand_id(22);
     input_buffer1.set_prefetch_type(PrefetchType::POST_TM);
     input_buffer2.set_dram_buf_flag(true);
     input_buffer2.set_dram_buf_streaming(false);
-    input_buffer2.set_operand_id(23); 
+    input_buffer2.set_operand_id(23);
     input_buffer2.set_prefetch_type(PrefetchType::POST_TM);
     pg_pipe.add_input_buffer(&input_buffer1);
     pg_pipe.add_input_buffer(&input_buffer2);
@@ -363,11 +352,11 @@ TEST(Pipegen2_PGPipe, HasNonPrefetchPreTmDramInput_DoesNotHaveNonPrefetchPreTmDr
     PGBuffer input_buffer2;
     input_buffer1.set_dram_buf_flag(true);
     input_buffer1.set_dram_buf_streaming(false);
-    input_buffer1.set_operand_id(22); 
+    input_buffer1.set_operand_id(22);
     input_buffer1.set_prefetch_type(PrefetchType::POST_TM);
     input_buffer2.set_dram_buf_flag(true);
     input_buffer2.set_dram_buf_streaming(false);
-    input_buffer2.set_operand_id(23); 
+    input_buffer2.set_operand_id(23);
     input_buffer2.set_prefetch_type(PrefetchType::PRE_TM);
     pg_pipe.add_input_buffer(&input_buffer1);
     pg_pipe.add_input_buffer(&input_buffer2);
@@ -382,9 +371,9 @@ TEST(Pipegen2_PGPipe, IsDirectIntermediatePipe_IsDirectIntermediatePipe)
 {
     PGPipe pg_pipe;
     PGBuffer input_buffer;
-    input_buffer.set_operand_id(24);  
+    input_buffer.set_operand_id(24);
     PGBuffer output_buffer;
-    output_buffer.set_operand_id(25);  
+    output_buffer.set_operand_id(25);
     pg_pipe.add_input_buffer(&input_buffer);
     pg_pipe.add_output_buffer(&output_buffer, 0);
     EXPECT_TRUE(pg_pipe.is_direct_intermediate_pipe());
@@ -394,9 +383,9 @@ TEST(Pipegen2_PGPipe, IsDirectIntermediatePipe_IsNotDirectIntermediatePipe)
 {
     PGPipe pg_pipe;
     PGBuffer input_buffer;
-    input_buffer.set_operand_id(24);  
+    input_buffer.set_operand_id(24);
     PGBuffer output_buffer;
-    output_buffer.set_operand_id(23);  
+    output_buffer.set_operand_id(23);
     pg_pipe.add_input_buffer(&input_buffer);
     pg_pipe.add_output_buffer(&output_buffer, 0);
     EXPECT_FALSE(pg_pipe.is_direct_intermediate_pipe());
@@ -411,10 +400,10 @@ TEST(Pipegen2_PGPipe, IsJoinIntermediatePipe_IsJoinIntermediatePipe)
     PGPipe pg_pipe;
     PGBuffer input_buffer1;
     PGBuffer input_buffer2;
-    input_buffer1.set_operand_id(24);  
-    input_buffer2.set_operand_id(25);  
+    input_buffer1.set_operand_id(24);
+    input_buffer2.set_operand_id(25);
     PGBuffer output_buffer;
-    output_buffer.set_operand_id(26);  
+    output_buffer.set_operand_id(26);
     pg_pipe.add_input_buffer(&input_buffer1);
     pg_pipe.add_input_buffer(&input_buffer2);
     pg_pipe.add_output_buffer(&output_buffer, 0);
@@ -425,9 +414,9 @@ TEST(Pipegen2_PGPipe, IsJoinIntermediatePipe_PipeWithSingleInput)
 {
     PGPipe pg_pipe;
     PGBuffer input_buffer1;
-    input_buffer1.set_operand_id(24);  
+    input_buffer1.set_operand_id(24);
     PGBuffer output_buffer;
-    output_buffer.set_operand_id(26);  
+    output_buffer.set_operand_id(26);
     pg_pipe.add_input_buffer(&input_buffer1);
     pg_pipe.add_output_buffer(&output_buffer, 0);
     EXPECT_FALSE(pg_pipe.is_join_intermediate_pipe());
@@ -438,8 +427,8 @@ TEST(Pipegen2_PGPipe, IsJoinIntermediatePipe_IsNotJoinIntermediatePipe)
     PGPipe pg_pipe;
     PGBuffer input_buffer1;
     PGBuffer input_buffer2;
-    input_buffer1.set_operand_id(24);  
-    input_buffer2.set_operand_id(25);  
+    input_buffer1.set_operand_id(24);
+    input_buffer2.set_operand_id(25);
     PGBuffer output_buffer;
     output_buffer.set_operand_id(23);
     pg_pipe.add_input_buffer(&input_buffer1);
@@ -458,7 +447,7 @@ TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_IsScatterPrefetchPostTm)
     PGBuffer input_buffer;
     input_buffer.set_dram_buf_flag(true);
     input_buffer.set_dram_buf_streaming(false);
-    input_buffer.set_operand_id(23); 
+    input_buffer.set_operand_id(23);
     input_buffer.set_prefetch_type(PrefetchType::POST_TM);
     pg_pipe.add_input_buffer(&input_buffer);
     EXPECT_TRUE(pg_pipe.is_dram_prefetch_post_tm());
@@ -479,7 +468,7 @@ TEST(Pipegen2_PGPipe, IsScatterPrefetchPostTm_IsScatterPrefetchPreTm)
     PGBuffer input_buffer;
     input_buffer.set_dram_buf_flag(true);
     input_buffer.set_dram_buf_streaming(false);
-    input_buffer.set_operand_id(23); 
+    input_buffer.set_operand_id(23);
     input_buffer.set_prefetch_type(PrefetchType::PRE_TM);
     pg_pipe.add_input_buffer(&input_buffer);
     EXPECT_FALSE(pg_pipe.is_dram_prefetch_post_tm());
@@ -513,7 +502,7 @@ TEST(Pipegen2_PGPipe, HasConsumerDuplicates_HasOutputListDuplicates)
 **********************************************************************************************************************/
 
 TEST(Pipegen2_PGPipe, HasSingleBufferInput_HasSingleBufferInputIsTrue)
-{    
+{
     PGPipe pg_pipe;
     PGBuffer input_buffer;
     input_buffer.set_id(100);
@@ -523,7 +512,7 @@ TEST(Pipegen2_PGPipe, HasSingleBufferInput_HasSingleBufferInputIsTrue)
 }
 
 TEST(Pipegen2_PGPipe, HasSingleBufferInput_HasSingleBufferInputIsFalse)
-{    
+{
     PGPipe pg_pipe;
     PGBuffer input_buffer1;
     PGBuffer input_buffer2;

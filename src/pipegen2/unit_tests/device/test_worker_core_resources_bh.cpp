@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/worker_core_resources_bh.h"
+
 #include <stdexcept>
 
 #include <gtest/gtest.h>
@@ -8,12 +11,13 @@
 #include "device/tt_arch_types.h"
 #include "stream_io_map.h"
 
-#include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
 #include "device/operand_stream_map.h"
-#include "device/worker_core_resources_bh.h"
 #include "model/typedefs.h"
+
+#include "core_resources_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -56,10 +60,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesBH, GetNextAvailableGatherMulticastStreamId_R
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return worker_core_resources.allocate_gather_stream();
-        },
+        [&]() -> StreamId { return worker_core_resources.allocate_gather_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -84,10 +85,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesBH, GetNextAvailableGatherStreamId_ExpectingE
 
     // Sanity check that first call will return stream from beginning of the range.
     verify_no_throw_and_return_value_eq<StreamId>(
-        [&]() -> StreamId
-        {
-            return worker_core_resources.allocate_gather_stream();
-        },
+        [&]() -> StreamId { return worker_core_resources.allocate_gather_stream(); },
         worker_core_resources_bh_constants::gather_multicast_streams_id_range_start);
 }
 
@@ -102,10 +100,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesBH, GetNextAvailableMulticastStreamId_Expecti
 
     // Sanity check that first call will return stream from beginning of the range.
     verify_no_throw_and_return_value_eq<StreamId>(
-        [&]() -> StreamId
-        {
-            return worker_core_resources.allocate_multicast_stream();
-        },
+        [&]() -> StreamId { return worker_core_resources.allocate_multicast_stream(); },
         worker_core_resources_bh_constants::gather_multicast_streams_id_range_start);
 }
 
@@ -120,9 +115,7 @@ TEST_F(Pipegen2_WorkerCoreResourcesBH, AllocatePackerMulticastStream_InvalidOper
 
     // We should be able to allocate packer-multicast stream only for valid packer-multicast stream operand ID.
     // Everything else should throw an error.
-    for (unsigned int operand_id = OPERAND_INPUT_START_INDEX;
-         operand_id < OPERAND_OUTPUT_START_INDEX;
-         operand_id++)
+    for (unsigned int operand_id = OPERAND_INPUT_START_INDEX; operand_id < OPERAND_OUTPUT_START_INDEX; operand_id++)
     {
         EXPECT_THROW(worker_core_resources.allocate_packer_multicast_stream(operand_id), std::runtime_error);
     }
@@ -143,15 +136,11 @@ TEST_F(Pipegen2_WorkerCoreResourcesBH, AllocatePackerMulticastStream_AllocateAll
          operand_id < worker_core_resources_bh_constants::packer_multicast_stream_operand_id_range_end;
          operand_id++)
     {
-        StreamId expected_allocated_stream =
-            worker_core_resources_bh_constants::gather_multicast_streams_id_range_end -
-            OperandStreamMap::get_output_index(operand_id);
+        StreamId expected_allocated_stream = worker_core_resources_bh_constants::gather_multicast_streams_id_range_end -
+                                             OperandStreamMap::get_output_index(operand_id);
 
         verify_no_throw_and_return_value_eq<StreamId>(
-            [&]() -> StreamId
-            {
-                return worker_core_resources.allocate_packer_multicast_stream(operand_id);
-            },
+            [&]() -> StreamId { return worker_core_resources.allocate_packer_multicast_stream(operand_id); },
             expected_allocated_stream);
     }
 }

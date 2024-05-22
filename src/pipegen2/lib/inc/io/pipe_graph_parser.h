@@ -17,4 +17,4 @@ public:
     static void parse_graph(PipeGraph& pipe_graph, const std::string& pipegen_yaml_path);
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

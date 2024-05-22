@@ -5,10 +5,13 @@
 
 #include <iostream>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
+
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -157,7 +160,8 @@ void parse_buffer(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_gr
         {
             buffer->set_tile_size(parse_uint_attribute_value(attr_value));
         }
-        else if (attr_name == "tiles_per_input") {
+        else if (attr_name == "tiles_per_input")
+        {
             buffer->set_num_tiles_per_input(parse_uint_attribute_value(attr_value));
         }
         else if (attr_name == "scatter_gather_num_tiles")
@@ -370,7 +374,7 @@ void parse_buffer(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_gr
             buffer->set_is_post_tm_relay_buf(bool(parse_int_attribute_value(attr_value)));
         }
     }
-    
+
     check_buffer_constraints(buffer.get());
     pipe_graph.add_buffer(std::move(buffer));
 }
@@ -393,7 +397,7 @@ void parse_node(const std::vector<std::string>& yaml_lines, PipeGraph& pipe_grap
 
 void parse_graph(PipeGraph& pipe_graph, std::istream& input_stream)
 {
-    if (input_stream.fail()) 
+    if (input_stream.fail())
     {
         throw_parsing_error("No such file");
     }
@@ -403,15 +407,13 @@ void parse_graph(PipeGraph& pipe_graph, std::istream& input_stream)
 
     while (std::getline(input_stream, current_line))
     {
-        if (!string_starts_with(current_line, s_buffer_prefix) &&
-            !string_starts_with(current_line, s_pipe_prefix) &&
+        if (!string_starts_with(current_line, s_buffer_prefix) && !string_starts_with(current_line, s_pipe_prefix) &&
             yaml_lines.empty())
         {
             // Skipping comments, newlines or delimiters.
             if (string_starts_with(current_line, s_comment_prefix) ||
                 string_starts_with(current_line, s_graph_name_prefix) ||
-                string_starts_with(current_line, s_delimiter_prefix) ||
-                current_line.empty())
+                string_starts_with(current_line, s_delimiter_prefix) || current_line.empty())
             {
                 continue;
             }
@@ -437,10 +439,7 @@ void parse_graph(PipeGraph& pipe_graph, std::istream& input_stream)
     }
 }
 
-void throw_parsing_error(const std::string& error_msg)
-{
-    throw InvalidPipegenYamlException(error_msg);
-}
+void throw_parsing_error(const std::string& error_msg) { throw InvalidPipegenYamlException(error_msg); }
 
 void parse_attribute(const std::string& yaml_line, std::string& attr_name, std::string& attr_value)
 {
@@ -546,16 +545,15 @@ void parse_pipe_mcast_locations(PGPipe* pipe, const std::string& attr_value)
         locations_coords.push_back(parse_vector_of_ints(attr_value));
     }
 
-    for (const std::vector<int>& location_coords: locations_coords)
+    for (const std::vector<int>& location_coords : locations_coords)
     {
         if (location_coords.size() != 3)
         {
             throw_parsing_error("Pipe multicast core location coordinates are invalid");
         }
 
-        pipe->add_mcast_core_logical_location(tt_cxy_pair(static_cast<ChipId>(location_coords[0]),
-                                                            (std::size_t)location_coords[2],
-                                                            (std::size_t)location_coords[1]));
+        pipe->add_mcast_core_logical_location(tt_cxy_pair(
+            static_cast<ChipId>(location_coords[0]), (std::size_t)location_coords[2], (std::size_t)location_coords[1]));
     }
 }
 
@@ -600,7 +598,7 @@ std::vector<std::vector<int>> parse_two_dim_vector_of_ints(const std::string& st
 
     std::vector<std::vector<int>> two_dim_list_of_ints;
 
-    for (const std::vector<std::string>& list_of_strings: two_dim_list_of_strings)
+    for (const std::vector<std::string>& list_of_strings : two_dim_list_of_strings)
     {
         two_dim_list_of_ints.push_back(convert_strings_to_ints(list_of_strings));
     }
@@ -612,7 +610,7 @@ std::vector<int> convert_strings_to_ints(const std::vector<std::string>& string_
 {
     std::vector<int> int_values;
 
-    for (const std::string& str_val: string_values)
+    for (const std::string& str_val : string_values)
     {
         int_values.push_back(parse_int_attribute_value(str_val));
     }
@@ -642,7 +640,7 @@ std::vector<std::vector<std::uint64_t>> parse_two_dim_vector_of_ulongs(const std
 
     std::vector<std::vector<std::uint64_t>> two_dim_list_of_ulongs;
 
-    for (const std::vector<std::string>& list_of_strings: two_dim_list_of_strings)
+    for (const std::vector<std::string>& list_of_strings : two_dim_list_of_strings)
     {
         two_dim_list_of_ulongs.push_back(convert_strings_to_ulongs(list_of_strings));
     }
@@ -654,7 +652,7 @@ std::vector<std::uint64_t> convert_strings_to_ulongs(const std::vector<std::stri
 {
     std::vector<std::uint64_t> ulong_values;
 
-    for (const std::string& str_val: string_values)
+    for (const std::string& str_val : string_values)
     {
         ulong_values.push_back(parse_ulong_attribute_value(str_val));
     }
@@ -684,7 +682,7 @@ std::vector<std::vector<std::string>> parse_two_dim_vector_of_strings(const std:
     // Splitting on right brackets first:
     // "[[1,2,3],[4,5,6],[7,8,9]]" -> {"[1,2,3" , ",[4,5,6" , ",[7,8,9"}
     std::vector<std::string> strs_between_rbrackets = split_string(str.substr(1, str.size() - 3), ']');
-    for (const std::string& str_between_rbrackets: strs_between_rbrackets)
+    for (const std::string& str_between_rbrackets : strs_between_rbrackets)
     {
         // Splitting on left bracket now:
         // "[1,2,3" -> {"" , "1,2,3"}
@@ -766,10 +764,7 @@ std::string trim_string(const std::string& str)
     return str.substr(start_pos, end_pos - start_pos + 1);
 }
 
-bool string_starts_with(const std::string& str, const std::string& prefix)
-{
-    return str.rfind(prefix, 0) == 0;
-}
+bool string_starts_with(const std::string& str, const std::string& prefix) { return str.rfind(prefix, 0) == 0; }
 
 BufferType parse_buffer_type_string(const std::string& s)
 {
@@ -819,24 +814,20 @@ BufferType parse_buffer_type_string(const std::string& s)
     }
 }
 
-void check_buffer_constraints(const PGBuffer* pg_buffer)
-{
-    check_buffer_maximum_size_tiles_constraint(pg_buffer);
-}
+void check_buffer_constraints(const PGBuffer* pg_buffer) { check_buffer_maximum_size_tiles_constraint(pg_buffer); }
 
 void check_buffer_maximum_size_tiles_constraint(const PGBuffer* pg_buffer)
 {
     unsigned int size_tiles = pg_buffer->get_size_tiles();
     if (pg_buffer->is_packer() && size_tiles > constants::general_max_num_tiles_per_phase)
     {
-        throw InvalidPipeGraphSpecificationException("Packer buffer " +
-                                                     std::to_string(pg_buffer->get_id()) + " has scatter chunk size" +
-                                                     " (size_tiles) " + std::to_string(size_tiles) +
-                                                     ", which is larger than max tiles per phase (" +
-                                                     std::to_string(constants::general_max_num_tiles_per_phase) + ")",
-                                                    pg_buffer->get_logical_location());
+        throw InvalidPipeGraphSpecificationException(
+            "Packer buffer " + std::to_string(pg_buffer->get_id()) + " has scatter chunk size" + " (size_tiles) " +
+                std::to_string(size_tiles) + ", which is larger than max tiles per phase (" +
+                std::to_string(constants::general_max_num_tiles_per_phase) + ")",
+            pg_buffer->get_logical_location());
     }
 }
 
-} // namespace pipe_graph_parser_internal
-} // namespace pipegen2
+}  // namespace pipe_graph_parser_internal
+}  // namespace pipegen2

@@ -27,5 +27,5 @@ tt::ARCH get_build_arch()
     return get_arch_name(arch_name);
 }
 
-} // namespace unit_test_utils
-} // namespace pipegen2
+}  // namespace unit_test_utils
+}  // namespace pipegen2

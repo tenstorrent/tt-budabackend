@@ -6,17 +6,19 @@
 #include "device/resource_manager.h"
 #include "model/stream_graph/stream_graph_collection.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Allocates a stream ID for every stream created based on the stream type.
-class StreamIDsAllocator {
-   public:
+class StreamIDsAllocator
+{
+public:
     StreamIDsAllocator(const ResourceManager* resource_manager);
 
     // Assigns stream IDs from the resource manager.
     void allocate_stream_ids(const StreamGraphCollection* stream_graph_collection) const;
 
-   private:
+private:
     // Allocates ID for a given packer stream, and all the other packer streams which are in the same fork group.
     void allocate_packer_stream_id(StreamNode* stream_node) const;
 

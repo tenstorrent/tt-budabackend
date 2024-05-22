@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/operand_stream_map.h"
 
-#include "noc/noc_overlay_parameters.h" // Necessary for stream_io_map.h
+#include "noc/noc_overlay_parameters.h"  // Necessary for stream_io_map.h
 #include "stream_io_map.h"
-
 #include "utils/logger.hpp"
 
 namespace pipegen2
@@ -40,10 +39,11 @@ StreamId OperandStreamMap::get_operand_stream_id(int operand_id)
 
 unsigned int OperandStreamMap::get_output_index(int operand_id)
 {
-    log_assert(is_output_operand(operand_id),
-               "Operand ID must be a valid output operand id in order to map it to an output index");
+    log_assert(
+        is_output_operand(operand_id),
+        "Operand ID must be a valid output operand id in order to map it to an output index");
 
     return static_cast<unsigned int>(::operand_to_output_index(operand_id));
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -14,9 +14,7 @@ class PGBuffer;
 class EmbeddingIndexHandler : public IPipeGraphHandler
 {
 public:
-    EmbeddingIndexHandler(PipeGraphInfo* pipe_graph_info) : m_pipe_graph_info(pipe_graph_info) 
-    {
-    }
+    EmbeddingIndexHandler(PipeGraphInfo* pipe_graph_info) : m_pipe_graph_info(pipe_graph_info) {}
 
     // Handle the embbeding indexes in a given pipe graph.
     void handle(PipeGraph& pipe_graph) override;
@@ -26,11 +24,11 @@ private:
     void copy_embedding_index_properties(const PGBuffer* embedding_index_kernel_buffer);
 
     // Finds embedding index buffer that is on the same core as the embedding table kernel buffer.
-    const PGBuffer* find_embedding_index_kernel_buffer(PipeGraph& pipe_graph,
-                                                       const PGBuffer* embedding_table_kernel_buffer);
+    const PGBuffer* find_embedding_index_kernel_buffer(
+        PipeGraph& pipe_graph, const PGBuffer* embedding_table_kernel_buffer);
 
     // A utility object which keeps track of all the helper maps necessary for PipeGraph handling.
     PipeGraphInfo* m_pipe_graph_info;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

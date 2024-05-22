@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class GatherPipe : public JoinPipe
+class GatherPipe : public JoinPipe
+{
+public:
+    GatherPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        JoinPipe(RGPipeType::Gather, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        GatherPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            JoinPipe(RGPipeType::Gather, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location)
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

@@ -3,12 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "model/pipe_graph/pg_buffer.h"
 
+// clang-format off
+#include "utils/logger.hpp"
+
 #include "device/operand_stream_map.h"
 #include "model/pipe_graph/pg_pipe.h"
-
 #include "pipegen2_constants.h"
-#include "pipegen2_exceptions.h"
-#include "utils/logger.hpp"
+// clang-format on
 
 namespace pipegen2
 {
@@ -134,8 +135,10 @@ PGBuffer::PGBuffer(const PGBuffer& other) :
 
 void PGBuffer::replace_output_pipe(PGPipe* old_pipe, PGPipe* new_pipe)
 {
-    log_assert(m_output_pipes.find(old_pipe) != m_output_pipes.end(), 
-               "The output pipe with id {} does not exist!", std::to_string(old_pipe->get_id()));
+    log_assert(
+        m_output_pipes.find(old_pipe) != m_output_pipes.end(),
+        "The output pipe with id {} does not exist!",
+        std::to_string(old_pipe->get_id()));
     m_output_pipes.erase(old_pipe);
     m_output_pipes.insert(new_pipe);
 }
@@ -151,15 +154,12 @@ PGPipe* PGBuffer::get_single_output_pipe()
     return const_cast<PGPipe*>(const_cast<const PGBuffer*>(this)->get_single_output_pipe());
 }
 
-void PGBuffer::set_chip_id(ChipId chip_id)
-{
-    m_logical_location.chip = chip_id;
-}
+void PGBuffer::set_chip_id(ChipId chip_id) { m_logical_location.chip = chip_id; }
 
 bool PGBuffer::is_dram() const
 {
     return m_dram_io_flag && m_num_queue_slots > 0 &&
-            !(m_dram_buf_flag || m_dram_buf_streaming || m_write_dram_buf_flag);
+           !(m_dram_buf_flag || m_dram_buf_streaming || m_write_dram_buf_flag);
 }
 
 bool PGBuffer::is_dram_prefetch() const
@@ -176,55 +176,28 @@ bool PGBuffer::is_dram_input() const
     return is_dram_buf && !m_moves_raw_data;
 }
 
-bool PGBuffer::is_non_prefetch_pre_tm_dram_input() const
-{
-    return is_dram_input() && !is_dram_prefetch_pre_tm();
-}
+bool PGBuffer::is_non_prefetch_pre_tm_dram_input() const { return is_dram_input() && !is_dram_prefetch_pre_tm(); }
 
 bool PGBuffer::is_dram_prefetch_post_tm() const
 {
     return is_dram_prefetch() && m_prefetch_type == PrefetchType::POST_TM;
 }
 
-bool PGBuffer::is_dram_prefetch_pre_tm() const
-{
-    return is_dram_prefetch() && m_prefetch_type == PrefetchType::PRE_TM;
-}
+bool PGBuffer::is_dram_prefetch_pre_tm() const { return is_dram_prefetch() && m_prefetch_type == PrefetchType::PRE_TM; }
 
-bool PGBuffer::is_dram_output() const
-{
-    return is_dram();
-}
+bool PGBuffer::is_dram_output() const { return is_dram(); }
 
-bool PGBuffer::is_input_operand() const
-{
-    return OperandStreamMap::is_input_operand(m_operand_id);
-}
+bool PGBuffer::is_input_operand() const { return OperandStreamMap::is_input_operand(m_operand_id); }
 
-bool PGBuffer::is_output_operand() const
-{
-    return OperandStreamMap::is_output_operand(m_operand_id);
-}
+bool PGBuffer::is_output_operand() const { return OperandStreamMap::is_output_operand(m_operand_id); }
 
-bool PGBuffer::is_intermediate_operand() const
-{
-    return OperandStreamMap::is_intermediate_operand(m_operand_id);
-}
+bool PGBuffer::is_intermediate_operand() const { return OperandStreamMap::is_intermediate_operand(m_operand_id); }
 
-bool PGBuffer::is_relay() const
-{
-    return OperandStreamMap::is_relay_operand(m_operand_id);
-}
+bool PGBuffer::is_relay() const { return OperandStreamMap::is_relay_operand(m_operand_id); }
 
-bool PGBuffer::is_packer() const
-{
-    return m_type == BufferType::kPacker;
-}
+bool PGBuffer::is_packer() const { return m_type == BufferType::kPacker; }
 
-bool PGBuffer::is_unpacker() const
-{
-    return m_type == BufferType::kUnpacker;
-}
+bool PGBuffer::is_unpacker() const { return m_type == BufferType::kUnpacker; }
 
 bool PGBuffer::is_located_in_l1() const
 {
@@ -234,10 +207,7 @@ bool PGBuffer::is_located_in_l1() const
     return !is_dram_io_input && !is_dram_io_output;
 }
 
-bool PGBuffer::is_end_to_end_queue() const
-{
-    return is_dram() && !has_no_input() && !has_no_outputs();
-}
+bool PGBuffer::is_end_to_end_queue() const { return is_dram() && !has_no_input() && !has_no_outputs(); }
 
 bool PGBuffer::has_output_pipe_id(NodeId pipe_id) const
 {
@@ -253,61 +223,61 @@ bool PGBuffer::has_output_pipe_id(NodeId pipe_id) const
 }
 
 #ifdef TT_DEBUG
-    std::string PGBuffer::type_to_string()
+std::string PGBuffer::type_to_string()
+{
+    switch (m_type)
     {
-        switch(m_type)
-        {
-            case BufferType::kDramProlog:
-                return "DramProlog";
-            case BufferType::kDramEpilog:
-                return "DramEpilog";
-            case BufferType::kGradientOp:
-                return "GradientOp";
-            case BufferType::kIntermediate:
-                return "Intermediate";
-            case BufferType::kPacker:
-                return "Packer";
-            case BufferType::kUnpacker:
-                return "Unpacker";
-            case BufferType::kDramIO:
-                return "DramIO";
-            case BufferType::kRelay:
-                return "Relay";
-            case BufferType::kEthernetRelay:
-                return "EthernetRelay";
-            case BufferType::kPrologRelay:
-                return "PrologRelay";
-            case BufferType::kUnknown:
-                return "Unknown";
-            default:
-                return "Unknown";
-        }
+        case BufferType::kDramProlog:
+            return "DramProlog";
+        case BufferType::kDramEpilog:
+            return "DramEpilog";
+        case BufferType::kGradientOp:
+            return "GradientOp";
+        case BufferType::kIntermediate:
+            return "Intermediate";
+        case BufferType::kPacker:
+            return "Packer";
+        case BufferType::kUnpacker:
+            return "Unpacker";
+        case BufferType::kDramIO:
+            return "DramIO";
+        case BufferType::kRelay:
+            return "Relay";
+        case BufferType::kEthernetRelay:
+            return "EthernetRelay";
+        case BufferType::kPrologRelay:
+            return "PrologRelay";
+        case BufferType::kUnknown:
+            return "Unknown";
+        default:
+            return "Unknown";
     }
+}
 
-    std::string PGBuffer::node_type_to_color()
+std::string PGBuffer::node_type_to_color()
+{
+    switch (m_type)
     {
-        switch (m_type)
-        {
-            case BufferType::kDramProlog:
-            case BufferType::kDramEpilog:
-            case BufferType::kDramIO:
-                return "#8A2BE2";
-            case BufferType::kGradientOp:
-            case BufferType::kIntermediate:
-                return "#8B4513";
-            case BufferType::kPacker:
-            case BufferType::kUnpacker:
-                return "#00FF00";
-            case BufferType::kRelay:
-            case BufferType::kEthernetRelay:
-            case BufferType::kPrologRelay:
-                return "#ADFF2F";
-            case BufferType::kUnknown:
-                return "#FFFFFF";
-            default:
-                return "#FFFFFF";
-        }
+        case BufferType::kDramProlog:
+        case BufferType::kDramEpilog:
+        case BufferType::kDramIO:
+            return "#8A2BE2";
+        case BufferType::kGradientOp:
+        case BufferType::kIntermediate:
+            return "#8B4513";
+        case BufferType::kPacker:
+        case BufferType::kUnpacker:
+            return "#00FF00";
+        case BufferType::kRelay:
+        case BufferType::kEthernetRelay:
+        case BufferType::kPrologRelay:
+            return "#ADFF2F";
+        case BufferType::kUnknown:
+            return "#FFFFFF";
+        default:
+            return "#FFFFFF";
     }
+}
 #endif
 
-} // namespace pipegen2
+}  // namespace pipegen2

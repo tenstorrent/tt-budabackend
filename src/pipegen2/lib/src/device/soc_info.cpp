@@ -8,23 +8,25 @@
 #include <iterator>
 #include <sstream>
 
-#include "device/soc_info_constants.h"
+// clang-format off
 #include "device/tt_arch_types.h"
 #include "l1_address_map.h"
 #include "noc/noc_parameters.h"
 
+#include "device/soc_info_constants.h"
 #include "pipegen2_exceptions.h"
+// clang-format on
 
 namespace pipegen2
 {
 
-std::unique_ptr<SoCInfo> SoCInfo::parse_from_yaml(const std::string& soc_descriptors_yaml_path,
-                                                  const std::vector<ChipId>& chip_ids)
+std::unique_ptr<SoCInfo> SoCInfo::parse_from_yaml(
+    const std::string& soc_descriptors_yaml_path, const std::vector<ChipId>& chip_ids)
 {
     std::unique_ptr<SoCInfo> soc_info(new SoCInfo());
 
-    std::map<ChipId, std::string> soc_descriptors_paths = get_soc_descriptors_paths(
-        soc_descriptors_yaml_path, chip_ids);
+    std::map<ChipId, std::string> soc_descriptors_paths =
+        get_soc_descriptors_paths(soc_descriptors_yaml_path, chip_ids);
 
     for (const auto& [chip_id, soc_descriptor_path] : soc_descriptors_paths)
     {
@@ -34,8 +36,8 @@ std::unique_ptr<SoCInfo> SoCInfo::parse_from_yaml(const std::string& soc_descrip
     return soc_info;
 }
 
-std::map<ChipId, std::string> SoCInfo::get_soc_descriptors_paths(const std::string& soc_descriptors_yaml_path,
-                                                                 const std::vector<ChipId>& chip_ids)
+std::map<ChipId, std::string> SoCInfo::get_soc_descriptors_paths(
+    const std::string& soc_descriptors_yaml_path, const std::vector<ChipId>& chip_ids)
 {
     std::map<ChipId, std::string> soc_descriptors_paths;
 
@@ -139,8 +141,10 @@ tt_cxy_pair SoCInfo::get_ethernet_channel_core_physical_location(const ChipId ch
     const buda_SocDescriptor* chip_soc_desc = get_soc_descriptor(chip_id);
 
     const std::vector<tt_xy_pair>& chip_eth_cores = chip_soc_desc->ethernet_cores;
-    log_assert(ethernet_channel >= 0 && ethernet_channel < chip_eth_cores.size(),
-               "Ethernet channel {} out of bounds", ethernet_channel);
+    log_assert(
+        ethernet_channel >= 0 && ethernet_channel < chip_eth_cores.size(),
+        "Ethernet channel {} out of bounds",
+        ethernet_channel);
 
     return tt_cxy_pair(chip_id, chip_eth_cores[ethernet_channel]);
 }
@@ -189,16 +193,16 @@ tt_cxy_pair SoCInfo::convert_logical_to_physical_worker_core_coords(const tt_cxy
     }
     catch (std::exception& e)
     {
-        throw NoPhysicalCoreException("There is no physical worker core on logical location " +
-                                      logical_coords.str(),
-                                      logical_coords);
+        throw NoPhysicalCoreException(
+            "There is no physical worker core on logical location " + logical_coords.str(), logical_coords);
     }
 }
 
-std::uint64_t SoCInfo::get_dram_buffer_noc_address(const std::uint64_t dram_buf_addr,
-                                                   const ChipId chip_id,
-                                                   const unsigned int channel,
-                                                   const unsigned int subchannel) const
+std::uint64_t SoCInfo::get_dram_buffer_noc_address(
+    const std::uint64_t dram_buf_addr,
+    const ChipId chip_id,
+    const unsigned int channel,
+    const unsigned int subchannel) const
 {
     const buda_SocDescriptor* chip_soc_desc = get_soc_descriptor(chip_id);
 
@@ -207,8 +211,8 @@ std::uint64_t SoCInfo::get_dram_buffer_noc_address(const std::uint64_t dram_buf_
     return NOC_XY_ADDR(noc_dram_core.x, noc_dram_core.y, dram_buf_addr);
 }
 
-std::uint64_t SoCInfo::get_buffer_noc_address_through_pcie(const std::uint64_t pcie_buf_addr,
-                                                           const ChipId chip_id) const
+std::uint64_t SoCInfo::get_buffer_noc_address_through_pcie(
+    const std::uint64_t pcie_buf_addr, const ChipId chip_id) const
 {
     tt_cxy_pair noc_pcie_core = get_first_pcie_core_physical_location(chip_id);
 
@@ -224,15 +228,16 @@ tt_cxy_pair SoCInfo::get_first_pcie_core_physical_location(const ChipId chip_id)
     // pipegen to handle empty lists with default values.
     // TODO: Today pipegen always uses the first PCIe core. In future if we support multiple PCIe cores, we can add
     // logic to choose between those.
-    tt_xy_pair noc_pcie_core = chip_soc_desc->pcie_cores.empty() ?
-        tt_xy_pair(soc_info_constants::default_pcie_core_x, soc_info_constants::default_pcie_core_y) :
-        chip_soc_desc->pcie_cores.front();
+    tt_xy_pair noc_pcie_core =
+        chip_soc_desc->pcie_cores.empty()
+            ? tt_xy_pair(soc_info_constants::default_pcie_core_x, soc_info_constants::default_pcie_core_y)
+            : chip_soc_desc->pcie_cores.front();
 
     return tt_cxy_pair(chip_id, noc_pcie_core);
 }
 
-std::uint64_t SoCInfo::get_host_noc_address_through_pcie(const std::uint64_t host_pcie_buf_addr,
-                                                         const ChipId chip_id) const
+std::uint64_t SoCInfo::get_host_noc_address_through_pcie(
+    const std::uint64_t host_pcie_buf_addr, const ChipId chip_id) const
 {
     std::uint64_t host_noc_address = get_buffer_noc_address_through_pcie(host_pcie_buf_addr, chip_id);
 
@@ -252,9 +257,8 @@ std::uint64_t SoCInfo::get_local_dram_buffer_noc_address(const std::uint64_t dra
     return dram_buf_noc_addr & ((1ULL << NOC_ADDR_LOCAL_BITS) - 1);
 }
 
-std::uint64_t SoCInfo::get_local_pcie_buffer_address(const std::uint64_t l1_buffer_address,
-                                                     const tt_cxy_pair& worker_core_location,
-                                                     const bool is_pcie_downstream) const
+std::uint64_t SoCInfo::get_local_pcie_buffer_address(
+    const std::uint64_t l1_buffer_address, const tt_cxy_pair& worker_core_location, const bool is_pcie_downstream) const
 {
     std::uint64_t local_pcie_buffer_address =
         l1_buffer_address +
@@ -280,9 +284,9 @@ bool SoCInfo::is_harvested_chip_with_noc_translation(const ChipId& chip_id) cons
 
     // NOC translation is enabled on Wormhole and Blackhole.
     tt::ARCH device_arch = get_device_arch();
-    const bool does_arch_support_noc_translation = (device_arch == tt::ARCH::WORMHOLE ||
-                                                    device_arch == tt::ARCH::WORMHOLE_B0 ||
-                                                    device_arch == tt::ARCH::BLACKHOLE);
+    const bool does_arch_support_noc_translation =
+        (device_arch == tt::ARCH::WORMHOLE || device_arch == tt::ARCH::WORMHOLE_B0 ||
+         device_arch == tt::ARCH::BLACKHOLE);
 
     return does_arch_support_noc_translation && is_harvested_soc_descriptor;
 }
@@ -367,8 +371,7 @@ const buda_SocDescriptor* SoCInfo::get_soc_descriptor(const ChipId chip_id) cons
 {
     const auto soc_descriptor_it = m_soc_descriptors.find(chip_id);
     log_assert(
-        soc_descriptor_it != m_soc_descriptors.end(),
-        "Expecting to find SoC descriptor for chip id {}", chip_id);
+        soc_descriptor_it != m_soc_descriptors.end(), "Expecting to find SoC descriptor for chip id {}", chip_id);
 
     return soc_descriptor_it->second.get();
 }
@@ -384,4 +387,4 @@ const std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> SoCInfo::get_
     return soc_descriptor;
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

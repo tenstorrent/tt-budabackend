@@ -8,18 +8,18 @@
 
 namespace pipegen2
 {
-    class UnicastToDramPipe : public DirectPipe, public INcriscWriterPipe
+class UnicastToDramPipe : public DirectPipe, public INcriscWriterPipe
+{
+public:
+    UnicastToDramPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        DirectPipe(RGPipeType::UnicastToDram, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        UnicastToDramPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            DirectPipe(RGPipeType::UnicastToDram, std::move(rg_pipe_properties), physical_location)
-        {
-        }
+    }
 
-        std::vector<tt_cxy_pair> get_ncrisc_writer_streams_locations() const override
-        {
-            // One stream and one NCRISC config is created at packer's location.
-            return { get_input_node()->get_physical_location() };
-        }
-    };
-}
+    std::vector<tt_cxy_pair> get_ncrisc_writer_streams_locations() const override
+    {
+        // One stream and one NCRISC config is created at packer's location.
+        return {get_input_node()->get_physical_location()};
+    }
+};
+}  // namespace pipegen2

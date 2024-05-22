@@ -21,4 +21,4 @@ public:
     virtual std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const = 0;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

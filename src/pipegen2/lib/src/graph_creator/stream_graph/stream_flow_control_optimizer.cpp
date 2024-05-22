@@ -48,7 +48,7 @@ void StreamFlowControlOptimizer::optimize_stream_flow_control(StreamNode* stream
         StreamConfig& cur_phase_config = stream_node->get_phase_config(i);
         sum_num_msgs += cur_phase_config.get_num_msgs().value();
 
-        // Whether we're crossing to a new stream HW phase. It is guaranteed that last phase will have 
+        // Whether we're crossing to a new stream HW phase. It is guaranteed that last phase will have
         // next_phase_dest_change set to true, so we don't have to worry about it after exiting the loop.
         next_phase_dest_change = cur_phase_config.get_next_phase_dest_change().value_or(next_phase_dest_change);
         if (!next_phase_dest_change)
@@ -59,7 +59,7 @@ void StreamFlowControlOptimizer::optimize_stream_flow_control(StreamNode* stream
         StreamNode* cur_dest = cur_phase_config.get_dest().value().front();
         // In case of multiple dests in single phase, we assume that all dests have the same buffer size.
         unsigned int cur_dest_buffer_size_bytes = cur_dest->get_base_config().get_buffer_size().value();
-        
+
         // Before we cross to a new phase, we want to set no_flow_control flag for the previous range of phases.
         // Check if we can fit all messages in the destination buffer.
         const bool no_flow_control = sum_num_msgs * msg_size_bytes <= cur_dest_buffer_size_bytes;
@@ -70,9 +70,8 @@ void StreamFlowControlOptimizer::optimize_stream_flow_control(StreamNode* stream
     }
 }
 
-void StreamFlowControlOptimizer::set_no_flow_control(StreamNode* source_stream,
-                                                     const std::size_t start_phase_idx,
-                                                     const bool no_flow_control)
+void StreamFlowControlOptimizer::set_no_flow_control(
+    StreamNode* source_stream, const std::size_t start_phase_idx, const bool no_flow_control)
 {
     PhaseConfig& source_phase_config = source_stream->get_phase_configs()[start_phase_idx];
     source_phase_config.config.set_dest_data_buf_no_flow_ctrl(no_flow_control);
@@ -82,8 +81,9 @@ void StreamFlowControlOptimizer::set_no_flow_control(StreamNode* source_stream,
         // Find the phase config in the dest stream node that corresponds to the start_phase_id. Set
         // data_buf_no_flow_ctrl to given value for all phase configs up to the phase where next_phase_dest_change is
         // set to true.
-        auto dest_phase_iter = StreamGraphCreator::find_phase_config_by_phase_id(dest->get_phase_configs(), source_phase_config.phase_id);
+        auto dest_phase_iter =
+            StreamGraphCreator::find_phase_config_by_phase_id(dest->get_phase_configs(), source_phase_config.phase_id);
         dest_phase_iter->config.set_data_buf_no_flow_ctrl(no_flow_control);
     }
 }
-} // namespace pipegen2
+}  // namespace pipegen2

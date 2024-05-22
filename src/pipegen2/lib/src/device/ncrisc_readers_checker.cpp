@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-
 #include "device/ncrisc_readers_checker.h"
 
 #include "device/core_resources_constants.h"
-#include "model/rational_graph/pipes/ncrisc_reader_pipe_interface.h"
 #include "model/rational_graph/pipes/base_rg_pipe.h"
+#include "model/rational_graph/pipes/ncrisc_reader_pipe_interface.h"
 #include "pipegen2_exceptions.h"
 
 namespace pipegen2
@@ -27,8 +26,8 @@ void NcriscReadersChecker::check(const RationalGraph* rational_graph)
         {
             throw OutOfCoreResourcesException(
                 "Core " + stream_location.str() + " uses too many streams reading from DRAM or PCIe (" +
-                std::to_string(streams_used) + " out of " +
-                std::to_string(core_resources_constants::max_num_ncrisc_reading_streams) + ").",
+                    std::to_string(streams_used) + " out of " +
+                    std::to_string(core_resources_constants::max_num_ncrisc_reading_streams) + ").",
                 stream_location,
                 OutOfCoreResourcesException::CoreResourceType::kNcriscReaderStreams,
                 core_resources_constants::max_num_ncrisc_reading_streams,
@@ -38,8 +37,7 @@ void NcriscReadersChecker::check(const RationalGraph* rational_graph)
 }
 
 void NcriscReadersChecker::count_stream_usage(
-    const RGBasePipe* pipe,
-    std::unordered_map<tt_cxy_pair, unsigned int>& num_ncrisc_reading_streams_per_core)
+    const RGBasePipe* pipe, std::unordered_map<tt_cxy_pair, unsigned int>& num_ncrisc_reading_streams_per_core)
 {
     const INcriscReaderPipe* ncrisc_reader_pipe = dynamic_cast<const INcriscReaderPipe*>(pipe);
 
@@ -54,4 +52,4 @@ void NcriscReadersChecker::count_stream_usage(
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

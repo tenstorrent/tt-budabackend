@@ -14,13 +14,14 @@ namespace pipegen2
 class DramMulticastPipe : public ForkPipe, public INcriscReaderPipe
 {
 public:
-    DramMulticastPipe(RGPipeProperties&& rg_pipe_properties,
-                        const std::vector<int>& dram_input_total_readers,
-                        const std::vector<int>& dram_input_reader_index,
-                        const unsigned int max_dram_input_buffer_size_tiles,
-                        const tt_cxy_pair& physical_location) :
-        ForkPipe(RGPipeType::DramMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties),
-                    physical_location),
+    DramMulticastPipe(
+        RGPipeProperties&& rg_pipe_properties,
+        const std::vector<int>& dram_input_total_readers,
+        const std::vector<int>& dram_input_reader_index,
+        const unsigned int max_dram_input_buffer_size_tiles,
+        const tt_cxy_pair& physical_location) :
+        ForkPipe(
+            RGPipeType::DramMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties), physical_location),
         m_dram_input_total_readers(dram_input_total_readers),
         m_dram_input_reader_index(dram_input_reader_index),
         m_max_dram_input_buffer_size_tiles(max_dram_input_buffer_size_tiles)
@@ -37,7 +38,7 @@ public:
     {
         // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
         // to other cores.
-        return { get_physical_location() };
+        return {get_physical_location()};
     }
 
 private:
@@ -53,4 +54,4 @@ private:
     unsigned int m_max_dram_input_buffer_size_tiles;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

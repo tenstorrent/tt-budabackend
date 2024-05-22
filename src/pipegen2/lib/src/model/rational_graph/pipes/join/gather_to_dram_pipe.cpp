@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-
 #include "model/rational_graph/pipes/join/gather_to_dram_pipe.h"
+
 #include "device/tt_xy_pair.h"
 
 namespace pipegen2
@@ -22,4 +22,4 @@ std::vector<tt_cxy_pair> GatherToDramPipe::get_ncrisc_writer_streams_locations()
     return stream_locations;
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -6,11 +6,13 @@
 #include <memory>
 #include <set>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
 
 #include "device/l1/l1_data_buffers_memory_layout.h"
 #include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -62,24 +64,25 @@ public:
 
     // Allocates extra chunk of space in L1 memory reserved for overlay blob and returns object representing that memory
     // chunk.
-    const L1Buffer* allocate_l1_extra_overlay_blob_space(const unsigned int total_blob_size,
-                                                         const bool is_ethernet_core);
+    const L1Buffer* allocate_l1_extra_overlay_blob_space(
+        const unsigned int total_blob_size, const bool is_ethernet_core);
 
     // Checks if core is out of L1 memory for data buffers space and throws an exception if it is.
     void check_if_out_of_l1_data_buffers_memory() const;
 
     // Returns tile header buffer address for a given tile size. Asserts if such buffer was not allocated previously.
     unsigned int get_tile_header_buffer_address(const unsigned int tile_size) const;
-    
+
     void set_op_name(const std::string& op_name) { m_op_name = op_name; }
 
     // Returns a string with formatted allocation info about buffers allocated on this core.
     const std::string get_l1_memory_layout_info() const;
-    
+
     // Returns vector of all L1 buffers allocated on this core in rising order or buffer addresses.
     // TODO this is a temporary API to support L1 profiler from runtime. We don't want to couple runtime code to pipegen
     // objects, thus better API should be devised.
-    std::vector<const L1Buffer*> get_all_allocated_data_buffers() const { 
+    std::vector<const L1Buffer*> get_all_allocated_data_buffers() const
+    {
         return m_l1_data_buffers_memory->get_all_allocated_buffers();
     }
 
@@ -88,13 +91,14 @@ public:
 
 protected:
     // Constructor, protected from public.
-    CoreResources(const tt_cxy_pair& core_physical_location,
-                  const tt_cxy_pair& core_logical_location,
-                  StreamId extra_streams_id_range_start,
-                  StreamId extra_streams_id_range_end,
-                  const unsigned int l1_data_buffers_space_start_address,
-                  const unsigned int l1_data_buffers_space_end_address,
-                  const unsigned int l1_predefined_tile_header_buffer_address);
+    CoreResources(
+        const tt_cxy_pair& core_physical_location,
+        const tt_cxy_pair& core_logical_location,
+        StreamId extra_streams_id_range_start,
+        StreamId extra_streams_id_range_end,
+        const unsigned int l1_data_buffers_space_start_address,
+        const unsigned int l1_data_buffers_space_end_address,
+        const unsigned int l1_predefined_tile_header_buffer_address);
 
     // Returns next available gather stream ID.
     virtual StreamId get_next_available_gather_stream_id() = 0;
@@ -125,10 +129,10 @@ protected:
 
 private:
     const std::string get_op_name() const { return m_op_name != "" ? m_op_name : "undefined"; }
-    
+
     // Name of an OP (from netlist) which spreads accross this core.
     std::string m_op_name;
-    
+
     // Starting ID in the extra streams ID range.
     // Extra streams are used for general purpose, for example as gather input streams.
     const StreamId c_extra_streams_id_range_start;
@@ -152,4 +156,4 @@ private:
     std::unique_ptr<L1DataBuffersMemoryLayout> m_l1_data_buffers_memory;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

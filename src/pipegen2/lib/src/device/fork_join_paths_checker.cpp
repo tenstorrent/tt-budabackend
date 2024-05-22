@@ -7,9 +7,6 @@
 namespace pipegen2
 {
 
-void ForkJoinPathsChecker::check_fork_join_hangs(const ForkJoinGraphCollection* fork_join_graph_collection) const
-{
-    
-}
+void ForkJoinPathsChecker::check_fork_join_hangs(const ForkJoinGraphCollection* fork_join_graph_collection) const {}
 
-} // namespace pipegen2
+}  // namespace pipegen2

@@ -1,24 +1,27 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "io/pipe_graph_parser_internal.h"
 
 #include <cstdint>
 #include <fstream>
-#include <gtest/gtest.h>
 #include <ios>
 #include <string>
 #include <vector>
 
+#include <gtest/gtest.h>
 
-#include "mocks/model/pipe_graph/pg_buffer_mock.h"
-#include "mocks/model/pipe_graph/pg_pipe_mock.h"
 #include "model/pipe_graph/pg_buffer.h"
 #include "model/pipe_graph/pg_pipe.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
 #include "pipegen2_exceptions.h"
+
+#include "mocks/model/pipe_graph/pg_buffer_mock.h"
+#include "mocks/model/pipe_graph/pg_pipe_mock.h"
 #include "test_pipe_graph_parser_internal_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace pipegen2::pipe_graph_parser_internal;
@@ -854,10 +857,7 @@ TEST(Pipegen2_PipeGraphParserInternal, SplitStringOnce_OnlyDelimitersString)
     Tests for function: trim_string
 **********************************************************************************************************************/
 
-TEST(Pipegen2_PipeGraphParserInternal, TrimString_EmptyString)
-{
-    EXPECT_EQ(trim_string(""), "");
-}
+TEST(Pipegen2_PipeGraphParserInternal, TrimString_EmptyString) { EXPECT_EQ(trim_string(""), ""); }
 
 TEST(Pipegen2_PipeGraphParserInternal, TrimString_TrimmedString)
 {
@@ -902,8 +902,26 @@ TEST(Pipegen2_PipeGraphParserInternal, StringStartsWith_DoesntStart)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipe_ParsingPipeWithCorrectAttributes)
 {
     PGPipeMock pipe_mock(
-        116000000000, 1, 1, 7, NOC_ROUTE::NOC0, 2, NOC_ROUTE::NOC1, 2, 1, 0, 1, 0, 1, 24, {0, 0, 10}, {1, 1, 1}, {0, 0, 0},
-        {109000000000, 112000000000}, {120000000000, 128000000000}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 147000000000});
+        116000000000,
+        1,
+        1,
+        7,
+        NOC_ROUTE::NOC0,
+        2,
+        NOC_ROUTE::NOC1,
+        2,
+        1,
+        0,
+        1,
+        0,
+        1,
+        24,
+        {0, 0, 10},
+        {1, 1, 1},
+        {0, 0, 0},
+        {109000000000, 112000000000},
+        {120000000000, 128000000000},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 147000000000});
     std::vector<std::string> yaml_lines = pipe_mock.to_json_list_of_strings_all_attributes();
 
     PipeGraph pipe_graph;
@@ -930,9 +948,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParsePipe_DefaultValuesIdOnly)
 TEST(Pipegen2_PipeGraphParserInternal, ParsePipe_NoPipeInformation)
 {
     constexpr NodeId pipe_id = 116000000000;
-    std::vector<std::string> yaml_lines = {
-        "pipe_"+ std::to_string(pipe_id) + ":"
-    };
+    std::vector<std::string> yaml_lines = {"pipe_" + std::to_string(pipe_id) + ":"};
     PipeGraph pipe_graph;
     parse_pipe(yaml_lines, pipe_graph);
     EXPECT_EQ(pipe_graph.get_pipes().size(), 0);
@@ -943,16 +959,69 @@ TEST(Pipegen2_PipeGraphParserInternal, ParsePipe_NoPipeInformation)
 **********************************************************************************************************************/
 
 TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_Normal)
-{  
+{
     PGBufferMock buffer_mock(
-        BufferType::kUnpacker, 111000000000, 1, 64, 12, {0}, {1, 11}, 2, 16, 12, 2080, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 32, 1, 4, 131000000000, 1, 1, 12, 0, PrefetchType::PRE_TM, 1, 4,
-        1, 0, 1024, 192, 1, 32, 131072, 1, 1, 103424, 1);
+        BufferType::kUnpacker,
+        111000000000,
+        1,
+        64,
+        12,
+        {0},
+        {1, 11},
+        2,
+        16,
+        12,
+        2080,
+        0,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        32,
+        32,
+        1,
+        4,
+        131000000000,
+        1,
+        1,
+        12,
+        0,
+        PrefetchType::PRE_TM,
+        1,
+        4,
+        1,
+        0,
+        1024,
+        192,
+        1,
+        32,
+        131072,
+        1,
+        1,
+        103424,
+        1);
     std::vector<std::string> yaml_lines = buffer_mock.to_json_list_of_strings_all_attributes();
     PipeGraph pipe_graph;
     parse_buffer(yaml_lines, pipe_graph);
     EXPECT_EQ(pipe_graph.get_buffers().size(), 1);
-    
+
     PGBuffer& buffer = *(pipe_graph.get_buffers()[0]);
     compare_buffer_attributes(buffer, buffer_mock);
 }
@@ -964,7 +1033,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_DefaultValues)
 
     PipeGraph pipe_graph;
     parse_buffer(yaml_lines, pipe_graph);
-    
+
     PGBuffer& buffer = *(pipe_graph.get_buffers()[0]);
     compare_buffer_attributes(buffer, buffer_mock);
 }
@@ -973,7 +1042,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_NoBufferInformation)
 {
     constexpr std::uint64_t uniqid = 111000000000;
     std::vector<std::string> yaml_lines = {
-        "buffer_"+ std::to_string(uniqid) + ":",
+        "buffer_" + std::to_string(uniqid) + ":",
     };
     PipeGraph pipe_graph;
     parse_buffer(yaml_lines, pipe_graph);
@@ -990,8 +1059,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitDRAM
         "buffer_type: dram_io",
         "size_tiles: " + std::to_string(size_tiles),
         "dram_io_flag: 1",
-        "q_slots: 1"
-    };
+        "q_slots: 1"};
     EXPECT_NO_THROW(parse_buffer(yaml_lines, pipe_graph));
 }
 
@@ -1004,8 +1072,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitUnpa
         "uniqid: " + std::to_string(uniqid),
         "buffer_type: unpacker",
         "size_tiles: " + std::to_string(size_tiles),
-        "dram_io_flag: 0"
-    };
+        "dram_io_flag: 0"};
     EXPECT_NO_THROW(parse_buffer(yaml_lines, pipe_graph));
 }
 
@@ -1018,8 +1085,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseBuffer_SizeTilesGreaterThanLimitPack
         "uniqid: " + std::to_string(uniqid),
         "buffer_type: packer",
         "size_tiles: " + std::to_string(size_tiles),
-        "dram_io_flag: 0"
-    };
+        "dram_io_flag: 0"};
     EXPECT_THROW(parse_buffer(yaml_lines, pipe_graph), InvalidPipeGraphSpecificationException);
 }
 
@@ -1031,7 +1097,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseNode_InvalidName)
 {
     constexpr std::uint64_t uniqid = 111000000000;
     std::vector<std::string> yaml_lines = {
-        "node_"+ std::to_string(uniqid) + ":",
+        "node_" + std::to_string(uniqid) + ":",
     };
     PipeGraph pipe_graph;
     EXPECT_THROW(parse_node(yaml_lines, pipe_graph), InvalidPipegenYamlException);
@@ -1041,7 +1107,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseNode_ParseBuffer)
 {
     constexpr std::uint64_t uniqid = 111000000000;
     std::vector<std::string> yaml_lines = {
-        "buffer_"+ std::to_string(uniqid) + ":",
+        "buffer_" + std::to_string(uniqid) + ":",
         "uniqid: " + std::to_string(uniqid),
     };
     PipeGraph pipe_graph;
@@ -1054,10 +1120,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseNode_ParseBuffer)
 TEST(Pipegen2_PipeGraphParserInternal, ParseNode_ParsePipe)
 {
     constexpr NodeId pipe_id = 116000000000;
-    std::vector<std::string> yaml_lines = {
-        "pipe_"+ std::to_string(pipe_id) + ":",
-        "id: " + std::to_string(pipe_id)
-    };
+    std::vector<std::string> yaml_lines = {"pipe_" + std::to_string(pipe_id) + ":", "id: " + std::to_string(pipe_id)};
     PipeGraph pipe_graph;
     parse_node(yaml_lines, pipe_graph);
     EXPECT_EQ(pipe_graph.get_pipes().size(), 1);
@@ -1092,7 +1155,7 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_ParsePipeAndBuffer)
     EXPECT_EQ(pipe_graph.get_pipes().size(), 1);
     EXPECT_EQ(pipe_graph.get_buffers().size(), 1);
 
-    PGPipe& pipe = *(pipe_graph.get_pipes()[0]); 
+    PGPipe& pipe = *(pipe_graph.get_pipes()[0]);
     PGBuffer& buffer = *(pipe_graph.get_buffers()[0]);
     EXPECT_EQ(pipe.get_id(), pipe_id);
     EXPECT_EQ(buffer.get_id(), buffer_id);
@@ -1193,6 +1256,6 @@ TEST(Pipegen2_PipeGraphParserInternal, ParseGraph_InputStreamFail)
     PipeGraph pipe_graph;
     std::ifstream input_stream("");
     input_stream.setstate(std::ios::failbit);
-    verify_throws_exception_with_message<InvalidPipegenYamlException>([&]() { parse_graph(pipe_graph, input_stream); },
-                                                                      "No such file.*");
+    verify_throws_exception_with_message<InvalidPipegenYamlException>(
+        [&]() { parse_graph(pipe_graph, input_stream); }, "No such file.*");
 }

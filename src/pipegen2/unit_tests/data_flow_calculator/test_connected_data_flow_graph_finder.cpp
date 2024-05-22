@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "data_flow_calculator/connected_data_flow_graph_finder.h"
 
 #include <memory>
@@ -12,10 +13,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "model/data_flow/data_flow_graph.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -31,10 +34,7 @@ using ::testing::Return;
 class Pipegen2_ConnectedDataFlowGraphFinder_GroupConnectedDataFlowNodes : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        m_node_id = 100;
-    }
+    void SetUp() override { m_node_id = 100; }
 
     std::pair<DataFlowNode*, NodeId> make_df_node_mock()
     {
@@ -66,12 +66,11 @@ TEST_F(Pipegen2_ConnectedDataFlowGraphFinder_GroupConnectedDataFlowNodes, Single
     auto [dest_df_node_1, dest_node_id_1] = make_df_node_mock();
     auto [dest_df_node_2, dest_node_id_2] = make_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(src_df_node_1, gather_df_node),
-        make_df_edge(src_df_node_2, gather_df_node),
-        make_df_edge(gather_df_node, dest_df_node_1),
-        make_df_edge(gather_df_node, dest_df_node_2)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(src_df_node_1, gather_df_node),
+         make_df_edge(src_df_node_2, gather_df_node),
+         make_df_edge(gather_df_node, dest_df_node_1),
+         make_df_edge(gather_df_node, dest_df_node_2)});
 
     std::vector<std::unique_ptr<DataFlowGraph>> connected_data_flow_graphs = group_connected_data_flow_nodes();
     EXPECT_EQ(connected_data_flow_graphs.size(), 1);
@@ -91,11 +90,10 @@ TEST_F(Pipegen2_ConnectedDataFlowGraphFinder_GroupConnectedDataFlowNodes, Multip
     auto [g0_dest_df_node_2, g0_dest_node_id_2] = make_df_node_mock();
     auto [g1_dest_df_node, g1_dest_node_id] = make_df_node_mock();
 
-    connect_data_flow_graph({
-        make_df_edge(g1_src_df_node_1, g1_gather_df_node),
-        make_df_edge(g1_src_df_node_2, g1_gather_df_node),
-        make_df_edge(g1_gather_df_node, g1_dest_df_node)
-    });
+    connect_data_flow_graph(
+        {make_df_edge(g1_src_df_node_1, g1_gather_df_node),
+         make_df_edge(g1_src_df_node_2, g1_gather_df_node),
+         make_df_edge(g1_gather_df_node, g1_dest_df_node)});
 
     connect_data_flow_graph({
         make_df_edge(g0_src_df_node, g0_dest_df_node_1),
@@ -109,9 +107,7 @@ TEST_F(Pipegen2_ConnectedDataFlowGraphFinder_GroupConnectedDataFlowNodes, Multip
         connected_data_flow_graphs.begin(),
         connected_data_flow_graphs.end(),
         [](const std::unique_ptr<DataFlowGraph>& left, const std::unique_ptr<DataFlowGraph>& right)
-        {
-            return left->get_nodes().size() < right->get_nodes().size();
-        });
+        { return left->get_nodes().size() < right->get_nodes().size(); });
 
     verify_data_flow_graph_node_ids(
         connected_data_flow_graphs[0].get(), {g0_src_node_id, g0_dest_node_id_1, g0_dest_node_id_2});

@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-
 #pragma once
 
 #include "model/rational_graph/rational_graph.h"
@@ -29,4 +28,4 @@ private:
     void check_forking_factor(const DramParallelForkPipe* pipe);
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

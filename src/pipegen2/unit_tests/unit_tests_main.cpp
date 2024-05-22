@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <stdlib.h>
 
+// clang-format off
 #include <gtest/gtest.h>
 
 #include "utils/gtest_initializer.hpp"
+// clang-format on
 
 int main(int argc, char **argv)
 {

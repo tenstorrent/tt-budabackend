@@ -1,13 +1,17 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "model/pipe_graph/pipe_graph.h"
 
-#include "device/tt_xy_pair.h"
-#include "model/pipe_graph/pg_buffer.h"
+#include <memory>
 
 #include <gtest/gtest.h>
-#include <memory>
+
+#include "device/tt_xy_pair.h"
+
+#include "model/pipe_graph/pg_buffer.h"
+// clang-format on
 
 using namespace pipegen2;
 
@@ -20,7 +24,7 @@ TEST(Pipegen2_PipeGraph, AddBuffer_AddOneBuffer)
     PipeGraph pipe_graph;
     std::unique_ptr<PGBuffer> pg_buffer = std::make_unique<PGBuffer>();
     pg_buffer->set_id(100);
-    
+
     pipe_graph.add_buffer(std::move(pg_buffer));
     EXPECT_EQ(pipe_graph.get_buffers().size(), 1);
 
@@ -170,9 +174,9 @@ TEST(Pipegen2_PipeGraph, GetAllChipIds_GetMultipleChips)
 
     std::vector<ChipId> chip_ids = pipe_graph.get_all_chip_ids();
     EXPECT_EQ(chip_ids.size(), 3);
-    EXPECT_EQ(std::count(chip_ids.begin(),chip_ids.end(), 0), 1);
-    EXPECT_EQ(std::count(chip_ids.begin(),chip_ids.end(), 1), 1);
-    EXPECT_EQ(std::count(chip_ids.begin(),chip_ids.end(), 2), 1);
+    EXPECT_EQ(std::count(chip_ids.begin(), chip_ids.end(), 0), 1);
+    EXPECT_EQ(std::count(chip_ids.begin(), chip_ids.end(), 1), 1);
+    EXPECT_EQ(std::count(chip_ids.begin(), chip_ids.end(), 2), 1);
 }
 
 /**********************************************************************************************************************

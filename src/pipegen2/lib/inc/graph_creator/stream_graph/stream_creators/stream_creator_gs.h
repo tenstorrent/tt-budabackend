@@ -7,14 +7,14 @@
 
 namespace pipegen2
 {
-    // Implements specific stream creation for Grayskull architecture.
-    class StreamCreatorGS : public StreamCreator
-    {
-    public:
-        StreamCreatorGS(): StreamCreator() {}
+// Implements specific stream creation for Grayskull architecture.
+class StreamCreatorGS : public StreamCreator
+{
+public:
+    StreamCreatorGS() : StreamCreator() {}
 
-    protected:
-        // Configures unpacker stream receiver parameters.
-        virtual void configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config) override;
-    };
-}
+protected:
+    // Configures unpacker stream receiver parameters.
+    virtual void configure_unpacker_stream_receiver_params(StreamConfig& base_stream_config) override;
+};
+}  // namespace pipegen2

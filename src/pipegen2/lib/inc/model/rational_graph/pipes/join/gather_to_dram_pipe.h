@@ -8,14 +8,14 @@
 
 namespace pipegen2
 {
-    class GatherToDramPipe : public JoinPipe, public INcriscWriterPipe
+class GatherToDramPipe : public JoinPipe, public INcriscWriterPipe
+{
+public:
+    GatherToDramPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        JoinPipe(RGPipeType::GatherToDram, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        GatherToDramPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            JoinPipe(RGPipeType::GatherToDram, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location)
-        {
-        }
+    }
 
-        std::vector<tt_cxy_pair> get_ncrisc_writer_streams_locations() const override;
-    };
-}
+    std::vector<tt_cxy_pair> get_ncrisc_writer_streams_locations() const override;
+};
+}  // namespace pipegen2

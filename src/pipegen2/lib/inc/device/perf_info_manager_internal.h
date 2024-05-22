@@ -5,11 +5,13 @@
 
 #include <vector>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
 
 #include "device/perf_info_enums.h"
 #include "device/soc_info.h"
 #include "model/typedefs.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -31,10 +33,7 @@ public:
     };
 
     WorkerThread(uint8_t thread_idx) :
-        m_noc_addr(0),
-        m_thread_mem_size(0),
-        m_num_thread_slots(0),
-        m_type(static_cast<ThreadType>(thread_idx))
+        m_noc_addr(0), m_thread_mem_size(0), m_num_thread_slots(0), m_type(static_cast<ThreadType>(thread_idx))
     {
     }
 
@@ -70,9 +69,8 @@ private:
 class HostSpillModeAttributes
 {
 public:
-    void set_attributes(uint64_t selected_worker_queue_header_addr,
-                        uint64_t host_trace_info,
-                        uint64_t host_dest_address);
+    void set_attributes(
+        uint64_t selected_worker_queue_header_addr, uint64_t host_trace_info, uint64_t host_dest_address);
 
     std::vector<uint64_t> get_attributes() const;
 
@@ -108,9 +106,8 @@ public:
     std::vector<uint64_t> get_threads_num_slots() const;
 
     // Sets WorkerCore attributes used in kHostSpillPerfTrace mode.
-    void set_host_spill_mode_attributes(uint64_t selected_worker_queue_header_addr,
-                                        uint64_t host_trace_info,
-                                        uint64_t host_dest_address);
+    void set_host_spill_mode_attributes(
+        uint64_t selected_worker_queue_header_addr, uint64_t host_trace_info, uint64_t host_dest_address);
 
     // Returns vector of attributes used in kHostSpillPerfTrace mode.
     std::vector<uint64_t> get_host_spill_mode_attributes() const;
@@ -178,32 +175,30 @@ private:
 };
 
 // Returns mapping from DRAM core locations to vector of worker cores that write perf info to that DRAM core.
-std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> map_workers_to_dram_banks_on_chip(const ChipId chip_id,
-                                                                                            const SoCInfo* soc_info);
+std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> map_workers_to_dram_banks_on_chip(
+    const ChipId chip_id, const SoCInfo* soc_info);
 
 // Finds nearest DRAM core from list of cores upper-left to the worker core location.
-tt_cxy_pair get_nearest_dram_core(const tt_cxy_pair& worker_core_location,
-                                  std::vector<tt_cxy_pair>& dram_cores_locations,
-                                  const SoCInfo* soc_info);
+tt_cxy_pair get_nearest_dram_core(
+    const tt_cxy_pair& worker_core_location, std::vector<tt_cxy_pair>& dram_cores_locations, const SoCInfo* soc_info);
 
 // Calculates how much space does a single worker take up in DRAM bank's perf buffer.
 uint32_t calculate_worker_mem_size(std::size_t num_workers);
 
 // For each thread/RISC in a worker calculates how much space it takes up in perf buffer.
-void calculate_worker_threads_mem_size(std::vector<WorkerCore>& workers,
-                                       uint32_t perf_buf_worker_mem_size,
-                                       PerfDumpLevel perf_dump_level);
+void calculate_worker_threads_mem_size(
+    std::vector<WorkerCore>& workers, uint32_t perf_buf_worker_mem_size, PerfDumpLevel perf_dump_level);
 
 // For each thread in each worker mapped to this dram bank calculates its NOC address.
-void calculate_worker_threads_noc_addr(std::vector<WorkerCore>& workers,
-                                       const DramCore& dram_bank,
-                                       uint64_t perf_buf_worker_mem_size);
+void calculate_worker_threads_noc_addr(
+    std::vector<WorkerCore>& workers, const DramCore& dram_bank, uint64_t perf_buf_worker_mem_size);
 
 // Calculates info that is stored in workers' attributes.
-void calculate_workers_host_spill_mode_info(std::vector<WorkerCore>& workers,
-                                            uint64_t num_host_queue_slots,
-                                            uint64_t host_dest_address,
-                                            const SoCInfo* soc_info);
+void calculate_workers_host_spill_mode_info(
+    std::vector<WorkerCore>& workers,
+    uint64_t num_host_queue_slots,
+    uint64_t host_dest_address,
+    const SoCInfo* soc_info);
 
 // Calculates how much space a single worker thread takes up in DRAM bank's perf buffer.
 uint32_t calculate_thread_mem_size(WorkerThread::ThreadType thread_type, PerfDumpLevel perf_dump_level);
@@ -212,14 +207,13 @@ uint32_t calculate_thread_mem_size(WorkerThread::ThreadType thread_type, PerfDum
 uint32_t calculate_num_host_queue_slots(PerfDumpLevel perf_dump_level);
 
 // Returns info about HOST perf trace packed into 64bit word.
-uint64_t calculate_host_trace_info(const tt_cxy_pair& unharvested_worker_core_location,
-                                   const uint32_t num_host_queue_slots,
-                                   const bool is_first_core_in_bank);
+uint64_t calculate_host_trace_info(
+    const tt_cxy_pair& unharvested_worker_core_location,
+    const uint32_t num_host_queue_slots,
+    const bool is_first_core_in_bank);
 
 // Returns NOC address of the queue on HOST to which this worker group writes perf data over PCIe.
-uint64_t calculate_host_dest_address(const ChipId chip_id,
-                                     const uint8_t worker_group_index,
-                                     const SoCInfo* soc_info);
+uint64_t calculate_host_dest_address(const ChipId chip_id, const uint8_t worker_group_index, const SoCInfo* soc_info);
 
-} // namespace perf_info_manager_internal
-} // namespace pipegen
+}  // namespace perf_info_manager_internal
+}  // namespace pipegen2

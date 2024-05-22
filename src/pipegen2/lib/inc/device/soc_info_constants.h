@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-# pragma once
+#pragma once
 
 #include <string>
 
@@ -47,5 +47,5 @@ constexpr std::size_t wh_harvested_grid_size = 32;
 // Prefix to be used in SOC descriptors yaml when it contains only paths to multiple SOC descriptor yamls.
 const std::string multi_soc_descriptors_prefix = "chip_descriptors:";
 
-} // namespace soc_info_constants
-} // namespace pipegen2
+}  // namespace soc_info_constants
+}  // namespace pipegen2

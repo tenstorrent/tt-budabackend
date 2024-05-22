@@ -3,13 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+// clang-format off
 #include <functional>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include "pipegen2_exceptions.h"
+
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 // Verifies that the thrown IllegalCoreResourceAllocationException exception has all the expected fields configured.
 void verify_illegal_resource_allocation_exception(
@@ -30,7 +33,7 @@ void verify_out_of_core_resource_exception(
 // Checks if repeated function() calls will return ReturnValueType in the same order as they are in expected_values, and
 // that the following call after that will throw exception of expected type and pass it to callback function to validate
 // the exception fields.
-template<typename ReturnValueType, typename Exception, typename Callback>
+template <typename ReturnValueType, typename Exception, typename Callback>
 void test_function_repeated_calls_until_exception_thrown(
     const std::function<ReturnValueType()>& function,
     const std::vector<ReturnValueType>& expected_values,
@@ -39,11 +42,7 @@ void test_function_repeated_calls_until_exception_thrown(
     for (const ReturnValueType& expected_return_value : expected_values)
     {
         pipegen2::unit_test_utils::verify_no_throw_and_return_value_eq<ReturnValueType>(
-            [&]() -> ReturnValueType
-            {
-                return function();
-            },
-            expected_return_value);
+            [&]() -> ReturnValueType { return function(); }, expected_return_value);
     }
 
     pipegen2::unit_test_utils::verify_throws_proper_exception<Exception>(function, callback);
@@ -51,5 +50,4 @@ void test_function_repeated_calls_until_exception_thrown(
 
 // Verifies that the thrown NoPhysicalCoreException exception has all the expected fields configured.
 void verify_no_physical_core_exception(
-    const pipegen2::NoPhysicalCoreException& ex,
-    const tt_cxy_pair& logical_core_location);
+    const pipegen2::NoPhysicalCoreException& ex, const tt_cxy_pair& logical_core_location);

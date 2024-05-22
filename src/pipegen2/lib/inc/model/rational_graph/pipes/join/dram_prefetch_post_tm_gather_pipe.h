@@ -12,12 +12,17 @@ namespace pipegen2
 class DramPrefetchPostTMGatherPipe : public JoinPipe, public INcriscReaderPipe
 {
 public:
-    DramPrefetchPostTMGatherPipe(RGPipeProperties&& rg_pipe_properties,
-                    const std::vector<int>& dram_input_total_readers,
-                    const std::vector<int>& dram_input_reader_index,
-                    const unsigned int max_dram_input_buffer_size_tiles,
-                    const tt_cxy_pair& physical_location) :
-        JoinPipe(RGPipeType::DramPrefetchPostTMGather, DataFlowType::Serial, std::move(rg_pipe_properties), physical_location),
+    DramPrefetchPostTMGatherPipe(
+        RGPipeProperties&& rg_pipe_properties,
+        const std::vector<int>& dram_input_total_readers,
+        const std::vector<int>& dram_input_reader_index,
+        const unsigned int max_dram_input_buffer_size_tiles,
+        const tt_cxy_pair& physical_location) :
+        JoinPipe(
+            RGPipeType::DramPrefetchPostTMGather,
+            DataFlowType::Serial,
+            std::move(rg_pipe_properties),
+            physical_location),
         m_dram_input_total_readers(dram_input_total_readers),
         m_dram_input_reader_index(dram_input_reader_index),
         m_max_dram_input_buffer_size_tiles(max_dram_input_buffer_size_tiles)
@@ -34,7 +39,7 @@ public:
     {
         // One stream with multiple NCRISC configs (one for each DramInputNode stream reads) will be created at
         // pipe's location.
-        return { get_physical_location() };
+        return {get_physical_location()};
     }
 
 private:
@@ -50,4 +55,4 @@ private:
     unsigned int m_max_dram_input_buffer_size_tiles;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

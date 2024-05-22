@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-
-
 #pragma once
+// clang-format off
 #include "model/pipe_graph/pg_buffer.h"
 #include "model/pipe_graph/pg_pipe.h"
 
 #include <gtest/gtest.h>
+// clang-format on
+
 using namespace pipegen2;
 
 // Compares that two pipes are the same by comparing their attributes.

@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class UnicastPipe : public DirectPipe
+class UnicastPipe : public DirectPipe
+{
+public:
+    UnicastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        DirectPipe(RGPipeType::Unicast, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        UnicastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            DirectPipe(RGPipeType::Unicast, std::move(rg_pipe_properties), physical_location)
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

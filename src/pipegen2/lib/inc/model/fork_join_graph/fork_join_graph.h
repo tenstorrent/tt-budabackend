@@ -25,4 +25,4 @@ private:
     std::vector<std::unique_ptr<ForkJoinPath>> m_fork_join_paths;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

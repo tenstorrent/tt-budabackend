@@ -3,23 +3,26 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/ethernet_core_resources.h"
 
+// clang-format off
 #include "eth_l1_address_map.h"
 #include "utils/logger.hpp"
 
 #include "device/core_resources_constants.h"
 #include "pipegen2_exceptions.h"
+// clang-format on
 
 namespace pipegen2
 {
 
 EthernetCoreResources::EthernetCoreResources(const tt_cxy_pair& core_physical_location) :
-    CoreResources(core_physical_location,
-                  core_physical_location /* logical location */,
-                  ethernet_core_resources_constants::ethernet_stream_id_range_end + 1,
-                  ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1 /* extra_streams_id_range_end */,
-                  eth_l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
-                  eth_l1_mem::address_map::MAX_SIZE,
-                  ethernet_core_resources_constants::l1_predefined_tile_header_buffer_address),
+    CoreResources(
+        core_physical_location,
+        core_physical_location /* logical location */,
+        ethernet_core_resources_constants::ethernet_stream_id_range_end + 1,
+        ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1 /* extra_streams_id_range_end */,
+        eth_l1_mem::address_map::DATA_BUFFER_SPACE_BASE,
+        eth_l1_mem::address_map::MAX_SIZE,
+        ethernet_core_resources_constants::l1_predefined_tile_header_buffer_address),
     m_next_available_ethernet_stream_id(ethernet_core_resources_constants::ethernet_stream_id_range_start),
     m_next_available_gather_multicast_stream_id(
         ethernet_core_resources_constants::gather_multicast_streams_id_range_start)
@@ -45,12 +48,13 @@ StreamId EthernetCoreResources::get_next_available_ethernet_stream_id()
     if (m_next_available_ethernet_stream_id > ethernet_core_resources_constants::ethernet_stream_id_range_end)
     {
         // Gather/multicast streams are also capable of doing ethernet transfers, so try using them.
-        log_debug(tt::LogPipegen2,
-                  "Out of available ethernet streams between {} and {} on core {}, starting allocating from {}",
-                  ethernet_core_resources_constants::ethernet_stream_id_range_start,
-                  ethernet_core_resources_constants::ethernet_stream_id_range_end,
-                  get_physical_location().str(),
-                  m_next_available_gather_multicast_stream_id);
+        log_debug(
+            tt::LogPipegen2,
+            "Out of available ethernet streams between {} and {} on core {}, starting allocating from {}",
+            ethernet_core_resources_constants::ethernet_stream_id_range_start,
+            ethernet_core_resources_constants::ethernet_stream_id_range_end,
+            get_physical_location().str(),
+            m_next_available_gather_multicast_stream_id);
 
         // If gather/multicast pool gets exhausted, catch the exception and rethrow it with proper message to
         // indicate lack of ethernet streams.
@@ -63,8 +67,8 @@ StreamId EthernetCoreResources::get_next_available_ethernet_stream_id()
             const unsigned int streams_capable_of_eth_transfers = calculate_ethernet_transfers_capable_streams_count();
             throw OutOfCoreResourcesException(
                 "Out of available ethernet streams on an ethernet core " + get_physical_location().str() + ". " +
-                "Available number of streams capable of doing ethernet transfers per ethernet core is " +
-                std::to_string(streams_capable_of_eth_transfers) + ".",
+                    "Available number of streams capable of doing ethernet transfers per ethernet core is " +
+                    std::to_string(streams_capable_of_eth_transfers) + ".",
                 get_physical_location(),
                 get_logical_location(),
                 OutOfCoreResourcesException::CoreResourceType::kEthernetStreams,
@@ -93,8 +97,8 @@ StreamId EthernetCoreResources::get_next_available_gather_multicast_stream_id()
         const unsigned int gather_mcast_streams_count = get_multicast_streams_count();
         throw OutOfCoreResourcesException(
             "Out of available gather / multicast streams on an ethernet core " + get_physical_location().str() +
-            ". Available number of gather / multicast streams per ethernet core is " +
-            std::to_string(gather_mcast_streams_count) + ".",
+                ". Available number of gather / multicast streams per ethernet core is " +
+                std::to_string(gather_mcast_streams_count) + ".",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGatherMulticastStreams,
@@ -108,10 +112,11 @@ StreamId EthernetCoreResources::get_next_available_general_purpose_stream_id()
 {
     if (m_next_available_extra_stream_id > get_extra_streams_id_range_end())
     {
-        log_debug(tt::LogPipegen2,
-                  "Out of available extra streams on core {}, starting allocating from {}",
-                  get_physical_location().str(),
-                  ethernet_core_resources_constants::gather_multicast_streams_id_range_end + 1);
+        log_debug(
+            tt::LogPipegen2,
+            "Out of available extra streams on core {}, starting allocating from {}",
+            get_physical_location().str(),
+            ethernet_core_resources_constants::gather_multicast_streams_id_range_end + 1);
 
         // Out of dedicated extra streams. Start allocating after gather multicast streams range.
         m_next_available_extra_stream_id = ethernet_core_resources_constants::gather_multicast_streams_id_range_end + 1;
@@ -122,8 +127,8 @@ StreamId EthernetCoreResources::get_next_available_general_purpose_stream_id()
         const unsigned int extra_streams_count = calculate_general_purpose_streams_count();
         throw OutOfCoreResourcesException(
             "Out of available extra streams on an ethernet core " + get_physical_location().str() + ". " +
-            "Available number of extra (general purpose) streams per ethernet core is " +
-            std::to_string(extra_streams_count) + ".",
+                "Available number of extra (general purpose) streams per ethernet core is " +
+                std::to_string(extra_streams_count) + ".",
             get_physical_location(),
             get_logical_location(),
             OutOfCoreResourcesException::CoreResourceType::kGeneralPurposeStreams,
@@ -155,4 +160,4 @@ unsigned int EthernetCoreResources::calculate_general_purpose_streams_count() co
     return extra_streams_count + additional_extra_streams;
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

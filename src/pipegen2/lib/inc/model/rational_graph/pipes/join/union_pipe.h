@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class UnionPipe : public JoinPipe
+class UnionPipe : public JoinPipe
+{
+public:
+    UnionPipe(const tt_cxy_pair& physical_location) :
+        JoinPipe(RGPipeType::Union, DataFlowType::Serial, RGPipeProperties(), physical_location)
     {
-    public:
-        UnionPipe(const tt_cxy_pair& physical_location) :
-            JoinPipe(RGPipeType::Union, DataFlowType::Serial, RGPipeProperties(), physical_location)
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

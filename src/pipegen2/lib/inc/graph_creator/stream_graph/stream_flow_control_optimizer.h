@@ -29,4 +29,4 @@ private:
     // Also sets the `dest_data_buf_no_flow_ctrl` flag on the destination stream node.
     void set_no_flow_control(StreamNode* source_stream, PhaseId start_phase_id, bool no_flow_control);
 };
-} // namespace pipegen2
+}  // namespace pipegen2

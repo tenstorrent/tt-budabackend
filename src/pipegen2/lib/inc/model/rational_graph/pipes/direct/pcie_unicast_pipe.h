@@ -8,18 +8,18 @@
 
 namespace pipegen2
 {
-    class PCIeUnicastPipe : public DirectPipe, public INcriscReaderPipe
+class PCIeUnicastPipe : public DirectPipe, public INcriscReaderPipe
+{
+public:
+    PCIeUnicastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        DirectPipe(RGPipeType::PCIeUnicast, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        PCIeUnicastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            DirectPipe(RGPipeType::PCIeUnicast, std::move(rg_pipe_properties), physical_location)
-        {
-        }
+    }
 
-        std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
-        {
-            // One stream and one NCRISC config will be allocated at unpacker's location.
-            return { get_output_node()->get_physical_location() };
-        }
-    };
-}
+    std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
+    {
+        // One stream and one NCRISC config will be allocated at unpacker's location.
+        return {get_output_node()->get_physical_location()};
+    }
+};
+}  // namespace pipegen2

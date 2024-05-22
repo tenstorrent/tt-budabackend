@@ -35,4 +35,4 @@ void E2EQueueHandler::handle(PipeGraph& pipe_graph)
     }
 }
 
-} // namespace pipegen2
+}  // namespace pipegen2

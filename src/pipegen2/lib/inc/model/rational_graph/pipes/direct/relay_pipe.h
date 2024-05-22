@@ -7,12 +7,12 @@
 
 namespace pipegen2
 {
-    class RelayPipe : public DirectPipe
+class RelayPipe : public DirectPipe
+{
+public:
+    RelayPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        DirectPipe(RGPipeType::Relay, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        RelayPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            DirectPipe(RGPipeType::Relay, std::move(rg_pipe_properties), physical_location)
-        {
-        }
-    };
-}
+    }
+};
+}  // namespace pipegen2

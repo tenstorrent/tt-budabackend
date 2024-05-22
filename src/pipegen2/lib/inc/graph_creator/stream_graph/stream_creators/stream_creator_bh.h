@@ -16,4 +16,4 @@ public:
     StreamCreatorBH() : StreamCreatorWH() {}
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

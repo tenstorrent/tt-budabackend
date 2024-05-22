@@ -8,20 +8,20 @@
 
 namespace pipegen2
 {
-    class PCIeMulticastPipe : public ForkPipe, public INcriscReaderPipe
+class PCIeMulticastPipe : public ForkPipe, public INcriscReaderPipe
+{
+public:
+    PCIeMulticastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
+        ForkPipe(
+            RGPipeType::PCIeMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties), physical_location)
     {
-    public:
-        PCIeMulticastPipe(RGPipeProperties&& rg_pipe_properties, const tt_cxy_pair& physical_location) :
-            ForkPipe(RGPipeType::PCIeMulticast, DataFlowType::ParallelCopy, std::move(rg_pipe_properties),
-                     physical_location)
-        {
-        }
+    }
 
-        std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
-        {
-            // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
-            // to other cores.
-            return { get_physical_location() };
-        }
-    };
-}
+    std::vector<tt_cxy_pair> get_ncrisc_reader_streams_locations() const override
+    {
+        // One stream and one NCRISC config will be allocated at pipe's location. From that location data is mcasted
+        // to other cores.
+        return {get_physical_location()};
+    }
+};
+}  // namespace pipegen2

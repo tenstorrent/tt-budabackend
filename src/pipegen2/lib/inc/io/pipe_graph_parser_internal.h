@@ -6,19 +6,20 @@
 #include <string>
 #include <vector>
 
+// clang-format off
 #include "device/soc_info.h"
 
 #include "model/pipe_graph/pg_buffer.h"
 #include "model/pipe_graph/pg_pipe.h"
 #include "model/pipe_graph/pipe_graph.h"
 #include "model/typedefs.h"
-
+// clang-format on
 
 namespace pipegen2
 {
 namespace pipe_graph_parser_internal
 {
-    
+
 // Buffer starting line prefix.
 const std::string s_buffer_prefix = "buffer_";
 
@@ -127,11 +128,11 @@ bool string_starts_with(const std::string& str, const std::string& prefix);
 // Converts buffer_type string to BufferType enum.
 BufferType parse_buffer_type_string(const std::string& s);
 
-// Checks whether buffer satisfies constraints that we can enforce during parsing. 
+// Checks whether buffer satisfies constraints that we can enforce during parsing.
 void check_buffer_constraints(const PGBuffer* pg_buffer);
 
 // Checks whether buffer exceeds maximum tiles that could fit in a phase. Throws exceptions if it does.
 void check_buffer_maximum_size_tiles_constraint(const PGBuffer* pg_buffer);
 
-} // namespace pipe_graph_parser_internal
-} // namespace pipegen2
+}  // namespace pipe_graph_parser_internal
+}  // namespace pipegen2

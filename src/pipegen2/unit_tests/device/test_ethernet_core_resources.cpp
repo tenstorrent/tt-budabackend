@@ -1,16 +1,20 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/ethernet_core_resources.h"
+
 #include <gtest/gtest.h>
 
 #include "device/tt_arch_types.h"
 #include "device/tt_xy_pair.h"
 
-#include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
-#include "device/ethernet_core_resources.h"
 #include "model/typedefs.h"
+
+#include "core_resources_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 
@@ -25,9 +29,7 @@ protected:
     {
         tt::ARCH arch = unit_test_utils::get_build_arch();
 
-        if (arch != tt::ARCH::WORMHOLE &&
-            arch != tt::ARCH::WORMHOLE_B0 &&
-            arch != tt::ARCH::BLACKHOLE)
+        if (arch != tt::ARCH::WORMHOLE && arch != tt::ARCH::WORMHOLE_B0 && arch != tt::ARCH::BLACKHOLE)
         {
             // Test skipped since it is only valid for archs which support ethernet transfers
             // (wormhole_b0 and blackhole).
@@ -83,10 +85,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableEthernetStreamId_Repeated
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return eth_core_resources.allocate_ethernet_stream();
-        },
+        [&]() -> StreamId { return eth_core_resources.allocate_ethernet_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -120,10 +119,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableGatherStreamId_RepeatedCa
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return eth_core_resources.allocate_gather_stream();
-        },
+        [&]() -> StreamId { return eth_core_resources.allocate_gather_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -157,10 +153,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableMulticastStreamId_Repeate
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return eth_core_resources.allocate_multicast_stream();
-        },
+        [&]() -> StreamId { return eth_core_resources.allocate_multicast_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {
@@ -187,9 +180,9 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableGeneralPurposeStreamId_Re
 
     // Expecting streams to be allocated in a certain order.
     for (uint8_t stream_id =
-            ethernet_core_resources_constants::ethernet_stream_id_range_end + 1; /* extra streams range start */
+             ethernet_core_resources_constants::ethernet_stream_id_range_end + 1; /* extra streams range start */
          stream_id <=
-            ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1; /* extra streams range end */
+         ethernet_core_resources_constants::ethernet_core_num_noc_streams - 1; /* extra streams range end */
          stream_id++)
     {
         expected_stream_ids.push_back(stream_id);
@@ -205,10 +198,7 @@ TEST_F(Pipegen2_EthernetCoreResources, GetNextAvailableGeneralPurposeStreamId_Re
 
     // Expecting streams to be allocated in a certain order, and after exhausted range an error thrown.
     test_function_repeated_calls_until_exception_thrown<StreamId, OutOfCoreResourcesException>(
-        [&]() -> StreamId
-        {
-            return eth_core_resources.allocate_general_purpose_stream();
-        },
+        [&]() -> StreamId { return eth_core_resources.allocate_general_purpose_stream(); },
         expected_stream_ids,
         [&](const OutOfCoreResourcesException& ex)
         {

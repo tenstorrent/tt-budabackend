@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
 #include "data_flow_calculator/subgraph_leaf_groups_finder.h"
 
 #include <map>
@@ -14,10 +15,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "model/data_flow/subgraph_leaf_groups.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
 #include "test_utils/data_flow_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace unit_test_utils;
@@ -35,15 +38,13 @@ using ::testing::UnorderedElementsAreArray;
 class Pipegen2_SubgraphLeafGroupsFinder_FindLeafGroups : public testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        m_node_id = 100;
-    }
+    void SetUp() override { m_node_id = 100; }
 
-    std::unique_ptr<DataFlowNodeMock> make_df_node_mock(DataFlowType data_flow_type,
-                                                        unsigned int num_root_to_leaf_paths,
-                                                        const std::optional<unsigned int>& root_to_leaf_path_index,
-                                                        unsigned int num_unique_df_paths)
+    std::unique_ptr<DataFlowNodeMock> make_df_node_mock(
+        DataFlowType data_flow_type,
+        unsigned int num_root_to_leaf_paths,
+        const std::optional<unsigned int>& root_to_leaf_path_index,
+        unsigned int num_unique_df_paths)
     {
         std::unique_ptr<DataFlowNodeMock> df_node_mock = std::make_unique<NiceMock<DataFlowNodeMock>>();
         ON_CALL(*df_node_mock, get_id()).WillByDefault(Return(m_node_id++));
@@ -58,43 +59,48 @@ protected:
 
     std::unique_ptr<DataFlowNodeMock> make_packer_df_node_mock()
     {
-        return make_df_node_mock(DataFlowType::Serial,
-                                 1 /* num_root_to_leaf_paths */,
-                                 std::nullopt /* root_to_leaf_path_index */,
-                                 1 /* num_unique_df_paths */);
+        return make_df_node_mock(
+            DataFlowType::Serial,
+            1 /* num_root_to_leaf_paths */,
+            std::nullopt /* root_to_leaf_path_index */,
+            1 /* num_unique_df_paths */);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_parallel_fork_df_node_mock()
     {
-        return make_df_node_mock(DataFlowType::Parallel,
-                                 1 /* num_root_to_leaf_paths */,
-                                 std::nullopt /* root_to_leaf_path_index */,
-                                 1 /* num_unique_df_paths */);
+        return make_df_node_mock(
+            DataFlowType::Parallel,
+            1 /* num_root_to_leaf_paths */,
+            std::nullopt /* root_to_leaf_path_index */,
+            1 /* num_unique_df_paths */);
     }
 
-    std::unique_ptr<DataFlowNodeMock> make_serial_fork_df_node_mock(unsigned int num_root_to_leaf_paths,
-                                                                    unsigned int root_to_leaf_path_index)
+    std::unique_ptr<DataFlowNodeMock> make_serial_fork_df_node_mock(
+        unsigned int num_root_to_leaf_paths, unsigned int root_to_leaf_path_index)
     {
-        return make_df_node_mock(DataFlowType::Serial,
-                                 num_root_to_leaf_paths,
-                                 std::make_optional(root_to_leaf_path_index),
-                                 1 /* num_unique_df_paths */);
+        return make_df_node_mock(
+            DataFlowType::Serial,
+            num_root_to_leaf_paths,
+            std::make_optional(root_to_leaf_path_index),
+            1 /* num_unique_df_paths */);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_virtual_df_node_mock(unsigned int num_unique_df_paths = 1)
     {
-        return make_df_node_mock(DataFlowType::Serial,
-                                 1 /* num_root_to_leaf_paths */,
-                                 std::nullopt /* root_to_leaf_path_index */,
-                                 num_unique_df_paths);
+        return make_df_node_mock(
+            DataFlowType::Serial,
+            1 /* num_root_to_leaf_paths */,
+            std::nullopt /* root_to_leaf_path_index */,
+            num_unique_df_paths);
     }
 
     std::unique_ptr<DataFlowNodeMock> make_unpacker_df_node_mock(unsigned int num_unique_df_paths = 1)
     {
-        return make_df_node_mock(DataFlowType::ParallelCopy,
-                                 1 /* num_root_to_leaf_paths */,
-                                 std::nullopt /* root_to_leaf_path_index */,
-                                 num_unique_df_paths);
+        return make_df_node_mock(
+            DataFlowType::ParallelCopy,
+            1 /* num_root_to_leaf_paths */,
+            std::nullopt /* root_to_leaf_path_index */,
+            num_unique_df_paths);
     }
 
     NodeId m_node_id;
@@ -130,26 +136,25 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinder_FindLeafGroups, CompoundDataFlowGraph)
 
     // First packer root node has a serial fork to two destinations on its only fork path. Naming pattern for the serial
     // fork nodes is serial_fork_node_<packer_id>_<fork_id>_<serial_fork_destination_id>.
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_1_1_1 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_a, 0 /* root_to_leaf_path_index */);
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_1_1_2 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_a, 2/* root_to_leaf_path_index */);
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_1_1_1 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_a, 0 /* root_to_leaf_path_index */);
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_1_1_2 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_a, 2 /* root_to_leaf_path_index */);
 
     // Second packer has two serial fork destinations on its only fork branch.
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_1_1 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_a, 0 /* root_to_leaf_path_index */);
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_1_2 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_a, 2 /* root_to_leaf_path_index */);
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_1_1 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_a, 0 /* root_to_leaf_path_index */);
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_1_2 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_a, 2 /* root_to_leaf_path_index */);
 
     // Second packer has one serial fork destination on its second fork branch. This is done to emulate the padding
     // buffers.
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_2_1 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_b, 0 /* root_to_leaf_path_index */);
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_2_2_1 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_b, 0 /* root_to_leaf_path_index */);
 
     // Third packer has one serial fork destination on its only fork branch.
-    std::unique_ptr<DataFlowNodeMock> serial_fork_node_3_1_1 = make_serial_fork_df_node_mock(
-        num_root_to_leaf_paths_b, 1 /* root_to_leaf_path_index */);
-
+    std::unique_ptr<DataFlowNodeMock> serial_fork_node_3_1_1 =
+        make_serial_fork_df_node_mock(num_root_to_leaf_paths_b, 1 /* root_to_leaf_path_index */);
 
     // Gather nodes ensure that different packer fork branches end up in the same subgraph. Despise these gather nodes
     // are in the same subgraph, each of them will open a different leaf group (which _1 and _2 suffixes indicate).
@@ -172,7 +177,7 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinder_FindLeafGroups, CompoundDataFlowGraph)
     std::unique_ptr<DataFlowNodeMock> unpacker_node_b_0_2 = make_unpacker_df_node_mock(2 /* num_unique_df_paths */);
     std::unique_ptr<DataFlowNodeMock> unpacker_node_b_0_3 = make_unpacker_df_node_mock(2 /* num_unique_df_paths */);
 
-    std::vector<DataFlowNode*> root_nodes {packer_node_1.get(), packer_node_2.get(), packer_node_3.get()};
+    std::vector<DataFlowNode*> root_nodes{packer_node_1.get(), packer_node_2.get(), packer_node_3.get()};
     connect_data_flow_graph({
         make_df_edge(packer_node_1, parallel_fork_node_1_1),
 
@@ -241,12 +246,10 @@ TEST_F(Pipegen2_SubgraphLeafGroupsFinder_FindLeafGroups, CompoundDataFlowGraph)
     EXPECT_EQ(subgraph_b.get_leaf_groups().size(), num_root_to_leaf_paths_b);
 
     // Both leaf groups will have the same leaf nodes because they are fed by the union node.
-    std::unordered_set<DataFlowNode*> expected_leaf_nodes {
+    std::unordered_set<DataFlowNode*> expected_leaf_nodes{
         unpacker_node_b_0_1.get(), unpacker_node_b_0_2.get(), unpacker_node_b_0_3.get()};
-    EXPECT_THAT(
-        subgraph_b.get_leaf_groups().at(0).get_leaf_nodes(), UnorderedElementsAreArray(expected_leaf_nodes));
-    EXPECT_THAT(
-        subgraph_b.get_leaf_groups().at(1).get_leaf_nodes(), UnorderedElementsAreArray(expected_leaf_nodes));
+    EXPECT_THAT(subgraph_b.get_leaf_groups().at(0).get_leaf_nodes(), UnorderedElementsAreArray(expected_leaf_nodes));
+    EXPECT_THAT(subgraph_b.get_leaf_groups().at(1).get_leaf_nodes(), UnorderedElementsAreArray(expected_leaf_nodes));
 
     // Empty leaf groups can be the result of gather node which gather multiple fork paths, because every fork
     // path will try to increase the subgrpah leaf ID, however only the ID of the first fork path will be propagated

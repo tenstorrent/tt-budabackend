@@ -11,7 +11,6 @@
 #include "l1_address_map.h"
 #include "noc/noc_parameters.h"
 #include "perf_lib/scratch_api.h"
-
 #include "utils/logger.hpp"
 
 namespace pipegen2
@@ -20,9 +19,7 @@ namespace perf_info_manager_internal
 {
 
 void HostSpillModeAttributes::set_attributes(
-    uint64_t selected_worker_queue_header_addr,
-    uint64_t host_trace_info,
-    uint64_t host_dest_address)
+    uint64_t selected_worker_queue_header_addr, uint64_t host_trace_info, uint64_t host_dest_address)
 {
     m_selected_worker_queue_header_addr = selected_worker_queue_header_addr;
     m_host_trace_info = host_trace_info;
@@ -31,19 +28,17 @@ void HostSpillModeAttributes::set_attributes(
 
 std::vector<uint64_t> HostSpillModeAttributes::get_attributes() const
 {
-    std::vector<uint64_t> host_spill_attributes
-    {
+    std::vector<uint64_t> host_spill_attributes{
         m_selected_worker_queue_header_addr,
         m_host_trace_info,
         m_host_dest_address,
         0, /* Unused by blobgen in host spill mode, returned because array of size 5 is expected. */
-        0 /* Unused by blobgen in host spill mode, returned because array of size 5 is expected. */
+        0  /* Unused by blobgen in host spill mode, returned because array of size 5 is expected. */
     };
     return host_spill_attributes;
 }
 
-WorkerCore::WorkerCore(tt_cxy_pair location):
-    m_location(location)
+WorkerCore::WorkerCore(tt_cxy_pair location) : m_location(location)
 {
     // Number of threads is fixed and same for all workers.
     constexpr uint8_t c_num_threads = l1_mem::address_map::PERF_NUM_THREADS;
@@ -81,9 +76,7 @@ std::vector<uint64_t> WorkerCore::get_threads_num_slots() const
 }
 
 void WorkerCore::set_host_spill_mode_attributes(
-    uint64_t selected_worker_queue_header_addr,
-    uint64_t host_trace_info,
-    uint64_t host_dest_address)
+    uint64_t selected_worker_queue_header_addr, uint64_t host_trace_info, uint64_t host_dest_address)
 {
     m_host_spill_mode_info.set_attributes(selected_worker_queue_header_addr, host_trace_info, host_dest_address);
 }
@@ -93,10 +86,8 @@ std::vector<uint64_t> WorkerCore::get_host_spill_mode_attributes() const
     return m_host_spill_mode_info.get_attributes();
 }
 
-
 std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> map_workers_to_dram_banks_on_chip(
-    const ChipId chip_id,
-    const SoCInfo* soc_info)
+    const ChipId chip_id, const SoCInfo* soc_info)
 {
     std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> worker_cores_per_dram_bank;
 
@@ -105,8 +96,8 @@ std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> map_workers_to_dram_ba
 
     for (const tt_cxy_pair& worker_core_location : soc_info->get_worker_cores_physical_locations(chip_id))
     {
-        tt_cxy_pair dram_core_location = get_nearest_dram_core(
-            worker_core_location, dram_cores_physical_locations_of_first_subchannel, soc_info);
+        tt_cxy_pair dram_core_location =
+            get_nearest_dram_core(worker_core_location, dram_cores_physical_locations_of_first_subchannel, soc_info);
 
         auto it = worker_cores_per_dram_bank.find(dram_core_location);
         if (it == worker_cores_per_dram_bank.end())
@@ -124,20 +115,15 @@ std::unordered_map<tt_cxy_pair, std::vector<tt_cxy_pair>> map_workers_to_dram_ba
 }
 
 tt_cxy_pair get_nearest_dram_core(
-    const tt_cxy_pair& worker_core_location,
-    std::vector<tt_cxy_pair>& dram_cores_locations,
-    const SoCInfo* soc_info)
+    const tt_cxy_pair& worker_core_location, std::vector<tt_cxy_pair>& dram_cores_locations, const SoCInfo* soc_info)
 {
     auto is_upper_left = [](const tt_cxy_pair& dram_core_location, const tt_cxy_pair& worker_core_location)
-    {
-        return (dram_core_location.x <= worker_core_location.x &&
-                dram_core_location.y <= worker_core_location.y);
-    };
+    { return (dram_core_location.x <= worker_core_location.x && dram_core_location.y <= worker_core_location.y); };
 
     auto distance = [](const tt_cxy_pair& dram_core_location, const tt_cxy_pair& worker_core_location)
     {
-        return (abs(dram_core_location.x - worker_core_location.x) +
-                abs(dram_core_location.y - worker_core_location.y));
+        return (
+            abs(dram_core_location.x - worker_core_location.x) + abs(dram_core_location.y - worker_core_location.y));
     };
 
     // Temporarily shift worker location to unharvested coordinate system in order to find nearest upper-left DRAM
@@ -166,9 +152,7 @@ uint32_t calculate_worker_mem_size(std::size_t num_workers)
 }
 
 void calculate_worker_threads_mem_size(
-    std::vector<WorkerCore>& workers,
-    uint32_t perf_buf_worker_mem_size,
-    PerfDumpLevel perf_dump_level)
+    std::vector<WorkerCore>& workers, uint32_t perf_buf_worker_mem_size, PerfDumpLevel perf_dump_level)
 {
     for (WorkerCore& worker : workers)
     {
@@ -212,10 +196,9 @@ uint32_t calculate_thread_mem_size(WorkerThread::ThreadType thread_type, PerfDum
     {
         case WorkerThread::ThreadType::kUnpackerTriscThread:
         case WorkerThread::ThreadType::kPackerTriscThread:
-            thread_mem_size =
-                perf_dump_level == PerfDumpLevel::kLevel0 ?
-                l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 / 2 :
-                l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2;
+            thread_mem_size = perf_dump_level == PerfDumpLevel::kLevel0
+                                  ? l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 / 2
+                                  : l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2;
             break;
 
         case WorkerThread::ThreadType::kMathTriscThread:
@@ -223,10 +206,9 @@ uint32_t calculate_thread_mem_size(WorkerThread::ThreadType thread_type, PerfDum
             break;
 
         case WorkerThread::ThreadType::kNcriscThread:
-            thread_mem_size =
-                perf_dump_level == PerfDumpLevel::kLevel0 ?
-                l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0 / 2 :
-                l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1 / 2;
+            thread_mem_size = perf_dump_level == PerfDumpLevel::kLevel0
+                                  ? l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0 / 2
+                                  : l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1 / 2;
             break;
 
         case WorkerThread::ThreadType::kBriscThread:
@@ -238,9 +220,7 @@ uint32_t calculate_thread_mem_size(WorkerThread::ThreadType thread_type, PerfDum
 }
 
 void calculate_worker_threads_noc_addr(
-    std::vector<WorkerCore>& workers,
-    const DramCore& dram_bank,
-    uint64_t perf_buf_worker_mem_size)
+    std::vector<WorkerCore>& workers, const DramCore& dram_bank, uint64_t perf_buf_worker_mem_size)
 {
     // Set worker perf buf address to the base of this DRAM bank.
     uint32_t perf_buf_worker_addr = dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_BASE;
@@ -248,8 +228,8 @@ void calculate_worker_threads_noc_addr(
     for (WorkerCore& worker : workers)
     {
         // Calculate NOC address for this worker inside perf buffer.
-        uint64_t worker_thread_buf_addr = NOC_XY_ADDR(
-            dram_bank.get_location().x, dram_bank.get_location().y, perf_buf_worker_addr);
+        uint64_t worker_thread_buf_addr =
+            NOC_XY_ADDR(dram_bank.get_location().x, dram_bank.get_location().y, perf_buf_worker_addr);
 
         for (WorkerThread& thread : worker.get_threads())
         {
@@ -270,9 +250,7 @@ void calculate_workers_host_spill_mode_info(
     const SoCInfo* soc_info)
 {
     uint64_t selected_worker_queue_header_addr = NOC_XY_ADDR(
-        workers.front().get_location().x,
-        workers.front().get_location().y,
-        l1_mem::address_map::PERF_QUEUE_PTRS);
+        workers.front().get_location().x, workers.front().get_location().y, l1_mem::address_map::PERF_QUEUE_PTRS);
 
     for (std::size_t worker_idx = 0; worker_idx < workers.size(); worker_idx++)
     {
@@ -284,17 +262,15 @@ void calculate_workers_host_spill_mode_info(
         uint64_t host_trace_info =
             calculate_host_trace_info(unharvested_worker_location, num_host_queue_slots, worker_idx == 0);
 
-        worker.set_host_spill_mode_attributes(
-            selected_worker_queue_header_addr, host_trace_info, host_dest_address);
+        worker.set_host_spill_mode_attributes(selected_worker_queue_header_addr, host_trace_info, host_dest_address);
     }
 }
 
 uint32_t calculate_num_host_queue_slots(PerfDumpLevel perf_dump_level)
 {
-    const uint32_t thread_dump_size =
-        perf_dump_level == PerfDumpLevel::kLevel0 ?
-        l1_mem::address_map::BRISC_PERF_BUF_SIZE :
-        l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2;
+    const uint32_t thread_dump_size = perf_dump_level == PerfDumpLevel::kLevel0
+                                          ? l1_mem::address_map::BRISC_PERF_BUF_SIZE
+                                          : l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2;
 
     const uint32_t device_dump_size = host_mem::address_map::NUM_THREADS_IN_EACH_DEVICE_DUMP * thread_dump_size;
     const uint32_t num_host_queue_slots = host_mem::address_map::HOST_PERF_QUEUE_SLOT_SIZE / device_dump_size;
@@ -308,14 +284,12 @@ uint64_t calculate_host_trace_info(
     const bool is_first_core_in_bank)
 {
     // TODO: this should be done a bit better, not squashing all this info into one 64bit word.
-    perf::PerfDumpHeader header
-    {
+    perf::PerfDumpHeader header{
         .x = uint8_t(unharvested_worker_core_location.x & 0xf),
         .y = uint8_t(unharvested_worker_core_location.y & 0xf),
         .chip_id = uint8_t(unharvested_worker_core_location.chip & 0xff),
         .thread_id = 0,
-        .epoch_id = 0
-    };
+        .epoch_id = 0};
     uint32_t header_word = *(reinterpret_cast<uint32_t*>(&header));
 
     uint64_t dram_buf_info =
@@ -324,22 +298,18 @@ uint64_t calculate_host_trace_info(
     return dram_buf_info;
 }
 
-uint64_t calculate_host_dest_address(
-    const ChipId chip_id,
-    const uint8_t worker_group_index,
-    const SoCInfo* soc_info)
+uint64_t calculate_host_dest_address(const ChipId chip_id, const uint8_t worker_group_index, const SoCInfo* soc_info)
 {
     // Each MMIO device has its own hugepage system memory and a separate set of queues. Since we are assuming all
     // chips are MMIO mapped (ie `get_closest_mmio_capable_chip(chip_id)` returns `chip_id` in pipegen 1), offset
     // here is always set to index of the worker group on this very chip. In practice, it should point to queue on
     // closest MMIO capable chip.
     // TODO: Revise this once MMIO logic is fixed in pipegen 1.
-    const uint64_t host_pcie_buf_addr =
-        host_mem::address_map::HOST_PERF_SCRATCH_BUF_START +
-        worker_group_index * host_mem::address_map::HOST_PERF_QUEUE_SLOT_SIZE;
+    const uint64_t host_pcie_buf_addr = host_mem::address_map::HOST_PERF_SCRATCH_BUF_START +
+                                        worker_group_index * host_mem::address_map::HOST_PERF_QUEUE_SLOT_SIZE;
 
     return soc_info->get_host_noc_address_through_pcie(host_pcie_buf_addr, chip_id);
 }
 
-} // namespace perf_info_manager_internal
-} // namespace pipegen2
+}  // namespace perf_info_manager_internal
+}  // namespace pipegen2

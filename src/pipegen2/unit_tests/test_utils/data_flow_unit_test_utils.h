@@ -7,11 +7,14 @@
 #include <utility>
 #include <vector>
 
-#include "mocks/model/data_flow_graph/df_node_mocks.h"
+// clang-format off
 #include "model/data_flow/data_flow_graph.h"
 #include "model/data_flow/data_flow_node.h"
 #include "model/data_flow/data_flow_node_input.h"
 #include "model/data_flow/subgraph_leaf_groups.h"
+
+#include "mocks/model/data_flow_graph/df_node_mocks.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -96,18 +99,20 @@ void verify_data_flow_nodes_num_iterations(
 
 // Checks that every receiver phase corresponds to contiguous subset of sender phases that sum up to the same number of
 // messages.
-void check_phase_alignment(const std::vector<PhaseInfo>& sender_phases,
-                           const std::vector<PhaseInfo>& receiver_phases,
-                           const unsigned int receiver_max_num_tiles_per_phase);
+void check_phase_alignment(
+    const std::vector<PhaseInfo>& sender_phases,
+    const std::vector<PhaseInfo>& receiver_phases,
+    const unsigned int receiver_max_num_tiles_per_phase);
 
 // Verifies that all transfer limits have been computed correctly for a given data flow node.
-void verify_transfer_limits(DataFlowNode* df_node,
-                            bool expected_is_on_single_source_path,
-                            unsigned int expected_num_iterations,
-                            unsigned int expected_tiles_to_send,
-                            unsigned int expected_number_of_paths_through_df_node,
-                            unsigned int expected_subtree_common_divisor,
-                            unsigned int expected_max_num_tiles_per_phase);
+void verify_transfer_limits(
+    DataFlowNode* df_node,
+    bool expected_is_on_single_source_path,
+    unsigned int expected_num_iterations,
+    unsigned int expected_tiles_to_send,
+    unsigned int expected_number_of_paths_through_df_node,
+    unsigned int expected_subtree_common_divisor,
+    unsigned int expected_max_num_tiles_per_phase);
 
-} // namespace unit_test_utils
-} // namespace pipegen2
+}  // namespace unit_test_utils
+}  // namespace pipegen2

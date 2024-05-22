@@ -7,20 +7,22 @@
 #include "device/tt_xy_pair.h"
 #include "model/stream_graph/stream_graph_collection.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Implements Union Find Disjoint Set data structure for finding multicast groups. Each multicast destination core
 // is a node in the graph. If two cores are in the same multicast group, then they are connected with an edge. If
 // two cores from different multicast groups are connected, then the two groups are merged into one.
-class MulticastGroupFinder {
-   public:
+class MulticastGroupFinder
+{
+public:
     // Returns a vector of all the merged multicast groups. Each multicast group is a set of cores.
     std::vector<std::unordered_set<tt_cxy_pair>> find_grouped_cores();
 
     // Unites two cores into the same multicast group.
     void unite_cores(const tt_cxy_pair& core1, const tt_cxy_pair& core2);
 
-   private:
+private:
     // Finds the parent core of a given core in the union find disjoint set.
     tt_cxy_pair find_parent_core(const tt_cxy_pair& core);
 
@@ -29,14 +31,15 @@ class MulticastGroupFinder {
 };
 
 // Allocates L1 memory for tile headers of all streams.
-class TileHeaderBuffersAllocator {
-   public:
+class TileHeaderBuffersAllocator
+{
+public:
     TileHeaderBuffersAllocator(const ResourceManager* resource_manager);
 
     // Allocates tile header buffers and assigns their addressses to all streams.
     void allocate_tile_header_buffers(const StreamGraphCollection* stream_graph_collection) const;
 
-   private:
+private:
     // Allocates buffer for each unique tile header (based on its size). If two or more streams have the same tile
     // header size, they will share the same buffer. Multicast destinations must have their tile headers in the same
     // order.

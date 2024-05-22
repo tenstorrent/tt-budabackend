@@ -6,17 +6,19 @@
 #include "device/resource_manager.h"
 #include "model/stream_graph/stream_graph_collection.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Allocates resources for every stream in stream graph.
-class StreamResourcesAllocator {
-   public:
+class StreamResourcesAllocator
+{
+public:
     StreamResourcesAllocator(const ResourceManager* resource_manager);
 
     // Allocates resources for all generated streams.
     void allocate_resources(StreamGraphCollection* stream_graph_collection) const;
 
-   private:
+private:
     // Assigns stream IDs to all streams in collection.
     void allocate_stream_ids(const StreamGraphCollection* stream_graph_collection) const;
 

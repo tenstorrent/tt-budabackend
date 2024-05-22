@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/resource_manager.h"
 
 #include <memory>
 #include <stdexcept>
@@ -16,19 +18,20 @@
 #include "device/core_resources_constants.h"
 #include "device/l1/l1_buffer.h"
 #include "device/operand_stream_map.h"
-#include "device/resource_manager.h"
 #include "device/resource_manager_internal.h"
 #include "device/soc_info.h"
 #include "device/worker_core_resources.h"
 #include "device/worker_core_resources_bh.h"
 #include "device/worker_core_resources_gs.h"
 #include "device/worker_core_resources_wh.h"
-#include "mocks/device/soc_info_mocks.h"
 #include "model/stream_graph/stream_node.h"
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
+
+#include "mocks/device/soc_info_mocks.h"
 #include "resource_manager_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 
@@ -39,10 +42,7 @@ using namespace pipegen2;
 class Pipegen2_ResourceManager : public testing::Test
 {
 protected:
-    virtual void SetUp() override
-    {
-        create_resource_manager();
-    }
+    virtual void SetUp() override { create_resource_manager(); }
 
     // Creates ResourceManager passing a SoCInfoMock object to its constructor in which all info about SoC project is
     // built for is contained.
@@ -77,47 +77,30 @@ protected:
     void verify_allocate_multicast_stream(StreamId expected_return_value) const
     {
         ::verify_allocate_multicast_stream(
-            m_chip_id,
-            m_soc_descriptor_file_mock.get(),
-            m_resource_manager.get(),
-            expected_return_value);
+            m_chip_id, m_soc_descriptor_file_mock.get(), m_resource_manager.get(), expected_return_value);
     }
 
     void verify_allocate_packer_multicast_stream(int operand_id, StreamId expected_return_value) const
     {
         ::verify_allocate_packer_multicast_stream(
-            m_chip_id,
-            m_soc_descriptor_file_mock.get(),
-            m_resource_manager.get(),
-            operand_id,
-            expected_return_value);
+            m_chip_id, m_soc_descriptor_file_mock.get(), m_resource_manager.get(), operand_id, expected_return_value);
     }
 
     void verify_allocate_ethernet_stream() const
     {
-        ::verify_allocate_ethernet_stream(
-            m_chip_id,
-            m_soc_descriptor_file_mock.get(),
-            m_resource_manager.get());
+        ::verify_allocate_ethernet_stream(m_chip_id, m_soc_descriptor_file_mock.get(), m_resource_manager.get());
     }
 
     void verify_allocate_l1_extra_overlay_blob_space(tt_cxy_pair core_location, unsigned int min_blob_size) const
     {
         ::verify_allocate_l1_extra_overlay_blob_space(
-            m_chip_id,
-            m_soc_descriptor_file_mock.get(),
-            m_resource_manager.get(),
-            core_location,
-            min_blob_size);
+            m_chip_id, m_soc_descriptor_file_mock.get(), m_resource_manager.get(), core_location, min_blob_size);
     }
 
     void verify_get_multicast_streams_count(unsigned int expected_multicast_streams_count) const
     {
         ::verify_get_multicast_streams_count(
-            m_chip_id,
-            m_soc_descriptor_file_mock.get(),
-            m_resource_manager.get(),
-            expected_multicast_streams_count);
+            m_chip_id, m_soc_descriptor_file_mock.get(), m_resource_manager.get(), expected_multicast_streams_count);
     }
 
     // Use only one dummy chip.
@@ -155,8 +138,7 @@ protected:
     {
         tt::ARCH arch = unit_test_utils::get_build_arch();
 
-        if (arch != tt::ARCH::WORMHOLE_B0 &&
-            arch != tt::ARCH::WORMHOLE)
+        if (arch != tt::ARCH::WORMHOLE_B0 && arch != tt::ARCH::WORMHOLE)
         {
             // Test skipped since it is only valid for wormhole arch.
             GTEST_SKIP();
@@ -221,8 +203,7 @@ TEST_F(Pipegen2_ResourceManager_GS, CreateEthernetCoreResources_AlwaysThrowsExc)
     tt_cxy_pair dummy_worker_location = tt_cxy_pair(0, 0, 0);
 
     EXPECT_THROW(
-        resource_manager_internal::create_ethernet_core_resources(m_arch, dummy_worker_location),
-        std::runtime_error);
+        resource_manager_internal::create_ethernet_core_resources(m_arch, dummy_worker_location), std::runtime_error);
 }
 
 TEST_F(Pipegen2_ResourceManager_WH, CreateEthernetCoreResources_ConstructsValidObject)
@@ -270,7 +251,7 @@ TEST_F(Pipegen2_ResourceManager, GetEthernetCoreResources_AlwaysThrowsExc)
     tt_cxy_pair dram_core_location =
         tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_dram_cores().front().front());
 
-    EXPECT_THROW(m_resource_manager->allocate_ethernet_stream(dram_core_location),std::runtime_error);
+    EXPECT_THROW(m_resource_manager->allocate_ethernet_stream(dram_core_location), std::runtime_error);
 }
 
 /**********************************************************************************************************************
@@ -322,8 +303,7 @@ TEST_F(Pipegen2_ResourceManager, AllocateUnpackerStream_ExpectingExactReturnValu
 {
     int operand_id = OPERAND_INPUT_START_INDEX;
     // Test unpacker stream allocation on worker core.
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     StreamId expected_return_value = OperandStreamMap::get_operand_stream_id(operand_id);
 
@@ -338,8 +318,7 @@ TEST_F(Pipegen2_ResourceManager, AllocateIntermedStream_ExpectingExactReturnValu
 {
     int operand_id = OPERAND_INTERMEDIATES_START_INDEX;
     // Test intermediate stream allocation on worker core.
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     StreamId expected_return_value = OperandStreamMap::get_operand_stream_id(operand_id);
 
@@ -355,23 +334,16 @@ TEST_F(Pipegen2_ResourceManager, AllocateIntermedStream_ExpectingExactReturnValu
 TEST_F(Pipegen2_ResourceManager, AllocateGatherStream_ExpectingExactReturnValue)
 {
     // Test gather stream allocation on worker core.
-    tt_cxy_pair core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     StreamId expected_return_value = worker_core_resources_gs_constants::gather_multicast_streams_id_range_start;
 
     EXPECT_EQ(m_resource_manager->allocate_gather_stream(core_location), expected_return_value);
 }
 
-TEST_F(Pipegen2_ResourceManager_WH, AllocateGatherStream_ExpectingExactReturnValue)
-{
-    verify_allocate_gather_stream();
-}
+TEST_F(Pipegen2_ResourceManager_WH, AllocateGatherStream_ExpectingExactReturnValue) { verify_allocate_gather_stream(); }
 
-TEST_F(Pipegen2_ResourceManager_BH, AllocateGatherStream_ExpectingExactReturnValue)
-{
-    verify_allocate_gather_stream();
-}
+TEST_F(Pipegen2_ResourceManager_BH, AllocateGatherStream_ExpectingExactReturnValue) { verify_allocate_gather_stream(); }
 
 /**********************************************************************************************************************
     Tests for function: allocate_multicast_stream
@@ -398,24 +370,21 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocateMulticastStream_ExpectingExactReturn
 
 TEST_F(Pipegen2_ResourceManager_GS, AllocatePackerMulticastStream_AlwaysThrowsExc)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     int operand_id = worker_core_resources_wh_constants::packer_multicast_stream_operand_id_range_start;
 
     // No packer-multicast streams available on GS.
     EXPECT_THROW(
-        m_resource_manager->allocate_packer_multicast_stream(worker_core_location, operand_id),
-        std::runtime_error);
+        m_resource_manager->allocate_packer_multicast_stream(worker_core_location, operand_id), std::runtime_error);
 }
 
 TEST_F(Pipegen2_ResourceManager_WH, AllocatePackerMulticastStream_ExpectingExactReturnValue)
 {
     int operand_id = worker_core_resources_wh_constants::packer_multicast_stream_operand_id_range_start;
 
-    StreamId expected_return_value =
-        worker_core_resources_wh_constants::gather_multicast_streams_id_range_end -
-        OperandStreamMap::get_output_index(operand_id);
+    StreamId expected_return_value = worker_core_resources_wh_constants::gather_multicast_streams_id_range_end -
+                                     OperandStreamMap::get_output_index(operand_id);
 
     verify_allocate_packer_multicast_stream(operand_id, expected_return_value);
 }
@@ -424,9 +393,8 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocatePackerMulticastStream_ExpectingExact
 {
     int operand_id = worker_core_resources_bh_constants::packer_multicast_stream_operand_id_range_start;
 
-    StreamId expected_return_value =
-        worker_core_resources_bh_constants::gather_multicast_streams_id_range_end -
-        OperandStreamMap::get_output_index(operand_id);
+    StreamId expected_return_value = worker_core_resources_bh_constants::gather_multicast_streams_id_range_end -
+                                     OperandStreamMap::get_output_index(operand_id);
 
     verify_allocate_packer_multicast_stream(operand_id, expected_return_value);
 }
@@ -438,8 +406,7 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocatePackerMulticastStream_ExpectingExact
 TEST_F(Pipegen2_ResourceManager, AllocateGeneralPurposeStream_ExpectingExactReturnValue)
 {
     // Test general purpose stream allocation on worker core.
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     StreamId expected_return_value = static_cast<StreamId>(END_IO_STREAM + 1);
 
@@ -505,8 +472,7 @@ TEST_F(Pipegen2_ResourceManager_BH, AllocateL1ExtraOverlayBlobSpace_ExpectingExa
 
 TEST_F(Pipegen2_ResourceManager, AllocateL1StreamBuffer_ExpectingExactReturnValue)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     // Memory is allocated from the end of L1 data buffers space towards beginning.
     int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
@@ -520,8 +486,8 @@ TEST_F(Pipegen2_ResourceManager, AllocateL1StreamBuffer_ExpectingExactReturnValu
     StreamNode stream_node(StreamType::Unpacker, worker_core_location, 1);
 
     EXPECT_NO_THROW(
-        l1_current_data_buffers_space_address = m_resource_manager->allocate_l1_stream_buffer(
-            &stream_node, half_of_available_space)->get_address());
+        l1_current_data_buffers_space_address =
+            m_resource_manager->allocate_l1_stream_buffer(&stream_node, half_of_available_space)->get_address());
 
     EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_start_address + (half_of_available_space));
 }
@@ -534,8 +500,7 @@ TEST_F(Pipegen2_ResourceManager, AllocateL1StreamBuffer_ExpectingExactReturnValu
 
 TEST_F(Pipegen2_ResourceManager, AllocateL1NcriscFallbackBuffer_ExpectingExactReturnValue)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     // Memory is allocated from the end of L1 data buffers space towards beginning.
     int l1_data_buffers_space_start_address = l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
@@ -548,8 +513,8 @@ TEST_F(Pipegen2_ResourceManager, AllocateL1NcriscFallbackBuffer_ExpectingExactRe
 
     EXPECT_NO_THROW(
         l1_current_data_buffers_space_address =
-            m_resource_manager->allocate_l1_ncrisc_fallback_buffer(
-                worker_core_location, half_of_available_space)->get_address());
+            m_resource_manager->allocate_l1_ncrisc_fallback_buffer(worker_core_location, half_of_available_space)
+                ->get_address());
 
     EXPECT_EQ(l1_current_data_buffers_space_address, l1_data_buffers_space_start_address + (half_of_available_space));
 }
@@ -560,8 +525,7 @@ TEST_F(Pipegen2_ResourceManager, AllocateL1NcriscFallbackBuffer_ExpectingExactRe
 
 TEST_F(Pipegen2_ResourceManager, AllocateKernelInput_ExpectingExactReturnValue)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     unsigned int expected_return_value = 0;
 
@@ -574,8 +538,7 @@ TEST_F(Pipegen2_ResourceManager, AllocateKernelInput_ExpectingExactReturnValue)
 
 TEST_F(Pipegen2_ResourceManager, AllocateKernelOutput_ExpectingExactReturnValue)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
 
     unsigned int expected_return_value = 0;
 
@@ -598,22 +561,19 @@ TEST_F(Pipegen2_ResourceManager, GetSocInfo_ExpectingExactReturnValue)
 
 TEST_F(Pipegen2_ResourceManager, IsEthernetCore_ExpectingExactReturnValue)
 {
-    tt_cxy_pair worker_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
+    tt_cxy_pair worker_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_worker_cores().front());
     EXPECT_EQ(m_resource_manager->is_ethernet_core(worker_core_location), false);
 }
 
 TEST_F(Pipegen2_ResourceManager_WH, IsEthernetCore_ExpectingExactReturnValue)
 {
-    tt_cxy_pair eth_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_ethernet_cores().front());
+    tt_cxy_pair eth_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_ethernet_cores().front());
     EXPECT_EQ(m_resource_manager->is_ethernet_core(eth_core_location), true);
 }
 
 TEST_F(Pipegen2_ResourceManager_BH, IsEthernetCore_ExpectingExactReturnValue)
 {
-    tt_cxy_pair eth_core_location =
-        tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_ethernet_cores().front());
+    tt_cxy_pair eth_core_location = tt_cxy_pair(m_chip_id, m_soc_descriptor_file_mock->get_ethernet_cores().front());
     EXPECT_EQ(m_resource_manager->is_ethernet_core(eth_core_location), true);
 }
 

@@ -8,9 +8,6 @@
 namespace pipegen2
 {
 
-ForkJoinGraph::ForkJoinGraph(std::vector<std::unique_ptr<ForkJoinPath>>& fork_join_paths)
-{
-    
-}
+ForkJoinGraph::ForkJoinGraph(std::vector<std::unique_ptr<ForkJoinPath>>& fork_join_paths) {}
 
-} // namespace pipegen2
+}  // namespace pipegen2

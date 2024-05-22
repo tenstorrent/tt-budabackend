@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+// clang-format off
 #include "eth_l1_address_map.h"
 #include "l1_address_map.h"
 #include "src/firmware/riscv/common/dram_stream_intf_constants.h"
 
 #include "model/typedefs.h"
 #include "pipegen2_constants.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -51,7 +53,7 @@ constexpr unsigned int max_num_active_buffers_accessed_through_l0 = MAX_L0_DRAM_
 // Memory in bytes one NCRISC FW struct used for keeping track of reading and writing to DRAM or PCIe buffers takes up.
 constexpr unsigned int ncrisc_buffer_tracking_struct_size = EXPECTED_DRAM_Q_STATE_T_STRUCT_SIZE;
 
-} // namespace core_resources_constants
+}  // namespace core_resources_constants
 
 namespace ethernet_core_resources_constants
 {
@@ -73,22 +75,20 @@ constexpr StreamId gather_multicast_streams_id_range_start = 0;
 constexpr StreamId gather_multicast_streams_id_range_end = 3;
 
 // Predefined tile header buffer address in L1.
-constexpr unsigned int l1_predefined_tile_header_buffer_address =
-    eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
-    128 /* cushion bytes */ -
-    pipegen2::constants::tile_header_buffer_size_bytes;
+constexpr unsigned int l1_predefined_tile_header_buffer_address = eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
+                                                                  128 /* cushion bytes */ -
+                                                                  pipegen2::constants::tile_header_buffer_size_bytes;
 
-} // namespace ethernet_core_resources_constants
+}  // namespace ethernet_core_resources_constants
 
 namespace worker_core_resources_constants
 {
 
 // Predefined tile header buffer address in L1.
-constexpr unsigned int l1_predefined_tile_header_buffer_address =
-    l1_mem::address_map::OVERLAY_BLOB_BASE -
-    128 /* cushion bytes */ -
-    pipegen2::constants::tile_header_buffer_size_bytes;
-}
+constexpr unsigned int l1_predefined_tile_header_buffer_address = l1_mem::address_map::OVERLAY_BLOB_BASE -
+                                                                  128 /* cushion bytes */ -
+                                                                  pipegen2::constants::tile_header_buffer_size_bytes;
+}  // namespace worker_core_resources_constants
 
 namespace worker_core_resources_gs_constants
 {
@@ -101,7 +101,7 @@ constexpr StreamId gather_multicast_streams_id_range_start = 0;
 // Stream 3 is reserved for fast tile clearing in Grayskull.
 constexpr StreamId gather_multicast_streams_id_range_end = 2;
 
-} // namespace worker_core_resources_gs_constants
+}  // namespace worker_core_resources_gs_constants
 
 namespace worker_core_resources_wh_constants
 {
@@ -121,7 +121,7 @@ constexpr unsigned int packer_multicast_stream_operand_id_range_start = 16;
 // Last valid operand ID for which packer-multicast stream can be allocated.
 constexpr unsigned int packer_multicast_stream_operand_id_range_end = 19;
 
-} // namespace worker_core_resources_wh_constants
+}  // namespace worker_core_resources_wh_constants
 
 namespace worker_core_resources_bh_constants
 {
@@ -141,5 +141,5 @@ constexpr unsigned int packer_multicast_stream_operand_id_range_start = 16;
 // Last valid operand ID for which packer-multicast stream can be allocated.
 constexpr unsigned int packer_multicast_stream_operand_id_range_end = 19;
 
-} // namespace worker_core_resources_bh_constants
-} // namespace pipegen2
+}  // namespace worker_core_resources_bh_constants
+}  // namespace pipegen2

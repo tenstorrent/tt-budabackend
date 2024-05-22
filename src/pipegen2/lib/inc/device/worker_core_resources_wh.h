@@ -36,4 +36,4 @@ private:
     StreamId m_next_available_gather_multicast_stream_id;
 };
 
-} // namespace pipegen2
+}  // namespace pipegen2

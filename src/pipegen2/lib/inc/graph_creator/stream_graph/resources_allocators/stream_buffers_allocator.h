@@ -10,27 +10,31 @@
 #include "device/resource_manager.h"
 #include "model/stream_graph/stream_graph_collection.h"
 
-namespace pipegen2 {
+namespace pipegen2
+{
 
 // Helper class for tracking allocated padding buffer per worker core. If two or more streams on the same core are
 // reading from padding buffers which have the same buffers size and the same address (because they use the same
 // padding value), then only one buffer should be allocated on that core on which the padding buffer will be
 // prologued, and from which all the streams can read.
-class WorkerCorePaddingTable {
-   public:
+class WorkerCorePaddingTable
+{
+public:
     // Checks if there is already a padding buffer allocated for a given buffer size and noc address.
     bool has_allocated_buffer(const unsigned int buffer_size, const std::uint64_t dram_buf_noc_addr) const;
 
     // Sets buffer adress of the allocated padding buffers so that all next padding buffers with the same size
     // and the same noc address can use that buffer on the worker core.
-    void set_allocated_buffer_address(const unsigned int buffer_size, const std::uint64_t dram_buf_noc_addr,
-                                      const unsigned int allocated_padding_buffer_address);
+    void set_allocated_buffer_address(
+        const unsigned int buffer_size,
+        const std::uint64_t dram_buf_noc_addr,
+        const unsigned int allocated_padding_buffer_address);
 
     // Returns the buffer address of a padding buffer of specific size and noc address.
-    unsigned int get_allocated_buffer_address(const unsigned int buffer_size,
-                                              const std::uint64_t dram_buf_noc_addr) const;
+    unsigned int get_allocated_buffer_address(
+        const unsigned int buffer_size, const std::uint64_t dram_buf_noc_addr) const;
 
-   private:
+private:
     // Mapping between padding buffer size in bytes and the local address bits of the NOC address (lower 35 bits)
     // to the address of the allocated padding buffer.
     std::unordered_map<unsigned int, std::unordered_map<std::uint64_t, unsigned int>> m_allocated_padding_buffers;
@@ -38,14 +42,15 @@ class WorkerCorePaddingTable {
 
 // Allocates a buffer for every streams which requires a buffer, configures the stream buf_addr field with the
 // address of the allocatead buffer and updates all the streams in the fork group to have the same buffer address.
-class StreamBuffersAllocator {
-   public:
+class StreamBuffersAllocator
+{
+public:
     StreamBuffersAllocator(const ResourceManager* resource_manager);
 
     // Allocates L1 memory for all stream buffers.
     void allocate_stream_buffers(const StreamGraphCollection* stream_graph_collection);
 
-   private:
+private:
     // Allocates L1 memory for given stream buffer.
     void allocate_stream_buffer(StreamNode* stream_node);
 

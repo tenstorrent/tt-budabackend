@@ -1,19 +1,23 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// clang-format off
+#include "device/l1/l1_data_buffers_memory_layout.h"
+
 #include <memory>
 
 #include <gtest/gtest.h>
 
 #include "device/tt_xy_pair.h"
 
-#include "core_resources_unit_test_utils.h"
 #include "device/core_resources_constants.h"
 #include "device/l1/l1_buffer.h"
-#include "device/l1/l1_data_buffers_memory_layout.h"
 #include "model/stream_graph/stream_node.h"
 #include "pipegen2_constants.h"
+
+#include "core_resources_unit_test_utils.h"
 #include "test_utils/unit_test_utils.h"
+// clang-format on
 
 using namespace pipegen2;
 using namespace pipegen2::unit_test_utils;
@@ -44,25 +48,13 @@ protected:
         return m_l1_data_buffers_space_end_address - m_l1_data_buffers_space_start_address;
     }
 
-    unsigned int get_overlay_blob_size() const
-    {
-        return l1_mem::address_map::OVERLAY_BLOB_SIZE;
-    }
+    unsigned int get_overlay_blob_size() const { return l1_mem::address_map::OVERLAY_BLOB_SIZE; }
 
-    unsigned int get_data_buffers_space_base() const
-    {
-        return l1_mem::address_map::DATA_BUFFER_SPACE_BASE;
-    }
+    unsigned int get_data_buffers_space_base() const { return l1_mem::address_map::DATA_BUFFER_SPACE_BASE; }
 
-    unsigned int get_max_size() const
-    {
-        return l1_mem::address_map::MAX_SIZE;
-    }
+    unsigned int get_max_size() const { return l1_mem::address_map::MAX_SIZE; }
 
-    unsigned int get_unused_space_bytes() const
-    {
-        return constants::unused_data_buffers_space_bytes;
-    }
+    unsigned int get_unused_space_bytes() const { return constants::unused_data_buffers_space_bytes; }
 
     unsigned int get_predefined_tile_header_buffer_address() const
     {
@@ -121,10 +113,7 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1TileHeaderBuffer_AllocateUn
 
     // Expect an error to be thrown when specifically checking if L1 is out of memory.
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory();
-        },
+        [&]() { m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory(); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -156,12 +145,11 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1StreamBuffer_AllocateUntilO
     unsigned int allocated_l1_data_buffers_size = available_space - 1;
 
     EXPECT_NO_THROW(
-        l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_stream_buffer(
-            &stream_node, allocated_l1_data_buffers_size));
+        l1_current_data_buffer =
+            m_l1_data_buffers_memory->allocate_l1_stream_buffer(&stream_node, allocated_l1_data_buffers_size));
     EXPECT_EQ(
         l1_current_data_buffer->get_address(), m_l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
 
     // Allocate one more byte which will take up entire available space.
     m_l1_data_buffers_memory->allocate_l1_stream_buffer(&stream_node, 1);
@@ -172,10 +160,7 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1StreamBuffer_AllocateUntilO
 
     // Expect an error to be thrown when specifically checking if L1 is out of memory.
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory();
-        },
+        [&]() { m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory(); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -206,12 +191,11 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1NcriscFallbackBuffer_Alloca
     unsigned int allocated_l1_data_buffers_size = available_space - 1;
 
     EXPECT_NO_THROW(
-        l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_ncrisc_fallback_buffer(
-            allocated_l1_data_buffers_size));
+        l1_current_data_buffer =
+            m_l1_data_buffers_memory->allocate_l1_ncrisc_fallback_buffer(allocated_l1_data_buffers_size));
     EXPECT_EQ(
         l1_current_data_buffer->get_address(), m_l1_data_buffers_space_end_address - allocated_l1_data_buffers_size);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), allocated_l1_data_buffers_size);
 
     // Allocate one more byte which will take up entire available space.
     m_l1_data_buffers_memory->allocate_l1_ncrisc_fallback_buffer(1);
@@ -221,10 +205,7 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1NcriscFallbackBuffer_Alloca
     m_l1_data_buffers_memory->allocate_l1_ncrisc_fallback_buffer(1);
 
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory();
-        },
+        [&]() { m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory(); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(
@@ -247,14 +228,13 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1ExtraOverlayBlobSpace_Alloc
 {
     // Allocate nothing, dummy call.
     const L1Buffer* l1_current_data_buffer;
-    EXPECT_NO_THROW(
-        l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(0, false));
+    EXPECT_NO_THROW(l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(0, false));
     EXPECT_EQ(l1_current_data_buffer, nullptr);
 
     // Allocating <= default blob size won't allocate additional space.
     EXPECT_NO_THROW(
-        l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(
-            get_overlay_blob_size(), false));
+        l1_current_data_buffer =
+            m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(get_overlay_blob_size(), false));
     EXPECT_EQ(l1_current_data_buffer, nullptr);
 }
 
@@ -266,17 +246,14 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1ExtraOverlayBlobSpace_Alloc
 
     const L1Buffer* l1_current_data_buffer;
     EXPECT_NO_THROW(
-        l1_current_data_buffer = m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(
-            total_blob_size, false));
-    EXPECT_EQ(
-        l1_current_data_buffer->get_address(), m_l1_data_buffers_space_start_address);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), extra_blob_space);
+        l1_current_data_buffer =
+            m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false));
+    EXPECT_EQ(l1_current_data_buffer->get_address(), m_l1_data_buffers_space_start_address);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), extra_blob_space);
 
     // Trying to allocate extra overlay blob space again will return the same buffer.
     EXPECT_EQ(
-        m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false),
-        l1_current_data_buffer);
+        m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false), l1_current_data_buffer);
 }
 
 TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1ExtraOverlayBlobSpace_AllocateUntilOutOfMemory)
@@ -288,17 +265,12 @@ TEST_F(Pipegen2_L1DataBuffersMemoryLayout, AllocateL1ExtraOverlayBlobSpace_Alloc
     const L1Buffer* l1_current_data_buffer = nullptr;
     EXPECT_NO_THROW(
         l1_current_data_buffer =
-        m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false));
-    EXPECT_EQ(
-        l1_current_data_buffer->get_address(), m_l1_data_buffers_space_start_address);
-    EXPECT_EQ(
-        l1_current_data_buffer->get_size(), extra_blob_space);
+            m_l1_data_buffers_memory->allocate_l1_extra_overlay_blob_space(total_blob_size, false));
+    EXPECT_EQ(l1_current_data_buffer->get_address(), m_l1_data_buffers_space_start_address);
+    EXPECT_EQ(l1_current_data_buffer->get_size(), extra_blob_space);
 
     verify_throws_proper_exception<OutOfCoreResourcesException>(
-        [&]()
-        {
-            m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory();
-        },
+        [&]() { m_l1_data_buffers_memory->check_if_out_of_l1_data_buffers_memory(); },
         [&](const OutOfCoreResourcesException& ex)
         {
             verify_out_of_core_resource_exception(

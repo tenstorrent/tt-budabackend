@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "device/soc_info_unit_test_utils.h"
 
+// clang-format off
 #include <gtest/gtest.h>
 
 #include "noc_parameters.h"
+// clang-format on
 
-void expect_equivalent_vectors(const std::vector<tt_cxy_pair>& vector_cxy_pairs,
-                               const std::vector<tt_xy_pair>& vector_xy_pairs)
+void expect_equivalent_vectors(
+    const std::vector<tt_cxy_pair>& vector_cxy_pairs, const std::vector<tt_xy_pair>& vector_xy_pairs)
 {
     EXPECT_EQ(vector_cxy_pairs.size(), vector_xy_pairs.size());
 
@@ -19,8 +21,9 @@ void expect_equivalent_vectors(const std::vector<tt_cxy_pair>& vector_cxy_pairs,
     }
 }
 
-void expect_equivalent_vectors(const std::vector<std::vector<tt_cxy_pair>>& nested_vector_cxy_pairs,
-                               const std::vector<std::vector<tt_xy_pair>>& nested_vector_xy_pairs)
+void expect_equivalent_vectors(
+    const std::vector<std::vector<tt_cxy_pair>>& nested_vector_cxy_pairs,
+    const std::vector<std::vector<tt_xy_pair>>& nested_vector_xy_pairs)
 {
     EXPECT_EQ(nested_vector_cxy_pairs.size(), nested_vector_xy_pairs.size());
 
@@ -37,7 +40,7 @@ void verify_convert_logical_to_physical_worker_core_coords(
 {
     EXPECT_EQ(logical_locations.size(), expected_physical_coordinates.size());
 
-    //for (const tt_cxy_pair& logical_location : logical_locations)
+    // for (const tt_cxy_pair& logical_location : logical_locations)
     for (std::size_t i = 0; i < logical_locations.size(); i++)
     {
         EXPECT_EQ(
@@ -59,8 +62,7 @@ void verify_get_host_noc_address_through_pcie(
         NOC_XY_ADDR(expected_first_pcie_core.x, expected_first_pcie_core.y, host_pcie_buf_addr) + additional_offset;
 
     EXPECT_EQ(
-        soc_info->get_host_noc_address_through_pcie(host_pcie_buf_addr, chip_id),
-        expected_host_noc_addr_through_pcie);
+        soc_info->get_host_noc_address_through_pcie(host_pcie_buf_addr, chip_id), expected_host_noc_addr_through_pcie);
 }
 
 void verify_get_local_pcie_buffer_address(

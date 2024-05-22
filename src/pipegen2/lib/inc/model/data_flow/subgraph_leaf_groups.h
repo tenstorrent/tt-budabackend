@@ -54,20 +54,16 @@ private:
 class SubgraphLeafGroups
 {
 public:
-    explicit SubgraphLeafGroups(
-        const std::unordered_map<unsigned int, unsigned int>& root_to_leaf_paths_per_subgrpah);
+    explicit SubgraphLeafGroups(const std::unordered_map<unsigned int, unsigned int>& root_to_leaf_paths_per_subgrpah);
 
     // Adds a leaf node to the corresponding subgraph cluster.
     void add_leaf_node(DataFlowNode* leaf_node, unsigned int subgraph_path_index);
 
-    const std::unordered_map<unsigned int, LeafGroupOrder>& get_subgraph_leaves() const
-    {
-        return m_subgraph_leaves;
-    }
+    const std::unordered_map<unsigned int, LeafGroupOrder>& get_subgraph_leaves() const { return m_subgraph_leaves; }
 
 private:
     // Mapping between subgraph id and the corresponding ordered leaf groups.
     std::unordered_map<unsigned int, LeafGroupOrder> m_subgraph_leaves;
 };
 
-}
+}  // namespace pipegen2
