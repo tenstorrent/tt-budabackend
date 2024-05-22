@@ -459,11 +459,14 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
 }
 
 void tt_runtime::verify_eth_fw_version() {
-    if (arch_name != tt::ARCH::GRAYSKULL and target_type == TargetDevice::Silicon) {
-        // Only check ethernet FW version for Silicon backend (not on GS devices)
-        tt_version cluster_eth_fw_version = cluster -> get_ethernet_fw_version();
-        tt_version min_eth_fw_version = tt_version(6, 8, 0);
-        log_assert(cluster_eth_fw_version >= min_eth_fw_version, "The minimum ethernet Firmware Version for the cluster is expected to be 6.8.0 for compatibility with Buda Runtime.");
+    if (target_type == TargetDevice::Silicon) {
+        // MT Initial BH - skip eth FW verif on Blackhole as well
+        if (arch_name != tt::ARCH::GRAYSKULL and arch_name != tt::ARCH::BLACKHOLE) {        // Skip eth fw version 
+            // Only check ethernet FW version for Silicon backend (not on GS devices)
+            tt_version cluster_eth_fw_version = cluster -> get_ethernet_fw_version();
+            tt_version min_eth_fw_version = tt_version(6, 8, 0);
+            log_assert(cluster_eth_fw_version >= min_eth_fw_version, "The minimum ethernet Firmware Version for the cluster is expected to be 6.8.0 for compatibility with Buda Runtime.");
+        }
     }
 }
 
@@ -2230,19 +2233,23 @@ void tt_runtime::ensure_devices_present(const TargetDevice &target_type) {
 void tt_runtime::query_all_device_aiclks(std::string loc) {
     if (target_type == TargetDevice::Silicon){
 
-        // Env-var for AICLK checking purposes only (not setting)
-        int aiclk_target = parse_env("TT_BACKEND_CHECK_TARGET_AICLK", 0);
+        // MT Initial BH - Remove AICLK query due to lack of ARC message support
+        if (arch_name != tt::ARCH::BLACKHOLE) {
+            // Env-var for AICLK checking purposes only (not setting)
+            int aiclk_target = parse_env("TT_BACKEND_CHECK_TARGET_AICLK", 0);
 
-        std::map<int, int> freq_all_devices = cluster->get_all_device_aiclks();
-        for (auto &device: freq_all_devices){
-            auto device_id = device.first;
-            auto aiclk = device.second;
-            if (aiclk_target > 0 && aiclk < aiclk_target){
-                log_fatal("Observed AICLK: {} for device_id: {} less than target_aiclk: {} at {}", aiclk, device_id, aiclk_target, loc);
-            }else{
-                log_debug(tt::LogRuntime, "Observed AICLK: {} for device_id: {} matches/exceeds target aiclk: {} at {}", aiclk, device_id, aiclk_target, loc);
+            std::map<int, int> freq_all_devices = cluster->get_all_device_aiclks();
+            for (auto &device: freq_all_devices){
+                auto device_id = device.first;
+                auto aiclk = device.second;
+                if (aiclk_target > 0 && aiclk < aiclk_target){
+                    log_fatal("Observed AICLK: {} for device_id: {} less than target_aiclk: {} at {}", aiclk, device_id, aiclk_target, loc);
+                }else{
+                    log_debug(tt::LogRuntime, "Observed AICLK: {} for device_id: {} matches/exceeds target aiclk: {} at {}", aiclk, device_id, aiclk_target, loc);
+                }
             }
         }
+        
     }
 }
 

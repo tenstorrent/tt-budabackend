@@ -13,10 +13,10 @@ namespace epoch_queue {
 /**
  * @brief Configuration parameters of the Epoch Queue on the "Silicon" device.
  */
-    static constexpr std::int32_t EPOCH_Q_NUM_SLOTS = 256; // needs to match param with same name in ncrisc - parametrized by arch
+    static constexpr std::int32_t EPOCH_Q_NUM_SLOTS = 128; // needs to match param with same name in ncrisc - parametrized by arch
     static constexpr std::int32_t EPOCH_Q_SLOT_SIZE = 64; // needs to match param with same name in ncrisc - parametrized by arch
     static constexpr std::int32_t GridSizeRow = 12;
-    static constexpr std::int32_t GridSizeCol = 10;
+    static constexpr std::int32_t GridSizeCol = 17;
     static constexpr std::int32_t EpochEndReached = 0xFFFFFFFF;
 
     static constexpr std::int32_t EPOCH_BIN_NUM_SLOTS = 32;   // used to store epoch binaries for epoch valid command
@@ -110,7 +110,7 @@ namespace epoch_queue {
     static constexpr std::int32_t DRAM_EPOCH_METADATA_LIMIT = 8 * 1024 * 1024;
     // Epoch queues start at DRAM_EPOCH_METADATA_LIMIT - sizeof(All epoch queues on the chip)
     static constexpr std::int32_t EPOCH_TABLE_DRAM_ADDR = DRAM_EPOCH_METADATA_LIMIT-GridSizeCol*GridSizeRow*EPOCH_TABLE_ENTRY_SIZE_BYTES;
-    static constexpr std::int32_t EPOCH_ALLOC_QUEUE_SYNC_SLOTS = 256;
+    static constexpr std::int32_t EPOCH_ALLOC_QUEUE_SYNC_SLOTS = 128;
     static constexpr std::int32_t EPOCH_ALLOC_QUEUE_SYNC_ADDR = (EPOCH_TABLE_DRAM_ADDR) - (EPOCH_Q_SLOT_SIZE * EPOCH_ALLOC_QUEUE_SYNC_SLOTS);
 
     // Functions used to get dynamically programmed epoch_q_num_slots/epoch_bin_num_slots in runtime code

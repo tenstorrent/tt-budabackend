@@ -204,6 +204,9 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
             } else if (queue_info.loc == QUEUE_LOCATION::DRAM) {
                 if (cluster->type == TargetDevice::Versim || cluster->type == TargetDevice::Emulation) {
                     io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
+                } else if (cluster->type == TargetDevice::Silicon && cluster->cluster_arch == tt::ARCH::BLACKHOLE) {
+                    // MT Initial BH - no translation
+                    io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
                 } else {
                     if (cluster->get_cluster_desc()->is_chip_mmio_capable(queue_info.target_device)) {
                         io_desc.bufq_mapping.push_back(cluster->channel_0_address(offset, queue_info.target_device));

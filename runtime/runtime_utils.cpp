@@ -812,7 +812,7 @@ std::unique_ptr<buda_soc_description> get_default_soc_desc(const tt::ARCH &arch)
 
     switch (arch) {
         case tt::ARCH::BLACKHOLE:
-            default_soc_desc_name += "device/blackhole_80_arch.yaml"; break;
+            default_soc_desc_name += "device/blackhole_10x14_no_eth.yaml"; break;
         case tt::ARCH::WORMHOLE:
             default_soc_desc_name += "device/wormhole_8x10.yaml"; break;
         case tt::ARCH::WORMHOLE_B0:

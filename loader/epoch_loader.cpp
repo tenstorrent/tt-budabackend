@@ -96,7 +96,7 @@ std::tuple<int, int> tt_epoch_dram_manager::get_dram_chan(
     }
 
     tt_xy_pair dram_core;
-    if (arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0 || arch == tt::ARCH::BLACKHOLE) {
+    if (arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) {
         switch (physical_core.y) {
             case 0:
             case 11:
@@ -111,6 +111,22 @@ std::tuple<int, int> tt_epoch_dram_manager::get_dram_chan(
                 break;
 
             default: dram_core.x = 5; break;
+        }
+        dram_core.y = physical_core.y;
+    } else if (arch == tt::ARCH::BLACKHOLE) {
+        switch (physical_core.x) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                dram_core.x = 0;
+                break;
+
+            default: dram_core.x = 9; break;
         }
         dram_core.y = physical_core.y;
     } else if (arch == tt::ARCH::GRAYSKULL) {
@@ -1797,7 +1813,7 @@ void tt_epoch_loader::create_and_allocate_io_queues(const map<string, tt_queue_w
     for (auto &queue : queues) {
         std::string queue_name = queue.first;
         const tt_queue_info &queue_info = queue.second.my_queue_info;
-        unordered_map<chip_id_t, uint32_t> dram_bank_size_per_chip; //Caches per chip
+        unordered_map<chip_id_t, uint64_t> dram_bank_size_per_chip; //Caches per chip
         unordered_map<chip_id_t, vector<int>> dram_channels_per_chip;
 
         if (queue_info.loc == QUEUE_LOCATION::HOST) {
@@ -1809,7 +1825,7 @@ void tt_epoch_loader::create_and_allocate_io_queues(const map<string, tt_queue_w
             }
         } else if (queue_info.loc == QUEUE_LOCATION::DRAM) {
             log_trace(tt::LogLoader, "\tInit DRAM IO queue '{}'", queue_name);
-            uint32_t dram_bank_size;
+            uint64_t dram_bank_size;
             vector<int> dram_channels;
             if (dram_bank_size_per_chip.find(queue_info.target_device) == dram_bank_size_per_chip.end()) {
                 buda_soc_description &sdesc = cluster->get_soc_desc(queue_info.target_device);
@@ -2950,7 +2966,8 @@ void tt_epoch_loader::send_static_binaries() {
     cluster -> broadcast_write_to_all_tensix_in_cluster(binary -> brisc_vec, l1_mem::address_map::FIRMWARE_BASE);
     cluster -> broadcast_write_to_all_tensix_in_cluster(binary  -> blob_bin_init, l1_mem::address_map::OVERLAY_BLOB_BASE+0xC);
 
-    if(cluster -> cluster_arch != tt::ARCH::GRAYSKULL) {
+    // MT Initial BH - skip loading to ethernet cores
+    if(cluster -> cluster_arch != tt::ARCH::GRAYSKULL and cluster -> cluster_arch != tt::ARCH::BLACKHOLE) {
         cluster -> broadcast_write_to_all_eth_in_cluster(binary -> erisc_vec, eth_l1_mem::address_map::FIRMWARE_BASE);
         if(cluster -> cluster_arch == tt::ARCH::WORMHOLE_B0) {
             cluster -> broadcast_write_to_all_eth_in_cluster(binary -> erisc_iram_vec, eth_l1_mem::address_map::TILE_HEADER_BUFFER_BASE);
@@ -3107,7 +3124,7 @@ void tt_epoch_loader::send_epoch_commands(const tt_epoch_program_info &info) {
         device_epoch_ctrl.num_cmds_per_epoch_id.at(wrapped_epoch_id)++;
         device_epoch_ctrl.push_command(target_queue, bin -> tensix_hex_vec[i], i == (bin->number_of_tensix_hex_images()-1));
 
-        log_trace(tt::LogLoader, "\tQueue CMD 'EpochValid' for logical core (x={}, y={}) routing core (chip={}, x={}, y={}) to dram channel: {} @{}", sdesc.routing_x_to_worker_x.at(routing_core.x), sdesc.routing_y_to_worker_y.at(routing_core.y), bin->trisc0_bin_vec[i].d_chip_id, routing_core.x, routing_core.y,  bin->trisc0_bin_vec[i].d_chan,  bin->trisc0_bin_vec[i].d_subchannel);
+        log_trace(tt::LogLoader, "\tQueue CMD 'EpochValid' for logical core (x={}, y={}) routing core (chip={}, x={}, y={}) to dram channel: {} @{:x}", sdesc.routing_x_to_worker_x.at(routing_core.x), sdesc.routing_y_to_worker_y.at(routing_core.y), bin->tensix_hex_vec[i]->d_chip_id, routing_core.x, routing_core.y,  bin->tensix_hex_vec[i]->d_chan,  bin->tensix_hex_vec[i]->d_addr);
     }  
 
     if (cluster->type == TargetDevice::Silicon) {

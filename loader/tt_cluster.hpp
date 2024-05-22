@@ -59,11 +59,16 @@ struct tt_cluster
     std::set<uint32_t> cols_to_exclude_for_grayskull_tensix_broadcast = {0};
     std::set<uint32_t> rows_to_exclude_for_wormhole_tensix_broadcast = {0, 6};
     std::set<uint32_t> cols_to_exclude_for_wormhole_tensix_broadcast = {0, 5};
+    std::set<uint32_t> rows_to_exclude_for_blackhole_tensix_broadcast = {0, 1};
+    std::set<uint32_t> cols_to_exclude_for_blackhole_tensix_broadcast = {0, 8, 9};
     std::set<uint32_t> rows_to_exclude_for_wormhole_eth_broadcast = {1, 2, 3, 4, 5, 7, 8, 9, 10, 11};
     std::set<uint32_t> cols_to_exclude_for_wormhole_eth_broadcast = {0, 5};
+    std::set<uint32_t> rows_to_exclude_for_blackhole_eth_broadcast = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    std::set<uint32_t> cols_to_exclude_for_blackhole_eth_broadcast = {0, 8, 9};
     std::set<uint32_t> rows_to_exclude_for_grayskull_dram_broadcast = {1, 2, 3, 4, 5, 7, 8, 9, 10, 11};
     std::set<uint32_t> cols_to_exclude_for_grayskull_dram_broadcast = {0, 2, 3, 5, 6, 8, 9, 11, 12};
     std::set<uint32_t> cols_to_exclude_for_wormhole_dram_broadcast = {1, 2, 3, 4, 6, 7, 8, 9};
+    std::set<uint32_t> cols_to_exclude_for_blackhole_dram_broadcast = {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16};
 
     std::chrono::seconds get_device_timeout();
     std::chrono::seconds get_device_duration();

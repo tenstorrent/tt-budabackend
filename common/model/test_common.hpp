@@ -85,12 +85,15 @@ inline std::string get_soc_description_file(const tt::ARCH &arch, tt::TargetDevi
             grid_size_to_use = grid_size;
         }
         else {
-            std::unordered_map<tt::ARCH, tt_xy_pair> arch_default_grid_size = {{tt::ARCH::GRAYSKULL, {10, 12}}, {tt::ARCH::WORMHOLE, {8, 10}}, {tt::ARCH::WORMHOLE_B0, {8, 10}}, {tt::ARCH::BLACKHOLE, {8, 10}}};
+            std::unordered_map<tt::ARCH, tt_xy_pair> arch_default_grid_size = {{tt::ARCH::GRAYSKULL, {10, 12}}, {tt::ARCH::WORMHOLE, {8, 10}}, {tt::ARCH::WORMHOLE_B0, {8, 10}}, {tt::ARCH::BLACKHOLE, {10, 14}}};
             grid_size_to_use = arch_default_grid_size.at(arch);
         }
         std::string soc_desc_file = buda_home + "device/" + get_string_lowercase(arch) + "_" + std::to_string(grid_size_to_use.x) + "x" + std::to_string(grid_size_to_use.y);
         if((arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) and harvested) {
             soc_desc_file += "_harvested";
+        }
+        if(arch == tt::ARCH::BLACKHOLE) {
+            soc_desc_file += "_no_eth";     // Without eth until enabled
         }
         soc_desc_file += ".yaml";
         log_assert(std::filesystem::exists(soc_desc_file), "{} does not exist for arch {} with dimensions {}x{}", soc_desc_file, arch, grid_size.x, grid_size.y);

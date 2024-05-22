@@ -107,6 +107,11 @@ std::string tt_cluster::get_cluster_desc_path(const std::string& root) {
             if (detect_available_devices(tt::TargetDevice::Silicon)[0] == tt::ARCH::GRAYSKULL) {
                 create_cluster_desc_for_gs(root);
             }
+            // MT Initial BH - Use GS-like cluster desc
+            else if (detect_available_devices(tt::TargetDevice::Silicon)[0] == tt::ARCH::BLACKHOLE) {
+                // Use simple cluster desc with one chip, no eth
+                create_cluster_desc_for_gs(root);
+            }
             else {
                 generate_cluster_desc_yaml(root);
             }
@@ -567,6 +572,10 @@ void tt_cluster::broadcast_write_to_all_tensix_in_cluster(const vector<uint32_t>
         device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude_for_grayskull_tensix_broadcast, 
                                             cols_to_exclude_for_grayskull_tensix_broadcast, tlb_to_use);
     }
+    else if (cluster_arch == tt::ARCH::BLACKHOLE) {
+        device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude_for_blackhole_tensix_broadcast, 
+                                            cols_to_exclude_for_blackhole_tensix_broadcast, tlb_to_use);
+    }
     else {
         device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude_for_wormhole_tensix_broadcast, 
                                             cols_to_exclude_for_wormhole_tensix_broadcast, tlb_to_use);
@@ -576,7 +585,7 @@ void tt_cluster::broadcast_write_to_all_tensix_in_cluster(const vector<uint32_t>
 
 void tt_cluster::broadcast_write_to_all_eth_in_cluster(const vector<uint32_t>& vec, uint64_t addr, bool small_access, bool register_txn) {
     // FIXME MT: Revisit this check for Blackhole
-    log_assert(cluster_arch == tt::ARCH::WORMHOLE or cluster_arch == tt::ARCH::WORMHOLE_B0 or cluster_arch == tt::ARCH::BLACKHOLE, "Can only broadcast to ethernet cores on Wormhole devices.");
+    log_assert(cluster_arch == tt::ARCH::WORMHOLE or cluster_arch == tt::ARCH::WORMHOLE_B0, "Can only broadcast to ethernet cores on Wormhole devices.");
     std::string tlb_to_use = register_txn ? "REG_TLB" : (small_access ? "SMALL_READ_WRITE_TLB" : "LARGE_WRITE_TLB");
     std::set<chip_id_t> chips_to_exclude = {};
     device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude_for_wormhole_eth_broadcast, 

@@ -99,13 +99,10 @@ int get_epoch_table_x(int my_x, int my_y) {
     epoch_x = 5;
   }
 #else
-  if (my_y == 0 || my_y == 11 || my_y == 1 || my_y == 7 || my_y == 5 || my_y == 6) {
-    if (my_x >= 5)
-      epoch_x = 5;
-    else
-      epoch_x = 0;
+  if (my_x <= 7) {
+    epoch_x = 0;
   } else {
-    epoch_x = 5;
+    epoch_x = 9;
   }
 #endif
   return epoch_x;
