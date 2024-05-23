@@ -147,9 +147,15 @@ void Pipegen2::output_input_buffer_usage_analysis(
             // Usage is below 100% of buffer size.
             const double usage = static_cast<double>(buffer_usage_in_fw_iteration) / buffer_size * 100;
 
-            input_buffer_usage_analysis_file << stream_node->get_op_name() << "," << stream_node->get_operand_id()
-                                             << "," << buffer_size << "," << buffer_usage_in_fw_iteration << ","
-                                             << usage << "%" << std::endl;
+            // clang-format off
+            input_buffer_usage_analysis_file << stream_node->get_op_name() << ","
+                                             << stream_node->get_operand_id() << ","
+                                             << buffer_size << ","
+                                             << buffer_usage_in_fw_iteration << ","
+                                             << usage << "%"
+                                             << std::endl;
+            // clang-format on
+
             op_name_operand_id_pairs.insert({stream_node->get_op_name(), operand_id});
         }
     }

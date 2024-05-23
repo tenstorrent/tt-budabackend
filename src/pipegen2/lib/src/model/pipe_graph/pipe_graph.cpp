@@ -126,14 +126,21 @@ std::string PipeGraph::to_json() const
         std::string location_str = is_unmapped_location(node_location)
                                        ? "(chip=" + std::to_string(node_location.chip) + ", no worker core)"
                                        : node_location.str();
-        json_builder << " { \"id\": \"" << buffer->get_id() << "\", \"label\": \"" << buffer->get_id() << "\\n"
-                     << node_type << "\\n"
-                     << location_str << "\", \"color\": \"" << node_color << "\", \"shape\": \"ellipse\" },";
+        // clang-format off
+        json_builder << " { \"id\": \"" << buffer->get_id()
+                     << "\", \"label\": \"" << buffer->get_id() << "\\n" << node_type << "\\n" 
+                     << location_str
+                     << "\", \"color\": \"" << node_color
+                     << "\", \"shape\": \"ellipse\" },";
+        // clang-format on
     }
     for (const std::unique_ptr<PGPipe>& pipe : m_pipes)
     {
-        json_builder << " { \"id\": \"" << pipe->get_id() << "\", \"label\": \" Pipe " << pipe->get_id() << "\\n"
+        // clang-format off
+        json_builder << " { \"id\": \"" <<  pipe->get_id()
+                     << "\", \"label\": \" Pipe " << pipe->get_id() << "\\n"
                      << "\", \"color\": \"#00BFFF\", \"shape\": \"box\" },";
+        // clang-format on
     }
     // Erasing last ',' because that makes improper json.
     json_builder.seekp(-1, json_builder.cur);
@@ -144,15 +151,22 @@ std::string PipeGraph::to_json() const
     {
         for (const PGBuffer* input_buffer : pipe->get_unique_input_buffers())
         {
-            json_builder << " { \"from\": \"" << input_buffer->get_id() << "\", \"to\": \"" << pipe->get_id()
+            // clang-format off
+            json_builder << " { \"from\": \"" << input_buffer->get_id()
+                         << "\", \"to\": \"" << pipe->get_id()
                          << "\" },";
+            // clang-format on
         }
         for (std::size_t scatter_index = 0; scatter_index < pipe->get_output_buffers().size(); scatter_index++)
         {
             for (PGBuffer* output_buffer : pipe->get_output_buffers()[scatter_index])
             {
-                json_builder << " { \"from\": \"" << pipe->get_id() << "\", \"to\": \"" << output_buffer->get_id()
-                             << "\", \"label\": \" scatter_index=" << scatter_index << "\" },";
+                // clang-format off
+                json_builder << " { \"from\": \"" << pipe->get_id()
+                             << "\", \"to\": \"" << output_buffer->get_id()
+                             << "\", \"label\": \" scatter_index=" << scatter_index
+                             << "\" },";
+                // clang-format on
             }
         }
     }
@@ -164,9 +178,13 @@ std::string PipeGraph::to_json() const
         {
             if (output_padding_buffer_ids[scatter_index] != c_no_output_padding_buffer_id)
             {
-                json_builder << " { \"from\": \"" << output_padding_buffer_ids[scatter_index] << "\", \"to\": \""
-                             << pipe->get_id() << "\", \"label\": \" scatter_index=" << scatter_index
-                             << "\", \"style\": \"dotted" << "\" },";
+                // clang-format off
+                json_builder << " { \"from\": \"" << output_padding_buffer_ids[scatter_index]
+                             << "\", \"to\": \"" << pipe->get_id()
+                             << "\", \"label\": \" scatter_index=" << scatter_index
+                             << "\", \"style\": \"dotted"
+                             << "\" },";
+                // clang-format on
             }
         }
     }

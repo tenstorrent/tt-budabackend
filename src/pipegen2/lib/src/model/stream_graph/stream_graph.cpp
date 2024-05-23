@@ -103,16 +103,20 @@ std::string StreamGraph::to_json() const
         std::string stream_type = StreamNode::stream_type_to_string(stream->get_stream_type());
         std::string stream_location = stream->get_physical_location().str();
         std::string stream_color = stream_type_to_color(stream->get_stream_type());
-        json_builder << " { \"id\": \"" << stream_graph_id << "_" << stream_location << "\", \"label\": \"" << stream_id
-                     << "\\n"
-                     << stream_type << "\\n"
-                     << stream_location << "\", \"color\": \"" << stream_color << "\", \"shape\": \"ellipse\" },";
+        // clang-format off
+        json_builder << " { \"id\": \"" << stream_graph_id << "_" << stream_location
+                     << "\", \"label\": \"" << stream_id << "\\n" << stream_type << "\\n" << stream_location
+                     << "\", \"color\": \"" << stream_color
+                     << "\", \"shape\": \"ellipse\" },";
+        // clang-format on
 
         for (const NcriscConfig& ncrisc_config : stream->get_ncrisc_configs())
         {
+            // clang-format off
             json_builder << " { \"id\": \"" << stream_graph_id << "_" << ncrisc_config.dram_buf_noc_addr
                          << "\", \"label\": \"NCRISC config\\nnoc_addr:" << ncrisc_config.dram_buf_noc_addr
                          << "\", \"color\": \"#FF00FF\", \"shape\": \"box\" },";
+            // clang-format on
         }
     }
     // Erasing last ',' because that makes improper json.
@@ -128,8 +132,10 @@ std::string StreamGraph::to_json() const
         {
             std::string destination_stream_loc_id = std::to_string(stream_to_graph_id[destination_stream]) + "_" +
                                                     destination_stream->get_physical_location().str();
-            json_builder << " { \"from\": \"" << stream_loc_id << "\", \"to\": \"" << destination_stream_loc_id
-                         << "\" },";
+            // clang-format off
+            json_builder << " { \"from\": \"" << stream_loc_id
+                             << "\", \"to\": \"" << destination_stream_loc_id << "\" },";
+            // clang-format on
         }
 
         for (const NcriscConfig& ncrisc_config : stream->get_ncrisc_configs())
@@ -138,11 +144,17 @@ std::string StreamGraph::to_json() const
                                            std::to_string(ncrisc_config.dram_buf_noc_addr);
             if (ncrisc_config.dram_input.value_or(false))
             {
-                json_builder << " { \"from\": \"" << ncrisc_config_id << "\", \"to\": \"" << stream_loc_id << "\" },";
+                // clang-format off
+                json_builder << " { \"from\": \"" << ncrisc_config_id
+                             << "\", \"to\": \"" << stream_loc_id << "\" },";
+                // clang-format on
             }
             else
             {
-                json_builder << " { \"from\": \"" << stream_loc_id << "\", \"to\": \"" << ncrisc_config_id << "\" },";
+                // clang-format off
+                json_builder << " { \"from\": \"" << stream_loc_id
+                             << "\", \"to\": \"" << ncrisc_config_id << "\" },";
+                // clang-format on
             }
         }
     }

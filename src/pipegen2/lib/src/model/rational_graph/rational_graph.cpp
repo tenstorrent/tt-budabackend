@@ -169,9 +169,12 @@ std::string RationalGraph::to_json() const
                                        ? "(chip=" + std::to_string(node_location.chip) + ", no worker core)"
                                        : node_location.str();
         std::string node_color = node_type_to_color(m_nodes[i]->get_node_type());
-        json_builder << " { \"id\": \"" << i << "\", \"label\": \"" << m_nodes[i]->get_id() << "\\n"
-                     << node_type << "\\n"
-                     << location_str << "\", \"color\": \"" << node_color << "\", \"shape\": \"ellipse\" },";
+        // clang-format off
+        json_builder << " { \"id\": \"" << i
+                     << "\", \"label\": \"" << m_nodes[i]->get_id() << "\\n" << node_type << "\\n" << location_str
+                     << "\", \"color\": \"" << node_color
+                     << "\", \"shape\": \"ellipse\" },";
+        // clang-format on
         node_to_id[m_nodes[i].get()] = i;
     }
     for (std::size_t i = 0; i < m_pipes.size(); ++i)
@@ -179,9 +182,11 @@ std::string RationalGraph::to_json() const
         std::size_t pipe_graph_id = m_nodes.size() + i;
         std::string pipe_type = pipe_type_to_string(m_pipes[i]->get_pipe_type());
         std::string pipe_location = m_pipes[i]->get_physical_location().str();
-        json_builder << " { \"id\": \"" << pipe_graph_id << "\", \"label\": \"" << m_pipes[i]->get_id() << "\\n"
-                     << pipe_type << "\\n"
-                     << pipe_location << "\", \"color\": \"#00BFFF\", \"shape\": \"box\" },";
+        // clang-format off
+        json_builder << " { \"id\": \"" << pipe_graph_id
+                     << "\", \"label\": \"" << m_pipes[i]->get_id() << "\\n" << pipe_type << "\\n" << pipe_location
+                     << "\", \"color\": \"#00BFFF\", \"shape\": \"box\" },";
+        // clang-format on
     }
     // Erasing last ',' because that makes improper json.
     json_builder.seekp(-1, json_builder.cur);
@@ -194,12 +199,17 @@ std::string RationalGraph::to_json() const
         for (const RGBaseNode* input_node : m_pipes[i]->get_unique_input_nodes())
         {
             // TODO: If input is scattered add label like: "scattered (N inputs)"
-            json_builder << " { \"from\": \"" << node_to_id[input_node] << "\", \"to\": \"" << pipe_graph_id << "\" },";
+            // clang-format off
+            json_builder << " { \"from\": \"" << node_to_id[input_node]
+                         << "\", \"to\": \"" << pipe_graph_id << "\" },";
+            // clang-format on
         }
         for (std::size_t j = 0; j < m_pipes[i]->get_output_nodes().size(); ++j)
         {
-            json_builder << " { \"from\": \"" << pipe_graph_id << "\", \"to\": \""
-                         << node_to_id[m_pipes[i]->get_output_nodes()[j]] << "\" },";
+            // clang-format off
+            json_builder << " { \"from\": \"" << pipe_graph_id
+                         << "\", \"to\": \"" << node_to_id[m_pipes[i]->get_output_nodes()[j]] << "\" },";
+            // clang-format on
         }
     }
     // Erasing last ',' because that makes improper json.
