@@ -88,7 +88,12 @@ CCACHE := $(shell command -v ccache 2> /dev/null)
 
 # Ccache setup
 ifneq ($(CCACHE),)
-  export CCACHE_DIR=$(HOME)/.ccache
+  ifdef CCACHE_DIR
+    $(info "CCACHE_DIR is set to $(CCACHE_DIR)")
+  else
+    $(info "CCACHE_DIR is not set, using default $(HOME)/.ccache")
+    export CCACHE_DIR=$(HOME)/.ccache
+  endif
   export CCACHE_MAXSIZE=10
   export CCACHE_UMASK=002
   export CCACHE_COMPRESS=true
