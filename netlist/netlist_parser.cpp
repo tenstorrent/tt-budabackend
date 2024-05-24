@@ -1630,7 +1630,13 @@ void netlist_parser::derive_temporal_graphs() {
             }
         }
 
+        // this is used for multichip configurations where temporal graphs merge different producers to a same temporal epoch graph in order to build pipes.
         for (const auto &producer_graph_name : producer_graph_names) {
+            // disable merging if graphs are on the same device, to enable sequential execution
+            bool disable_merger = graph_map[producer_graph_name].target_device == graph_map[graph_name].target_device;
+            if (disable_merger) {
+                continue;
+            }
             bool producer_graph_mapped_to_temporal_graph =
                 this->graph_temporal_graphs.find(producer_graph_name) != this->graph_temporal_graphs.end();
             bool merge_producer_graph_temporal_graph_to_mine =
