@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 
 # SPDX-License-Identifier: Apache-2.0
+from functools import cached_property
 from typing import Sequence
 import tt_util as util
 from tt_stream import Stream
@@ -85,8 +86,9 @@ class Graph(TTObject):
     # Some keys do not refer to operations, and we keep them here to be used when parsing
     non_op_keys = set(["target_device", "input_count"])
 
-    def __init__(self, netlist, name, root):
+    def __init__(self, netlist, name, root, rundir):
         self._id = name
+        self._rundir = rundir
         self.root = root  # The entry in netlist file
         self.temporal_epoch = (
             None  # This will contain buffers and pipes from pipegen.yaml
@@ -102,6 +104,16 @@ class Graph(TTObject):
             self.ops[op.id()] = op
 
     RECURSION_DEPTH = 0  # Temporary/debug limit to prevent infinite recursion
+
+    @cached_property
+    def op_info(self):
+        with open(f"{self._rundir}/graph_{self._id}/op_info.txt", "r") as file:
+            lines = file.readlines()
+            info = {}
+            for line in lines:
+                directory, op_name = line.strip().split(': ')
+                info[op_name] = f"{self._rundir}/graph_{self._id}/{directory}"
+            return info
 
     # Given a buffer list, find all buffers that are connected (pipegen.yaml)
     # connection can be src, dest, or srcdest (for either)

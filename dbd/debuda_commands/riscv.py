@@ -51,6 +51,7 @@ import tt_commands
 from tt_debug_risc import RiscDebug, RiscLoc, get_risc_name
 from debuda import UIState
 from tt_coordinate import OnChipCoordinate
+import tt_device
 
 
 def run_riscv_command(device, loc, risc_id, args):
@@ -61,7 +62,7 @@ def run_riscv_command(device, loc, risc_id, args):
     where = f"{get_risc_name(risc_id)} { loc.to_str('netlist')}"
 
     noc_id = 0
-    risc = RiscDebug(RiscLoc(loc, noc_id, risc_id), verbose=verbose)
+    risc = RiscDebug(RiscLoc(loc, noc_id, risc_id), tt_device.DEBUDA_SERVER_SOCKET_IFC, verbose=verbose)
 
     if args["halt"]:
         risc.enable_debug()

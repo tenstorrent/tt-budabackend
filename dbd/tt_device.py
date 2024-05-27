@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from functools import cached_property
 import os, subprocess, time, struct, signal, re, zmq, pickle, atexit, ast
-from typing import Sequence
+from typing import List, Sequence
 from socket import timeout
 from tabulate import tabulate
-from debuda import Context
+from tt_debuda_context import Context
 from tt_debuda_server import debuda_server, debuda_pybind
 from tt_object import TTObject
 import tt_util as util
@@ -14,7 +14,7 @@ from tt_coordinate import OnChipCoordinate, CoordinateTranslationError
 from collections import namedtuple
 from abc import ABC, abstractmethod
 from typing import Dict
-from tt_debug_risc import get_risc_reset_shift, get_risc_id
+from tt_debug_risc import get_risc_reset_shift, RiscDebug, RiscLoc
 
 #
 # Communication with Buda (or debuda-server) over sockets (ZMQ).
@@ -500,7 +500,20 @@ class Device(TTObject):
     # Maps to store translation table from noc0 to nocTr and vice versa
     nocTr_y_to_noc0_y = dict()
     noc0_y_to_nocTr_y = dict()
-    
+
+    @cached_property
+    def debuggable_cores(self):
+        # Base implementation for grayskull, wormhole and blackhole
+        cores: List[RiscDebug] = []
+        for coord in self.get_block_locations("functional_workers"):
+            for risc_id in range(4): # 4 because we have a hardware bug for debugging ncrisc
+                risc_location = RiscLoc(coord, 0, risc_id)
+                risc_debug = RiscDebug(risc_location, DEBUDA_SERVER_SOCKET_IFC)
+                cores.append(risc_debug)
+
+        # TODO: Can we debug eth cores?
+        return cores
+
     def get_address_map(self, core_type: str) -> AddressMap:
         if core_type not in self._address_maps:
             raise RuntimeError(f"Core type {core_type} not found in address maps")
@@ -655,6 +668,10 @@ class Device(TTObject):
             if id not in device_desc:
                 raise util.TTFatalException(f"Key {id} not found in: {device_desc}")
             self._harvesting = device_desc[id]
+        elif isinstance(harvesting_desc, dict) or isinstance(harvesting_desc, util.RymlLazyDictionary):
+            if id not in harvesting_desc:
+                raise util.TTFatalException(f"Key {id} not found in: {harvesting_desc}")
+            self._harvesting = harvesting_desc[id]
         elif arch.lower() == "grayskull":
             self._harvesting = None
         else:

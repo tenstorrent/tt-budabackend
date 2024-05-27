@@ -53,7 +53,7 @@ def run(cmd_text, context, ui_state=None):
         util.VERBOSE (f"Putting all RISCs on device {device.id()} under reset.")
         device.all_riscs_assert_soft_reset()
         for loc in dopt.for_each("--loc", context, ui_state, device=device):
-            rloader = RiscLoader(loc, RISC_ID, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
+            rloader = RiscLoader(loc, RISC_ID, context, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
             rdbg = rloader.risc_debug
 
             in_reset = rdbg.is_in_reset()
@@ -89,11 +89,12 @@ def test_run_elf(context, ui_state, dopt, RISC_ID):
     # Testing
     elf = ELF ({ "fw" : dopt.args['<elf-file>'] })
     MAILBOX_ADDR, MAILBOX_SIZE, _ = elf.parse_addr_size_type("fw.g_MAILBOX")
+    TESTBYTEACCESS_ADDR, TESTBYTEACCESS_SIZE, _ = elf.parse_addr_size_type("fw.g_TESTBYTEACCESS")
 
     all_good = True
     for device in dopt.for_each("--device", context, ui_state):
         for loc in dopt.for_each("--loc", context, ui_state, device=device):
-            rloader = RiscLoader(loc, RISC_ID, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
+            rloader = RiscLoader(loc, RISC_ID, context, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
             rdbg = rloader.risc_debug
 
             # Step 0
@@ -140,11 +141,14 @@ def test_run_elf(context, ui_state, dopt, RISC_ID):
 
             # Step 4
             util.INFO (f"Step 4: Check that the RISC at location {loc} is halted.")
-            rloader = RiscLoader(loc, RISC_ID, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
-            halted = rdbg.is_halted()
+            rloader = RiscLoader(loc, RISC_ID, context, tt_device.DEBUDA_SERVER_SOCKET_IFC, dopt.args['-v'])
+            status = rdbg.read_status()
             # print_PC_and_source(rdbg.read_gpr(32), elf)
-            if not halted:
+            if not status.is_halted:
                 util.ERROR (f"Step 4: RISC at location {loc} is not halted.")
+                continue
+            if not status.is_ebreak_hit:
+                util.ERROR (f"Step 4: RISC at location {loc} is not halted with ebreak.")
                 continue
 
             # Step 5a: Make sure that the core did not reach step 5
@@ -163,8 +167,12 @@ def test_run_elf(context, ui_state, dopt, RISC_ID):
             decrement_mailbox_address = elf.names["fw"]["symbols"][decrement_mailbox_linkage_name]
 
             util.INFO(f"Step 6. Setting breakpoint at decrement_mailbox at 0x{decrement_mailbox_address:x}")
-            watchpoint_id = 0 # Out of 8
+            watchpoint_id = 1 # Out of 8
             rdbg.set_watchpoint_on_pc_address(watchpoint_id, decrement_mailbox_address)
+            rdbg.set_watchpoint_on_memory_write(0, TESTBYTEACCESS_ADDR) # Set memory watchpoint on TESTBYTEACCESS
+            rdbg.set_watchpoint_on_memory_write(3, TESTBYTEACCESS_ADDR+3)
+            rdbg.set_watchpoint_on_memory_write(4, TESTBYTEACCESS_ADDR+4)
+            rdbg.set_watchpoint_on_memory_write(5, TESTBYTEACCESS_ADDR+5)
 
             mbox_val = 1
             timeout_retries = 20
@@ -194,6 +202,64 @@ def test_run_elf(context, ui_state, dopt, RISC_ID):
                 util.ERROR (f"RISC at location {loc} hit the breakpoint but it should not have.")
                 all_good = False
                 continue
+
+            # STEP 7
+            util.INFO(f"Step 7. Testing byte access memory watchpoints")
+            mbox_val = rloader.read_block(MAILBOX_ADDR, MAILBOX_SIZE); da = DataArray("g_MAILBOX"); mbox_val = da.from_bytes(mbox_val)[0]
+            if mbox_val != 0xff000003:
+                util.ERROR (f"RISC at location {loc} did not set the mailbox value to 0xff000003.")
+                all_good = False
+                continue
+            status = rdbg.read_status()
+            if not status.is_halted:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted.")
+                continue
+            if not status.is_memory_watchpoint_hit or not status.is_watchpoint3_hit:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted with memory watchpoint 3.")
+                continue
+            rdbg.cont(verify=False)
+
+            mbox_val = rloader.read_block(MAILBOX_ADDR, MAILBOX_SIZE); da = DataArray("g_MAILBOX"); mbox_val = da.from_bytes(mbox_val)[0]
+            if mbox_val != 0xff000005:
+                util.ERROR (f"RISC at location {loc} did not set the mailbox value to 0xff000005.")
+                all_good = False
+                continue
+            status = rdbg.read_status()
+            if not status.is_halted:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted.")
+                continue
+            if not status.is_memory_watchpoint_hit or not status.is_watchpoint5_hit:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted with memory watchpoint 5.")
+                continue
+            rdbg.cont(verify=False)
+
+            mbox_val = rloader.read_block(MAILBOX_ADDR, MAILBOX_SIZE); da = DataArray("g_MAILBOX"); mbox_val = da.from_bytes(mbox_val)[0]
+            if mbox_val != 0xff000000:
+                util.ERROR (f"RISC at location {loc} did not set the mailbox value to 0xff000000.")
+                all_good = False
+                continue
+            status = rdbg.read_status()
+            if not status.is_halted:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted.")
+                continue
+            if not status.is_memory_watchpoint_hit or not status.is_watchpoint0_hit:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted with memory watchpoint 0.")
+                continue
+            rdbg.cont(verify=False)
+
+            mbox_val = rloader.read_block(MAILBOX_ADDR, MAILBOX_SIZE); da = DataArray("g_MAILBOX"); mbox_val = da.from_bytes(mbox_val)[0]
+            if mbox_val != 0xff000004:
+                util.ERROR (f"RISC at location {loc} did not set the mailbox value to 0xff000004.")
+                all_good = False
+                continue
+            status = rdbg.read_status()
+            if not status.is_halted:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted.")
+                continue
+            if not status.is_memory_watchpoint_hit or not status.is_watchpoint4_hit:
+                util.ERROR (f"Step 7: RISC at location {loc} is not halted with memory watchpoint 4.")
+                continue
+            rdbg.cont(verify=False)
 
             # STEP END:
             mbox_val = rloader.read_block(MAILBOX_ADDR, MAILBOX_SIZE); da = DataArray("g_MAILBOX"); mbox_val = da.from_bytes(mbox_val)[0]

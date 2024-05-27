@@ -2,6 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 from dataclasses import dataclass
+from tt_debuda_context import Context
 from tt_coordinate import OnChipCoordinate
 import tt_util as util
 import os
@@ -27,6 +28,15 @@ REG_HW_WATCHPOINT_7 = 17
 STATUS_HALTED = 0x1
 STATUS_PC_WATCHPOINT_HIT = 0x2
 STATUS_MEMORY_WATCHPOINT_HIT = 0x4
+STATUS_EBREAK_HIT = 0x8
+STATUS_WATCHPOINT_0_HIT = 0x00000100
+STATUS_WATCHPOINT_1_HIT = 0x00000200
+STATUS_WATCHPOINT_2_HIT = 0x00000400
+STATUS_WATCHPOINT_3_HIT = 0x00000800
+STATUS_WATCHPOINT_4_HIT = 0x00001000
+STATUS_WATCHPOINT_5_HIT = 0x00002000
+STATUS_WATCHPOINT_6_HIT = 0x00004000
+STATUS_WATCHPOINT_7_HIT = 0x00008000
 
 # Command register bits
 COMMAND_HALT = 0x00000001
@@ -148,6 +158,83 @@ class RiscLoc:
     noc_id: int = 0
     risc_id: int = 0
 
+    def __hash__(self) -> int:
+        return hash((self.loc, self.noc_id, self.risc_id))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, RiscLoc):
+            return False
+        return self.loc == other.loc and self.noc_id == other.noc_id and self.risc_id == other.risc_id
+
+@dataclass
+class RiscDebugStatus:
+    is_halted: bool
+    is_pc_watchpoint_hit: bool
+    is_memory_watchpoint_hit: bool
+    is_ebreak_hit: bool
+    is_watchpoint0_hit: bool
+    is_watchpoint1_hit: bool
+    is_watchpoint2_hit: bool
+    is_watchpoint3_hit: bool
+    is_watchpoint4_hit: bool
+    is_watchpoint5_hit: bool
+    is_watchpoint6_hit: bool
+    is_watchpoint7_hit: bool
+
+    @property
+    def watchpoints_hit(self):
+        return [
+            self.is_watchpoint0_hit,
+            self.is_watchpoint1_hit,
+            self.is_watchpoint2_hit,
+            self.is_watchpoint3_hit,
+            self.is_watchpoint4_hit,
+            self.is_watchpoint5_hit,
+            self.is_watchpoint6_hit,
+            self.is_watchpoint7_hit,
+        ]
+
+    @staticmethod
+    def from_register(value: int):
+        return RiscDebugStatus(
+            value & STATUS_HALTED != 0,
+            value & STATUS_PC_WATCHPOINT_HIT != 0,
+            value & STATUS_MEMORY_WATCHPOINT_HIT != 0,
+            value & STATUS_EBREAK_HIT != 0,
+            value & STATUS_WATCHPOINT_0_HIT != 0,
+            value & STATUS_WATCHPOINT_1_HIT != 0,
+            value & STATUS_WATCHPOINT_2_HIT != 0,
+            value & STATUS_WATCHPOINT_3_HIT != 0,
+            value & STATUS_WATCHPOINT_4_HIT != 0,
+            value & STATUS_WATCHPOINT_5_HIT != 0,
+            value & STATUS_WATCHPOINT_6_HIT != 0,
+            value & STATUS_WATCHPOINT_7_HIT != 0)
+
+@dataclass
+class RiscDebugWatchpointState:
+    is_enabled: bool
+    is_memory: bool
+    is_read: bool
+    is_write: bool
+
+    @property
+    def is_access(self):
+        return self.is_memory and self.is_read and self.is_write
+
+    @property
+    def is_breakpoint(self):
+        return not self.is_memory
+
+    @staticmethod
+    def from_value(value: int):
+        assert value & HW_WATCHPOINT_MASK == value, f"Invalid watchpoint value {value:08x}"
+
+        return RiscDebugWatchpointState(
+            value & HW_WATCHPOINT_ENABLED != 0,
+            value & HW_WATCHPOINT_ACCESS != 0,
+            value & HW_WATCHPOINT_READ != 0,
+            value & HW_WATCHPOINT_WRITE != 0
+        )
 
 class RiscDebug:
     def __init__(self, location: RiscLoc, ifc, verbose=False):
@@ -157,6 +244,7 @@ class RiscDebug:
         self.CONTROL0_READ  = 0x80000000 + (self.location.risc_id << 17)
         self.verbose = verbose
         self.ifc = ifc
+        self.max_watchpoints = 8
 
     def __write(self, addr, data):
         self.assert_not_in_reset()
@@ -250,27 +338,30 @@ class RiscDebug:
             util.INFO("  step()")
         self.__riscv_write(REG_COMMAND, COMMAND_DEBUG_MODE + COMMAND_STEP)
 
-    def cont(self):
+    def cont(self, verify=True):
         if not self.is_halted():
             util.WARN (f"Continue: {get_risc_name(self.location.risc_id)} core at {self.location.loc} is alredy running")
             return
         if self.verbose:
             util.INFO("  cont()")
         self.__riscv_write(REG_COMMAND, COMMAND_DEBUG_MODE + COMMAND_CONTINUE)
-        assert not self.is_halted(), f"Failed to continue {get_risc_name(self.location.risc_id)} core at {self.location.loc}"
+        assert not verify or not self.is_halted(), f"Failed to continue {get_risc_name(self.location.risc_id)} core at {self.location.loc}"
+
+    def read_status(self) -> RiscDebugStatus:
+        if self.verbose:
+            util.INFO("  read_status()")
+        status = self.__riscv_read(REG_STATUS)
+        return RiscDebugStatus.from_register(status)
 
     def is_halted(self):
         if self.verbose:
             util.INFO("  is_halted()")
-        return (self.__riscv_read(REG_STATUS) & STATUS_HALTED) == STATUS_HALTED
+        return self.read_status().is_halted
 
     def is_pc_watchpoint_hit(self):
         if self.verbose:
             util.INFO("  is_pc_watchpoint_hit()")
-        hit = (
-            self.__riscv_read(REG_STATUS) & STATUS_PC_WATCHPOINT_HIT
-        ) == STATUS_PC_WATCHPOINT_HIT
-        return hit
+        return self.read_status().is_pc_watchpoint_hit
 
     def is_in_reset(self):
         reset_reg = self.ifc.pci_read_xy(self.location.loc._device.id(), *self.location.loc.to("nocVirt"), 0, 0xffb121b0)
@@ -311,9 +402,9 @@ class RiscDebug:
             raise ValueError(exception_message)
 
     def is_memory_watchpoint_hit(self):
-        return (
-            self.__riscv_read(REG_STATUS) & STATUS_MEMORY_WATCHPOINT_HIT
-        ) == STATUS_MEMORY_WATCHPOINT_HIT
+        if self.verbose:
+            util.INFO("  is_pc_watchpoint_hit()")
+        return self.read_status().is_memory_watchpoint_hit
 
     def read_gpr(self, reg_index):
         if self.verbose:
@@ -373,6 +464,16 @@ class RiscDebug:
     def set_watchpoint_on_memory_access(self, id, address):
         self.__set_watchpoint(id, address, HW_WATCHPOINT_ENABLED + HW_WATCHPOINT_ACCESS)
 
+    def read_watchpoints_state(self):
+        settings = self.__riscv_read(REG_HW_WATCHPOINT_SETTINGS)
+        watchpoints = []
+        for i in range(self.max_watchpoints):
+            watchpoints.append(RiscDebugWatchpointState.from_value((settings >> (i * 4)) & HW_WATCHPOINT_MASK))
+        return watchpoints
+
+    def read_watchpoint_address(self, id):
+        return self.__riscv_read(REG_HW_WATCHPOINT_0 + id)
+
     def disable_watchpoint(self, id):
         self.__update_watchpoint_setting(id, 0)
 
@@ -393,10 +494,11 @@ class RiscLoader:
     """
     This class is used to load elf file to a RISC-V core.
     """
-    def __init__(self, location: OnChipCoordinate, risc_id: int, ifc, verbose=False):
+    def __init__(self, location: OnChipCoordinate, risc_id: int, context: Context, ifc, verbose=False):
         assert 0 <= risc_id <= 4, f"Invalid risc id({location.risc_id})"
         self.verbose = verbose
         self.risc_debug = RiscDebug(RiscLoc(location, 0, risc_id), ifc, self.verbose)
+        self.context = context
 
     SECTIONS_TO_LOAD = [".init", ".text", ".ldm_data", ".stack"]
 
@@ -527,4 +629,5 @@ class RiscLoader:
                         else:
                             util.VERBOSE(f"Section {name} loaded successfully to address 0x{address:08x}. Size: {len(data)} bytes")
 
+        self.context.elf_loaded(self.risc_debug.location.loc, self.risc_debug.location.risc_id, elf_path)
         return init_section_address

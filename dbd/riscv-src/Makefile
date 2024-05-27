@@ -1,4 +1,6 @@
-TOOL_PATH?=/localdev/ihamer/work/tt-metal/tt_metal/third_party/sfpi/compiler/bin/
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfile_dir := $(dir $(mkfile_path))
+TOOL_PATH?=$(mkfile_dir)../../third_party/sfpi/compiler/bin/
 
 GXX=$(TOOL_PATH)/riscv32-unknown-elf-g++
 OBJDUMP=$(TOOL_PATH)/riscv32-unknown-elf-objdump

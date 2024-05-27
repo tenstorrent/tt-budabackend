@@ -15,6 +15,7 @@ Options:
   --test                          Exits with non-zero exit code on any exception.
   --debuda-server-address=<addr>  IP address of debuda server. [default: localhost:5555]
   --remote                        Use debuda server instead of pybind library. Dumping tiles is only supported this way.
+  --start-gdb=<gdb_port>          Start a gdb server on the specified port.
 
 Description:
     Debuda parses the build output files and reads the device state to provide a debugging interface for the user.
@@ -23,8 +24,7 @@ Arguments:
   output_dir                     Output directory of a buda run. If left blank, the most recent subdirectory of tt_build/ will be used.
 """
 try:
-    from functools import cached_property
-    import sys, os, argparse, traceback, fnmatch, importlib
+    import sys, os, traceback, fnmatch, importlib
     from tabulate import tabulate
     from prompt_toolkit import PromptSession
     from prompt_toolkit.completion import Completer, Completion
@@ -50,10 +50,12 @@ def application_path():
 sys.path.append(application_path())
 
 from tt_commands import find_command
+from tt_gdb_server import GdbServer, ServerSocket
 from tt_debuda_server import debuda_server_not_supported
 from tt_coordinate import OnChipCoordinate
-import tt_util as util, tt_device, tt_netlist
-from tt_firmware import ELF, BUDA_FW_VARS
+import tt_util as util, tt_device
+from tt_debuda_context import BudaContext, Context, LimitedContext
+
 
 class DebudaCompleter(Completer):
     def __init__(self, commands, context):
@@ -274,112 +276,13 @@ def locate_most_recent_build_output_dir():
     return None
 
 
-# All-encompassing structure representing a Debuda context
-class Context:
-    def __init__(self, netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path):
-        self._netlist_filepath = netlist_filepath
-        self._run_dirpath = run_dirpath
-        self._runtime_data_yaml = runtime_data_yaml
-        self._cluster_desc_path = cluster_desc_path
-
-    @cached_property
-    def netlist(self):
-        if self._run_dirpath is None or self._runtime_data_yaml is None:
-            raise util.TTException(f"We are running with limited functionality, elf files are not available.")
-        return tt_netlist.Netlist(self._netlist_filepath, self._run_dirpath, self._runtime_data_yaml)
-
-    @cached_property
-    def devices(self):
-        device_ids = self.device_ids
-        devices = dict()
-        for device_id in device_ids:
-            try:
-                device_desc_path = self.server_ifc.get_device_soc_description(device_id)
-            except:
-                device_desc_path = tt_device.get_soc_desc_path(device_id, self._run_dirpath)
-            # util.INFO(f"Loading device {device_id} from {device_desc_path}")
-            devices[device_id] = tt_device.Device.create(
-                self.arch,
-                device_id=device_id,
-                cluster_desc=self.cluster_desc.root,
-                device_desc_path=device_desc_path,
-                context=self
-            )
-        return devices
-
-    @cached_property
-    def cluster_desc(self):
-        if self._cluster_desc_path is None:
-            raise util.TTException(f"We are running with limited functionality, cluster description is not available.")
-        return util.YamlFile(self._cluster_desc_path)
-
-    @cached_property
-    def is_buda(self):
-        return not self._runtime_data_yaml is None
-
-    @cached_property
-    def device_ids(self):
-        try:
-            device_ids = self.server_ifc.get_device_ids()
-            return util.set(d for d in device_ids)
-        except:
-            return self.netlist.get_device_ids()
-
-    @cached_property
-    def arch(self):
-        try:
-            return self.server_ifc.get_device_arch(min(self.device_ids))
-        except:
-            return self.netlist.get_arch()
-
-    @cached_property
-    def elf(self):
-        if self._run_dirpath is None:
-            raise util.TTException(f"We are running with limited functionality, elf files are not available.")
-
-        elf_files_to_load = {
-            "brisc": f"{self._run_dirpath}/brisc/brisc.elf",
-            "ncrisc": f"{self._run_dirpath}/ncrisc/ncrisc.elf",
-        }
-        if self.arch.lower() != "grayskull":
-            elf_files_to_load["erisc_app"] = f"{self._run_dirpath}/erisc/erisc_app.elf"
-
-        extra_vars = BUDA_FW_VARS if self.is_buda else None
-        return ELF(elf_files_to_load, extra_vars=extra_vars)
-
-    @cached_property
-    def epoch_id_address(self):
-        address, _ = self.elf.parse_addr_size("brisc.EPOCH_INFO_PTR.epoch_id")
-        if address is None:
-            raise util.TTException(f"Could not find address of epoch_id field in ELF file.")
-        return address
-
-    @cached_property
-    def eth_epoch_id_address(self):
-        if self.arch.lower() == "grayskull":
-            raise util.TTException(f"There are no eth cores on grayskull.")
-        address, _ = self.elf.parse_addr_size("erisc_app.EPOCH_INFO_PTR.epoch_id")
-        # address = 0x20080 + context.elf.parse_address("@epoch_t.epoch_id")
-        if address is None:
-            raise util.TTException(f"Could not ind address of epoch_id field in erisc ELF file.")
-        return address
-
-    def __repr__(self):
-        return f"context"
-
 # Loads all files necessary to debug a single buda run
 # Returns a debug 'context' that contains the loaded information
 def load_context(netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path):
-    context = Context(netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path)
-
-    # TODO: Make this lazy load for buda
-    if context.is_buda:
-        # Assign a device to each graph.
-        for _, graph in context.netlist.graphs.items():
-            graph.device = context.devices[graph.device_id()]
-        context.netlist.devices = context.devices
-
-    return context
+    if run_dirpath is None or runtime_data_yaml is None:
+        return LimitedContext(cluster_desc_path)
+    else:
+        return BudaContext(netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path)
 
 class UIState:
     def __init__(self, context: Context) -> None:
@@ -392,10 +295,24 @@ class UIState:
             self.current_graph_name = context.netlist.graphs.first().id()  # Currently selected graph name
         except:
             self.current_graph_name = None
+        self.gdb_server: GdbServer = None
 
     @property
     def current_device(self):
         return self.context.devices[self.current_device_id] if self.current_device_id is not None else None
+
+    def start_gdb(self, port: int):
+        if self.gdb_server is not None:
+            self.gdb_server.stop()
+        server = ServerSocket(port)
+        server.start()
+        self.gdb_server = GdbServer(self.context, server)
+        self.gdb_server.start()
+
+    def stop_gdb(self):
+        if self.gdb_server is not None:
+            self.gdb_server.stop()
+        self.gdb_server = None
 
 class SimplePromptSession:
     def __init__(self):
@@ -422,6 +339,12 @@ def main_loop(args, context):
     ui_state = UIState(context)
 
     navigation_suggestions = None
+
+    # Check if we need to start gdb server
+    if args["--start-gdb"]:
+        port = int(args["--start-gdb"])
+        print(f"Starting gdb server on port {port}")
+        ui_state.start_gdb(port)
 
     # These commands will be executed right away (before allowing user input)
     non_interactive_commands = (
@@ -465,11 +388,18 @@ def main_loop(args, context):
                     epoch_id = context.netlist.graph_name_to_epoch_id(ui_state.current_graph_name)
                 else:
                     epoch_id = None
-                my_prompt = f"Current epoch:{util.CLR_PROMPT}{epoch_id}{util.CLR_PROMPT_END}({ui_state.current_graph_name}) "
+                if ui_state.gdb_server is None:
+                    gdb_status = f"{util.CLR_PROMPT_BAD_VALUE}None{util.CLR_PROMPT_BAD_VALUE_END}"
+                else:
+                    gdb_status = f"{util.CLR_PROMPT}{ui_state.gdb_server.server.port}{util.CLR_PROMPT_END}"
+                    # TODO: Since we cannot update status during prompt, this is commented out for now
+                    # if ui_state.gdb_server.is_connected:
+                    #     gdb_status += "(connected)"
+                my_prompt = f"gdb:{gdb_status} Current epoch:{util.CLR_PROMPT}{epoch_id}{util.CLR_PROMPT_END}({ui_state.current_graph_name}) "
                 my_prompt += f"device:{util.CLR_PROMPT}{ui_state.current_device_id}{util.CLR_PROMPT_END} "
                 my_prompt += f"loc:{util.CLR_PROMPT}{current_loc.to_str()}{util.CLR_PROMPT_END} "
                 my_prompt += f"{ui_state.current_prompt}> "
-                cmd_raw = context.prompt_session.prompt(HTML(my_prompt))
+                cmd_raw = context.prompt_session.prompt(HTML(my_prompt)) 
 
             cmd_int = try_int(cmd_raw)
             if type(cmd_int) == int:

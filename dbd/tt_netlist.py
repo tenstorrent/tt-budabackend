@@ -150,7 +150,7 @@ class Netlist:
         # 0. Create graphs
         for graph_name in self.graph_names():
             # Create the graph
-            g = Graph(self, graph_name, self.yaml_file.root["graphs"][graph_name])
+            g = Graph(self, graph_name, self.yaml_file.root["graphs"][graph_name], rundir)
             self.graphs.add(g)
 
         # 1. Iterate over all temporal epochs

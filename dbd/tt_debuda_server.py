@@ -358,7 +358,7 @@ class debuda_pybind:
     def pci_write(
         self, chip_id: int, noc_x: int, noc_y: int, address: int, data: bytes
     ):
-        return self._check_result(tt_dbd_pybind.pci_write(chip_id, noc_x, noc_y, address, data))
+        return self._check_result(tt_dbd_pybind.pci_write(chip_id, noc_x, noc_y, address, data, len(data)))
 
     def pci_read4_raw(self, chip_id: int, address: int):
         return self._check_result(tt_dbd_pybind.pci_read4_raw(chip_id, address))

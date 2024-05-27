@@ -92,6 +92,8 @@ CLR_INFO = CLR_BLUE
 
 CLR_PROMPT = "<style color='green'>"
 CLR_PROMPT_END = "</style>"
+CLR_PROMPT_BAD_VALUE = "<style color='red'>"
+CLR_PROMPT_BAD_VALUE_END = "</style>"
 
 DEC_FORMAT = 'f"{d}"'
 HEX_FORMAT = 'f"0x{d:08x}"'
