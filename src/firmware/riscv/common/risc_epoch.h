@@ -232,6 +232,7 @@ inline void risc_get_epoch_dram_ptrs(uint32_t &epoch_command, uint32_t &dram_dec
   uint32_t dram_coord_y;
   // Resolve the location of the epoch binaries from the command.
 #ifdef KERNEL_CACHE_ENA
+  uint64_t dram_addr_offset_trisc;    // trisc-only binaries addr (to save space)
   // Trisc binary cache is seperate address if enabled, otherwise trisc binaries are in combined epoch binary.
   risc_get_noc_addrs_from_dram_ptr(noc_read_dest_buf_ptr, dram_addr_offset_combined, dram_addr_offset_trisc, dram_coord_x, dram_coord_y);
   dram_next_epoch_ptr         = NOC_XY_ADDR(NOC_X(dram_coord_x), NOC_Y(dram_coord_y), dram_addr_offset_combined);
