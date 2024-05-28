@@ -21,7 +21,7 @@ class scoped_null_stdout {
     ~scoped_null_stdout() { std::cout.rdbuf(original_stdout); }
 };
 
-void set_debuda_implementation(std::unique_ptr<tt::dbd::debuda_implementation>& imp) {
+void set_debuda_implementation(std::unique_ptr<tt::dbd::debuda_implementation> &imp) {
     debuda_implementation = std::move(imp);
 }
 
@@ -55,8 +55,8 @@ std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y
     return {};
 }
 
-std::optional<pybind11::object> pci_read(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) {
+std::optional<pybind11::object> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                         uint32_t size) {
     if (debuda_implementation) {
         auto data = debuda_implementation->pci_read(chip_id, noc_x, noc_y, address, size);
 
@@ -65,27 +65,26 @@ std::optional<pybind11::object> pci_read(
             // copying. Pyobject is created manually and then passed to pybind11::reinterpret_steal
             // to prevent memory leak.
             // See https://github.com/pybind/pybind11/issues/1236
-            PyBytesObject* bytesObject = nullptr;
+            PyBytesObject *bytesObject = nullptr;
 
-            bytesObject = (PyBytesObject*) PyObject_Malloc(
-                    offsetof(PyBytesObject, ob_sval) + size + 1);
+            bytesObject = (PyBytesObject *)PyObject_Malloc(offsetof(PyBytesObject, ob_sval) + size + 1);
 
             PyObject_INIT_VAR(bytesObject, &PyBytes_Type, size);
             bytesObject->ob_shash = -1;
             bytesObject->ob_sval[size] = '\0';
-            
+
             for (size_t i = 0; i < size; i++) {
                 bytesObject->ob_sval[i] = data.value()[i];
             }
-            
-            return pybind11::reinterpret_steal<pybind11::object>((PyObject*)bytesObject);
-        }    
+
+            return pybind11::reinterpret_steal<pybind11::object>((PyObject *)bytesObject);
+        }
     }
     return {};
 }
 
-std::optional<uint32_t> pci_write(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, pybind11::buffer data, uint32_t size) {
+std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                  pybind11::buffer data, uint32_t size) {
     if (debuda_implementation) {
         pybind11::buffer_info info = data.request();
         uint8_t *data_ptr = static_cast<uint8_t *>(info.ptr);
@@ -116,8 +115,8 @@ std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint
     return {};
 }
 
-std::optional<std::string> pci_read_tile(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) {
+std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size,
+                                         uint8_t data_format) {
     if (debuda_implementation) {
         return debuda_implementation->pci_read_tile(chip_id, noc_x, noc_y, address, size, data_format);
     }
@@ -168,46 +167,31 @@ std::optional<std::string> get_device_soc_description(uint8_t chip_id) {
 
 // TODO: Check pybinds
 PYBIND11_MODULE(tt_dbd_pybind, m) {
-    m.def("open_device", &open_device,
-          "Opens tt device. Prints error message if failed.",
+    m.def("open_device", &open_device, "Opens tt device. Prints error message if failed.",
           pybind11::arg("binary_directory"));
-    m.def("pci_read4", &pci_read4,
-          "Reads 4 bytes from PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"));
-    m.def("pci_write4", &pci_write4,
-          "Writes 4 bytes to PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("data"));
-    m.def("pci_read", &pci_read,
-          "Reads data from PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("size"));
-    m.def("pci_write", &pci_write,
-          "Writes data to PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("data"), pybind11::arg("size"));
-    m.def("pci_read4_raw", &pci_read4_raw,
-          "Reads 4 bytes from PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("address"));
-    m.def("pci_write4_raw", &pci_write4_raw,
-          "Writes 4 bytes to PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("address"), pybind11::arg("data"));
-    m.def("dma_buffer_read4", &dma_buffer_read4,
-          "Reads 4 bytes from DMA buffer",
-          pybind11::arg("chip_id"), pybind11::arg("address"), pybind11::arg("channel"));
-    m.def("pci_read_tile", &pci_read_tile,
-          "Reads tile from PCI address",
-          pybind11::arg("chip_id"), pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("size"), pybind11::arg("data_format"));
-    m.def("get_runtime_data", &get_runtime_data,
-          "Returns runtime data");
-    m.def("get_cluster_description", &get_cluster_description,
-          "Returns cluster description");
+    m.def("pci_read4", &pci_read4, "Reads 4 bytes from PCI address", pybind11::arg("chip_id"), pybind11::arg("noc_x"),
+          pybind11::arg("noc_y"), pybind11::arg("address"));
+    m.def("pci_write4", &pci_write4, "Writes 4 bytes to PCI address", pybind11::arg("chip_id"), pybind11::arg("noc_x"),
+          pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("data"));
+    m.def("pci_read", &pci_read, "Reads data from PCI address", pybind11::arg("chip_id"), pybind11::arg("noc_x"),
+          pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("size"));
+    m.def("pci_write", &pci_write, "Writes data to PCI address", pybind11::arg("chip_id"), pybind11::arg("noc_x"),
+          pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("data"), pybind11::arg("size"));
+    m.def("pci_read4_raw", &pci_read4_raw, "Reads 4 bytes from PCI address", pybind11::arg("chip_id"),
+          pybind11::arg("address"));
+    m.def("pci_write4_raw", &pci_write4_raw, "Writes 4 bytes to PCI address", pybind11::arg("chip_id"),
+          pybind11::arg("address"), pybind11::arg("data"));
+    m.def("dma_buffer_read4", &dma_buffer_read4, "Reads 4 bytes from DMA buffer", pybind11::arg("chip_id"),
+          pybind11::arg("address"), pybind11::arg("channel"));
+    m.def("pci_read_tile", &pci_read_tile, "Reads tile from PCI address", pybind11::arg("chip_id"),
+          pybind11::arg("noc_x"), pybind11::arg("noc_y"), pybind11::arg("address"), pybind11::arg("size"),
+          pybind11::arg("data_format"));
+    m.def("get_runtime_data", &get_runtime_data, "Returns runtime data");
+    m.def("get_cluster_description", &get_cluster_description, "Returns cluster description");
     m.def("get_harvester_coordinate_translation", &get_harvester_coordinate_translation,
-          "Returns harvester coordinate translation",
-          pybind11::arg("chip_id"));
-    m.def("get_device_ids", &get_device_ids,
-          "Returns device ids");
-    m.def("get_device_arch", &get_device_arch,
-          "Returns device architecture",
-          pybind11::arg("chip_id"));
-    m.def("get_device_soc_description", &get_device_soc_description,
-          "Returns device SoC description",
+          "Returns harvester coordinate translation", pybind11::arg("chip_id"));
+    m.def("get_device_ids", &get_device_ids, "Returns device ids");
+    m.def("get_device_arch", &get_device_arch, "Returns device architecture", pybind11::arg("chip_id"));
+    m.def("get_device_soc_description", &get_device_soc_description, "Returns device SoC description",
           pybind11::arg("chip_id"));
 }

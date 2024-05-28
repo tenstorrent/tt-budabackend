@@ -18,20 +18,23 @@
 
 #include "device/tt_device.h"
 
-bool open_device(const std::string &binary_directory);
+bool open_device(const std::string& binary_directory);
 void set_debuda_implementation(std::unique_ptr<tt::dbd::debuda_implementation>& imp);
 
 std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address);
 std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data);
 
-std::optional<pybind11::object> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size);
-std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, pybind11::buffer data, uint32_t size);
+std::optional<pybind11::object> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                         uint32_t size);
+std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                  pybind11::buffer data, uint32_t size);
 
 std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address);
 std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data);
 
 std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel);
-std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format);
+std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size,
+                                         uint8_t data_format);
 
 std::optional<std::string> get_runtime_data();
 std::optional<std::string> get_cluster_description();

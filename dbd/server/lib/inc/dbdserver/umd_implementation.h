@@ -15,12 +15,12 @@ class umd_implementation : public debuda_implementation {
 
    protected:
     std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) override;
-    std::optional<uint32_t> pci_write4(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) override;
-    std::optional<std::vector<uint8_t>> pci_read(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) override;
-    std::optional<uint32_t> pci_write(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t* data, uint32_t size) override;
+    std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                       uint32_t data) override;
+    std::optional<std::vector<uint8_t>> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                 uint32_t size) override;
+    std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                      const uint8_t* data, uint32_t size) override;
     std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address) override;
     std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) override;
     std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) override;

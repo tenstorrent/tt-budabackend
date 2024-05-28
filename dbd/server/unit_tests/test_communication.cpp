@@ -79,39 +79,33 @@ TEST(debuda_communication, get_device_ids) {
 }
 
 TEST(debuda_communication, pci_read4) {
-    test_yaml_request(
-        tt::dbd::pci_read4_request{tt::dbd::request_type::pci_read4, 1, 2, 3, 123456},
-        "- type: 10\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456");
+    test_yaml_request(tt::dbd::pci_read4_request{tt::dbd::request_type::pci_read4, 1, 2, 3, 123456},
+                      "- type: 10\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456");
 }
 
 TEST(debuda_communication, pci_write4) {
-    test_yaml_request(
-        tt::dbd::pci_write4_request{tt::dbd::request_type::pci_write4, 1, 2, 3, 123456, 987654},
-        "- type: 11\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  data: 987654");
+    test_yaml_request(tt::dbd::pci_write4_request{tt::dbd::request_type::pci_write4, 1, 2, 3, 123456, 987654},
+                      "- type: 11\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  data: 987654");
 }
 
 TEST(debuda_communication, pci_read) {
-    test_yaml_request(
-        tt::dbd::pci_read_request{tt::dbd::request_type::pci_read, 1, 2, 3, 123456, 1024},
-        "- type: 12\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  size: 1024");
+    test_yaml_request(tt::dbd::pci_read_request{tt::dbd::request_type::pci_read, 1, 2, 3, 123456, 1024},
+                      "- type: 12\n  chip_id: 1\n  noc_x: 2\n  noc_y: 3\n  address: 123456\n  size: 1024");
 }
 
 TEST(debuda_communication, pci_read4_raw) {
-    test_yaml_request(
-        tt::dbd::pci_read4_raw_request{tt::dbd::request_type::pci_read4_raw, 1, 123456},
-        "- type: 14\n  chip_id: 1\n  address: 123456");
+    test_yaml_request(tt::dbd::pci_read4_raw_request{tt::dbd::request_type::pci_read4_raw, 1, 123456},
+                      "- type: 14\n  chip_id: 1\n  address: 123456");
 }
 
 TEST(debuda_communication, pci_write4_raw) {
-    test_yaml_request(
-        tt::dbd::pci_write4_raw_request{tt::dbd::request_type::pci_write4_raw, 1, 123456, 987654},
-        "- type: 15\n  chip_id: 1\n  address: 123456\n  data: 987654");
+    test_yaml_request(tt::dbd::pci_write4_raw_request{tt::dbd::request_type::pci_write4_raw, 1, 123456, 987654},
+                      "- type: 15\n  chip_id: 1\n  address: 123456\n  data: 987654");
 }
 
 TEST(debuda_communication, dma_buffer_read4) {
-    test_yaml_request(
-        tt::dbd::dma_buffer_read4_request{tt::dbd::request_type::dma_buffer_read4, 1, 123456, 456},
-        "- type: 16\n  chip_id: 1\n  address: 123456\n  channel: 456");
+    test_yaml_request(tt::dbd::dma_buffer_read4_request{tt::dbd::request_type::dma_buffer_read4, 1, 123456, 456},
+                      "- type: 16\n  chip_id: 1\n  address: 123456\n  channel: 456");
 }
 
 TEST(debuda_communication, pci_read_tile) {
@@ -128,17 +122,13 @@ TEST(debuda_communication, get_harvester_coordinate_translation) {
 }
 
 TEST(debuda_communication, get_device_arch) {
-    test_yaml_request(
-        tt::dbd::get_device_arch_request{
-            tt::dbd::request_type::get_device_arch, 1},
-        "- type: 105\n  chip_id: 1");
+    test_yaml_request(tt::dbd::get_device_arch_request{tt::dbd::request_type::get_device_arch, 1},
+                      "- type: 105\n  chip_id: 1");
 }
 
 TEST(debuda_communication, get_device_soc_description) {
-    test_yaml_request(
-        tt::dbd::get_device_soc_description_request{
-            tt::dbd::request_type::get_device_soc_description, 1},
-        "- type: 106\n  chip_id: 1");
+    test_yaml_request(tt::dbd::get_device_soc_description_request{tt::dbd::request_type::get_device_soc_description, 1},
+                      "- type: 106\n  chip_id: 1");
 }
 
 TEST(debuda_communication, pci_write) {

@@ -28,11 +28,8 @@ std::string execute_command(const std::string& cmd) {
     return result;
 }
 
-void call_python(
-    const std::string& python_script,
-    int server_port,
-    const std::string& python_args,
-    const std::string& expected_output) {
+void call_python(const std::string& python_script, int server_port, const std::string& python_args,
+                 const std::string& expected_output) {
     auto buda_home_env = getenv("BUDA_HOME");
     std::string buda_home;
     if (buda_home_env) {
@@ -97,9 +94,7 @@ TEST(debuda_python_communication, get_harvester_coordinate_translation) {
     call_python("get_harvester_coordinate_translation", "- type: 103\n  chip_id: 1\n");
 }
 
-TEST(debuda_python_communication, get_device_arch) {
-    call_python("get_device_arch", "- type: 105\n  chip_id: 1\n");
-}
+TEST(debuda_python_communication, get_device_arch) { call_python("get_device_arch", "- type: 105\n  chip_id: 1\n"); }
 
 TEST(debuda_python_communication, get_device_soc_description) {
     call_python("get_device_soc_description", "- type: 106\n  chip_id: 1\n");

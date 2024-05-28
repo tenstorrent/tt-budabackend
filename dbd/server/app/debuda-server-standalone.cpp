@@ -98,13 +98,8 @@ int main(int argc, char** argv) {
         cluster_desc_path = "";
     }
 
-    log_info(
-        tt::LogDebuda,
-        "Port: {}, netlist: {}, arch: {}, cluster-desc: {}",
-        port,
-        netlist_path,
-        arch,
-        cluster_descriptor_path);
+    log_info(tt::LogDebuda, "Port: {}, netlist: {}, arch: {}, cluster-desc: {}", port, netlist_path, arch,
+             cluster_descriptor_path);
 
     ensure_file("Runtime data", argv[2]);
     ensure_file("Netlist", netlist_path);
@@ -136,9 +131,8 @@ int main(int argc, char** argv) {
 
     // Cleanup
     try {
-        log_assert(
-            target_backend->finish() == tt::DEVICE_STATUS_CODE::Success,
-            "Expected target device to close successfully");
+        log_assert(target_backend->finish() == tt::DEVICE_STATUS_CODE::Success,
+                   "Expected target device to close successfully");
     } catch (...) {
         // FIX: perf reporter throws an error; Don't just swallow it.
     }

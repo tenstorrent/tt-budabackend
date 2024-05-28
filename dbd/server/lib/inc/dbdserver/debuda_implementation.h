@@ -18,24 +18,24 @@ class debuda_implementation {
     virtual std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address) {
         return {};
     }
-    virtual std::optional<uint32_t> pci_write4(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) {
+    virtual std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                               uint32_t data) {
         return {};
     }
-    virtual std::optional<std::vector<uint8_t>> pci_read(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) {
+    virtual std::optional<std::vector<uint8_t>> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y,
+                                                         uint64_t address, uint32_t size) {
         return {};
     }
-    virtual std::optional<uint32_t> pci_write(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t *data, uint32_t size) {
+    virtual std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                              const uint8_t *data, uint32_t size) {
         return {};
     }
     virtual std::optional<uint32_t> pci_read4_raw(uint8_t chip_id, uint64_t address) { return {}; }
     virtual std::optional<uint32_t> pci_write4_raw(uint8_t chip_id, uint64_t address, uint32_t data) { return {}; }
     virtual std::optional<uint32_t> dma_buffer_read4(uint8_t chip_id, uint64_t address, uint32_t channel) { return {}; }
 
-    virtual std::optional<std::string> pci_read_tile(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) {
+    virtual std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                     uint32_t size, uint8_t data_format) {
         return {};
     }
     virtual std::optional<std::string> get_runtime_data() { return {}; }

@@ -57,8 +57,7 @@ void tt::dbd::communication::request_loop() {
             zmq::message_t message;
             auto result = zmq_socket.recv(message);
 
-            if (should_stop)
-                break;
+            if (should_stop) break;
 
             // Get request type
             if (message.size() >= sizeof(request)) {
@@ -66,7 +65,9 @@ void tt::dbd::communication::request_loop() {
 
                 switch (r->type) {
                     default:
-                    case request_type::invalid: invalid_message = true; break;
+                    case request_type::invalid:
+                        invalid_message = true;
+                        break;
 
                     // Requests with no structure - no input except request type
                     case request_type::ping:
@@ -77,11 +78,15 @@ void tt::dbd::communication::request_loop() {
                         break;
 
                     // Static sized structures
-                    case request_type::pci_read4: invalid_message = message.size() != sizeof(pci_read4_request); break;
+                    case request_type::pci_read4:
+                        invalid_message = message.size() != sizeof(pci_read4_request);
+                        break;
                     case request_type::pci_write4:
                         invalid_message = message.size() != sizeof(pci_write4_request);
                         break;
-                    case request_type::pci_read: invalid_message = message.size() != sizeof(pci_read_request); break;
+                    case request_type::pci_read:
+                        invalid_message = message.size() != sizeof(pci_read_request);
+                        break;
                     case request_type::pci_read4_raw:
                         invalid_message = message.size() != sizeof(pci_read4_raw_request);
                         break;

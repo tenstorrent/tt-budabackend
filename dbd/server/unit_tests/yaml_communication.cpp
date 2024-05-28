@@ -12,7 +12,9 @@ void yaml_communication::process(const tt::dbd::request& request) {
         case tt::dbd::request_type::ping:
         case tt::dbd::request_type::get_runtime_data:
         case tt::dbd::request_type::get_cluster_description:
-        case tt::dbd::request_type::get_device_ids: respond(serialize(request)); break;
+        case tt::dbd::request_type::get_device_ids:
+            respond(serialize(request));
+            break;
 
         case tt::dbd::request_type::pci_write4:
             respond(serialize(static_cast<const tt::dbd::pci_write4_request&>(request)));

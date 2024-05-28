@@ -73,11 +73,12 @@ static std::string create_temp_configuration_file(tt::ARCH arch) {
             configuration_bytes = wormhole_b0_configuration_bytes;
             configuration_length = sizeof(wormhole_b0_configuration_bytes) / sizeof(wormhole_b0_configuration_bytes[0]);
             break;
-        default: throw std::runtime_error("Unsupported architecture " + get_arch_str(arch) + ".");
+        default:
+            throw std::runtime_error("Unsupported architecture " + get_arch_str(arch) + ".");
     }
 
-    return write_temp_file(
-        "soc_descriptor.yaml", reinterpret_cast<const char *>(configuration_bytes), configuration_length);
+    return write_temp_file("soc_descriptor.yaml", reinterpret_cast<const char *>(configuration_bytes),
+                           configuration_length);
 }
 
 // Identifies and returns the directory path of the currently running executable in a Linux environment.
@@ -106,7 +107,8 @@ static std::string create_temp_network_descriptor_file(tt::ARCH arch, std::files
             std::string cluster_descriptor_path = temp_working_directory / "cluster_desc.yaml";
 
             // Try calling create-ethernet-map
-            if (!std::system((create_ethernet_map + " " + cluster_descriptor_path + " >/dev/null 2>/dev/null").c_str())) {
+            if (!std::system(
+                    (create_ethernet_map + " " + cluster_descriptor_path + " >/dev/null 2>/dev/null").c_str())) {
                 return cluster_descriptor_path;
             }
 
@@ -120,62 +122,47 @@ static std::string create_temp_network_descriptor_file(tt::ARCH arch, std::files
     return {};
 }
 
-static std::unique_ptr<tt_SiliconDevice> create_grayskull_device(
-    const std::string &device_configuration_path,
-    const std::string &cluster_descriptor_path,
-    const std::set<chip_id_t> &target_devices) {
+static std::unique_ptr<tt_SiliconDevice> create_grayskull_device(const std::string &device_configuration_path,
+                                                                 const std::string &cluster_descriptor_path,
+                                                                 const std::set<chip_id_t> &target_devices) {
     uint32_t num_host_mem_ch_per_mmio_device = 1;
     std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
     dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::grayskull::MEM_SMALL_READ_WRITE_TLB;
     dynamic_tlb_config["REG_TLB"] = tt::umd::grayskull::REG_TLB;
 
-    return std::make_unique<tt_SiliconDevice>(
-        device_configuration_path,
-        cluster_descriptor_path,
-        target_devices,
-        num_host_mem_ch_per_mmio_device,
-        dynamic_tlb_config);
+    return std::make_unique<tt_SiliconDevice>(device_configuration_path, cluster_descriptor_path, target_devices,
+                                              num_host_mem_ch_per_mmio_device, dynamic_tlb_config);
 }
 
-static std::unique_ptr<tt_SiliconDevice> create_wormhole_device(
-    const std::string &device_configuration_path,
-    const std::string &cluster_descriptor_path,
-    const std::set<chip_id_t> &target_devices) {
+static std::unique_ptr<tt_SiliconDevice> create_wormhole_device(const std::string &device_configuration_path,
+                                                                const std::string &cluster_descriptor_path,
+                                                                const std::set<chip_id_t> &target_devices) {
     uint32_t num_host_mem_ch_per_mmio_device = 4;
     std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
     dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::wormhole::MEM_SMALL_READ_WRITE_TLB;
     dynamic_tlb_config["REG_TLB"] = tt::umd::wormhole::REG_TLB;
 
-    return std::make_unique<tt_SiliconDevice>(
-        device_configuration_path,
-        cluster_descriptor_path,
-        target_devices,
-        num_host_mem_ch_per_mmio_device,
-        dynamic_tlb_config);
+    return std::make_unique<tt_SiliconDevice>(device_configuration_path, cluster_descriptor_path, target_devices,
+                                              num_host_mem_ch_per_mmio_device, dynamic_tlb_config);
 }
 
-static std::unique_ptr<tt_SiliconDevice> create_blackhole_device(
-    const std::string &device_configuration_path,
-    const std::string &cluster_descriptor_path,
-    const std::set<chip_id_t> &target_devices) {
+static std::unique_ptr<tt_SiliconDevice> create_blackhole_device(const std::string &device_configuration_path,
+                                                                 const std::string &cluster_descriptor_path,
+                                                                 const std::set<chip_id_t> &target_devices) {
     uint32_t num_host_mem_ch_per_mmio_device = 4;
     std::unordered_map<std::string, std::int32_t> dynamic_tlb_config;
     dynamic_tlb_config["SMALL_READ_WRITE_TLB"] = tt::umd::blackhole::TLB_BASE_INDEX_2M + 1;
     dynamic_tlb_config["REG_TLB"] = tt::umd::blackhole::REG_TLB;
 
-    return std::make_unique<tt_SiliconDevice>(
-        device_configuration_path,
-        cluster_descriptor_path,
-        target_devices,
-        num_host_mem_ch_per_mmio_device,
-        dynamic_tlb_config);
+    return std::make_unique<tt_SiliconDevice>(device_configuration_path, cluster_descriptor_path, target_devices,
+                                              num_host_mem_ch_per_mmio_device, dynamic_tlb_config);
 }
 
 // Creates SOC descriptor files by serializing tt_SocDescroptor structure to yaml.
 // TODO: Current copied from runtime/runtime_utils.cpp: print_device_description. It should be moved to UMD and reused
 // on both places.
-static std::map<uint8_t, std::string> create_device_soc_descriptors(
-    tt_SiliconDevice *device, const std::vector<uint8_t> &device_ids) {
+static std::map<uint8_t, std::string> create_device_soc_descriptors(tt_SiliconDevice *device,
+                                                                    const std::vector<uint8_t> &device_ids) {
     tt_device *d = static_cast<tt_device *>(device);
     std::map<uint8_t, std::string> device_soc_descriptors;
 
@@ -310,10 +297,11 @@ static std::map<uint8_t, std::string> create_device_soc_descriptors(
 
 namespace tt::dbd {
 
-umd_with_open_implementation::umd_with_open_implementation(std::unique_ptr<tt_SiliconDevice> device) :
-    umd_implementation(device.get()), device(std::move(device)) {}
+umd_with_open_implementation::umd_with_open_implementation(std::unique_ptr<tt_SiliconDevice> device)
+    : umd_implementation(device.get()), device(std::move(device)) {}
 
-std::unique_ptr<umd_with_open_implementation> umd_with_open_implementation::open(const std::filesystem::path& binary_directory) {
+std::unique_ptr<umd_with_open_implementation> umd_with_open_implementation::open(
+    const std::filesystem::path &binary_directory) {
     auto devices = tt_SiliconDevice::detect_available_device_ids();
 
     if (devices.size() == 0) {
@@ -369,7 +357,8 @@ std::unique_ptr<umd_with_open_implementation> umd_with_open_implementation::open
         case tt::ARCH::BLACKHOLE:
             device = create_blackhole_device(device_configuration_path, cluster_descriptor_path, target_devices);
             break;
-        default: throw std::runtime_error("Unsupported architecture " + get_arch_str(arch) + ".");
+        default:
+            throw std::runtime_error("Unsupported architecture " + get_arch_str(arch) + ".");
     }
 
     auto device_soc_descriptors = create_device_soc_descriptors(device.get(), device_ids);

@@ -35,11 +35,9 @@ bool plain_server::start(int port) {
         log_info(tt::LogDebuda, "Debug server started on {}.", connection_address);
         return true;
     } catch (...) {
-        log_custom(
-            tt::Logger::Level::Error,
-            tt::LogDebuda,
-            "Debug server cannot start on {}. An instance of debug server might already be running.",
-            connection_address);
+        log_custom(tt::Logger::Level::Error, tt::LogDebuda,
+                   "Debug server cannot start on {}. An instance of debug server might already be running.",
+                   connection_address);
         return false;
     }
 }

@@ -108,7 +108,6 @@ struct get_device_arch_request : request {
     uint8_t chip_id;
 } __attribute__((packed));
 
-
 struct get_device_soc_description_request : request {
     uint8_t chip_id;
 } __attribute__((packed));

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-#include <dbdserver/server.h>
 #include <dbdserver/debuda_implementation.h>
+#include <dbdserver/server.h>
 #include <gtest/gtest.h>
 
 #include <map>
@@ -28,21 +28,21 @@ class simulation_implementation : public tt::dbd::debuda_implementation {
         }
         return {};
     }
-    std::optional<uint32_t> pci_write4(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) override {
+    std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                       uint32_t data) override {
         read_write_4[std::make_tuple(chip_id, noc_x, noc_y, address)] = data;
         return 4;
     }
-    std::optional<std::vector<uint8_t>> pci_read(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) override {
+    std::optional<std::vector<uint8_t>> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                 uint32_t size) override {
         auto it = read_write.find(std::make_tuple(chip_id, noc_x, noc_y, address, size));
         if (it != read_write.end()) {
             return it->second;
         }
         return {};
     }
-    std::optional<uint32_t> pci_write(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t* data, uint32_t size) override {
+    std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                      const uint8_t* data, uint32_t size) override {
         std::vector<uint8_t> data_vector(size);
         for (size_t i = 0; i < size; i++) {
             data_vector[i] = data[i];
@@ -69,8 +69,8 @@ class simulation_implementation : public tt::dbd::debuda_implementation {
         return {};
     }
 
-    std::optional<std::string> pci_read_tile(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) override {
+    std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                             uint32_t size, uint8_t data_format) override {
         return "pci_read_tile(" + std::to_string(chip_id) + ", " + std::to_string(noc_x) + ", " +
                std::to_string(noc_y) + ", " + std::to_string(address) + ", " + std::to_string(size) + ", " +
                std::to_string(data_format) + ")";
@@ -89,11 +89,8 @@ class simulation_implementation : public tt::dbd::debuda_implementation {
     }
 };
 
-void call_python(
-    const std::string& python_script,
-    int server_port,
-    const std::string& python_args,
-    const std::string& expected_output);
+void call_python(const std::string& python_script, int server_port, const std::string& python_args,
+                 const std::string& expected_output);
 std::unique_ptr<tt::dbd::server> start_server(bool enable_yaml, int port = DEFAULT_TEST_SERVER_PORT);
 
 static void call_python_empty_server(const std::string& python_args, int port = DEFAULT_TEST_SERVER_PORT) {
@@ -153,14 +150,8 @@ TEST(debuda_python_server, get_harvester_coordinate_translation) {
     call_python_server("get_harvester_coordinate_translation");
 }
 
-TEST(debuda_python_server, get_device_ids) {
-    call_python_server("get_device_ids");
-}
+TEST(debuda_python_server, get_device_ids) { call_python_server("get_device_ids"); }
 
-TEST(debuda_python_server, get_device_arch) {
-    call_python_server("get_device_arch");
-}
+TEST(debuda_python_server, get_device_arch) { call_python_server("get_device_arch"); }
 
-TEST(debuda_python_server, get_device_soc_description) {
-    call_python_server("get_device_soc_description");
-}
+TEST(debuda_python_server, get_device_soc_description) { call_python_server("get_device_soc_description"); }

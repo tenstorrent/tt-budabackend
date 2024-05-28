@@ -19,12 +19,14 @@ class bindings_implementation : public tt::dbd::debuda_implementation {
         return {};
     }
 
-    std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) override {
+    std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                       uint32_t data) override {
         read_write_4[std::make_tuple(chip_id, noc_x, noc_y, address)] = data;
         return data;
     }
 
-    std::optional<std::vector<uint8_t>> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) override {
+    std::optional<std::vector<uint8_t>> pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                 uint32_t size) override {
         auto it = read_write.find(std::make_tuple(chip_id, noc_x, noc_y, address, size));
         if (it != read_write.end()) {
             return it->second;
@@ -32,7 +34,8 @@ class bindings_implementation : public tt::dbd::debuda_implementation {
         return {};
     }
 
-    std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t *data, uint32_t size) override {
+    std::optional<uint32_t> pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                      const uint8_t *data, uint32_t size) override {
         std::vector<uint8_t> data_vector(size);
         for (size_t i = 0; i < size; i++) {
             data_vector[i] = data[i];
@@ -62,8 +65,8 @@ class bindings_implementation : public tt::dbd::debuda_implementation {
         return {};
     }
 
-    std::optional<std::string> pci_read_tile(
-        uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size, uint8_t data_format) override {
+    std::optional<std::string> pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                             uint32_t size, uint8_t data_format) override {
         return "pci_read_tile(" + std::to_string(chip_id) + ", " + std::to_string(noc_x) + ", " +
                std::to_string(noc_y) + ", " + std::to_string(address) + ", " + std::to_string(size) + ", " +
                std::to_string(data_format) + ")";
@@ -82,12 +85,10 @@ class bindings_implementation : public tt::dbd::debuda_implementation {
     }
 };
 
-
 void set_debuda_test_implementation() {
     std::unique_ptr<tt::dbd::debuda_implementation> implementation = std::make_unique<bindings_implementation>();
     set_debuda_implementation(implementation);
 }
-
 
 PYBIND11_MODULE(tt_dbd_pybind_unit_tests, n) {
     n.def("set_debuda_test_implementation", &set_debuda_test_implementation);

@@ -26,8 +26,8 @@ std::optional<uint32_t> umd_implementation::pci_read4(uint8_t chip_id, uint8_t n
     return result;
 }
 
-std::optional<uint32_t> umd_implementation::pci_write4(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data) {
+std::optional<uint32_t> umd_implementation::pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                       uint32_t data) {
     if (!device) {
         return {};
     }
@@ -38,8 +38,8 @@ std::optional<uint32_t> umd_implementation::pci_write4(
     return 4;
 }
 
-std::optional<std::vector<uint8_t>> umd_implementation::pci_read(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t size) {
+std::optional<std::vector<uint8_t>> umd_implementation::pci_read(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y,
+                                                                 uint64_t address, uint32_t size) {
     if (!device) {
         return {};
     }
@@ -51,8 +51,8 @@ std::optional<std::vector<uint8_t>> umd_implementation::pci_read(
     return result;
 }
 
-std::optional<uint32_t> umd_implementation::pci_write(
-    uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, const uint8_t* data, uint32_t size) {
+std::optional<uint32_t> umd_implementation::pci_write(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address,
+                                                      const uint8_t* data, uint32_t size) {
     if (!device) {
         return {};
     }
