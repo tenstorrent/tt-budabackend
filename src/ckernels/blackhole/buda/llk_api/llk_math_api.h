@@ -329,7 +329,7 @@ inline void llk_math_eltwise_unary_sfpu_init(
     const uint operand, const uint param0 = 0, const uint param1 = 0, const uint param2 = 0, const uint param3 = 0, const uint param4 = 0, const uint param5 = 0) {
     TT_LLK_DUMP("llk_math_eltwise_unary_sfpu_init<{}, {}>({}, {}, {}, {}, {}, {})", sfpu_op, APPROXIMATE, param0, param1, param2, param3, param4, param5);
 
-    _llk_math_eltwise_unary_sfpu_init_();
+    _llk_math_eltwise_unary_sfpu_init_<sfpu_op>();
 
     switch (sfpu_op) {
         case SfpuType::reciprocal:
