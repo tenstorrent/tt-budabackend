@@ -39,10 +39,9 @@ void tt_netlist_analyzer::parse_cluster_desc(const std::string &cluster_desc_pat
     int chip_id = 0;
     YAML::Node yaml = YAML::LoadFile(cluster_desc_path);
     if (yaml["harvesting"]) {
-        for (const auto& node : yaml["harvesting"].as<std::vector<YAML::Node>>()) {
-            const auto& chip_node = node.as<std::map<int, YAML::Node>>();
-            chip_id_t chip_id_from_yaml = chip_node.begin() -> first;
-            auto harvesting_info = node.begin() -> second;
+        for (const auto& chip_node : yaml["harvesting"].as<std::map<int, YAML::Node>>()) {
+            chip_id_t chip_id_from_yaml = chip_node.first;
+            auto harvesting_info = chip_node.second;
             if (!harvesting_info["noc_translation"].as<bool>()) {
                 // TODO warning?
                 continue;
