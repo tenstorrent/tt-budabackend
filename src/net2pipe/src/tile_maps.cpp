@@ -12,6 +12,7 @@
 
 #include "net2pipe_logger.h"
 #include "tile_maps_common.h"
+#include "utils/logger.hpp"
 
 three_d_array_tile_src_map::three_d_array_tile_src_map(
     std::string producer_name,
@@ -24,7 +25,8 @@ three_d_array_tile_src_map::three_d_array_tile_src_map(
     int num_cores_r,
     int num_cores_c,
     int producer_output_buf_size_t,
-    bool producer_row_major_ublock_scan_order) {
+    bool producer_row_major_ublock_scan_order,
+    bool is_trace_shape_mode) {
     assert(t_dim > 0);
     assert(ublock_tiles_r > 0);
     assert(ublock_tiles_c > 0);
@@ -49,6 +51,7 @@ three_d_array_tile_src_map::three_d_array_tile_src_map(
     this->producer_output_buf_size_t = producer_output_buf_size_t;
     this->multi_t_reach_stack = false;
     this->adjusted_slice_factor = 1;
+    this->is_trace_shape_mode = is_trace_shape_mode;
 
     this->tm_assert(
         divisible_either_direction(producer_output_buf_size_t, t_dim),
@@ -73,6 +76,11 @@ three_d_array_tile_src_map::three_d_array_tile_src_map(
     this->dim_size(map_dims::t) = t_dim;
     this->dim_size(map_dims::rt) = ublock_tiles_r * mblock_ublocks_m * num_cores_r;
     this->dim_size(map_dims::ct) = ublock_tiles_c * mblock_ublocks_n * num_cores_c;
+
+    if (is_trace_shape_mode) {
+        return;
+    }
+
     this->allocate_tile_map();
 
     for (int t = 0; t < t_dim; t++) {
@@ -87,14 +95,14 @@ three_d_array_tile_src_map::three_d_array_tile_src_map(
                                 int tile_index;
                                 if (producer_row_major_ublock_scan_order) {
                                     tile_index = t * mblock_size_tiles +
-                                                 ublock_r * (mblock_ublocks_n * ublock_size_tiles) +
-                                                 ublock_c * ublock_size_tiles + tile_r * ublock_tiles_c + tile_c;
+                                                ublock_r * (mblock_ublocks_n * ublock_size_tiles) +
+                                                ublock_c * ublock_size_tiles + tile_r * ublock_tiles_c + tile_c;
                                 } else {
                                     // with column-major scan order of mblocks, tiles are still scanned in row-major
                                     // order within ublocks
                                     tile_index = t * mblock_size_tiles +
-                                                 ublock_c * (mblock_ublocks_m * ublock_size_tiles) +
-                                                 ublock_r * ublock_size_tiles + tile_r * ublock_tiles_c + tile_c;
+                                                ublock_c * (mblock_ublocks_m * ublock_size_tiles) +
+                                                ublock_r * ublock_size_tiles + tile_r * ublock_tiles_c + tile_c;
                                 }
                                 tile_map.set_tile_map(t, rt, ct, tile_to_core_index_map(core_r, core_c, tile_index));
                                 ct++;
@@ -120,6 +128,10 @@ three_d_array_tile_src_map three_d_array_tile_src_map::vslice(int factor) {
     result.adjusted_slice_factor *= factor;
     result.dim_size(map_dims::t) *= factor;
     result.dim_size(map_dims::rt) /= factor;
+
+    if (is_trace_shape_mode) {
+        return result;
+    }
 
     result.allocate_tile_map();
 
@@ -161,7 +173,12 @@ three_d_array_tile_src_map three_d_array_tile_src_map::vstack(int factor) {
     result.dim_size(map_dims::t) /= factor;
     result.dim_size(map_dims::rt) *= factor;
 
+    if (is_trace_shape_mode) {
+        return result;
+    }
+
     result.allocate_tile_map();
+
     int t_size = this->get_size(map_dims::t);
     int rt_size = this->get_size(map_dims::rt);
     int ct_size = this->get_size(map_dims::ct);
@@ -193,7 +210,12 @@ three_d_array_tile_src_map three_d_array_tile_src_map::hslice(int factor) {
     result.dim_size(map_dims::t) *= factor;
     result.dim_size(map_dims::ct) /= factor;
 
+    if (is_trace_shape_mode) {
+        return result;
+    }
+
     result.allocate_tile_map();
+
     int t_size = result.get_size(map_dims::t);
     int rt_size = result.get_size(map_dims::rt);
     int ct_size = result.get_size(map_dims::ct);
@@ -232,7 +254,12 @@ three_d_array_tile_src_map three_d_array_tile_src_map::hstack(int factor) {
     result.dim_size(map_dims::t) /= factor;
     result.dim_size(map_dims::ct) *= factor;
 
+    if (is_trace_shape_mode) {
+        return result;
+    }
+
     result.allocate_tile_map();
+
     int t_size = this->get_size(map_dims::t);
     int rt_size = this->get_size(map_dims::rt);
     int ct_size = this->get_size(map_dims::ct);
@@ -272,7 +299,12 @@ three_d_array_tile_src_map three_d_array_tile_src_map::broadcast(map_dims dimens
         result.dim_size(map_dims::ct) *= factor;
     }
 
+    if (is_trace_shape_mode) {
+        return result;
+    }
+
     result.allocate_tile_map();
+
     int result_t_size = result.get_size(map_dims::t);
     int result_rt_size = result.get_size(map_dims::rt);
     int result_ct_size = result.get_size(map_dims::ct);
@@ -301,6 +333,13 @@ three_d_array_tile_src_map three_d_array_tile_src_map::pad(int padding_rt, int p
     result.dim_size(map_dims::rt) += padding_rt;
     result.dim_size(map_dims::ct) += padding_ct;
 
+    result.r_padding_tiles = padding_rt;
+    result.c_padding_tiles = padding_ct;
+
+    if (is_trace_shape_mode) {
+        return result;
+    }
+
     result.allocate_tile_map();
 
     int t_size = result.get_size(map_dims::t);
@@ -322,9 +361,6 @@ three_d_array_tile_src_map three_d_array_tile_src_map::pad(int padding_rt, int p
         }
     }
 
-    result.r_padding_tiles = padding_rt;
-    result.c_padding_tiles = padding_ct;
-
     return result;
 }
 
@@ -333,6 +369,10 @@ three_d_array_tile_src_map three_d_array_tile_src_map::unpad(int padding_rt, int
 
     result.dim_size(map_dims::rt) -= padding_rt;
     result.dim_size(map_dims::ct) -= padding_ct;
+
+    if (is_trace_shape_mode) {
+        return result;
+    }
 
     result.allocate_tile_map();
 
@@ -347,6 +387,7 @@ three_d_array_tile_src_map three_d_array_tile_src_map::unpad(int padding_rt, int
             }
         }
     }
+
     return result;
 }
 
@@ -356,6 +397,10 @@ three_d_array_tile_src_map three_d_array_tile_src_map::tile_transpose() {
     result.dim_size(map_dims::ct) = this->dim_size(map_dims::rt);
     result.dim_size(map_dims::rt) = this->dim_size(map_dims::ct);
     result.tm_has_transpose = true;
+
+    if (is_trace_shape_mode) {
+        return result;
+    }
 
     result.allocate_tile_map();
 
@@ -377,59 +422,6 @@ three_d_array_tile_src_map three_d_array_tile_src_map::tile_transpose() {
     return result;
 }
 
-three_d_array_tile_src_map three_d_array_tile_src_map::reblock_with_t(
-    int consumer_t, int consumer_rt, int consumer_ct) {
-    int total_size_tiles = this->dim_size(map_dims::t) * this->dim_size(map_dims::rt) * this->dim_size(map_dims::ct);
-    int consumer_total_size_tiles = consumer_t * consumer_rt * consumer_ct;
-
-    this->tm_assert(
-        total_size_tiles == consumer_total_size_tiles,
-        "reblocking with t change called with incompatible consumer dimensions (total tiles mismatch):  " +
-            dim_to_str(consumer_t, consumer_rt, consumer_ct) + ", applied to format with dimensions: " +
-            dim_to_str(this->dim_size(map_dims::t), this->dim_size(map_dims::rt), this->dim_size(map_dims::ct)));
-
-    three_d_array_tile_src_map result = *this;
-
-    if (consumer_rt < this->dim_size(map_dims::rt)) {
-        this->tm_assert(
-            (this->dim_size(map_dims::rt) % consumer_rt) == 0,
-            "reblocking with t change called with incompatible consumer dimensions (rt not divisible):  " +
-                dim_to_str(consumer_t, consumer_rt, consumer_ct) + ", applied to format with dimensions: " +
-                dim_to_str(this->dim_size(map_dims::t), this->dim_size(map_dims::rt), this->dim_size(map_dims::ct)));
-        int vslice_factor = this->dim_size(map_dims::rt) / consumer_rt;
-        result = result.vslice(vslice_factor);
-    }
-    if (consumer_ct < this->dim_size(map_dims::ct)) {
-        this->tm_assert(
-            (this->dim_size(map_dims::ct) % consumer_ct) == 0,
-            "reblocking with t change called with incompatible consumer dimensions (ct not divisible):  " +
-                dim_to_str(consumer_t, consumer_rt, consumer_ct) + ", applied to format with dimensions: " +
-                dim_to_str(this->dim_size(map_dims::t), this->dim_size(map_dims::rt), this->dim_size(map_dims::ct)));
-        int hslice_factor = this->dim_size(map_dims::ct) / consumer_ct;
-        result = result.hslice(hslice_factor);
-    }
-    if (consumer_ct > this->dim_size(map_dims::ct)) {
-        this->tm_assert(
-            (consumer_ct % this->dim_size(map_dims::ct)) == 0,
-            "reblocking with t change called with incompatible consumer dimensions (ct not divisible):  " +
-                dim_to_str(consumer_t, consumer_rt, consumer_ct) + ", applied to format with dimensions: " +
-                dim_to_str(this->dim_size(map_dims::t), this->dim_size(map_dims::rt), this->dim_size(map_dims::ct)));
-        int hstack_factor = consumer_ct / this->dim_size(map_dims::ct);
-        result = result.hstack(hstack_factor);
-    }
-    if (consumer_rt > this->dim_size(map_dims::rt)) {
-        this->tm_assert(
-            (consumer_rt % this->dim_size(map_dims::rt)) == 0,
-            "reblocking with t change called with incompatible consumer dimensions (rt not divisible):  " +
-                dim_to_str(consumer_t, consumer_rt, consumer_ct) + ", applied to format with dimensions: " +
-                dim_to_str(this->dim_size(map_dims::t), this->dim_size(map_dims::rt), this->dim_size(map_dims::ct)));
-        int vstack_factor = consumer_rt / this->dim_size(map_dims::rt);
-        result = result.vstack(vstack_factor);
-    }
-
-    return result;
-}
-
 bool three_d_array_tile_src_map::need_phased_stack() {
     if (this->multi_t_reach_stack) {
         int total_stack_factor = this->r_stack_factor * this->c_stack_factor;
@@ -441,6 +433,27 @@ bool three_d_array_tile_src_map::need_phased_stack() {
     } else {
         return false;
     }
+}
+
+void three_d_array_tile_src_map::check_phased_stack(
+    int consumer_ublock_tiles_r,
+    int consumer_ublock_tiles_c,
+    int consumer_mblock_ublocks_r,
+    int consumer_mblock_ublocks_c,
+    int consumer_num_cores_r,
+    int consumer_num_cores_c,
+    bool consumer_row_major_ublock_scan_order) {
+    int effective_c_stack_factor, effective_r_stack_factor;
+    check_phased_stack(
+        effective_c_stack_factor, 
+        effective_r_stack_factor, 
+        consumer_ublock_tiles_r,
+        consumer_ublock_tiles_c,
+        consumer_mblock_ublocks_r,
+        consumer_mblock_ublocks_c,
+        consumer_num_cores_r,
+        consumer_num_cores_c,
+        consumer_row_major_ublock_scan_order);
 }
 
 void three_d_array_tile_src_map::check_phased_stack(
@@ -749,6 +762,8 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_col_inpu
     int consumer_num_cores_r,
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_matmul_col_input shouldn't be invoked in shape only trace mode");
     int consumer_ublock_tiles = consumer_ublock_tiles_c * consumer_ublock_tiles_k;
     int consumer_rt = consumer_ublock_tiles_k * consumer_col_input_block_ublocks_k;
     int consumer_ct = consumer_ublock_tiles_c * consumer_mblock_ublocks_n * consumer_num_cores_c;
@@ -914,6 +929,8 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_row_inpu
     int consumer_num_cores_r,
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_matmul_row_input shouldn't be invoked in shape only trace mode");
     int consumer_ublock_tiles = consumer_ublock_tiles_r * consumer_ublock_tiles_k;
     int consumer_rt = consumer_ublock_tiles_r * consumer_mblock_ublocks_m * consumer_num_cores_r;
     int consumer_ct = consumer_ublock_tiles_k * consumer_row_input_block_ublocks_k;
@@ -1069,6 +1086,8 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_row_inpu
 
 consumer_to_producer_tile_map three_d_array_tile_src_map::get_embedding_table_input(
     int consumer_num_cores_r, int consumer_num_cores_c, int indexes_per_input) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_embedding_table_input shouldn't be invoked in shape only trace mode");
     consumer_to_producer_tile_map result(
         this->producer_data_format.num_cores_r,
         this->producer_data_format.num_cores_c,
@@ -1113,6 +1132,8 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_embedding_table_in
 
 consumer_to_producer_tile_map three_d_array_tile_src_map::get_untilized_input(
     int consumer_num_cores_r, int consumer_num_cores_c, int indexes_per_input) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_untilized_input shouldn't be invoked in shape only trace mode");
     consumer_to_producer_tile_map result(
         this->producer_data_format.num_cores_r,
         this->producer_data_format.num_cores_c,
@@ -1184,6 +1205,8 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_eltwise_input(
     int consumer_num_cores_r,
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_eltwise_input shouldn't be invoked in shape only trace mode");
     data_format consumer_data_format = data_format(
         consumer_ublock_tiles_r,
         consumer_ublock_tiles_c,
@@ -1363,6 +1386,8 @@ three_d_array_tile_src_map::get_prolog_matmul_col_input(
     int consumer_mblock_ublocks_n,
     int consumer_num_cores_r,
     int consumer_num_cores_c) {
+
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_prolog_matmul_col_input shouldn't be invoked in shape only trace mode");
     // Total number of tiles for one column of cores
     const int consumer_col_input_block_tiles =
         (consumer_ublock_tiles_k * consumer_mblock_ublocks_k) * (consumer_ublock_tiles_c * consumer_mblock_ublocks_n);
@@ -1726,7 +1751,7 @@ void consumer_to_producer_tile_map::apply_stack(
 }
 
 three_d_array_tile_src_map three_d_array_tile_src_map::apply_tm(
-    const std::string tm_name, const std::vector<int>& tm_args) {
+    const std::string& tm_name, const std::vector<int>& tm_args) {
     this->tm_sequence.push_back(tm_name);
     this->tm_args_sequence.push_back(tm_args);
 
@@ -1755,6 +1780,7 @@ three_d_array_tile_src_map three_d_array_tile_src_map::apply_tm(
 }
 
 void three_d_array_tile_src_map::print() {
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::print shouldn't be invoked in shape only trace mode");
     std::string producer_name;
     std::string consumer_name;
 
@@ -2456,6 +2482,7 @@ void three_d_array_tile_src_map::estimate_dram_input_perf_resource_usage(
 }
 
 tile_to_core_index_map three_d_array_tile_src_map::get_tile_map(int t, int rt, int ct, int input_index) {
+        log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_tile_map shouldn't be invoked in shape only trace mode");
     assert(t < get_size(map_dims::t) && rt < get_size(map_dims::rt) && ct < get_size(map_dims::ct));
     tile_to_core_index_map result = this->tile_map.get_tile_map(t, rt, ct);
     if (input_index > 0) {

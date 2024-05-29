@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "tile_maps_common.h"
+#include "utils/logger.hpp"
 
 class tile_to_core_index_map {
 public:
@@ -130,6 +131,7 @@ protected:
   int producer_output_buf_size_t;
   bool multi_t_reach_stack;
   int adjusted_slice_factor;
+  bool is_trace_shape_mode;
 
   std::vector<std::string> tm_sequence;
   std::vector<std::vector<int>> tm_args_sequence;
@@ -174,6 +176,7 @@ protected:
     result.producer_output_buf_size_t = this->producer_output_buf_size_t;
     result.multi_t_reach_stack = this->multi_t_reach_stack;
     result.adjusted_slice_factor = this->adjusted_slice_factor;
+    result.is_trace_shape_mode = this->is_trace_shape_mode;
     result.dim_size_map = this->dim_size_map;
     result.tm_sequence = this->tm_sequence;
     result.tm_args_sequence = this->tm_args_sequence;
@@ -181,6 +184,7 @@ protected:
   }
 
   void allocate_tile_map() {
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::allocate_tile_map shouldn't be invoked in shape only trace mode");
     tile_map.allocate(get_size(map_dims::t), get_size(map_dims::rt), get_size(map_dims::ct));
   }
 
@@ -190,14 +194,6 @@ protected:
   three_d_array_tile_src_map vstack(int factor);
   three_d_array_tile_src_map hstack(int factor);
   three_d_array_tile_src_map broadcast(map_dims dimension, int factor);
-
-  bool need_phased_stack();
-
-  void check_phased_stack(int& effective_c_stack_factor, int& effective_r_stack_factor,
-                          int consumer_ublock_tiles_r, int consumer_ublock_tiles_c,
-                          int consumer_mblock_ublocks_r, int consumer_mblock_ublocks_c,
-                          int consumer_num_cores_r, int consumer_num_cores_c,
-                          bool consumer_row_major_ublock_scan_order);
 
 public:
 
@@ -261,9 +257,8 @@ public:
                              int mblock_ublocks_m, int mblock_ublocks_n,
                              int num_cores_r, int num_cores_c,
                              int producer_output_buf_size_t,
-                             bool producer_row_major_ublock_scan_order);
-
-  three_d_array_tile_src_map reblock_with_t(int consumer_t, int consumer_rt, int consumer_ct);
+                             bool producer_row_major_ublock_scan_order,
+                             bool is_trace_shape_mode = false);
 
   consumer_to_producer_tile_map get_embedding_table_input(int consumer_num_cores_r, int consumer_num_cores_c,
                                                           int indexes_per_input);
@@ -300,6 +295,19 @@ public:
                               int consumer_mblock_ublocks_n,
                               int consumer_num_cores_r, int consumer_num_cores_c);
 
+  bool need_phased_stack();
+
+  void check_phased_stack(int& effective_c_stack_factor, int& effective_r_stack_factor,
+                          int consumer_ublock_tiles_r, int consumer_ublock_tiles_c,
+                          int consumer_mblock_ublocks_r, int consumer_mblock_ublocks_c,
+                          int consumer_num_cores_r, int consumer_num_cores_c,
+                          bool consumer_row_major_ublock_scan_order);
+
+  void check_phased_stack(int consumer_ublock_tiles_r, int consumer_ublock_tiles_c,
+                          int consumer_mblock_ublocks_r, int consumer_mblock_ublocks_c,
+                          int consumer_num_cores_r, int consumer_num_cores_c,
+                          bool consumer_row_major_ublock_scan_order);
+
   int get_size(map_dims dim) const {
     return this->dim_size_map[static_cast<size_t>(dim)];
   }
@@ -309,15 +317,16 @@ public:
   }
 
   void get_val(int t, int rt, int ct, int& core_r, int& core_c, int& tile_index) {
+    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_val shouldn't be invoked in shape only trace mode");
     assert(t < get_size(map_dims::t) && rt < get_size(map_dims::rt) && ct < get_size(map_dims::ct));
+
     tile_to_core_index_map tm = this->tile_map.get_tile_map(t, rt, ct);
     core_r = tm.core_r;
     core_c = tm.core_c;
     tile_index = tm.tile_index;
   }
 
-  three_d_array_tile_src_map apply_tm(const std::string tm_name, const std::vector<int>& tm_args);
-
+  three_d_array_tile_src_map apply_tm(const std::string& tm_name, const std::vector<int>& tm_args);
   three_d_array_tile_src_map pad(int rt, int ct);
   three_d_array_tile_src_map unpad(int rt, int ct);
 
