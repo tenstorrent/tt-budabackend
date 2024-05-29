@@ -162,6 +162,7 @@ class matmul_op extends operation_constraints;
         kernel_broadcast_op_en dist {0:=80, 1:=20};
 
         foreach (in[i]) {
+            kernel_broadcast_enabled == 0 -> kernel_broadcast_en[i] == 0;
             kernel_broadcast_en[i] == 1 -> in[i].producer.tensor.grid_size_x == 1 && in[i].producer.tensor.grid_size_y == 1;
             kernel_broadcast_factors[i] < `MAX_L1_MEM_BUFFER_SIZE / `get_tile_size(in[i].producer.tensor.data_format);
             is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};
@@ -225,7 +226,7 @@ class matmul_op extends operation_constraints;
     }
 
     constraint rand_kernel_broadcast_freq {
-        kernel_broadcast_op_en == 1 -> {
+        kernel_broadcast_op_en == 1 && kernel_broadcast_enabled -> {
             if (bias_en == 0 && quant_en == 0) {
                 kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1;
             } else if (bias_en == 1 && quant_en == 0 || bias_en == 0 && quant_en == 1) {
@@ -234,6 +235,11 @@ class matmul_op extends operation_constraints;
                 kernel_broadcast_en[0] == 1 || kernel_broadcast_en[1] == 1 || kernel_broadcast_en[2] == 1 || kernel_broadcast_en[3] == 1;
             }
         }
+    }
+
+    constraint rand_min_buffer_input {
+        //force min_buffer_input : 0 as it is default for PyBuda
+        min_buffer_input == 0;
     }
 
     virtual function write_attributes_to_file(int out_filehandle);

@@ -137,6 +137,7 @@ class depthwise_op extends operation_constraints;
         kernel_broadcast_op_en dist {0:=80, 1:=20};
 
         foreach (in[i]) {
+            kernel_broadcast_enabled == 0 -> kernel_broadcast_en[i] == 0;
             kernel_broadcast_en[i] == 1 -> in[i].producer.tensor.grid_size_x == 1 && in[i].producer.tensor.grid_size_y == 1;
             kernel_broadcast_factors[i] < `MAX_L1_MEM_BUFFER_SIZE / `get_tile_size(in[i].producer.tensor.data_format);
             is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};

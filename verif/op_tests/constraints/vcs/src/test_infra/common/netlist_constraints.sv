@@ -44,12 +44,12 @@ class netlist_constraints;
             $fatal(0, "max_inputs cannot be greater than number of inputs");
     endfunction
 
-    constraint rand_dram_addr {
+    constraint rand_host_addr {
         foreach (q[i]) {
             if (i < q.size() - 1) {
-                q[i].q_dram_addr + q[i].q_size *`get_core_count(q[i].tensor) < (q[i+1].q_dram_addr);
+                q[i].q_host_addr + q[i].q_size *`get_core_count(q[i].tensor) < (q[i+1].q_host_addr);
             } else {
-                q[i].q_dram_addr + q[i].q_size *`get_core_count(q[i].tensor) < (`DRAM_BUFFER_END_ADDR);
+                q[i].q_host_addr + q[i].q_size *`get_core_count(q[i].tensor) < (`HOST_BUFFER_END_ADDR);
             }
         }
     }

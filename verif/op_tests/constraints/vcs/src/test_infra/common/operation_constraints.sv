@@ -93,6 +93,7 @@ virtual class operation_constraints extends node_constraints;
     constraint rand_kernel_broadcast {
         kernel_broadcast_op_en dist {0:=80, 1:=20};
         foreach (in[i]) {
+            kernel_broadcast_enabled == 0 -> kernel_broadcast_en[i] == 0;
             is_kernel_broadcast_per_t[i] dist {0:=50, 1:=50};
             is_kernel_broadcast_per_t[i] == 0 -> in[i].producer.tensor.t == 1; 
             in[i].broadcast_en == 0 -> kernel_broadcast_en[i] == 0;
