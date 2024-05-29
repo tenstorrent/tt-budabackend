@@ -14,7 +14,6 @@
 struct tt_tm_config {
     TmOp op = TmOp::Invalid;
     std::vector<int> args = {};
-    bool full_broadcast = false; // This is meant to store if we do full broadcast, we implicitly do this in matmul_with_bias for the bias only
 };
 //! TM Op mainly for golden and modelling of behaviour that is needed and implemented by pipes
 class tt_tm_bare_op : public tt_op {

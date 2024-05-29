@@ -452,7 +452,11 @@ void tt_matmul::utils::golden_model(const tt_matmul_config& config, vector<tt_te
         if (config.bias) {
             log_assert(
                 inputs[3]->get_data_format() != DataFormat::Invalid, "Input 3 data_format to tt_matmul is invalid");
-            *out = out->add(*inputs[3]);
+            if (is_int_matmul) {
+                *out = out->add(*inputs[3]);
+            } else {
+                *out = out->add(inputs[3]->broadcast_within_tiles(Dim::R, false));
+            }
         }
     } else if (config.bias) {
         log_assert(inputs[2]->get_data_format() != DataFormat::Invalid, "Input 2 data_format to tt_matmul is invalid");

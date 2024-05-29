@@ -159,16 +159,7 @@ void golden_digraph::run() {
                         tt_tm_config config({
                             .op = netlist_utils::get_valid_tm_op(tm_name),
                             .args = get<1>(tm),
-                            .full_broadcast = (graph[topo_order[i]].my_op_info_ptr->type == "matmul") and
-                                            (graph[topo_order[i]].my_op_info_ptr->attributes.bias) and
-                                            ((input == 2) || (input == 3)) and
-                                            !graph[topo_order[i]].my_op_info_ptr->my_op->int_fpu_en,
                         });
-                        log_assert(
-                            (not config.full_broadcast) or
-                                ((graph[topo_order[i]].my_op_info_ptr->type == "matmul") and
-                                (graph[topo_order[i]].my_op_info_ptr->attributes.bias) and ((input == 2) || (input == 3))),
-                            "Can only do a full_broadcast if it is the bias input of the matmul");
                         log_assert(
                             (config.op != TmOp::TileBroadcast) or
                                 ((input == 1) and
@@ -351,7 +342,6 @@ void golden_digraph::run() {
                             tt_tm_config config({
                                 .op = netlist_utils::get_valid_tm_op(tm_name),
                                 .args = get<1>(tm),
-                                .full_broadcast = false,
                             });
                             log_trace(tt::LogGolden, "Running TM OP {}", tm_name);
                             //

@@ -49,29 +49,17 @@ void tt_tm::utils::golden_model(const tt_tm_config& config, vector<tt_tensor*>& 
         case TmOp::rBroadcast:
             log_assert(config.args.size() == 1, " {} must have 1 argument", tm_op_to_string(config.op));
             shape.rt *= config.args.at(0);
-            if (config.full_broadcast) {
-                *out = inputs[0]->broadcast(shape, Dim::R);
-            } else {
-                *out = inputs[0]->broadcast_tiles(shape, Dim::R);
-            }
+            *out = inputs[0]->broadcast_tiles(shape, Dim::R);
             break;
         case TmOp::cBroadcast:
             log_assert(config.args.size() == 1,  " {} must have 1 argument", tm_op_to_string(config.op));
             shape.ct *= config.args.at(0);
-            if (config.full_broadcast) {
-                *out = inputs[0]->broadcast(shape, Dim::C);
-            } else {
-                *out = inputs[0]->broadcast_tiles(shape, Dim::C);
-            }
+            *out = inputs[0]->broadcast_tiles(shape, Dim::C);
             break;
         case TmOp::zBroadcast:
             log_assert(config.args.size() == 1,  " {} must have 1 argument", tm_op_to_string(config.op));
             shape.z *= config.args.at(0);
-            if (config.full_broadcast) {
-                *out = inputs[0]->broadcast(shape, Dim::Z);
-            } else {
-                *out = inputs[0]->broadcast_tiles(shape, Dim::Z);
-            }
+            *out = inputs[0]->broadcast_tiles(shape, Dim::Z);
             break;
         case TmOp::hSlice:
             log_assert(config.args.size() == 1,  " {} must have 1 argument", tm_op_to_string(config.op));
