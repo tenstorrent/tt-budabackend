@@ -30,4 +30,4 @@ $(BACKEND_LIB): \
             $(OP_MODEL_LIB) \
             $(DEBUDA_SERVER_LIB)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) $(CXXFLAGS) $(SHARED_LIB_FLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive $(LDFLAGS) -ldevice -lperf_lib -lop_model -lhwloc -lzmq -lstdc++fs $(COREMODEL_SPARTA_LIBS)
+	$(CXX) $(CFLAGS) $(CXXFLAGS) $(SHARED_LIB_FLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive $(LDFLAGS) -ldevice -lperf_lib -lop_model -lhwloc -lzmq -lstdc++fs $(COREMODEL_SPARTA_LIBS) -Wl,-rpath,\$$ORIGIN

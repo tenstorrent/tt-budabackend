@@ -49,7 +49,7 @@ def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
         if runtime_data_yaml_filename is None:
             debuda_stub_args = [f"{port}"]
         else:
-            debuda_stub_args = [f"{port}", f"{runtime_data_yaml_filename}"]
+            debuda_stub_args = [f"{port}", "-y", f"{runtime_data_yaml_filename}"]
         DEBUDA_STUB_PROCESS = subprocess.Popen(
             [debuda_stub_path] + debuda_stub_args,
             preexec_fn=os.setsid,

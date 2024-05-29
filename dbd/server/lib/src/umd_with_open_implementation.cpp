@@ -113,7 +113,8 @@ static std::string create_temp_network_descriptor_file(tt::ARCH arch, std::files
             }
 
             // create-ethernet-map failed, fallback to yaml generation
-        }
+        } else
+            throw std::runtime_error("Couldn't find create-ethernet-map at " + create_ethernet_map + ".");
 
         // TODO: If it doesn't, create file without network connections
         throw std::runtime_error("Call to create-ethernet-map failed. Fallback not implemented...");
@@ -301,7 +302,7 @@ umd_with_open_implementation::umd_with_open_implementation(std::unique_ptr<tt_Si
     : umd_implementation(device.get()), device(std::move(device)) {}
 
 std::unique_ptr<umd_with_open_implementation> umd_with_open_implementation::open(
-    const std::filesystem::path &binary_directory) {
+    const std::filesystem::path &binary_directory, const std::vector<uint8_t> &wanted_devices) {
     auto devices = tt_SiliconDevice::detect_available_device_ids();
 
     if (devices.size() == 0) {
@@ -335,16 +336,22 @@ std::unique_ptr<umd_with_open_implementation> umd_with_open_implementation::open
         auto cluster_descriptor = tt_ClusterDescriptor::create_from_yaml(cluster_descriptor_path);
 
         for (chip_id_t i : cluster_descriptor->get_all_chips()) {
-            target_devices.insert(i);
             device_ids.push_back(i);
         }
     } else {
         // Fallback to use only local devices
         for (chip_id_t i = 0; i < devices.size(); i++) {
-            target_devices.insert(i);
             device_ids.push_back(i);
         }
     }
+
+    // If we specified which devices we want, check that they are available and then extract their ids
+    for (auto wanted_device : wanted_devices)
+        if (std::find(device_ids.begin(), device_ids.end(), wanted_device) == device_ids.end())
+            throw std::runtime_error("Device " + std::to_string(wanted_device) + " is not available.");
+    if (!wanted_devices.empty()) device_ids = wanted_devices;
+
+    for (auto device_id : device_ids) target_devices.insert(device_id);
 
     switch (arch) {
         case tt::ARCH::GRAYSKULL:

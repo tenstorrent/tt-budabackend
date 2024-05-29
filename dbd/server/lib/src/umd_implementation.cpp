@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "dbdserver/umd_implementation.h"
 
+#include "dbdserver/read_tile.hpp"
 #include "device/tt_device.h"
 
 static std::string REG_TLB_STR = "REG_TLB";
@@ -109,6 +110,15 @@ std::optional<uint32_t> umd_implementation::dma_buffer_read4(uint8_t chip_id, ui
 
     device->read_from_sysmem(&result, address, channel, sizeof(result), chip_id);
     return result;
+}
+
+std::optional<std::string> umd_implementation::pci_read_tile(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y,
+                                                             uint64_t address, uint32_t size, uint8_t data_format) {
+    if (!device) {
+        return {};
+    }
+
+    return dbd::tile::read_tile_implementation(chip_id, noc_x, noc_y, address, size, data_format, device);
 }
 
 std::optional<std::string> umd_implementation::get_harvester_coordinate_translation(uint8_t chip_id) {
