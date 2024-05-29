@@ -4,15 +4,12 @@
 
 #include "tile_maps.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cstdio>
-#include <iostream>
 #include <numeric>
 
 #include "net2pipe_logger.h"
 #include "tile_maps_common.h"
-#include "utils/logger.hpp"
 
 three_d_array_tile_src_map::three_d_array_tile_src_map(
     std::string producer_name,
@@ -763,7 +760,7 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_col_inpu
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_matmul_col_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     int consumer_ublock_tiles = consumer_ublock_tiles_c * consumer_ublock_tiles_k;
     int consumer_rt = consumer_ublock_tiles_k * consumer_col_input_block_ublocks_k;
     int consumer_ct = consumer_ublock_tiles_c * consumer_mblock_ublocks_n * consumer_num_cores_c;
@@ -930,7 +927,7 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_row_inpu
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_matmul_row_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     int consumer_ublock_tiles = consumer_ublock_tiles_r * consumer_ublock_tiles_k;
     int consumer_rt = consumer_ublock_tiles_r * consumer_mblock_ublocks_m * consumer_num_cores_r;
     int consumer_ct = consumer_ublock_tiles_k * consumer_row_input_block_ublocks_k;
@@ -1087,7 +1084,7 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_matmul_row_inpu
 consumer_to_producer_tile_map three_d_array_tile_src_map::get_embedding_table_input(
     int consumer_num_cores_r, int consumer_num_cores_c, int indexes_per_input) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_embedding_table_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     consumer_to_producer_tile_map result(
         this->producer_data_format.num_cores_r,
         this->producer_data_format.num_cores_c,
@@ -1133,7 +1130,7 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_embedding_table_in
 consumer_to_producer_tile_map three_d_array_tile_src_map::get_untilized_input(
     int consumer_num_cores_r, int consumer_num_cores_c, int indexes_per_input) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_untilized_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     consumer_to_producer_tile_map result(
         this->producer_data_format.num_cores_r,
         this->producer_data_format.num_cores_c,
@@ -1206,7 +1203,7 @@ consumer_to_producer_tile_map three_d_array_tile_src_map::get_op_eltwise_input(
     int consumer_num_cores_c,
     bool consumer_row_major_ublock_scan_order) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_op_eltwise_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     data_format consumer_data_format = data_format(
         consumer_ublock_tiles_r,
         consumer_ublock_tiles_c,
@@ -1387,7 +1384,7 @@ three_d_array_tile_src_map::get_prolog_matmul_col_input(
     int consumer_num_cores_r,
     int consumer_num_cores_c) {
 
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_prolog_matmul_col_input shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     // Total number of tiles for one column of cores
     const int consumer_col_input_block_tiles =
         (consumer_ublock_tiles_k * consumer_mblock_ublocks_k) * (consumer_ublock_tiles_c * consumer_mblock_ublocks_n);
@@ -1780,7 +1777,7 @@ three_d_array_tile_src_map three_d_array_tile_src_map::apply_tm(
 }
 
 void three_d_array_tile_src_map::print() {
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::print shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     std::string producer_name;
     std::string consumer_name;
 
@@ -2482,7 +2479,7 @@ void three_d_array_tile_src_map::estimate_dram_input_perf_resource_usage(
 }
 
 tile_to_core_index_map three_d_array_tile_src_map::get_tile_map(int t, int rt, int ct, int input_index) {
-        log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_tile_map shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     assert(t < get_size(map_dims::t) && rt < get_size(map_dims::rt) && ct < get_size(map_dims::ct));
     tile_to_core_index_map result = this->tile_map.get_tile_map(t, rt, ct);
     if (input_index > 0) {

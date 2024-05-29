@@ -11,7 +11,6 @@
 #include <assert.h>
 
 #include "tile_maps_common.h"
-#include "utils/logger.hpp"
 
 class tile_to_core_index_map {
 public:
@@ -184,7 +183,7 @@ protected:
   }
 
   void allocate_tile_map() {
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::allocate_tile_map shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     tile_map.allocate(get_size(map_dims::t), get_size(map_dims::rt), get_size(map_dims::ct));
   }
 
@@ -317,7 +316,7 @@ public:
   }
 
   void get_val(int t, int rt, int ct, int& core_r, int& core_c, int& tile_index) {
-    log_assert(!is_trace_shape_mode, "three_d_array_tile_src_map::get_val shouldn't be invoked in shape only trace mode");
+    assert(!is_trace_shape_mode);
     assert(t < get_size(map_dims::t) && rt < get_size(map_dims::rt) && ct < get_size(map_dims::ct));
 
     tile_to_core_index_map tm = this->tile_map.get_tile_map(t, rt, ct);
