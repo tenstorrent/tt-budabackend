@@ -16,6 +16,8 @@ using std::unordered_map;
 using std::string;
 using std::vector;
 
+constexpr int buffer_size_undefined = -1;
+
 const string overlay_buffer_name = "OVERLAY_BLOB";
 
 // Keep consistent with extra_overlay_blob_l1_buffer.cpp
@@ -43,21 +45,22 @@ class L1Buffer {
     L1BufferType m_buffer_type;
     string m_name;
     uint32_t m_start_addr;
+
     // consumed size can be negative
     // which indicates we don't know how much is consumed
     int m_consumed_size;
 
     // this is the size that was reserved for this buffer
-    // reserved size should always be positive
-    // setting to int to avoid weirdness when comparing to consumed_size
+    // reserved size can be negative if we don't know how much is reserved
     int m_reserved_size;
 
     public:
     L1Buffer() = default;
     L1Buffer(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size):
         m_buffer_type(buffer_type), m_name(name), m_start_addr(start_addr), m_consumed_size(consumed_size), m_reserved_size(reserved_size) {
-        log_assert(reserved_size >= 0, "Reserved size should always be positive");
-        log_assert(consumed_size <= reserved_size, "L1Buffer consumes {} bytes but only reserves {} bytes", consumed_size, reserved_size);
+        if (reserved_size != buffer_size_undefined) {
+            log_assert(consumed_size <= reserved_size, "L1Buffer consumes {} bytes but only reserves {} bytes", consumed_size, reserved_size);
+        }
     }
 
     void update_consumed_size(int new_consumed_size);
@@ -87,12 +90,26 @@ class L1Buffer {
         return m_reserved_size;
     }
 
+    inline bool has_reserved_size() const {
+        return m_reserved_size != buffer_size_undefined;
+    }
+
+    inline bool has_consumed_size() const {
+        return m_consumed_size != buffer_size_undefined;
+    }
+
     inline uint32_t start_addr() const {
         return m_start_addr;
     }
 
     inline uint32_t end_addr() const {
-        return m_start_addr + m_reserved_size;
+        if (has_reserved_size()) {
+            return m_start_addr + m_reserved_size;
+        }
+        else if (has_consumed_size()) {
+            return m_start_addr + m_consumed_size;
+        }
+        return m_start_addr;
     }
 
     inline bool is_binary_buffer() const {
@@ -117,8 +134,8 @@ class L1Core {
     const uint32_t m_l1_size = 0;
     const string m_op_name = "";
     const string m_op_type = "";
-    uint32_t m_consumed_size = 0;
-    uint32_t m_reserved_size = 0;
+    uint32_t m_total_consumed_size = 0;
+    uint32_t m_total_reserved_size = 0;
     // contains all the buffers in the core's l1
     vector<std::shared_ptr<L1Buffer>> m_all_buffers;
     // maps start address to buffer, points to the same buffers as m_all_buffers
@@ -160,31 +177,31 @@ class L1Core {
     }
 
     inline int consumed_size_bytes() const {
-        return m_consumed_size;
+        return m_total_consumed_size;
     }
 
     inline int reserved_size_bytes() const {
-        return m_reserved_size;
+        return m_total_reserved_size;
     }
 
     inline float get_percent_consumed_of_reserved() const {
-        return float(m_consumed_size) / float(m_reserved_size) * 100;
+        return float(m_total_consumed_size) / float(m_total_reserved_size) * 100;
     }
 
     inline float get_percent_reserved_of_l1() const {
-        return float(m_reserved_size) / float(m_l1_size) * 100;
+        return float(m_total_reserved_size) / float(m_l1_size) * 100;
     }
 
     inline float get_percent_consumed_of_l1() const {
-        return float(m_consumed_size) / float(m_l1_size) * 100;
+        return float(m_total_consumed_size) / float(m_l1_size) * 100;
     }
 
     inline uint32_t get_l1_unreserved_size() const {
-        return m_l1_size - m_reserved_size;
+        return m_l1_size - m_total_reserved_size;
     }
 
     inline uint32_t get_l1_unconsumed_size() const {
-        return m_l1_size - m_consumed_size;
+        return m_l1_size - m_total_consumed_size;
     }
 
 };

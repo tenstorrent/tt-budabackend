@@ -353,7 +353,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
         // Handle eager runtime, check for new graphs and add them to the profiler on the fly
 
         add_graphs_to_memory_profiler();
-        profile_reserved_l1_binary_buffers();
+        profile_l1_binary_buffer_reserved_sizes();
 
         backend_profiler.record_loader_event("COMPILE");
         if(config.do_compile() or config.perf_desc.always_compile() or need_overlay_recompile_during_run or need_risc_recompile_during_run) {
@@ -436,7 +436,7 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
             initialize_device_perf();
         }
 
-        profile_actual_l1_binary_buffers();
+        profile_l1_binary_buffer_consumed_sizes();
 
         // At this point, all buffers for all graphs should have been added to the l1 profiler
         finish_l1_profiling_for_graphs();
@@ -1220,10 +1220,10 @@ void tt_runtime::add_graphs_to_memory_profiler() {
     }
 }
 
-void tt_runtime::profile_reserved_l1_binary_buffers() {
+void tt_runtime::profile_l1_binary_buffer_reserved_sizes() {
     if (config.l1_profiler_en and memory_profiler) {
         // we don't know the actual consumed size of the binaries yet
-        int placeholder_consumed_size = -1;
+        int placeholder_consumed_size = perf::buffer_size_undefined;
         memory_profiler->broadcast_add_buffer_l1(
             perf::L1BufferType::BinaryBuffer,
             "NCRISC_FW",
@@ -1278,21 +1278,25 @@ void tt_runtime::profile_reserved_l1_binary_buffers() {
             perf::L1ProfileStage::ReservedBinaries
         );
 
+        // if we don't run pipegen, then we don't know the actual reserved sizes of the overlay blobs
+        // the sizes in op info and TT_BACKEND_OVERLAY_MAX_EXTRA_BLOB_SIZE can get overriden by pipegen if they're too large
+        bool will_run_pipegen = (config.do_compile() or need_risc_recompile_during_run);
+
         memory_profiler->broadcast_add_buffer_l1(
             perf::L1BufferType::BinaryBuffer,
             perf::overlay_buffer_name,
             l1_mem::address_map::OVERLAY_BLOB_BASE,
             placeholder_consumed_size,
-            // reserve default overlay size here
+            // reserve default overlay size here if we will run pipegen
             // extra size will be appended accordingly when profiling pipegen
-            l1_mem::address_map::OVERLAY_BLOB_SIZE,
+            will_run_pipegen ? l1_mem::address_map::OVERLAY_BLOB_SIZE : perf::buffer_size_undefined,
             perf::L1ProfileStage::ReservedBinaries
         );
         memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::ReservedBinaries);
     }
 }
 
-void tt_runtime::profile_actual_l1_binary_buffers() {
+void tt_runtime::profile_l1_binary_buffer_consumed_sizes() {
     if (config.l1_profiler_en and loader and memory_profiler) {
         // All hexes have physical coordinates
         perf::CoordType coord_type = perf::CoordType::Physical;

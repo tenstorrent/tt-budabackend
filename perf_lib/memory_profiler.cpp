@@ -19,18 +19,22 @@ string to_hex(uint64_t num, uint8_t num_digits) {
 string get_core_str(const tt_xy_pair &core) {
     return to_string(core.x) + "-" + to_string(core.y);
 }
+
 /*********************
  * L1 Buffer Methods  
 **********************/
 
 void L1Buffer::update_consumed_size(int new_consumed_size) {
-    log_assert(new_consumed_size <= m_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, new_consumed_size, m_reserved_size);
+    if (has_reserved_size()) {
+        log_assert(new_consumed_size <= m_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, new_consumed_size, m_reserved_size);
+    }
     m_consumed_size = new_consumed_size;
 }
 
 void L1Buffer::update_reserved_size(int new_reserved_size) {
-    log_assert(new_reserved_size >= 0, "{}: Reserved size of buffer should always be positive", __FUNCTION__);
-    log_assert(m_consumed_size <= new_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, m_consumed_size, new_reserved_size);
+    if (new_reserved_size != buffer_size_undefined) {
+        log_assert(m_consumed_size <= new_reserved_size, "{}: Consumed size of buffer {} exceeds reserved size ({} > {})", __FUNCTION__, m_name, m_consumed_size, new_reserved_size);
+    }
     m_reserved_size = new_reserved_size;
 }
 
@@ -61,33 +65,41 @@ vector<const L1Buffer*> L1Core::get_all_buffers() const {
 
 void L1Core::add_buffer(const L1BufferType &buffer_type, const string &name, uint32_t start_addr, int consumed_size, int reserved_size) {
     log_assert(consumed_size <= reserved_size, "{}: Buffer {} is using more l1 memory than reserved ({} > {})", __FUNCTION__, name, consumed_size, reserved_size);
-    log_assert(m_reserved_size + reserved_size <= m_l1_size, "{}: Total reserved size {} is greater than l1 size {} for physical core {}", __FUNCTION__, m_reserved_size + reserved_size, m_l1_size, m_physical_coord.str());
+    log_assert(m_total_reserved_size + reserved_size <= m_l1_size, "{}: Total reserved size {} is greater than l1 size {} for physical core {}", __FUNCTION__, m_total_reserved_size + reserved_size, m_l1_size, m_physical_coord.str());
     log_assert(m_buffer_address_map.find(start_addr) == m_buffer_address_map.end(), "{}: Buffer already exists at address {}", __FUNCTION__, start_addr);
     std::shared_ptr<L1Buffer> new_buffer = std::make_shared<L1Buffer>(buffer_type, name, start_addr, consumed_size, reserved_size);
     m_all_buffers.push_back(new_buffer);
     m_buffer_address_map.insert({start_addr, new_buffer});
-    if (consumed_size >= 0) {
-        m_consumed_size += consumed_size;
+    if (consumed_size != buffer_size_undefined) {
+        m_total_consumed_size += consumed_size;
     }
-    m_reserved_size += reserved_size;
+    if (reserved_size != buffer_size_undefined) {
+        m_total_reserved_size += reserved_size;
+    }
 }
 
 void L1Core::update_buffer_consumed_size(uint32_t start_addr, int new_consumed_size) {
     log_assert(m_buffer_address_map.find(start_addr) != m_buffer_address_map.end(), "{}: Buffer to update at address {} doesn't exist", __FUNCTION__, start_addr);
     std::shared_ptr<L1Buffer> &buffer = m_buffer_address_map.at(start_addr);
-    if (buffer->c_size() > 0) {
-        m_consumed_size -= buffer->c_size();
+    if (buffer->has_consumed_size()) {
+        m_total_consumed_size -= buffer->c_size();
     }
-    m_consumed_size += new_consumed_size;
+    if (new_consumed_size != buffer_size_undefined) {
+        m_total_consumed_size += new_consumed_size;
+    }
     buffer->update_consumed_size(new_consumed_size);
 }
 
 void L1Core::update_buffer_reserved_size(uint32_t start_addr, int new_reserved_size) {
     log_assert(m_buffer_address_map.find(start_addr) != m_buffer_address_map.end(), "{}: Buffer to update at address {} doesn't exist", __FUNCTION__, start_addr);
     std::shared_ptr<L1Buffer> &buffer = m_buffer_address_map.at(start_addr);
-    m_reserved_size -= buffer->r_size();
-    m_reserved_size += new_reserved_size;
-    log_assert(m_reserved_size <= m_l1_size, "{}: Total reserved size {} is greater than l1 size {} for physical core {}", __FUNCTION__, m_reserved_size, m_l1_size, m_physical_coord.str());
+    if (buffer->has_reserved_size()) {
+        m_total_reserved_size -= buffer->r_size();
+    }
+    if (new_reserved_size != buffer_size_undefined) {
+        m_total_reserved_size += new_reserved_size;
+    }
+    log_assert(m_total_reserved_size <= m_l1_size, "{}: Total reserved size {} is greater than l1 size {} for physical core {}", __FUNCTION__, m_total_reserved_size, m_l1_size, m_physical_coord.str());
     buffer->update_reserved_size(new_reserved_size);
 }
 
@@ -374,13 +386,22 @@ void L1Profiler::create_reports(const string &output_dir) const {
                 json::object_t json_buffer = json::object();
                 json_buffer["buffer-name"] = buffer_name;
                 json_buffer["start-address"] = to_hex(buffer->start_addr(), 8);
-                json_buffer["reserved-size-bytes"] = buffer->r_size();
-                if (buffer->c_size() >= 0) {
+                if (buffer->has_reserved_size()) {
+                    json_buffer["reserved-size-bytes"] = buffer->r_size();
+                }
+                else {
+                    json_buffer["reserved-size-bytes"] = "N/A";
+                }
+                if (buffer->has_consumed_size()) {
                     json_buffer["consumed-size-bytes"] = buffer->c_size();
-                    json_buffer["percent-consumed"] = buffer->get_percent_consumed();
                 }
                 else {
                     json_buffer["consumed-size-bytes"] = "N/A";
+                }
+                if (buffer->has_reserved_size() and buffer->has_consumed_size()) {
+                    json_buffer["percent-consumed"] = buffer->get_percent_consumed();
+                }
+                else {
                     json_buffer["percent-consumed"] = "N/A";
                 }
                 graph_l1_report[used_workers_key][physical_core_str][buffer_category_name].emplace_back(std::move(json_buffer));

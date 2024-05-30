@@ -134,8 +134,8 @@ class tt_runtime : public tt_backend
     void finish_performance_trace();
     void initialize_memory_profiler();
     void add_graphs_to_memory_profiler();
-    void profile_reserved_l1_binary_buffers();
-    void profile_actual_l1_binary_buffers();
+    void profile_l1_binary_buffer_reserved_sizes();
+    void profile_l1_binary_buffer_consumed_sizes();
     void finish_l1_profiling_for_graphs();
     void create_memory_profiler_reports();
     void stop_debuda_server();

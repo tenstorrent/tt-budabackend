@@ -198,7 +198,7 @@ void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<pipeg
             log_fatal("Unexpected graph being profiled more than once for pipegen!");
         }
 
-        for (pipegen2::L1BufferAllocationInfo l1_buffer_info : l1_data_buffers) {
+        for (const pipegen2::L1BufferAllocationInfo &l1_buffer_info : l1_data_buffers) {
             memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, l1_buffer_info.name, 
                 l1_buffer_info.address, l1_buffer_info.size, l1_buffer_info.size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);
         }
