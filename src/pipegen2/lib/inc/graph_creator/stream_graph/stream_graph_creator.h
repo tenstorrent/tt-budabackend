@@ -173,7 +173,7 @@ private:
     // How many bits to the left to shift epoch id when adding epoch offset to stream phases. This number limits
     // the max number of phases per epoch - upper 32 bits of phase id are used to encode the epoch id, and the lower
     // 32 bits of phase id are used to encode phase id within an epoch.
-    constexpr static unsigned int c_epoch_id_phase_shift = 32;
+    constexpr static unsigned int epoch_id_phase_shift = 32;
 
     // Whether we can optimize stream connections that transfer more than 2k tiles. If true, pipegen will generate
     // optimized phases for such connections. On the other hand, firmware will execute code that will clear buffers

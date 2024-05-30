@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
         Pipegen2Client pipegen2_client(
             soc_descriptors_yaml_path, pipegen_yaml_path, blob_yaml_path, epoch_num, perf_dump_info);
-        pipegen2_client.run_pipegen2();
+        std::unique_ptr<StreamGraphCollection> _ = pipegen2_client.run_pipegen2();
     }
     catch (const std::exception& e)
     {

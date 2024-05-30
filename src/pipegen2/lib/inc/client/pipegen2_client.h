@@ -26,7 +26,7 @@ public:
     }
 
     // Runs pipegen and creates stream graphs.
-    void run_pipegen2();
+    std::unique_ptr<StreamGraphCollection> run_pipegen2();
 
     // Public methods below expose internal structures created by pipegen2. They are implemented in order
     // to keep functionalities in other parts of the system which expect these structures (e.g runtime).
@@ -34,22 +34,17 @@ public:
     // API between pipegen2 and other parts of the system, API which is used to expose pipegen2 structures if needed.
 
     // Returns L1 memory allocations for all worker cores.
-    const std::unordered_map<tt_cxy_pair, std::vector<const pipegen2::L1Buffer*>> get_all_worker_l1_data_buffers();
+    const std::unordered_map<tt_cxy_pair, std::vector<L1BufferAllocationInfo>> get_all_worker_l1_data_buffers();
 
 private:
     // Runs conditional post processing determined by environment variables.
-    void do_post_processing();
+    void do_post_processing(const StreamGraphCollection* stream_graphs);
 
     // Outputs memory allocations, if TT_BACKEND_MEMORY_ALLOCATIONS_DIR is set.
     void output_memory_allocations();
 
     // Outputs input buffer usage analysis, if PIPEGEN2_INPUT_BUFFER_USAGE_ANALYSIS_CSV_DIR is set.
-    void do_input_buffer_usage_analysis();
-
-    // Function which checks whether we have created stream graphs, which means we have already run pipegen2.
-    // Guards against multiple runs and ensures pipegen2 has been run when other public methods for getting
-    // internal structures are called.
-    inline bool is_pipegen_run() const { return m_stream_graphs != nullptr; }
+    void do_input_buffer_usage_analysis(const StreamGraphCollection* stream_graphs);
 
     // Instance of pipegen2 class that does the actual work.
     Pipegen2 m_pipegen;
@@ -69,8 +64,8 @@ private:
     // Perf dump info for PerfInfoManager inside pipegen.
     int m_perf_dump_info;
 
-    // Created stream graphs for each rational graph.
-    std::unique_ptr<StreamGraphCollection> m_stream_graphs = nullptr;
+    // A flag guarding from multiple runs of pipegen2 client.
+    bool m_pipegen_was_run = false;
 };
 
 }  // namespace pipegen2

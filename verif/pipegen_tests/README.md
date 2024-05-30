@@ -138,6 +138,25 @@ python3 verif/pipegen_tests/run_compare_many_files.py \
 --filename_filter "*pipegen.yaml"
 ```
 
+## Compare blobgen ruby and blobgen c++ outputs
+
+```
+python3 verif/pipegen_tests/run_backend_compile_many_files.py \
+--builds_dir ./build_archs \
+--log_out_root $LOCALWORK/out_test/ \
+--netlists $LOCALWORK/out_test/netlists/ \
+--out_net2pipe $LOCALWORK/out_test/output_net2pipe \
+--out_pipegen $LOCALWORK/out_test/output_pipegen \
+--out_blobgen $LOCALWORK/out_test/output_blobgen \
+--out_blobgen_cpp $LOCALWORK/out_test/output_blobgen_cpp
+
+python3 verif/pipegen_tests/run_compare_many_files.py \
+--log_out_root $LOCALWORK/out_test/ \
+--original_dir $LOCALWORK/out_test/output_blobgen \
+--new_dir $LOCALWORK/out_test/output_blobgen_cpp \
+--filename_filter "*.hex"
+```
+
 # Net2Pipe and Pipegen Blackbox Testing
 
 This test executes  [net2pipe](#net2pipe) and [pipegen2](#pipegen) on a set of predefined netlists. Netlists and their baseline overlay results are stored in zip files located at: `verif/pipegen_tests/netlists/{ARCH_NAME}/{push|nightly}/baseline.zip"`.

@@ -60,7 +60,7 @@ private:
     void output_memory_allocations(const std::string& log_path, const int temporal_epoch);
 
     // Outputs all L1 data buffers allocated per worker core location.
-    std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> get_all_worker_l1_data_buffers() const;
+    std::unordered_map<tt_cxy_pair, std::vector<L1BufferAllocationInfo>> get_all_worker_l1_data_buffers_info() const;
 
     // Creates pipe graph from the input net2pipe pipegen yaml.
     void create_pipe_graph(const std::string& pipegen_yaml_path);

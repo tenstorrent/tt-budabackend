@@ -152,7 +152,6 @@ def print_thread_info(
         lock.release()
 
 
-
 def get_netlist_arch(netlist_path: str) -> list[str]:
     """Parses architecture names from given netlist."""
     try:
@@ -173,7 +172,9 @@ def extract_chip_ids_from_blob_yaml(blob_yaml_path: str) -> list[int]:
     chip_ids = set()
     with open(blob_yaml_path, "r") as file:
         for line in file:
-            if line.startswith("  chip_"):
+            # This will get all chip ids in PhaseConfig and StreamConfig, but will skip dram_perf_dump_blob.
+            # Example netlist where this is important: netlist_unary_multicore_output_queue_device_id_2.yaml
+            if line.startswith("  chip_") and "stream_id" in line:
                 chip_ids.add(line.split("_")[1])
     return list(chip_ids)
 

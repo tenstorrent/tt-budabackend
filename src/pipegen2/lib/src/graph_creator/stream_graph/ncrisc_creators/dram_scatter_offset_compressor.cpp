@@ -6,6 +6,8 @@
 #include <numeric>
 #include <optional>
 
+#include "pipegen2_constants.h"
+
 namespace pipegen2
 {
 DramScatterOffsetCompressor::DramScatterOffsetCompressor(const std::vector<std::uint64_t>& dram_scatter_offsets) :
@@ -128,7 +130,7 @@ std::uint64_t DramScatterOffsetCompressor::encode_dram_scatter_offset_loop(
     const std::uint64_t shifted_num_loops = (pattern_compression.get_num_loops() << 32);
     const std::size_t pattern_length = pattern_compression.get_pattern_length();
 
-    return c_dram_io_is_scatter_loop_flag | shifted_num_loops | pattern_length;
+    return constants::dram_io_is_scatter_loop_flag | shifted_num_loops | pattern_length;
 }
 
 void DramScatterOffsetCompressor::insert_scatter_offset_loop(const ScatterPatternCompressionResult& pattern_compression)

@@ -177,9 +177,10 @@ void Pipegen2::output_memory_allocations(const std::string& log_path, const int 
     }
 }
 
-std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> Pipegen2::get_all_worker_l1_data_buffers() const
+std::unordered_map<tt_cxy_pair, std::vector<L1BufferAllocationInfo>> Pipegen2::get_all_worker_l1_data_buffers_info()
+    const
 {
-    std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> data_buffers_per_core;
+    std::unordered_map<tt_cxy_pair, std::vector<L1BufferAllocationInfo>> data_buffers_per_core;
 
     for (const auto& [core_physical_location, worker_core_resources] :
          m_resource_manager->get_worker_core_resources_per_physical_location())
@@ -188,7 +189,14 @@ std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> Pipegen2::get_all_
 
         if (!allocated_buffers.empty())
         {
-            data_buffers_per_core[worker_core_resources->get_logical_location()] = allocated_buffers;
+            std::vector<L1BufferAllocationInfo> allocated_buffers_info;
+            std::transform(
+                allocated_buffers.begin(),
+                allocated_buffers.end(),
+                std::back_inserter(allocated_buffers_info),
+                [](const L1Buffer* buffer) { return L1BufferAllocationInfo(buffer); });
+
+            data_buffers_per_core[worker_core_resources->get_logical_location()] = allocated_buffers_info;
         }
     }
 

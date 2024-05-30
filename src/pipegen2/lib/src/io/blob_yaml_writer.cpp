@@ -209,9 +209,9 @@ void BlobYamlWriter::write_global_info(const StreamGraphCollection* stream_graph
         IndentYaml indent2(this);
 
         BYW_WRITE_LINE(
-            "ncrisc_fallback_buffer_l1_address: " << get_hex_string(ncrisc_fallback_buffer_allocation->get_address()));
+            "ncrisc_fallback_buffer_l1_address: " << get_hex_string(ncrisc_fallback_buffer_allocation.address));
 
-        BYW_WRITE_LINE("ncrisc_fallback_buffer_size: " << ncrisc_fallback_buffer_allocation->get_size());
+        BYW_WRITE_LINE("ncrisc_fallback_buffer_size: " << ncrisc_fallback_buffer_allocation.size);
     }
 }
 

@@ -7,7 +7,7 @@
 #include <tuple>
 #include <unistd.h>
 
-#include "device/l1/l1_buffer.h"
+#include "blobgen2.h"
 #include "client/pipegen2_client.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_location_utils.h"
@@ -98,7 +98,60 @@ void generate_cluster_desc_yaml(const string &build_dir_path) {
     log_debug(tt::LogRuntime, "Generated cluster descriptor file at path={}/cluster_desc.yaml", build_dir_path);
 }
 
-void run_pipegen(
+std::unique_ptr<pipegen2::StreamGraphCollection> run_pipegen2(const string &desc_name,
+                                                              const string &pipegen_yaml_path,
+                                                              const std::string &graph_name,
+                                                              const int temporal_epoch,
+                                                              const string &blob_yaml_path,
+                                                              const uint32_t perf_dump_info,
+                                                              const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
+                                                              tt_compile_result_per_epoch &compile_result,
+                                                              perf::MemoryProfiler* memory_profiler) {
+
+    try {
+        pipegen2::Pipegen2Client pipegen2_client(desc_name, pipegen_yaml_path, blob_yaml_path, temporal_epoch,
+                                                 perf_dump_info);
+
+        std::unique_ptr<pipegen2::StreamGraphCollection> stream_graph = pipegen2_client.run_pipegen2();
+
+        if (memory_profiler and memory_profiler->profile_l1()) {
+            const unordered_map<tt_cxy_pair, vector<pipegen2::L1BufferAllocationInfo>> all_worker_l1_allocations =
+                pipegen2_client.get_all_worker_l1_data_buffers();
+            profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
+        }
+
+        return stream_graph;
+    } catch (const pipegen2::BasePipegen2CompileException &ex) {
+        log_error("Pipegen2 compile exception : {}", ex.what());
+        handle_pipegen2_compile_exception(ex, graph_name, temporal_epoch, sdesc_per_chip, compile_result);
+    } catch (const pipegen2::BasePipegen2IOException &ex) {
+        log_error("Pipegen2 IO exception : {}", ex.what());
+        handle_pipegen2_io_exception(ex, graph_name, temporal_epoch, compile_result);
+    } catch (const std::exception &ex) {
+        log_error("Pipegen2 internal error : {}", ex.what());
+        handle_pipegen2_internal_error(ex, graph_name, temporal_epoch, compile_result);
+    }
+    return nullptr;
+}
+
+void run_blobgen2(const string &desc_name,
+                  std::unique_ptr<pipegen2::StreamGraphCollection> stream_graphs,
+                  const uint32_t perf_dump_info,
+                  const int temporal_epoch,
+                  const string &blob_out_dir,
+                  tt_compile_result_per_epoch &compile_result,
+                  const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph) {
+
+    try {
+        blobgen2::Blobgen2::create_and_output_blobs(std::move(stream_graphs), desc_name, perf_dump_info, temporal_epoch, blob_out_dir);
+    } catch(const std::exception &ex) {
+        // TODO: Add blobgen specific exceptions.
+        log_error("Blobgen2 internal error : {}", ex.what());
+        populate_compile_result_from_string_blobgen(&compile_result, ex.what(), global_epoch_device_to_graph);
+    }
+}
+
+void run_pipegen_and_blobgen(
     const string &build_dir_path,
     const std::string &graph_name,
     int temporal_epoch,
@@ -116,58 +169,25 @@ void run_pipegen(
 
     const string pipegen_yaml_path = build_graph_dir + "pipegen.yaml";
     const string blob_yaml_path = build_graph_dir + "blob.yaml";
+    const string blob_out_dir = build_graph_dir + overlay_blobs_dir;
 
     if (!fs::exists(build_dir_path)) {
         fs::create_directories(build_dir_path);
     }
 
     // Pipegen2 can be run as a library or as a command line tool. The library is used by default.
-    run_pipegen2(desc_name, pipegen_yaml_path, graph_name, temporal_epoch, blob_yaml_path, perf_dump_info,
-                 sdesc_per_chip, compile_result, memory_profiler);
+    std::unique_ptr<pipegen2::StreamGraphCollection> stream_graphs = run_pipegen2(
+        desc_name, pipegen_yaml_path, graph_name, temporal_epoch, blob_yaml_path, perf_dump_info,
+        sdesc_per_chip, compile_result, memory_profiler);
 
     // Blobgen should be ran only if pipegen was run successfully.
     if (compile_result.success) {
-        try {
-            run_blobgen(root, build_graph_dir, build_dir_path, temporal_epoch, chip_ids, sdesc_per_chip);
-        } catch(std::exception& e) {
-            populate_compile_result_from_string_blobgen(&compile_result, e.what(), global_epoch_device_to_graph);
-        }
+        run_blobgen2(desc_name, std::move(stream_graphs), perf_dump_info, temporal_epoch,
+                     blob_out_dir, compile_result, global_epoch_device_to_graph);
     }
 }
 
-void run_pipegen2(const string &desc_name,
-                  const string &pipegen_yaml_path,
-                  const std::string &graph_name,
-                  const int temporal_epoch,
-                  const string &blob_yaml_path,
-                  const uint32_t perf_dump_info,
-                  const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-                  tt_compile_result_per_epoch &compile_result,
-                  perf::MemoryProfiler* memory_profiler) {
-
-    try {
-        pipegen2::Pipegen2Client pipegen2_client(desc_name, pipegen_yaml_path, blob_yaml_path, temporal_epoch,
-                                                 perf_dump_info);
-
-        pipegen2_client.run_pipegen2();
-
-        if (memory_profiler and memory_profiler->profile_l1()) {
-            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> all_worker_l1_allocations = pipegen2_client.get_all_worker_l1_data_buffers();
-            profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
-        }
-    } catch (const pipegen2::BasePipegen2CompileException &ex) {
-        log_error("Pipegen2 compile exception : {}", ex.what());
-        handle_pipegen2_compile_exception(ex, graph_name, temporal_epoch, sdesc_per_chip, compile_result);
-    } catch (const pipegen2::BasePipegen2IOException &ex) {
-        log_error("Pipegen2 IO exception : {}", ex.what());
-        handle_pipegen2_io_exception(ex, graph_name, temporal_epoch, compile_result);
-    } catch (const std::exception &ex) {
-        log_error("Pipegen2 internal error : {}", ex.what());
-        handle_pipegen2_internal_error(ex, graph_name, temporal_epoch, compile_result);
-    }
-}
-
-void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> &all_worker_l1_buffers, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
+void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<pipegen2::L1BufferAllocationInfo>> &all_worker_l1_buffers, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id) {
     for (const auto &[core_logical_loc, l1_data_buffers] : all_worker_l1_buffers) {
         if (!memory_profiler->is_used_worker(temporal_epoch_id, core_logical_loc, perf::CoordType::Logical)) {
             log_debug(tt::LogPerfInfra, "Not profiling for core {} because it is not a worker", core_logical_loc.str());
@@ -178,12 +198,9 @@ void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const
             log_fatal("Unexpected graph being profiled more than once for pipegen!");
         }
 
-        for (const pipegen2::L1Buffer* l1_buffer : l1_data_buffers) {
-            const uint32_t start_addr = l1_buffer->get_address();
-            const uint32_t buffer_size = l1_buffer->get_size();
-            const string buffer_name = l1_buffer->get_name();
-            memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, buffer_name, 
-                start_addr, buffer_size, buffer_size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);
+        for (pipegen2::L1BufferAllocationInfo l1_buffer_info : l1_data_buffers) {
+            memory_profiler->add_buffer_to_graph_l1(temporal_epoch_id, core_logical_loc, perf::L1BufferType::DataBuffer, l1_buffer_info.name, 
+                l1_buffer_info.address, l1_buffer_info.size, l1_buffer_info.size, perf::CoordType::Logical, perf::L1ProfileStage::Pipegen);
         }
     }
     memory_profiler->update_temporal_epoch_profile_stage_l1(temporal_epoch_id, perf::L1ProfileStage::Pipegen);
@@ -255,111 +272,6 @@ void populate_common_pipegen_error_info(
     compile_result.failure_type = COMPILE_FAILURE::PipeGen;
     compile_result.graph_name = graph_name;
     compile_result.temporal_epoch_id = temporal_epoch;
-}
-
-void run_blobgen(
-    const string &root,
-    const string &build_graph_dir,
-    const string &build_dir_path,
-    int temporal_epoch,
-    const std::vector<chip_id_t> &chip_ids,
-    const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip) {
-
-    PROFILE_SCOPE_MS();
-    stringstream blobgen_cmd;
-    blobgen_cmd << "ruby " + root + "/src/overlay/blob_gen.rb";
-    blobgen_cmd << " --blob_out_dir " + build_graph_dir + "/" + overlay_blobs_dir;
-    blobgen_cmd << " --graph_yaml 1";
-    blobgen_cmd << " --graph_input_file " + build_graph_dir + "blob.yaml";
-    blobgen_cmd << " --graph_name pipegen_epoch" + to_string(temporal_epoch);
-    blobgen_cmd << " --root " + root;
-    blobgen_cmd << " --noc_x_size " + to_string(sdesc_per_chip.begin()->second.physical_grid_size.x);
-    blobgen_cmd << " --noc_y_size " + to_string(sdesc_per_chip.begin()->second.physical_grid_size.y);
-    blobgen_cmd << " --chip " << tt::get_string_lowercase(sdesc_per_chip.begin() -> second.arch);
-    blobgen_cmd << " --noc_version " + to_string(sdesc_per_chip.begin() -> second.overlay_version);
-    blobgen_cmd << " --tensix_mem_size " + to_string(l1_mem::address_map::MAX_SIZE);
-    blobgen_cmd << " --noc_translation_id_enabled " + to_string(sdesc_per_chip.begin() -> second.noc_translation_id_enabled ? 1 : 0);
-
-    if (sdesc_per_chip.begin() -> second.ethernet_cores.size() > 0) {
-        blobgen_cmd << " --tensix_mem_size_eth " + to_string(eth_l1_mem::address_map::MAX_SIZE);
-        std::string eth_cores_string = "";
-        std::string worker_cores_string = "";
-        std::vector<tt_xy_pair> eth_cores = {};
-        bool inserted = false;
-        for(auto& chip : sdesc_per_chip) {
-            for(auto& core : chip.second.ethernet_cores) {
-                if(std::find(eth_cores.begin(), eth_cores.end(), core) == eth_cores.end()) {
-                    eth_cores.push_back(core);
-                }
-            }
-        }
-
-        for (const tt_xy_pair &eth_core : sdesc_per_chip.begin() -> second.ethernet_cores) {
-            if (inserted) {
-                eth_cores_string += ",";
-            }
-            eth_cores_string += to_string(eth_core.y) + "-" + to_string(eth_core.x);
-            inserted = true;
-        }
-
-        blobgen_cmd << " --eth_cores " + eth_cores_string;
-
-        for (const tt_xy_pair &worker_core : sdesc_per_chip.begin() -> second.workers) {
-            if (inserted) {
-                worker_cores_string += ",";
-            }
-            worker_cores_string += to_string(worker_core.y) + "-" + to_string(worker_core.x);
-            inserted = true;
-        }
-
-        blobgen_cmd << " --worker_cores " + worker_cores_string;
-        
-        blobgen_cmd << " --blob_section_start " + to_string(l1_mem::address_map::OVERLAY_BLOB_BASE);
-        blobgen_cmd << " --blob_section_start_eth " + to_string(eth_l1_mem::address_map::OVERLAY_BLOB_BASE);
-        blobgen_cmd << " --data_buffer_space_base_eth " + to_string(eth_l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
-    }
-    std::stringstream chip_ids_ss;
-    std::stringstream logical_size_x_ss;
-    std::stringstream logical_size_y_ss;
-
-    chip_ids_ss << chip_ids.at(0);
-    logical_size_x_ss << to_string(sdesc_per_chip.at(chip_ids.at(0)).grid_size.x);
-    logical_size_y_ss << to_string(sdesc_per_chip.at(chip_ids.at(0)).grid_size.y);
-    for (int i = 1; i < chip_ids.size(); i++) {
-        chip_ids_ss << "," << chip_ids[i];
-        logical_size_x_ss << "," << to_string(sdesc_per_chip.at(chip_ids.at(i)).grid_size.x);
-        logical_size_y_ss << "," << to_string(sdesc_per_chip.at(chip_ids.at(i)).grid_size.y);
-    }
-
-    blobgen_cmd << " --chip_ids " + chip_ids_ss.str();
-    blobgen_cmd << " --noc_x_logical_size " + logical_size_x_ss.str();
-    blobgen_cmd << " --noc_y_logical_size " + logical_size_y_ss.str();
-    blobgen_cmd << " --data_buffer_space_base " + to_string(l1_mem::address_map::DATA_BUFFER_SPACE_BASE);
-    blobgen_cmd << " --alignment " + to_string(NOC_ADDRESS_ALIGNMENT);
-    blobgen_cmd << " --verbose 1";
-
-    stringstream blobgen_out;
-    blobgen_out << "Run blobgen" << endl << blobgen_cmd.str();
-    log_debug(tt::LogRuntime, "{}", blobgen_out.str());
-
-    if (!fs::exists(build_dir_path)) {
-        fs::create_directories(build_dir_path);
-    }
-
-    string blobgen_log = build_graph_dir + "blobgen.log";
-    string blobgen_err = build_graph_dir + "blobgen.err";
-    // Create fresh log and error files
-    // Each thread has its own unique blobgen log file
-    if (fs::exists(blobgen_log)) {
-        fs::remove(blobgen_log);
-    }
-    if (fs::exists(blobgen_err)) {
-        fs::remove(blobgen_err);
-    }
-    auto result = tt::run_command(blobgen_cmd.str(), blobgen_log, blobgen_err);
-    if (!result.success) {
-        log_fatal("Running blob command failed: {}, error_message: {}", blobgen_cmd.str(), result.message);
-    }
 }
 
 bool using_arm_host() {

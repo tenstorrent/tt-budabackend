@@ -52,7 +52,7 @@ struct tt_cxys_pair : public tt_cxy_pair
     }
 
     tt_cxys_pair(StreamId stream_id, std::size_t ichip, std::size_t x, std::size_t y) :
-        tt_cxy_pair(ichip, x, y), stream_id(ichip)
+        tt_cxy_pair(ichip, x, y), stream_id(stream_id)
     {
     }
 

@@ -198,6 +198,12 @@ tt_cxy_pair SoCInfo::convert_logical_to_physical_worker_core_coords(const tt_cxy
     }
 }
 
+bool SoCInfo::is_ethernet_core(const tt_cxy_pair& physical_coords) const
+{
+    std::vector<tt_cxy_pair> ethernet_cores = get_ethernet_cores_physical_locations(physical_coords.chip);
+    return std::find(ethernet_cores.begin(), ethernet_cores.end(), physical_coords) != ethernet_cores.end();
+};
+
 std::uint64_t SoCInfo::get_dram_buffer_noc_address(
     const std::uint64_t dram_buf_addr,
     const ChipId chip_id,

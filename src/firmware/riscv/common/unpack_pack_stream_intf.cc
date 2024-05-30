@@ -286,15 +286,14 @@ void curr_input_state_init(uint32_t num_input_streams, kernel_input_stream_state
     curr_input_state_ptr->prev_phases_tiles_received = 0;
     curr_input_state_ptr->tiles_to_clear = 0;
 
-    uint32_t stream_type = input_stream_info->datacopy_stream_type & 0x7;
     curr_input_state_ptr->eth_fw_stream = 0;
     curr_input_state_ptr->msg_rd_addr = 0;
     curr_input_state_ptr->msg_wr_addr = 0;
 
-    if (stream_type == datacopy_stream_type_t::PACKER) {
+    if (input_stream_info->datacopy_stream_type == datacopy_stream_type_t::PACKER) {
       curr_input_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_reg_ptr*)get_packer_stream_tiles_received_ptr(input_stream_info->datacopy_stream_id);
       curr_input_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_reg_ptr*)get_operand_stream_tiles_acked_ptr(curr_input_state_ptr->stream_id);
-    } else if (stream_type & 0x4) {
+    } else if (input_stream_info->datacopy_stream_type & datacopy_stream_type_t::ETH_REMOTE_FW) {
       curr_input_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_l1_ptr *)&sender_tiles_received[input_stream_info->eth_remote_fw_stream_id];
       curr_input_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_reg_ptr*)&sender_tiles_acked[curr_input_state_ptr->stream_id];
       curr_input_state_ptr->eth_fw_stream = 1;
@@ -330,12 +329,11 @@ void curr_output_state_init(uint32_t num_output_streams, kernel_output_stream_st
     curr_output_state_ptr->skip_processing = skip_processing;
     curr_output_state_ptr->num_msgs_in_block = output_stream_info->num_msgs_in_block;
 
-    uint32_t stream_type = output_stream_info->datacopy_stream_type & 0x7;
     curr_output_state_ptr->eth_fw_stream = 0;
-    if (stream_type == datacopy_stream_type_t::UNPACKER) {
+    if (output_stream_info->datacopy_stream_type == datacopy_stream_type_t::UNPACKER) {
       curr_output_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_reg_ptr*)get_packer_stream_tiles_received_ptr(curr_output_state_ptr->stream_id);
       curr_output_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_reg_ptr*)get_operand_stream_tiles_acked_ptr(output_stream_info->datacopy_stream_id);
-    } else if (stream_type & 0x4) {
+    } else if (output_stream_info->datacopy_stream_type & datacopy_stream_type_t::ETH_REMOTE_FW) {
       curr_output_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_l1_ptr*)&receiver_tiles_received[curr_output_state_ptr->stream_id];
       curr_output_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_l1_ptr*)&receiver_tiles_acked[output_stream_info->eth_remote_fw_stream_id];
       // curr_output_state_ptr->num_msgs_in_block = 1;
@@ -396,8 +394,7 @@ void curr_input_state_init(uint32_t num_input_streams, kernel_input_stream_state
     curr_input_state_ptr->prev_phases_tiles_received = 0;
     curr_input_state_ptr->tiles_to_clear = 0;
     uint32_t operand = stream_id_to_operand(curr_input_state_ptr->stream_id);
-    uint32_t stream_type = input_stream_info->datacopy_stream_type & 0x7;
-    if (stream_type == datacopy_stream_type_t::PACKER) {
+    if (input_stream_info->datacopy_stream_type == datacopy_stream_type_t::PACKER) {
       curr_input_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_reg_ptr*)get_packer_stream_tiles_received_ptr(input_stream_info->datacopy_stream_id);
       curr_input_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_reg_ptr*)get_operand_stream_tiles_acked_ptr(curr_input_state_ptr->stream_id);
       curr_input_state_ptr->eth_fw_stream = 1;
@@ -441,8 +438,7 @@ void curr_output_state_init(uint32_t num_output_streams, kernel_output_stream_st
     uint32_t operand = stream_id_to_operand(curr_output_state_ptr->stream_id);
     bool skip_processing = ((output_stream_info->flags & STREAM_INTERMEDIATE) != 0) || ((output_stream_info->flags & STREAM_MOVES_RAW_DATA) != 0);
 
-    uint32_t stream_type = output_stream_info->datacopy_stream_type & 0x7;
-    if (stream_type == datacopy_stream_type_t::UNPACKER) {
+    if (output_stream_info->datacopy_stream_type == datacopy_stream_type_t::UNPACKER) {
       curr_output_state_ptr->epoch_tiles_received_ptr = (volatile uint32_t tt_reg_ptr*)get_packer_stream_tiles_received_ptr(curr_output_state_ptr->stream_id);
       curr_output_state_ptr->epoch_tiles_acked_ptr = (volatile uint32_t tt_reg_ptr*)get_operand_stream_tiles_acked_ptr(output_stream_info->datacopy_stream_id);
       curr_output_state_ptr->eth_fw_stream = output_stream_info->legacy_pack;

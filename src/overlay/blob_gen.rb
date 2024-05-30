@@ -812,7 +812,8 @@ def WriteBlobHexFile(blob_hex_filename, blob_hex_sections)
           next
         end
       else
-        dw_str = dw.to_s(16).rjust(8, "0")
+        # Pad to 8 characters. Also take only the last 8 characters in case the number is too big.
+        dw_str = dw.to_s(16).rjust(8, "0")[-8, 8]
       end
       blob_hex_file.puts(dw_str)      
     end

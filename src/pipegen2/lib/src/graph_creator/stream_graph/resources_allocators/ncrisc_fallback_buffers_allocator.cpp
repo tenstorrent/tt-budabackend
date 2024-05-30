@@ -94,7 +94,8 @@ void NcriscFallbackBuffersAllocator::allocate_ncrisc_fallback_buffers_on_cores(
             m_resource_manager->allocate_l1_ncrisc_fallback_buffer(core_location, fallback_buffer_size);
 
         // Keep track of allocated buffer in collection to pass it down to firmware through blobgen.
-        stream_graph_collection->add_ncrisc_fallback_buffer_allocation(core_location, fallback_buffer_allocation);
+        stream_graph_collection->add_ncrisc_fallback_buffer_allocation(
+            core_location, L1BufferAllocationInfo(fallback_buffer_allocation));
     }
 
     // Check if the buffers took more memory then there is available in L1. This check is done after all allocations are

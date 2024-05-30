@@ -677,6 +677,7 @@ void tt_runtime::create_graph_program(const tt_graph_info &graph_info) {
 }
 
 tt_overlay_compile_result tt_runtime::create_graph_overlay_binaries() {
+    PROFILE_SCOPE_MS();
     int num_threads = tt::cpuset::get_allowed_num_threads();
     log_debug(tt::LogRuntime, "create_graph_overlay_binaries() -- num_threads: {}", num_threads);
 
@@ -759,8 +760,8 @@ void tt_runtime::create_temporal_epoch_overlay_binaries(
                          tt::io::info.output_dir + "/device_descs_for_pipegen.yaml" :
                          soc_descriptor_path;
 
-    run_pipegen(config.output_dir, *(graph_names.begin()), global_epoch_id, chip_ids, config.perf_desc,
-                file_to_use, sdesc_per_chip, compile_result, memory_profiler.get(), this->global_epoch_device_to_graph);
+    run_pipegen_and_blobgen(config.output_dir, *(graph_names.begin()), global_epoch_id, chip_ids, config.perf_desc,
+                            file_to_use, sdesc_per_chip, compile_result, memory_profiler.get(), this->global_epoch_device_to_graph);
 }
 
 void tt_runtime::update_temporal_epoch_overlay_binaries(int temporal_epoch, const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip) {
@@ -866,7 +867,7 @@ void tt_runtime::check_host_mapped_queues_only_on_memory_mapped_devices() {
     log_assert(!found_violations, "Found host mapped queues that are mapped to devices that don't have memory mapping abilities themselves. Check that the cluster description and netlist are compatible");
 }
 
-// Host queue addresses must be in adressable range.
+// Host queue addresses must be in addressable range.
 void tt_runtime::check_host_mapped_queue_addresses() {
 
     bool found_violations = false;

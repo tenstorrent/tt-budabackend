@@ -192,7 +192,7 @@ valgrind: $(VG_EXE)
          --log-file=valgrind-out.txt $(VG_ARGS) $(VG_EXE)
 
 src_ops: compile_trisc
-src_pipes: src/net2pipe src/pipegen2
+src_pipes: src/net2pipe src/pipegen2 src/blobgen2
 src_verif: verif/op_tests/tools/spm
 src_perf_lib: perf_lib perf_lib/op_model
 umd: umd_device
@@ -243,6 +243,8 @@ include ops/module.mk
 include loader/module.mk
 include runtime/module.mk
 include src/pipegen2/module.mk
+# Note that blobgen2 includes pipegen2 lib, so has to be included after pipegen2
+include src/blobgen2/module.mk
 include golden/module.mk
 include netlist/module.mk
 include net2hlks_lib/module.mk

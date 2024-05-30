@@ -8,33 +8,35 @@
 namespace pipegen2
 {
 
-void Pipegen2Client::run_pipegen2()
+std::unique_ptr<StreamGraphCollection> Pipegen2Client::run_pipegen2()
 {
-    if (is_pipegen_run())
-    {
-        return;
-    }
+    log_assert(!m_pipegen_was_run, "Pipegen2 was already run");
 
-    m_stream_graphs = m_pipegen.create_stream_graphs(m_pipegen_yaml_path, m_epoch_num);
+    std::unique_ptr<StreamGraphCollection> stream_graphs =
+        m_pipegen.create_stream_graphs(m_pipegen_yaml_path, m_epoch_num);
 
-    m_pipegen.output_blob_yaml(m_stream_graphs.get(), m_blob_yaml_path, m_perf_dump_info);
+    m_pipegen.output_blob_yaml(stream_graphs.get(), m_blob_yaml_path, m_perf_dump_info);
 
-    do_post_processing();
+    do_post_processing(stream_graphs.get());
+
+    m_pipegen_was_run = true;
+
+    return std::move(stream_graphs);
 }
 
-const std::unordered_map<tt_cxy_pair, std::vector<const pipegen2::L1Buffer*>>
+const std::unordered_map<tt_cxy_pair, std::vector<L1BufferAllocationInfo>>
 Pipegen2Client::get_all_worker_l1_data_buffers()
 {
-    run_pipegen2();
+    log_assert(m_pipegen_was_run, "Pipegen2 was not run before calling get_all_worker_l1_data_buffers");
 
-    return m_pipegen.get_all_worker_l1_data_buffers();
+    return m_pipegen.get_all_worker_l1_data_buffers_info();
 }
 
-void Pipegen2Client::do_post_processing()
+void Pipegen2Client::do_post_processing(const StreamGraphCollection* stream_graphs)
 {
     output_memory_allocations();
 
-    do_input_buffer_usage_analysis();
+    do_input_buffer_usage_analysis(stream_graphs);
 }
 
 void Pipegen2Client::output_memory_allocations()
@@ -46,7 +48,7 @@ void Pipegen2Client::output_memory_allocations()
     }
 }
 
-void Pipegen2Client::do_input_buffer_usage_analysis()
+void Pipegen2Client::do_input_buffer_usage_analysis(const StreamGraphCollection* stream_graphs)
 {
     const char* input_buffer_usage_analysis_dir = std::getenv("PIPEGEN2_INPUT_BUFFER_USAGE_ANALYSIS_CSV_DIR");
     if (input_buffer_usage_analysis_dir)
@@ -59,7 +61,7 @@ void Pipegen2Client::do_input_buffer_usage_analysis()
         input_buffer_usage_analysis_csv_file << std::string(input_buffer_usage_analysis_dir)
                                              << "/input_buffer_usage_epoch_" << m_epoch_num << ".csv";
         Pipegen2::output_input_buffer_usage_analysis(
-            m_epoch_num, m_stream_graphs.get(), input_buffer_usage_analysis_csv_file.str());
+            m_epoch_num, stream_graphs, input_buffer_usage_analysis_csv_file.str());
     }
 }
 

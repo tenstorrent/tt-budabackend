@@ -17,6 +17,7 @@ union tt_uint64_t {
     };
 };
 
+#ifdef TENSIX_FIRMWARE
 inline __attribute__((always_inline)) uint64_t tt_l1_load(tt_uint64_t * tt_l1_ptr p)
 {
     tt_uint64_t v;
@@ -34,5 +35,6 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t *
     v.lo = p->lo;
     return v.v;
 }
+#endif
 
 #endif // _RISC_ATTRIBS_H_

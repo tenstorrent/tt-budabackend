@@ -22,6 +22,7 @@ $(BACKEND_LIB): \
             $(NET2HLKS_LIB) \
             $(LOADER_LIB) \
             $(PIPEGEN2_LIB) \
+            $(BLOBGEN2_LIB) \
             $(RUNTIME_LIB) \
             $(MODEL_LIB) \
             $(COMPILE_TRISC_LIB) \

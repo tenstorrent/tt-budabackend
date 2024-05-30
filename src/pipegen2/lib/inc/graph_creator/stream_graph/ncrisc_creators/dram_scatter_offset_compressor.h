@@ -120,11 +120,11 @@ private:
         const unsigned int c_dim_size,
         const unsigned int tilize_mblock_n_loop_num_rows);
 
-    // Flag indicating that the scatter offset is special in a way that it encodes scatter loop.
-    static constexpr std::uint64_t c_dram_io_is_scatter_loop_flag = 0x8000000000000000ULL;
-
     // Flag indicating that the scatter offset is special in a way that it encodes scatter loop for tilizer.
     static constexpr std::uint64_t c_dram_io_is_scatter_loop_for_tilizer_flag = 0x0000000080000000ULL;
+
+    // Flag indicating that the scatter offset is special in a way that it encodes scatter loop.
+    static constexpr std::uint64_t dram_io_is_scatter_loop_flag = 0x8000000000000000ULL;
 
     // Minimum memory space saved in terms of offsets for a compression to be valid.
     static constexpr std::size_t c_minimum_compression_level = 3;

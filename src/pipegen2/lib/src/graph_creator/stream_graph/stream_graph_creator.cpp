@@ -1133,7 +1133,7 @@ void StreamGraphCreator::remove_intermeds_from_fork_list(StreamNode* stream_node
 void StreamGraphCreator::add_epoch_offset_to_stream_phases(
     const StreamGraphCollection* stream_graph_collection, const int epoch_num)
 {
-    const PhaseId epoch_phase_offset = ((PhaseId)epoch_num) << c_epoch_id_phase_shift;
+    const PhaseId epoch_phase_offset = ((PhaseId)epoch_num) << constants::epoch_id_phase_shift;
 
     for (StreamNode* stream_node : stream_graph_collection->get_streams())
     {

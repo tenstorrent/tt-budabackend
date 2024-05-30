@@ -17,7 +17,24 @@
 
 namespace pipegen2
 {
+
+// TODO: Move this to /common or somewhere else in BBE
+struct L1BufferAllocationInfo
+{
+    L1BufferAllocationInfo() = default;
+
+    L1BufferAllocationInfo(const L1Buffer* buffer) :
+        address(buffer->get_address()), size(buffer->get_size()), name(buffer->get_name())
+    {
+    }
+
+    unsigned int address;
+    unsigned int size;
+    std::string name;
+};
+
 class StreamGraphCollection
+
 {
 public:
     StreamGraphCollection() = default;
@@ -27,7 +44,7 @@ public:
 
     // Keep track of L1 memory allocations for NCRISC fallback buffers.
     void add_ncrisc_fallback_buffer_allocation(
-        const tt_cxy_pair core_location, const L1Buffer* ncrisc_fallback_buffer_allocation);
+        const tt_cxy_pair core_location, L1BufferAllocationInfo ncrisc_fallback_buffer_allocation);
 
     // Returns all stream graphs in the collection.
     const std::vector<std::unique_ptr<StreamGraph>>& get_stream_graphs() const { return m_stream_graphs; }
@@ -42,7 +59,7 @@ public:
     std::unordered_set<tt_cxy_pair> get_physical_locations() const;
 
     // Returns NCRISC fallback buffers allocations per core.
-    const std::map<tt_cxy_pair, const L1Buffer*>& get_ncrisc_fallback_buffers_allocations_per_core() const
+    const std::map<tt_cxy_pair, L1BufferAllocationInfo>& get_ncrisc_fallback_buffers_allocations_per_core() const
     {
         return m_ncrisc_fallback_buffer_allocation_per_core;
     }
@@ -53,7 +70,7 @@ private:
 
     // Mapping memory allocations of NCRISC fallback buffers to cores. Kept sorted by core location in order to have
     // deterministic output.
-    std::map<tt_cxy_pair, const L1Buffer*> m_ncrisc_fallback_buffer_allocation_per_core;
+    std::map<tt_cxy_pair, L1BufferAllocationInfo> m_ncrisc_fallback_buffer_allocation_per_core;
 
     // All streams in all the stream graphs in the collection.
     std::vector<StreamNode*> m_streams;

@@ -89,7 +89,7 @@ public:
     // Returns whether a given core is an Ethernet core.
     bool is_ethernet_core(const tt_cxy_pair& core_physical_location) const
     {
-        return m_ethernet_cores_resources.find(core_physical_location) != m_ethernet_cores_resources.end();
+        return m_soc_info->is_ethernet_core(core_physical_location);
     }
 
     // Returns total number of multicast streams available on a core with given location.

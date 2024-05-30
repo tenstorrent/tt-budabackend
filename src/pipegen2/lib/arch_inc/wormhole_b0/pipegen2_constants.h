@@ -18,6 +18,11 @@ constexpr unsigned int default_tile_size = 32;
 // theory on given architecture.
 constexpr unsigned int general_max_num_tiles_per_phase = 2048;
 
+// How many bits to the left to shift epoch id when adding epoch offset to stream phases. This number limits
+// the max number of phases per epoch - upper 32 bits of phase id are used to encode the epoch id, and the lower
+// 32 bits of phase id are used to encode phase id within an epoch.
+constexpr static unsigned int epoch_id_phase_shift = 32;
+
 // ------------------------------------ L1 buffer management constants -------------------------------------------------
 // Tile header size in bytes.
 constexpr unsigned int tile_header_size_bytes = 16;
@@ -49,6 +54,9 @@ constexpr unsigned int eth_dram_rec_stream_min_size_bytes = 32 * 1024;
 // Maximal size of dram receiver stream in bytes.
 constexpr unsigned int pipe_reduce_mem_usage_threshold_bytes = 100 * 1024;
 constexpr unsigned int eth_pipe_reduce_mem_usage_threshold_bytes = 32 * 1024;
+
+// Flag indicating that the scatter offset is special in a way that it encodes scatter loop.
+constexpr std::uint64_t dram_io_is_scatter_loop_flag = 0x8000000000000000ULL;
 // ---------------------------------------------------------------------------------------------------------------------
 
 constexpr unsigned int mmio_dram_write_outgoing_noc_vc = 0;

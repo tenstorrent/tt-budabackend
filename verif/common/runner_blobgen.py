@@ -15,6 +15,7 @@ import yaml
 from verif.common.runner_utils import (
     WorkerResult,
     execute_in_parallel,
+    get_arch_bin_dir,
     get_soc_file,
     run_cmd,
 )
@@ -28,11 +29,14 @@ from verif.common.test_utils import (
 logger = get_logger(__name__)
 
 BLOBGEN_RB_PATH = "./src/overlay/blob_gen.rb"
+BLOBGEN_CPP_PATH = "blobgen2"
 
 
 @dataclass
 class BlobgenWorkerConfig:
-    blobgen_rb_path: str
+    """blobgen_binary_path this can be either blobgen ruby script location or blobgen cpp binary build directory."""
+
+    blobgen_binary_path: str
     blob_yaml_path: str
     hex_output_path: str
     epoch_id: str
@@ -40,12 +44,34 @@ class BlobgenWorkerConfig:
 
 
 class BlobgenRunner:
+
+    def run_blobgen_worker(blobgen_worker_config: BlobgenWorkerConfig):
+        err, cmd = BlobgenRunner.run_blobgen(
+            blob_rb_path=blobgen_worker_config.blobgen_binary_path,
+            blob_out_dir=blobgen_worker_config.hex_output_path,
+            blob_yaml_path=blobgen_worker_config.blob_yaml_path,
+            epoch_id=blobgen_worker_config.epoch_id,
+            arch=blobgen_worker_config.arch,
+        )
+        return WorkerResult(cmd, err)
+
+    def run_blobgen_worker_cpp(blobgen_worker_config: BlobgenWorkerConfig):
+        err, cmd = BlobgenRunner.run_blobgen_cpp(
+            blob_build_dir=blobgen_worker_config.blobgen_binary_path,
+            blob_out_dir=blobgen_worker_config.hex_output_path,
+            blob_yaml_path=blobgen_worker_config.blob_yaml_path,
+            epoch_id=blobgen_worker_config.epoch_id,
+            arch=blobgen_worker_config.arch,
+        )
+        return WorkerResult(cmd, err)
+
     def generate_blobgen_outputs(
         blob_yaml_path: str,
         blobgen_out_dir: str,
-        blobgen_rb_path: str = BLOBGEN_RB_PATH,
+        blobgen_binary_path: str = BLOBGEN_RB_PATH,
         num_samples: int = -1,
         overwrite: bool = False,
+        blobgen_worker_runner=run_blobgen_worker,
     ) -> bool:
         """Runs blobgen in parallel on all blob.yamls in blob_yaml_path dir.
 
@@ -144,7 +170,7 @@ class BlobgenRunner:
 
             worker_configs.append(
                 BlobgenWorkerConfig(
-                    blobgen_rb_path=blobgen_rb_path,
+                    blobgen_binary_path=blobgen_binary_path,
                     blob_yaml_path=os.path.join(blob_yaml_path, blob_relpath),
                     hex_output_path=output_folder,
                     arch=arch,
@@ -159,7 +185,7 @@ class BlobgenRunner:
             )
 
         results = execute_in_parallel(
-            BlobgenRunner.run_blobgen_worker,
+            blobgen_worker_runner,
             worker_configs,
             log_file=f"{blobgen_out_dir}/blobgen.log",
             heavy_workload=True,
@@ -230,16 +256,6 @@ class BlobgenRunner:
         if result.returncode != 0 and throw_if_error:
             raise RuntimeError(f"Running blobgen on {blob_yaml_path} failed: {result}")
         return result.returncode, blobgen_cmd
-
-    def run_blobgen_worker(blobgen_worker_config: BlobgenWorkerConfig):
-        err, cmd = BlobgenRunner.run_blobgen(
-            blob_rb_path=blobgen_worker_config.blobgen_rb_path,
-            blob_out_dir=blobgen_worker_config.hex_output_path,
-            blob_yaml_path=blobgen_worker_config.blob_yaml_path,
-            epoch_id=blobgen_worker_config.epoch_id,
-            arch=blobgen_worker_config.arch,
-        )
-        return WorkerResult(cmd, err)
 
     def __convert_cores_from_soc_format(cores: list[str]):
         # transpose cores so that we first put y coord and then x coord
@@ -318,3 +334,26 @@ class BlobgenRunner:
             f"--data_buffer_space_base_eth {str(data_buffer_space_base_eth)} "
             f"--dump_phase_info 1"
         )
+
+    def run_blobgen_cpp(
+        blob_build_dir: str,
+        blob_out_dir: str,
+        blob_yaml_path: str,
+        epoch_id: str,
+        arch: str,
+        throw_if_error: bool = False,
+    ):
+        soc_file = get_soc_file(arch)
+        blob_binary_path = os.path.join(
+            get_arch_bin_dir(blob_build_dir, arch), BLOBGEN_CPP_PATH
+        )
+        blobgen_cmd = f"{blob_binary_path} {blob_yaml_path} {epoch_id} {blob_out_dir} {soc_file} 0"
+
+        blobgen_cmd.replace("\n", " ")
+        result = run_cmd(blobgen_cmd, "", timeout=600)
+        if result.returncode != 0 and throw_if_error:
+            raise RuntimeError(
+                f"Running blobgen cpp on {blob_yaml_path} failed: {result}"
+            )
+
+        return result.returncode, blobgen_cmd

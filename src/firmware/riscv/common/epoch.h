@@ -36,11 +36,30 @@ const uint32_t EPOCH_MAX_OUTPUTS_ETH = 24; // Special define for ethernet cores 
 const uint32_t EPOCH_MAX_OUTPUT_FORKS = 16;
 const uint32_t EPOCH_MAX_NUM_TILE_SIZES = 8;
 
+// Note that the value 3 is explicitly omitted. So that the single bit (the third one) designates if this is eth stream.
 enum datacopy_stream_type_t: uint8_t {
   NONE = 0,
-  UNPACKER,
-  PACKER
+  UNPACKER = 1,
+  PACKER = 2,
+  ETH_REMOTE_FW = 4,
+  ETH_REMOTE_FW_UNPACKER = 5,
+  ETH_REMOTE_FW_PACKER = 6,
 };
+
+inline datacopy_stream_type_t operator&(datacopy_stream_type_t a, datacopy_stream_type_t b)
+{
+    return static_cast<datacopy_stream_type_t>(static_cast<int>(a) & static_cast<int>(b));
+} 
+inline datacopy_stream_type_t operator|(datacopy_stream_type_t a, datacopy_stream_type_t b)
+{
+    return static_cast<datacopy_stream_type_t>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline datacopy_stream_type_t& operator|=(datacopy_stream_type_t& a, datacopy_stream_type_t b)
+{
+    a = a | b;
+    return a;
+}
 
 enum stream_state_t {
   STREAM_STATE_START = 0,
@@ -91,7 +110,10 @@ const uint32_t ETH_EPOCH_RUNTIME_CONFIG_B = eth_l1_mem::address_map::EPOCH_RUNTI
 #define DRAM_IO_STATE_WR_SEC 8
 
 // Pointers on our RISCV C++ compiler are 4 bytes. By default, our backend compiler has 8 byte pointers.
-// When compiling for backend compiler, use uint32_t which would point to address on the blob itself.
+// That's the reason we have to fix these types to 4 byte type when compiling for backend compiler.
+// On tensix, these are real pointers pointing to the real L1 memory.
+// During backend compiler execution, these are 4 byte integers which still point to the real address
+// in the generated blob which will be loaded in L1 memory.
 #ifdef TENSIX_FIRMWARE
 // Forward declaration is needed.
 struct scatter_pipe_blob_t;
@@ -109,14 +131,17 @@ using dram_io_state_ptr_volatile = volatile dram_io_state_t tt_l1_ptr *;
 using epoch_stream_dram_io_info_t_ptr = epoch_stream_dram_io_info_t tt_l1_ptr *;
 using epoch_stream_info_t_ptr = epoch_stream_info_t tt_l1_ptr *;
 #else
-using scatter_pipe_blob_t_ptr = uint32_t;
-using scatter_pipe_state_t_ptr = uint32_t;
-using scatter_offsets_ptr = uint32_t;
-using dram_io_scatter_state_t_ptr = uint32_t;
-using dram_io_state_ptr = uint32_t;
-using dram_io_state_ptr_volatile = uint32_t;
-using epoch_stream_dram_io_info_t_ptr = uint32_t;
-using epoch_stream_info_t_ptr = uint32_t;
+using BlobPtr = uint32_t;
+using scatter_pipe_blob_t_ptr = BlobPtr;
+using scatter_pipe_state_t_ptr = BlobPtr;
+using scatter_offsets_ptr = BlobPtr;
+using dram_io_scatter_state_t_ptr = BlobPtr;
+using dram_io_state_ptr = BlobPtr;
+using dram_io_state_ptr_volatile = BlobPtr;
+using epoch_stream_dram_io_info_t_ptr = BlobPtr;
+using epoch_stream_info_t_ptr = BlobPtr;
+
+constexpr BlobPtr NullBlobPtr = 0;
 #endif
 
 struct scatter_pipe_blob_t {

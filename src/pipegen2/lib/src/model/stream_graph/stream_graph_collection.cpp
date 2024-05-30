@@ -15,7 +15,7 @@ void StreamGraphCollection::add_stream_graph(std::unique_ptr<StreamGraph>&& stre
 }
 
 void StreamGraphCollection::add_ncrisc_fallback_buffer_allocation(
-    const tt_cxy_pair core_location, const L1Buffer* ncrisc_fallback_buffer_allocation)
+    const tt_cxy_pair core_location, L1BufferAllocationInfo ncrisc_fallback_buffer_allocation)
 {
     m_ncrisc_fallback_buffer_allocation_per_core.emplace(core_location, ncrisc_fallback_buffer_allocation);
 }

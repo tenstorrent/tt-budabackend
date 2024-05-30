@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 // Aux variable used to align addresses to platform specific width. WH requires 32B alignment.
 #define NOC_ADDRESS_ALIGNMENT (32)

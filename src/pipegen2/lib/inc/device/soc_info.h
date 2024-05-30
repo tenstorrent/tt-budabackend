@@ -56,6 +56,9 @@ public:
     // Returns vector of physical locations of first subchannel for each DRAM core on a certain chip.
     std::vector<tt_cxy_pair> get_dram_cores_physical_locations_of_first_subchannel(const ChipId chip_id) const;
 
+    // Returns whether the core is an ethernet core.
+    bool is_ethernet_core(const tt_cxy_pair& physical_coords) const;
+
     // Converts logical worker core coordinates to physical.
     tt_cxy_pair convert_logical_to_physical_worker_core_coords(const tt_cxy_pair& logical_coords) const;
 
@@ -96,6 +99,9 @@ public:
     // Gets the mapping of individual chips to its soc descriptors.
     const std::unordered_map<tt::chip_id_t, const buda_SocDescriptor*> get_soc_decriptors() const;
 
+    // Returns a soc descriptor instance for a given chip id.
+    const buda_SocDescriptor* get_soc_descriptor(const ChipId chip_id) const;
+
 protected:
     // Protected constructor.
     SoCInfo() = default;
@@ -104,9 +110,6 @@ protected:
     // path to the SOC descriptors yaml.
     static std::map<ChipId, std::string> get_soc_descriptors_paths(
         const std::string& soc_descriptors_yaml_path, const std::vector<ChipId>& chip_ids);
-
-    // Returns a soc descriptor instance for a given chip id.
-    const buda_SocDescriptor* get_soc_descriptor(const ChipId chip_id) const;
 
     // Checks if SoC descriptor used indicates harvested chip which supports NOC translation.
     bool is_harvested_chip_with_noc_translation(const ChipId& chip_id) const;

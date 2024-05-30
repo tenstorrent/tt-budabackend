@@ -52,7 +52,7 @@ import os
 from datetime import datetime
 
 from verif.common.pipegen_yaml_filter import FilterType
-from verif.common.runner_blobgen import BlobgenRunner
+from verif.common.runner_blobgen import BLOBGEN_CPP_PATH, BLOBGEN_RB_PATH, BlobgenRunner
 from verif.common.runner_net2pipe import Net2PipeRunner
 from verif.common.runner_pipegen import PipegenRunner
 from verif.common.runner_pipegen_filter import PipegenFilterRunner
@@ -110,7 +110,14 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default=None,
-        help="Folder where blobgen output data are stored.",
+        help="Folder where blobgen output data are stored. If this argument is set, will run blobgen ruby version.",
+    )
+    parser.add_argument(
+        "--out_blobgen_cpp",
+        type=str,
+        required=False,
+        default=None,
+        help="Folder where blobgen cpp output data are stored. If this argument is set, will run blobgen cpp version.",
     )
     parser.add_argument(
         "--num_netlists",
@@ -120,10 +127,10 @@ if __name__ == "__main__":
         help="Number of netlists to process.",
     )
     parser.add_argument(
-        "--blobgen_path",
+        "--blobgen_rb_path",
         type=str,
         required=False,
-        default=None,
+        default=BLOBGEN_RB_PATH,
         help="Path to blobgen script to use.",
     )
 
@@ -176,6 +183,15 @@ if __name__ == "__main__":
         BlobgenRunner.generate_blobgen_outputs(
             args.out_pipegen,
             args.out_blobgen,
-            blobgen_rb_path=args.blobgen_path,
+            blobgen_binary_path=args.blobgen_rb_path,
             overwrite=args.overwrite,
+        )
+
+    if args.out_pipegen and args.out_blobgen_cpp:
+        BlobgenRunner.generate_blobgen_outputs(
+            args.out_pipegen,
+            args.out_blobgen_cpp,
+            blobgen_binary_path=args.builds_dir,
+            overwrite=args.overwrite,
+            blobgen_worker_runner=BlobgenRunner.run_blobgen_worker_cpp,
         )

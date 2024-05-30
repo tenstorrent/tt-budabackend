@@ -2,7 +2,13 @@
 
 RUNTIME_LIB = $(LIBDIR)/libruntime.a
 RUNTIME_DEFINES = -DGIT_HASH=$(shell git rev-parse HEAD)
-RUNTIME_INCLUDES = $(COMMON_INCLUDES) $(LOADER_INCLUDES) -I$(BUDA_HOME)/runtime -I$(BUDA_HOME)/src/pipegen2/lib/inc -I$(BUDA_HOME)/dbd/server/lib/inc
+RUNTIME_INCLUDES = \
+	$(COMMON_INCLUDES) \
+	$(LOADER_INCLUDES) \
+	-I$(BUDA_HOME)/runtime \
+	-I$(BUDA_HOME)/src/pipegen2/lib/inc \
+	-I$(BUDA_HOME)/src/blobgen2/lib/inc \
+	-I$(BUDA_HOME)/dbd/server/lib/inc
 
 RUNTIME_LDFLAGS = -L$(BUDA_HOME) -lcommon -lhwloc -lnetlist -lloader
 RUNTIME_CFLAGS = $(CFLAGS) -Werror -Wno-int-to-pointer-cast
@@ -25,7 +31,7 @@ RUNTIME_DEPS = $(addprefix $(OBJDIR)/, $(RUNTIME_SRCS:.cpp=.d))
 # Each module has a top level target as the entrypoint which must match the subdir name
 runtime: $(RUNTIME_LIB)
 
-$(RUNTIME_LIB): $(COMMON_LIB) $(NETLIST_LIB) $(PIPEGEN2_LIB) $(RUNTIME_OBJS)
+$(RUNTIME_LIB): $(COMMON_LIB) $(NETLIST_LIB) $(PIPEGEN2_LIB) $(BLOBGEN2_LIB) $(RUNTIME_OBJS)
 	@mkdir -p $(@D)
 	ar rcs -o $@ $(RUNTIME_OBJS)
 

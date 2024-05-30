@@ -30,7 +30,8 @@ namespace pipegen2 {
 
 class BasePipegen2CompileException;
 class BasePipegen2IOException;
-class L1Buffer;
+struct L1BufferAllocationInfo;
+class StreamGraphCollection;
 
 }
 
@@ -44,18 +45,29 @@ void pause(const string &msg="");
 void run_net2pipe(const string &netlist, const string &build_dir_path, const int global_epoch_start,
                   const string &soc_descriptor_path, const string &network_desc_path,
                   tt_overlay_compile_result& overlay_compile_result);
-void run_pipegen(const string &build_dir_path, const std::string &graph_name, int temporal_epoch,
-                 const std::vector<chip_id_t> &chip_ids, const perf::PerfDesc &perf_desc,
-                 const string &desc_name,
-                 const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-                 tt_compile_result_per_epoch &compile_result, 
-                 perf::MemoryProfiler* memory_profiler,
-                 const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph);
-void run_pipegen2(const string &desc_name, const string &pipegen_yaml_path, const std::string &graph_name,
-                  const int temporal_epoch, const string &blob_yaml_path, const uint32_t perf_dump_info,
-                  const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
-                  tt_compile_result_per_epoch &compile_result, 
-                  perf::MemoryProfiler* memory_profiler);
+std::unique_ptr<pipegen2::StreamGraphCollection> run_pipegen2(const string &desc_name,
+                                                              const string &pipegen_yaml_path,
+                                                              const std::string &graph_name,
+                                                              const int temporal_epoch,
+                                                              const string &blob_yaml_path,
+                                                              const uint32_t perf_dump_info,
+                                                              const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
+                                                              tt_compile_result_per_epoch &compile_result,
+                                                              perf::MemoryProfiler* memory_profiler);
+void run_blobgen2(const string &desc_name,
+                  std::unique_ptr<pipegen2::StreamGraphCollection> stream_graphs,
+                  const uint32_t perf_dump_info,
+                  const int temporal_epoch,
+                  const string &blob_out_dir,
+                  tt_compile_result_per_epoch &compile_result,
+                  const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph);
+void run_pipegen_and_blobgen(const string &build_dir_path, const std::string &graph_name, int temporal_epoch,
+                             const std::vector<chip_id_t> &chip_ids, const perf::PerfDesc &perf_desc,
+                             const string &desc_name,
+                             const std::unordered_map<chip_id_t, buda_soc_description> &sdesc_per_chip,
+                             tt_compile_result_per_epoch &compile_result, 
+                             perf::MemoryProfiler* memory_profiler,
+                             const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph);
 void handle_pipegen2_compile_exception(const pipegen2::BasePipegen2CompileException &ex,
                                        const std::string &graph_name,
                                        const int temporal_epoch,
@@ -74,10 +86,7 @@ void handle_pipegen2_internal_error(const std::exception &ex,
 void populate_common_pipegen_error_info(const std::string &graph_name,
                                         const int temporal_epoch,
                                         tt_compile_result_per_epoch &compile_result);
-void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id);                       
-void run_blobgen(const string &root, const string &build_graph_dir, const string &build_dir_path, int temporal_epoch,
-                 const std::vector<chip_id_t> &chip_ids,
-                 const std::unordered_map<chip_id_t, buda_soc_description>& sdesc_per_chip);
+void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<pipegen2::L1BufferAllocationInfo>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id);                       
 bool using_arm_host();
 void check_system_params(const string &build_dir_path);
 std::string get_soc_desc_path(chip_id_t chip, bool runtime_descriptor = false);
