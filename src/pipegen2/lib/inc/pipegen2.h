@@ -7,9 +7,12 @@
 #include <string>
 #include <vector>
 
+// clang-format off
 #include "device/tt_xy_pair.h"
+
 #include "model/fork_join_graph/fork_join_graph_collection.h"
 #include "model/stream_graph/stream_graph_collection.h"
+// clang-format on
 
 namespace pipegen2
 {
@@ -22,7 +25,11 @@ class StreamGraph;
 
 class Pipegen2
 {
-public:
+private:
+    // Pipegen2 should be created and run using Pipegen2Client. Because of this, we are making Pipegen2Client
+    // a friend class, so that it can be the only class that can create Pipegen2 instances.
+    friend class Pipegen2Client;
+
     // Constructs Pipegen2 based on SOC descriptors yaml.
     // In case when device has no harvested chips, SOC descriptors yaml should contain
     // the SOC descriptor definition that each of the device chips will use.
@@ -55,7 +62,6 @@ public:
     // Outputs all L1 data buffers allocated per worker core location.
     std::unordered_map<tt_cxy_pair, std::vector<const L1Buffer*>> get_all_worker_l1_data_buffers() const;
 
-private:
     // Creates pipe graph from the input net2pipe pipegen yaml.
     void create_pipe_graph(const std::string& pipegen_yaml_path);
 

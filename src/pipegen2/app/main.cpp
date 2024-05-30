@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "pipegen2.h"
+#include "client/pipegen2_client.h"
 
 using namespace pipegen2;
 
@@ -42,30 +42,9 @@ int main(int argc, char* argv[])
         int epoch_num = std::stoul(argv[4], 0, 0);
         int perf_dump_info = std::stoul(argv[5], 0, 0);
 
-        Pipegen2 pipegen(soc_descriptors_yaml_path);
-
-        std::unique_ptr<StreamGraphCollection> stream_graphs =
-            pipegen.create_stream_graphs(pipegen_yaml_path, epoch_num);
-        pipegen.output_blob_yaml(stream_graphs.get(), blob_yaml_path, perf_dump_info);
-
-        const char* input_buffer_usage_analysis_dir = std::getenv("PIPEGEN2_INPUT_BUFFER_USAGE_ANALYSIS_CSV_DIR");
-        if (input_buffer_usage_analysis_dir)
-        {
-            if (!std::filesystem::exists(input_buffer_usage_analysis_dir))
-            {
-                std::filesystem::create_directories(input_buffer_usage_analysis_dir);
-            }
-            std::stringstream input_buffer_usage_analysis_csv_file;
-            input_buffer_usage_analysis_csv_file << std::string(input_buffer_usage_analysis_dir)
-                                                 << "/input_buffer_usage_epoch_" << epoch_num << ".csv";
-            Pipegen2::output_input_buffer_usage_analysis(
-                epoch_num, stream_graphs.get(), input_buffer_usage_analysis_csv_file.str());
-        }
-        const char* log_memory_allocations_dir = std::getenv("TT_BACKEND_MEMORY_ALLOCATIONS_DIR");
-        if (log_memory_allocations_dir)
-        {
-            pipegen.output_memory_allocations(log_memory_allocations_dir, epoch_num);
-        }
+        Pipegen2Client pipegen2_client(
+            soc_descriptors_yaml_path, pipegen_yaml_path, blob_yaml_path, epoch_num, perf_dump_info);
+        pipegen2_client.run_pipegen2();
     }
     catch (const std::exception& e)
     {

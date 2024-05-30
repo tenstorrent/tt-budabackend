@@ -1,5 +1,6 @@
 # Every variable in subdir must be prefixed with subdir (emulating a namespace)
 PIPEGEN2_LIB_SRCS  = $(wildcard src/pipegen2/lib/src/*.cpp)
+PIPEGEN2_LIB_SRCS += $(wildcard src/pipegen2/lib/src/client/*.cpp)
 PIPEGEN2_LIB_SRCS += $(wildcard src/pipegen2/lib/src/data_flow_calculator/*.cpp)
 PIPEGEN2_LIB_SRCS += $(wildcard src/pipegen2/lib/src/data_flow_calculator/prototype/*.cpp)
 PIPEGEN2_LIB_SRCS += $(wildcard src/pipegen2/lib/src/device/*.cpp)

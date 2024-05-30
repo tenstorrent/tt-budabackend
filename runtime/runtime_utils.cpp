@@ -8,12 +8,11 @@
 #include <unistd.h>
 
 #include "device/l1/l1_buffer.h"
-#include "pipegen2.h"
+#include "client/pipegen2_client.h"
 #include "pipegen2_exceptions.h"
 #include "pipegen2_location_utils.h"
 #include "utils/scoped_timer.hpp"
 #include "perf_lib/memory_profiler.hpp"
-
 
 namespace tt {
 
@@ -147,31 +146,13 @@ void run_pipegen2(const string &desc_name,
                   perf::MemoryProfiler* memory_profiler) {
 
     try {
-        pipegen2::Pipegen2 pipegen(desc_name);
-        std::unique_ptr<pipegen2::StreamGraphCollection> stream_graphs =
-            pipegen.create_stream_graphs(pipegen_yaml_path, temporal_epoch);
-        pipegen.output_blob_yaml(stream_graphs.get(), blob_yaml_path, perf_dump_info);
+        pipegen2::Pipegen2Client pipegen2_client(desc_name, pipegen_yaml_path, blob_yaml_path, temporal_epoch,
+                                                 perf_dump_info);
 
-        const char* input_buffer_usage_analysis_dir = std::getenv("PIPEGEN2_INPUT_BUFFER_USAGE_ANALYSIS_CSV_DIR");
-        if (input_buffer_usage_analysis_dir) {
-            if (!std::filesystem::exists(input_buffer_usage_analysis_dir)) {
-                std::filesystem::create_directories(input_buffer_usage_analysis_dir);
-            }
-            std::stringstream input_buffer_usage_analysis_csv_file;
-            input_buffer_usage_analysis_csv_file << std::string(input_buffer_usage_analysis_dir)
-                                                 << "/input_buffer_usage_epoch_"
-                                                 << temporal_epoch
-                                                 << ".csv";
-            pipegen2::Pipegen2::output_input_buffer_usage_analysis(
-                temporal_epoch, stream_graphs.get(), input_buffer_usage_analysis_csv_file.str());
-        }
-        const char* log_memory_allocations_dir = std::getenv("TT_BACKEND_MEMORY_ALLOCATIONS_DIR");
-        if (log_memory_allocations_dir)
-        {
-            pipegen.output_memory_allocations(log_memory_allocations_dir, temporal_epoch);
-        }
+        pipegen2_client.run_pipegen2();
+
         if (memory_profiler and memory_profiler->profile_l1()) {
-            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> all_worker_l1_allocations = pipegen.get_all_worker_l1_data_buffers();
+            const unordered_map<tt_cxy_pair, vector<const pipegen2::L1Buffer*>> all_worker_l1_allocations = pipegen2_client.get_all_worker_l1_data_buffers();
             profile_pipegen2_data_buffers(all_worker_l1_allocations, memory_profiler, temporal_epoch);
         }
     } catch (const pipegen2::BasePipegen2CompileException &ex) {
