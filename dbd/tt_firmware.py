@@ -149,12 +149,12 @@ class ELF:
                 ret_val[val] = name[name.rfind("::") + 2 :]
         return ret_val
 
-    def get_member_paths(self, elf_name, access_path):
+    def get_member_paths(self, elf_name, access_path, mem_reader=None):
         """
         Given an access path, return all the member paths recursively. The return value is a tree
         with the format as seen in 'ret_val' below.
         """
-        addr, size, type_die = self._get_var_addr_size_type(elf_name, access_path)
+        addr, size, type_die = self._get_var_addr_size_type(elf_name, access_path, mem_reader)
         ret_val = {
             "name": access_path,
             "addr": addr,
@@ -163,15 +163,21 @@ class ELF:
             "children": [],
         }
 
+        access_operator = "."
+        if type_die.tag_is("pointer_type"):
+            type_die = type_die.dereference_type
+            access_operator = "->"
+
         for child in type_die.iter_children():
             if child.tag == "DW_TAG_member":
-                child_name = child.attributes["DW_AT_name"].value.decode("utf-8")
-                ret_val["children"].append(
-                    self.get_member_paths(elf_name, f"{access_path}.{child_name}")
-                )
+                if "DW_AT_name" in child.attributes:
+                    child_name = child.attributes["DW_AT_name"].value.decode("utf-8")
+                    ret_val["children"].append(
+                        self.get_member_paths(elf_name, f"{access_path}{access_operator}{child_name}", mem_reader)
+                    )
         return ret_val
 
-    def _get_var_addr_size_type(self, elf_name, var_name):
+    def _get_var_addr_size_type(self, elf_name, var_name, mem_reader=None):
         """
         Given an access path to a variable (e.g. "EPOCH_INFO_PTR.epoch_id"), return the
         address, size and type_die of the variable. If the variable is not found, return None.
@@ -180,32 +186,35 @@ class ELF:
         def my_mem_reader(addr, size_bytes):
             pass
 
+        if mem_reader is None:
+            mem_reader = my_mem_reader
+
         _, ret_addr, ret_size_bytes, type_die = tt_parse_elf.mem_access(
-            self.names[elf_name], var_name, my_mem_reader
+            self.names[elf_name], var_name, mem_reader
         )
         return ret_addr, ret_size_bytes, type_die
 
-    def _get_var_addr_size(self, elf_name, var_name):
+    def _get_var_addr_size(self, elf_name, var_name, mem_reader=None):
         """
         Given an access path to a variable (e.g. "EPOCH_INFO_PTR.epoch_id"), return the
         address, size the variable. If the variable is not found, return None.
         """
-        ret_addr, ret_size_bytes, _ = self._get_var_addr_size_type(elf_name, var_name)
+        ret_addr, ret_size_bytes, _ = self._get_var_addr_size_type(elf_name, var_name, mem_reader)
         return ret_addr, ret_size_bytes
 
-    def parse_addr_size_type(self, path_str):
+    def parse_addr_size_type(self, path_str, mem_reader=None):
         """
         When path is given with the elf prefix
         """
         if path_str.startswith("@"):
             path_str = path_str[1:]
-        return self._get_var_addr_size_type(*self._get_prefix_and_suffix(path_str))
+        return self._get_var_addr_size_type(*self._get_prefix_and_suffix(path_str), mem_reader)
 
-    def parse_addr_size(self, path_str):
+    def parse_addr_size(self, path_str, mem_reader=None):
         """
         When path is given with the elf prefix
         """
-        addr, size, _ = self.parse_addr_size_type(path_str)
+        addr, size, _ = self.parse_addr_size_type(path_str, mem_reader)
         return addr, size
 
     def read_path(self, path_str, mem_reader):
@@ -219,3 +228,19 @@ class ELF:
             self.names[elf_name], var_name, mem_reader
         )
         return data
+
+    @staticmethod
+    def get_mem_reader(device_id, core_loc):
+        """
+        Returns a simple memory reader function that reads from a given device and a given core.
+        """
+
+        def mem_reader(addr, size_bytes):
+            import tt_device
+
+            data = tt_device.SERVER_IFC.pci_read_xy(
+                device_id, *core_loc.to("nocVirt"), 0, addr
+            )
+            return [data]
+
+        return mem_reader

@@ -49,7 +49,7 @@ def notify_exception(exc_type, exc_value, tb):
             ]
         )
 
-    print(tabulate(rows))
+    print(tabulate(rows, disable_numparse=True))
 
 
 # Replace the exception hook to print a nicer output
@@ -195,7 +195,7 @@ def print_columnar_dicts(dict_array, title_array):
         titles += [t]
         titles += [""]
 
-    print(tabulate(final_table, headers=titles))
+    print(tabulate(final_table, headers=titles, disable_numparse=True))
 
 
 # Takes a Rapid yaml (ryml) memory object and converts it to a value. Tries to convert to int if possible.
@@ -539,7 +539,7 @@ class TabulateTable:
         if self.sort_col is not None:
             self.rows.sort(key=lambda x: x[self.sort_col])
 
-        return tabulate(self.rows, headers=self.headers)
+        return tabulate(self.rows, headers=self.headers, disable_numparse=True)
 
 
 def is_iterable(obj):
@@ -657,7 +657,7 @@ def array_to_str(
                     row.append("")
 
             rows.append(row)
-    return tabulate(rows, headers=header if show_col_index else [], tablefmt="plain")
+    return tabulate(rows, headers=header if show_col_index else [], tablefmt="plain", disable_numparse=True)
 
 
 def dump_memory(addr, array, bytes_per_entry, bytes_per_row, in_hex):

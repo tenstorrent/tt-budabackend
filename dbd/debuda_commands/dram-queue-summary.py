@@ -128,5 +128,6 @@ def run(cmd_text, context, ui_state=None):
                 "Slots",
                 "Queue Size [bytes]",
             ],
+            disable_numparse=True,
         )
     )

@@ -52,6 +52,7 @@ def run(cmd_text, context, ui_state=None):
                 "NOC Tr",
                 "Grid Size",
             ],
+            disable_numparse=True,
         )
     )
 

@@ -157,6 +157,7 @@ def run(args, context, ui_state: UIState = None):
                     "Addr@RDptr",
                     "CmdType@RDptr",
                 ],
+                disable_numparse=True,
             )
         )
         if occupied_epoch_queues_count:

@@ -31,6 +31,7 @@ Examples:
 command_metadata = {"short": "brxy", "type": "low-level", "description": __doc__}
 
 from docopt import docopt
+from tt_firmware import ELF
 from debuda import UIState
 import tt_util as util
 from tt_object import DataArray
@@ -46,12 +47,13 @@ def run(cmd_text, context, ui_state: UIState = None):
     current_device_id = ui_state.current_device_id
     current_device = context.devices[current_device_id]
     core_loc = OnChipCoordinate.create(core_loc_str, device=current_device)
+    mem_reader = ELF.get_mem_reader(current_device_id, core_loc)
 
     # If we can parse the address as a number, do it. Otherwise, it's a variable name.
     try:
         addr, size_bytes = int(args["<addr>"], 0), 4
     except ValueError:
-        addr, size_bytes = context.elf.parse_addr_size(args["<addr>"])
+        addr, size_bytes = context.elf.parse_addr_size(args["<addr>"], mem_reader)
 
     size_words = ((size_bytes + 3) // 4) if size_bytes else 1
 
@@ -65,7 +67,7 @@ def run(cmd_text, context, ui_state: UIState = None):
 
     offsets = args["-o"]
     for offset in offsets:
-        offset_addr, _ = context.elf.parse_addr_size(offset)
+        offset_addr, _ = context.elf.parse_addr_size(offset, mem_reader)
         addr += offset_addr
 
     devices = args["-d"]

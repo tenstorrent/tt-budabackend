@@ -110,6 +110,7 @@ def run(cmd_txt, context, ui_state):
                     "Q slots",
                     "Q Size [bytes]",
                 ],
+                disable_numparse=True,
             )
         )
     else:

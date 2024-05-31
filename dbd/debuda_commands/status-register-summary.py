@@ -41,7 +41,7 @@ def print_status_register_summary(verbosity, device):
     )
     if status_descs_rows:
         print(
-            tabulate(status_descs_rows, headers=["X-Y", "Status", "Status Description"])
+            tabulate(status_descs_rows, headers=["X-Y", "Status", "Status Description"], disable_numparse=True)
         )
     else:
         print("- nothing unusual")
@@ -52,7 +52,7 @@ def print_status_register_summary(verbosity, device):
     )
     if status_descs_rows:
         print(
-            tabulate(status_descs_rows, headers=["X-Y", "Status", "Status Description"])
+            tabulate(status_descs_rows, headers=["X-Y", "Status", "Status Description"], disable_numparse=True)
         )
     else:
         print("- nothing unusual")

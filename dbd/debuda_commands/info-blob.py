@@ -20,24 +20,10 @@ command_metadata = {"short": "ib", "type": "dev", "description": __doc__}
 
 from docopt import docopt
 from debuda import UIState
+from tt_firmware import ELF
 import tt_util as util
 from tt_coordinate import OnChipCoordinate
 import tt_device
-
-
-def get_mem_reader(device_id, core_loc):
-    """
-    Returns a memory reader function that reads from a given device and a given core.
-    """
-
-    def mem_reader(addr, size_bytes):
-        data = tt_device.SERVER_IFC.pci_read_xy(
-            device_id, *core_loc.to("nocVirt"), 0, addr
-        )
-        # print (f"  mem_reader read from address 0x{addr:08x}: 0x{data:08x}")
-        return [data]
-
-    return mem_reader
 
 
 def pretty_print_overlay_blob_register_settings(elf, device_id, core_loc, blob_address):
@@ -56,7 +42,7 @@ def print_info_blob(elf, device_id, core_loc):
     """
     Get the blob address from the epoch info struct and print the register settings in a nice way.
     """
-    mem_reader = get_mem_reader(device_id=device_id, core_loc=core_loc)
+    mem_reader = ELF.get_mem_reader(device_id=device_id, core_loc=core_loc)
     num_input_streams = elf.read_path("brisc.EPOCH_INFO_PTR.num_inputs", mem_reader)[0]
     print(f"Number of input streams: {num_input_streams}")
     for s in range(num_input_streams):

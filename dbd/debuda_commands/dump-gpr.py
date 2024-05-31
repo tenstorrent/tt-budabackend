@@ -112,7 +112,7 @@ def get_register_data(device, server_ifc, loc, args):
         for risc_id in range (0, 4):
             headers.append(get_risc_name(risc_id))
         return tabulate.tabulate(
-                table, headers=headers
+                table, headers=headers, disable_numparse=True
             )
     return None
 

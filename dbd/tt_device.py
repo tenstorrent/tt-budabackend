@@ -458,7 +458,7 @@ def dump_tile(chip, loc, addr, size, data_format):
     rows = []
     for line in lines:
         rows.append(line.split())
-    print(tabulate(rows, tablefmt="plain", showindex=False))
+    print(tabulate(rows, tablefmt="plain", showindex=False, disable_numparse=True))
 
 
 
@@ -976,7 +976,7 @@ class Device(TTObject):
         if OnChipCoordinate.vertical_axis_increasing_up(axis_coordinate):
             append_horizontal_axis_labels(rows, ui_hor_range)
 
-        table_str = tabulate(rows, tablefmt="plain")
+        table_str = tabulate(rows, tablefmt="plain", disable_numparse=True)
         return table_str
 
     def dump_memory(self, noc0_loc, addr, size):

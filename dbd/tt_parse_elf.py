@@ -197,6 +197,10 @@ class MY_DIE:
             or self.tag == "DW_TAG_template_type_param"
             or self.tag == "DW_TAG_template_value_param"
             or self.tag == "DW_TAG_lexical_block"
+            or self.tag == "DW_TAG_inlined_subroutine"
+            or self.tag == "DW_TAG_GNU_call_site"
+            or self.tag == "DW_TAG_GNU_template_parameter_pack"
+            or self.tag == "DW_TAG_GNU_formal_parameter_pack"
         ):
             return None
         else:
@@ -228,7 +232,7 @@ class MY_DIE:
             typedef_DIE = self.cu.find_DIE_at_local_offset(self.local_offset)
             if typedef_DIE:  # If typedef, recursivelly do it
                 return typedef_DIE.resolved_type
-        elif "DW_AT_type" in self.attributes:
+        elif self.category != "type" and "DW_AT_type" in self.attributes:
             my_type_die = self.cu.find_DIE_at_local_offset(self.local_offset)
             if my_type_die.tag == "DW_TAG_typedef":
                 return my_type_die.resolved_type
@@ -243,7 +247,7 @@ class MY_DIE:
         if self.tag == "DW_TAG_pointer_type" or self.tag == "DW_TAG_reference_type":
             if "DW_AT_type" not in self.attributes:
                 return None
-            return self.cu.find_DIE_at_local_offset(self.local_offset)
+            return self.cu.find_DIE_at_local_offset(self.local_offset).resolved_type
         return None
 
     @cached_property
@@ -252,7 +256,7 @@ class MY_DIE:
         Get the type of the elements of an array
         """
         if self.tag == "DW_TAG_array_type":
-            return self.cu.find_DIE_at_local_offset(self.local_offset)
+            return self.cu.find_DIE_at_local_offset(self.local_offset).resolved_type
         return None
 
     @cached_property
@@ -778,7 +782,7 @@ if __name__ == "__main__":
                         row.append(str(die))
                     rows.append(row)
 
-        print(tabulate(rows, headers=header, showindex=False))
+        print(tabulate(rows, headers=header, showindex=False, disable_numparse=True))
 
 
 # TODO:

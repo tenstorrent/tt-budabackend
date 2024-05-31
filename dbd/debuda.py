@@ -152,7 +152,7 @@ def print_help(commands, cmd):
         return
 
     # Replace each line starting with <--MIDRULE-->, with a ruler line to separate the commands visually
-    table_str = tabulate(rows, headers=["Full Name", "Short", "Description"])
+    table_str = tabulate(rows, headers=["Full Name", "Short", "Description"], disable_numparse=True)
     lines = table_str.split("\n")
     midrule = lines[1]
     for i in range(len(lines)):
@@ -177,7 +177,7 @@ def print_navigation_suggestions(navigation_suggestions):
                     f"{navigation_suggestions[i]['cmd']}",
                 ]
             )
-        print(tabulate(rows, headers=["#", "Description", "Command"]))
+        print(tabulate(rows, headers=["#", "Description", "Command"], disable_numparse=True))
 
 
 # Imports 'plugin' commands from debuda_commands/ directory

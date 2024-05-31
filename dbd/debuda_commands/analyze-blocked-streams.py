@@ -244,7 +244,7 @@ def run(args, context, ui_state=None):
             print()
 
     if len(rows) > 0:
-        print(tabulate(rows, headers=headers))
+        print(tabulate(rows, headers=headers, disable_numparse=True))
     else:
         print("No blocked streams detected")
 
