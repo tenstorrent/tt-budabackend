@@ -5724,7 +5724,12 @@ void Net2Pipe::emit_pipes(YAML::Emitter &out, temporal_epoch_context& epoch_cont
                 out << SET_KEY_VAL("ethernet_chan", ethernet_chan);
             }
             out << SET_KEY_VAL("mcast_core_rc", YAML::Flow << pipe_coords_with_chip_id);
-            out << SET_KEY_VAL("output_padding_list", YAML::Flow << pipe.output_padding_buffer_list);
+
+            out << YAML::Key << "output_padding_list" << YAML::Value << YAML::Flow << YAML::BeginSeq;
+            for (const auto buffer_id : pipe.output_padding_buffer_list) {
+                out << (buffer_id ? deterministic_id_map.get_deterministic_key(buffer_id) : 0);
+            }
+            out << YAML::EndSeq;
         }
         if(epoch_context.dram_fork_pipe_metadata_by_pipe.find(pipe_unique_id) != epoch_context.dram_fork_pipe_metadata_by_pipe.end()) {
             const auto& metadata = epoch_context.dram_fork_pipe_metadata_by_pipe.at(pipe_unique_id);
