@@ -10,10 +10,10 @@ queues:
   _fused_op_0:                                                                               {input: HOST, type: queue, entries: 128, grid_size: [2, 1], t: 1, mblock: [98, 1], ublock: [2, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0x0, 0x30000000], [0, 0x38000000]]}
 
   # output
-  pt_mobilenet_v2_224.output_add_761:                                                        {input: conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.lc2, type: queue, entries: 128, grid_size: [1, 1], t: 7, mblock: [21, 1], ublock: [8, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
+  pt_mobilenet_v2_224.output_add_761:                                                        {input: conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.lc2, type: queue, entries: 128, grid_size: [1, 1], t: 7, mblock: [21, 1], ublock: [8, 1], ublock_order: r, df: Float16, target_device: 0, loc: dram, dram: [[0, 0x1a000000]]}
 
-  lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.0:            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 11], ublock: [1, 1], ublock_order: c, df: Bfp2, target_device: 0, loc: dram, dram: [[1, 0x4ed4020]]}
-  lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.1:            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[2, 0x342f320]]}
+  lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.0:            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 11], ublock: [1, 1], ublock_order: c, df: Bfp2, target_device: 0, loc: dram, dram: [[0, 0x14ed4000]]}
+  lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.1:            {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x2f000000]]}
 
 graphs:
   fwd_0_0_temporal_epoch_0:
@@ -51,4 +51,15 @@ test-config:
     type: Uniform
     uniform_lower_bound: -2.0
     uniform_upper_bound: 2.0
+    overrides:
+      lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.0:
+        type: sparse
+        matmul_ident_name: conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.lc2
+      lc.input_tensor.conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.1:
+        type: sparse_encoding
+        matmul_ident_name: conv2d_17.dc.conv2d.5.dc.sparse_matmul.10.dc.sparse_matmul.1.lc2
+        zero_strip_freq: 0.8  
+        zero_ublock_freq: 0.8 
+        zero_tile_freq: 0.8 
+        enc_tile_byte_size: 4096
 
