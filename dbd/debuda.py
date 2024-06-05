@@ -4,25 +4,37 @@
 # SPDX-License-Identifier: Apache-2.0
 """
 Usage:
-  script_name [options] [<output_dir>]
+  debuda.py [--netlist=<file>] [--commands=<cmds>] [--server-cache=<mode>] [--start-gdb=<gdb_port>] [--verbose] [--test] [<output_dir>]
+  debuda.py --server [--port=<port>] [--test] [<output_dir>]
+  debuda.py --remote [--remote-address=<ip:port>] [--commands=<cmds>] [--server-cache=<mode>] [--start-gdb=<gdb_port>] [--verbose] [--test]
+  debuda.py -h | --help
 
 Options:
   -h --help                       Show this help message and exit.
+  --server                        Start a Debuda server. If not specified, the port will be set to 5555.
+  --remote                        Attach to the remote debuda server. If not specified, IP defaults to localhost and port to 5555.
+  --port=<port>                   Port of the Debuda server. If not specified, defaults to 5555.  [default: 5555]
+  --remote-address=<ip:port>      Address of the remote Debuda server, in the form of ip:port, or just :port, if ip is localhost. If not specified, defaults to localhost:5555. [default: localhost:5555]
   --netlist=<file>                Netlist file to import. If not supplied, the most recent subdirectory of tt_build/ will be used.
   --commands=<cmds>               Execute a list of semicolon-separated commands.
   --server-cache=<mode>           Specifies the method of communication with the Debuda Server. [default: off]
+  --start-gdb=<gdb_port>          Start a gdb server on the specified port.
   --verbose                       Print verbose output.
   --test                          Exits with non-zero exit code on any exception.
-  --debuda-server-address=<addr>  IP address of debuda server. [default: localhost:5555]
-  --remote                        Use debuda server instead of pybind library. Dumping tiles is only supported this way.
-  --start-gdb=<gdb_port>          Start a gdb server on the specified port.
 
 Description:
-    Debuda parses the build output files and reads the device state to provide a debugging interface for the user.
+  Debuda parses the build output files and reads the device state to provide a debugging interface for the user.
+
+  There are two modes of operation:
+    1. Local mode: The user can run debuda.py with a specific output directory. This will load the runtime data from the output directory. If the output directory is not specified, the most recent subdirectory of tt_build/ will be used.
+    2. Remote mode: The user can connect to a Debuda server running on a remote machine. The server will provide the runtime data.
+  
+  Passing the --server flag will start a Debuda server. The server will listen on the specified port (default 5555) for incoming connections.
 
 Arguments:
   output_dir                     Output directory of a buda run. If left blank, the most recent subdirectory of tt_build/ will be used.
 """
+
 try:
     import sys, os, traceback, fnmatch, importlib
     from tabulate import tabulate
@@ -458,77 +470,91 @@ def main_loop(args, context):
             if args["--test"]:  # Always raise in test mode
                 raise
 
+def find_runtime_data_yaml(output_dir):
+    # Try to determine the output directory
+    runtime_data_yaml_filename = None
+    if output_dir is None:  # Then try to find the most recent tt_build subdir
+        most_recent_build_output_dir = locate_most_recent_build_output_dir()
+        if most_recent_build_output_dir:
+            util.INFO(
+                f"Output directory not specified. Using most recently changed subdirectory of tt_build: {os.getcwd()}/{most_recent_build_output_dir}"
+            )
+            output_dir = most_recent_build_output_dir
+        else:
+            util.WARN(
+                f"Output directory (output_dir) was not supplied and cannot be determined automatically. Continuing with limited functionality..."
+            )
+    # Try to load the runtime data from the output directory
+    runtime_data_yaml_filename = f"{output_dir}/runtime_data.yaml"
+    if not os.path.exists(runtime_data_yaml_filename):
+        util.WARN(f"Error: Yaml file at {runtime_data_yaml_filename} does not exist.")
+        runtime_data_yaml_filename = None
+
+    return runtime_data_yaml_filename, output_dir
+
 def main():
     args = docopt(__doc__)
 
     if not args["--verbose"]:
         util.VERBOSE = util.NULL_PRINT
 
-    # Try to determine the output directory
-    runtime_data_yaml = None
-    runtime_data_yaml_filename = None
-    if args["<output_dir>"] is None:  # Then try to find the most recent tt_build subdir
-        most_recent_build_output_dir = locate_most_recent_build_output_dir()
-        if most_recent_build_output_dir:
-            util.INFO(
-                f"Output directory not specified. Using most recently changed subdirectory of tt_build: {os.getcwd()}/{most_recent_build_output_dir}"
-            )
-            args["<output_dir>"] = most_recent_build_output_dir
-        else:
-            util.WARN(
-                f"Output directory (output_dir) was not supplied and cannot be determined automatically. Continuing with limited functionality..."
-            )
-
-    # Try to load the runtime data from the output directory
-    if not args['<output_dir>'] is None:
-        runtime_data_yaml_filename = f"{(args['<output_dir>'])}/runtime_data.yaml"
-        if os.path.exists(runtime_data_yaml_filename):
-            runtime_data_yaml = util.YamlFile(runtime_data_yaml_filename)
-        else:
-            runtime_data_yaml_filename = None
-            util.WARN(f"Output directory (output_dir) does not represent buda run output directory. Continuing with limited functionality...")
+    if not args["--remote"]:
+        runtime_data_yaml_filename, output_dir = find_runtime_data_yaml(args["<output_dir>"])
+    else:
+        runtime_data_yaml_filename = "remote_runtime_yaml"
+        output_dir = None
 
     # Try to connect to the server. If it is not already running, it will be started.
-    if args["--remote"]:
-        print(f"Connecting to Debuda server at {args['--debuda-server-address']}")
+    if args["--server"]:
+        print(f"Starting Debuda server at {args['--port']}")
+        debuda_server = tt_device.start_server(
+            args["--port"],
+            runtime_data_yaml_filename,
+        )
+        if args["--test"]:
+            while True: pass
+        input("Press Enter to exit server...")
+        tt_device.stop_server(debuda_server)
+        sys.exit(0)
+    elif args["--remote"]:
+        address = args["--remote-address"].split(":")
+        server_ip = address[0] if address[0]!='' else "localhost"
+        server_port = address[-1] 
+        print(f"Connecting to Debuda server at {server_ip}:{server_port}")
+        server_ifc = tt_device.connect_to_server(server_ip, server_port)
     else:
         print(f"Using pybind library instead of debuda server.")
-        args["--debuda-server-address"] = "localhost:0"
-    server_ifc = tt_device.init_server_communication(
-        args["--server-cache"],
-        args["--debuda-server-address"],
-        runtime_data_yaml_filename,
-    )
+        server_ifc = tt_device.init_pybind(args["--server-cache"], str(runtime_data_yaml_filename or ''))
 
-    # We did not find the runtime_data.yaml file, so we need to get the runtime data from the server
-    if runtime_data_yaml is None:
-        try:
-            runtime_data_yaml = server_ifc.get_runtime_data()
-        except debuda_server_not_supported as e:
-            # It is ok to continue with limited functionality
-            pass
+    runtime_data_yaml_string = None
+    runtime_data_yaml = None
+    try:
+        runtime_data_yaml_string = server_ifc.get_runtime_data()
+        if runtime_data_yaml_string is None:
+            raise debuda_server_not_supported()
+        else:
+            runtime_data_yaml = util.YamlFile(str(runtime_data_yaml_filename or 'runtime_data'), file_content=runtime_data_yaml_string)
+            runtime_data_yaml.load()
+
+    except debuda_server_not_supported:
+        util.WARN("Server does not support runtime data. Continuing with limited functionality...")
 
     try:
         cluster_desc_path = os.path.abspath(server_ifc.get_cluster_desc_path())
-    except debuda_server_not_supported as e:
-        # It is ok to continue with limited functionality
+    except debuda_server_not_supported:
+        util.WARN("Server does not support cluster description. Continuing with limited functionality...")
         cluster_desc_path = None
 
     # Create the context
     context = load_context(
         netlist_filepath=args["--netlist"],
-        run_dirpath=args["<output_dir>"],
+        run_dirpath=output_dir,
         runtime_data_yaml=runtime_data_yaml,
         cluster_desc_path=cluster_desc_path,
     )
     context.server_ifc = server_ifc
     context.args = args  # Used by 'export' command
     context.debuda_path = __file__  # Used by 'export' command
-
-    # If we spawned the Debuda server, the runtime_data provided by debuda server is not valid, and we use the runtime_data.yaml file saved by the run
-    # As the server_ifc might get probed for the data, we set the get_runtime_data function to return the runtime_data_yaml
-    if server_ifc.spawning_debuda_stub:
-        server_ifc.get_runtime_data = lambda: context.netlist.runtime_data_yaml
 
     # Main function
     exit_code = main_loop(args, context)

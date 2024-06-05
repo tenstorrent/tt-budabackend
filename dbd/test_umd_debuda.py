@@ -37,16 +37,14 @@ class UmdDbdOutputVerifier(DbdOutputVerifier):
         return re.match(self.prompt_regex, line)
 
     def verify_startup(self, lines: list, prompt: str, tester: unittest.TestCase):
-        tester.assertGreater(len(lines), 7)
-        tester.assertRegex(lines[0], r"Output directory \(output_dir\) does not represent buda run output directory. Continuing with limited functionality...")
-        tester.assertRegex(lines[1], r"Connecting to Debuda server at localhost:5555")
-        tester.assertRegex(lines[2], r"Spawning debuda-server\.\.\.")
-        tester.assertRegex(lines[3], r"Waiting for debuda-server to start for up to 5.0 seconds\.\.\.")
-        tester.assertRegex(lines[4], r"Connecting to debuda-server at tcp://localhost:5555\.\.\.")
-        tester.assertRegex(lines[5], r"Connected to debuda-server\.")
-        tester.assertRegex(lines[6], r"Loading yaml file: '\/tmp\/debuda_server_\w+\/cluster_desc\.yaml'")
+        tester.assertGreater(len(lines), 5)
+        tester.assertRegex(lines[0], r"Error: Yaml file at ([^\0/]+)/runtime_data\.yaml does not exist\.")
+        tester.assertRegex(lines[1], r"Using pybind library instead of debuda server.")
+        tester.assertRegex(lines[2], r"Device opened")
+        tester.assertRegex(lines[3], r"Server does not support runtime data. Continuing with limited functionality...")
+        tester.assertRegex(lines[4], r"Loading yaml file: '\/tmp\/debuda_server_\w+\/cluster_desc\.yaml'")
         tester.assertRegex(lines[-1], r"Opened device: id=\d+, arch=\w+, has_mmio=\w+, harvesting=")
-        self.server_temp_path = re.search(self.cluster_desc_regex, lines[6]).group(1)
+        self.server_temp_path = re.search(self.cluster_desc_regex, lines[4]).group(1)
         tester.assertTrue(self.server_temp_path.startswith("/tmp/debuda_server_") and self.server_temp_path.endswith("/"))
         return True
 
@@ -136,7 +134,7 @@ class DbdTestRunner:
 class TestUmdDebuda(unittest.TestCase):
     def test_startup_and_exit_just_return_code(self):
         runner = DbdTestRunner(UmdDbdOutputVerifier())
-        runner.start(self, ["--remote", "I don't exist"])
+        runner.start(self, ["I don't exist"])
         runner.writeline("x")
         runner.wait()
         self.assertEqual(runner.returncode, 0)

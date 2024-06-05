@@ -21,129 +21,6 @@ from tt_debug_risc import get_risc_reset_shift, RiscDebug, RiscLoc
 # See struct BUDA_READ_REQ for protocol details
 #
 DEBUDA_SERVER = None  # The debuda server communication object
-DEBUDA_STUB_PROCESS = (
-    None  # The process ID of debuda-server spawned in connect_to_server
-)
-
-
-# The server needs the runtime_data.yaml to get the netlist path, arch, and device
-def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
-    print("Spawning debuda-server...")
-
-    debuda_server_standalone = "/debuda-server-standalone"
-    if "BUDA_HOME" not in os.environ:
-        os.environ["BUDA_HOME"] = os.path.abspath(util.application_path() + "/../")
-    debuda_server_standalone = f"/../build/bin{debuda_server_standalone}"
-
-    debuda_stub_path = os.path.abspath(
-        util.application_path() + debuda_server_standalone
-    )
-    library_path = os.path.abspath(os.path.dirname(debuda_stub_path))
-    ld_lib_path = os.environ.get("LD_LIBRARY_PATH", "")
-    os.environ["LD_LIBRARY_PATH"] = (
-        library_path + ":" + ld_lib_path if ld_lib_path else library_path
-    )
-
-    try:
-        global DEBUDA_STUB_PROCESS
-        if runtime_data_yaml_filename is None:
-            debuda_stub_args = [f"{port}"]
-        else:
-            debuda_stub_args = [f"{port}", "-y", f"{runtime_data_yaml_filename}"]
-        DEBUDA_STUB_PROCESS = subprocess.Popen(
-            [debuda_stub_path] + debuda_stub_args,
-            preexec_fn=os.setsid,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            env=os.environ.copy(),
-        )
-    except:
-
-        if os.path.islink(debuda_stub_path):
-            if not os.path.exists(os.readlink(debuda_stub_path)):
-                util.FATAL(f"Missing debuda-server-standalone. Try: make dbd")
-
-        raise
-
-    # Allow some time for debuda-server to start
-    retry_times = 50
-    sleep_time = 0.1
-    debuda_stub_is_running = False
-    util.INFO(
-        f"Waiting for debuda-server to start for up to {retry_times * sleep_time} seconds..."
-    )
-    while retry_times > 0:
-        time.sleep(sleep_time)
-        debuda_stub_terminated = DEBUDA_STUB_PROCESS.poll() is not None
-        if debuda_stub_terminated:
-            util.ERROR(
-                f"Debuda server terminated unexpectedly with code: {DEBUDA_STUB_PROCESS.returncode}"
-            )
-            process_stderr = DEBUDA_STUB_PROCESS.stderr.read().decode("utf-8")
-            process_stdout = DEBUDA_STUB_PROCESS.stdout.read().decode("utf-8")
-            if process_stdout:
-                util.INFO(f"{process_stdout}")
-            if process_stderr:
-                if "does not exist" in process_stderr:
-                    util.ERROR(
-                        f"Make sure to set the environment variable BUDA_HOME to <python-path>/site-packages/budabackend"
-                    )
-                util.ERROR(f"{process_stderr}")
-            break
-
-        if not util.is_port_available(
-            int(port)
-        ):  # Then we assume debuda-server has started
-            debuda_stub_is_running = True
-            break
-        retry_times -= 1
-
-    if not debuda_stub_is_running:
-        util.ERROR(
-            f"Debuda server could not be spawned on localhost after {retry_times * sleep_time} seconds."
-        )
-        return False
-    return True
-
-
-# Spawns debuda-server and initializes the communication
-def connect_to_server(ip="localhost", port=5555, spawning_debuda_stub=False):
-    debuda_stub_address = f"tcp://{ip}:{port}"
-    util.INFO(f"Connecting to debuda-server at {debuda_stub_address}...")
-
-    try:
-        global DEBUDA_SERVER
-        DEBUDA_SERVER = debuda_server(ip, port)
-        util.INFO("Connected to debuda-server.")
-    except:
-        if spawning_debuda_stub:
-            terminate_standalone_debuda_stub()
-        raise
-
-    # Make sure to terminate communication client (debuda-server) on exit
-    atexit.register(terminate_standalone_debuda_stub)
-
-    # Allow the process to start before we start sending commands
-    time.sleep(0.1)
-
-
-# Terminates debuda-server spawned in connect_to_server
-def terminate_standalone_debuda_stub():
-    if DEBUDA_STUB_PROCESS is not None and DEBUDA_STUB_PROCESS.poll() is None:
-        os.killpg(os.getpgid(DEBUDA_STUB_PROCESS.pid), signal.SIGTERM)
-        time.sleep(0.1)
-        if DEBUDA_STUB_PROCESS.poll() is None:
-            util.VERBOSE("Debuda-server did not respond to SIGTERM. Sending SIGKILL...")
-            os.killpg(os.getpgid(DEBUDA_STUB_PROCESS.pid), signal.SIGKILL)
-
-        time.sleep(0.1)
-        if DEBUDA_STUB_PROCESS.poll() is None:
-            util.ERROR(
-                f"Debuda-server did not respond to SIGKILL. The process {DEBUDA_STUB_PROCESS.pid} is still running. Please kill it manually."
-            )
-        else:
-            util.INFO("Debuda-server terminated.")
 
 
 # Attempt to unpack the data using the given format. If it fails, it assumes that the data
@@ -278,10 +155,11 @@ class DEBUDA_SERVER_SOCKET_IFC:
 class DEBUDA_SERVER_CACHED_IFC:
     filepath = "debuda-server-cache.pkl"
     cache_store = dict()
-    enabled = True
+    enabled = False
+    cache_mode = "through"
 
     def load():
-        if DEBUDA_SERVER_CACHED_IFC.enabled:
+        if DEBUDA_SERVER_CACHED_IFC.enabled and DEBUDA_SERVER_CACHED_IFC.cache_mode == "on":
             if os.path.exists(DEBUDA_SERVER_CACHED_IFC.filepath):
                 util.INFO(
                     f"Loading server cache from file {DEBUDA_SERVER_CACHED_IFC.filepath}"
@@ -297,7 +175,7 @@ class DEBUDA_SERVER_CACHED_IFC:
                 ), f"Cache file {DEBUDA_SERVER_CACHED_IFC.filepath} does not exist"
 
     def save():
-        if DEBUDA_SERVER_CACHED_IFC.enabled and DEBUDA_SERVER_SOCKET_IFC.enabled:
+        if DEBUDA_SERVER_CACHED_IFC.enabled and DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
             util.INFO(
                 f"Saving server cache to file {DEBUDA_SERVER_CACHED_IFC.filepath}"
             )
@@ -309,128 +187,176 @@ class DEBUDA_SERVER_CACHED_IFC:
 
     def pci_read_xy(chip_id, x, y, noc_id, reg_addr):
         key = (chip_id, x, y, noc_id, reg_addr)
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.pci_read_xy(chip_id, x, y, noc_id, reg_addr)
-            )
+        
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.pci_read_xy(chip_id, x, y, noc_id, reg_addr)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.pci_read_xy(chip_id, x, y, noc_id, reg_addr)
+                )
+            else:
+                raise util.TTException(f"Cache miss for key {key} in pci_read_xy.")
+            
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def pci_write_xy(chip_id, x, y, noc_id, reg_addr, data):
-        if not DEBUDA_SERVER_CACHED_IFC.enabled:
-            return DEBUDA_SERVER_SOCKET_IFC.pci_write_xy(
-                chip_id, x, y, noc_id, reg_addr, data
-            )
+        if DEBUDA_SERVER_CACHED_IFC.enabled and DEBUDA_SERVER_CACHED_IFC.cache_mode == "on":
+            raise util.TTException("Cannot write to device in cache mode 'on'.")
+        
+        return DEBUDA_SERVER_SOCKET_IFC.pci_write_xy(
+            chip_id, x, y, noc_id, reg_addr, data
+        )
 
     def host_dma_read(chip_id, dram_addr, dram_chan):
         key = dram_addr
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.host_dma_read(chip_id, dram_addr, dram_chan)
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.host_dma_read(chip_id, dram_addr, dram_chan)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.host_dma_read(chip_id, dram_addr, dram_chan)
+                )
+            else:
+                raise util.TTException(f"Cache miss for key {key} in host_dma_read.")
+            
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def pci_read_tile(chip_id, x, y, z, reg_addr, msg_size, data_format):
         key = (chip_id, x, y, z, reg_addr, msg_size, data_format)
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.pci_read_tile(
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.pci_read_tile(
                     chip_id, x, y, z, reg_addr, msg_size, data_format
                 )
-            )
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.pci_read_tile(
+                        chip_id, x, y, z, reg_addr, msg_size, data_format
+                    )
+                )
+            else:
+                raise util.TTException(f"Cache miss for key {key} in pci_read_tile.")
+            
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def pci_raw_read(chip_id, reg_addr):
         key = (chip_id, reg_addr)
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.pci_raw_read(chip_id, reg_addr)
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.pci_raw_read(chip_id, reg_addr)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.pci_raw_read(chip_id, reg_addr)
+                )
+            else:
+                raise util.TTException(f"Cache miss for key {key} in pci_raw_read.")
+            
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def pci_raw_write(chip_id, reg_addr, data):
-        if not DEBUDA_SERVER_CACHED_IFC.enabled:
-            return DEBUDA_SERVER_SOCKET_IFC.pci_raw_write(chip_id, reg_addr, data)
+        if DEBUDA_SERVER_CACHED_IFC.enabled and DEBUDA_SERVER_CACHED_IFC.cache_mode == "on":
+            raise util.TTException("Cannot write to device in cache mode 'on'.")
+        
+        return DEBUDA_SERVER_SOCKET_IFC.pci_raw_write(chip_id, reg_addr, data)
 
     def get_runtime_data():
         key = "get_runtime_data"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_runtime_data()
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_runtime_data()
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_runtime_data()
+                )
+            else:
+                raise util.TTException("Cache miss in get_runtime_data.")
+        
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def get_cluster_desc_path():
         key = "cluster_desc_path"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_cluster_desc_path()
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_cluster_desc_path()
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_cluster_desc_path()
+                )
+            else:
+                raise util.TTException("Cache miss in get_cluster_desc_path.")
+        
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def get_harvested_coord_translation(chip_id):
         key = f"harvested_coord_translation_{chip_id}"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_harvested_coord_translation(chip_id)
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_harvested_coord_translation(chip_id)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_harvested_coord_translation(chip_id)
+                )
+            else:
+                raise util.TTException(f"Cache miss for chip id {chip_id} in get_harvested_coord_translation.")
+        
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def get_device_ids():
         key = "device_ids"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_device_ids()
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_device_ids()
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_device_ids()
+                )
+            else:
+                raise util.TTException("Cache miss in get_device_ids.")
+
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def get_device_arch(chip_id):
         key = f"device_arch_{chip_id}"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_device_arch(chip_id)
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_device_arch(chip_id)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_device_arch(chip_id)
+                )
+            else:
+                raise util.TTException(f"Cache miss for chip id {chip_id} in get_device_arch.")
+        
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
     def get_device_soc_description(chip_id):
         key = f"get_device_soc_description_{chip_id}"
-        if (
-            key not in DEBUDA_SERVER_CACHED_IFC.cache_store
-            or not DEBUDA_SERVER_CACHED_IFC.enabled
-        ):
-            DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
-                DEBUDA_SERVER_SOCKET_IFC.get_device_soc_description(chip_id)
-            )
+        if not DEBUDA_SERVER_CACHED_IFC.enabled:
+            return DEBUDA_SERVER_SOCKET_IFC.get_device_soc_description(chip_id)
+        
+        if key not in DEBUDA_SERVER_CACHED_IFC.cache_store:
+            if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+                DEBUDA_SERVER_CACHED_IFC.cache_store[key] = (
+                    DEBUDA_SERVER_SOCKET_IFC.get_device_soc_description(chip_id)
+                )
+            else:
+                raise util.TTException(f"Cache miss for chip id {chip_id} in get_device_soc_description.")
+
         return DEBUDA_SERVER_CACHED_IFC.cache_store[key]
 
 
 # PCI interface is a cached interface through Debuda server
+# TODO: SERVER_IFC should be an object instead of these classes - try to avoid checks for cache
 class SERVER_IFC(DEBUDA_SERVER_CACHED_IFC):
     pass
 
@@ -1613,37 +1539,141 @@ class Device(TTObject):
 # end of class Device
 
 
-# Initialize communication with the device. If the server is not running, it will be spawned.
-def init_server_communication(server_cache, address, runtime_data_yaml_filename):
+def init_cache_and_socket(server_cache):
     DEBUDA_SERVER_CACHED_IFC.enabled = server_cache == "through" or server_cache == "on"
-    DEBUDA_SERVER_SOCKET_IFC.enabled = (
-        server_cache == "through" or server_cache == "off"
+    DEBUDA_SERVER_CACHED_IFC.cache_mode = server_cache or "off"
+    DEBUDA_SERVER_SOCKET_IFC.enabled = server_cache == "through" or server_cache == "off"
+
+    if DEBUDA_SERVER_CACHED_IFC.cache_mode == "on":
+        DEBUDA_SERVER_CACHED_IFC.load()
+    if DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
+        atexit.register(DEBUDA_SERVER_CACHED_IFC.save)
+
+
+def start_server(port, runtime_data_yaml_filename):
+    if util.is_port_available(int(port)):
+        debuda_server = spawn_standalone_debuda_stub(port, runtime_data_yaml_filename)
+        if debuda_server is None:
+            raise util.TTFatalException("Could not start debuda-server.")
+        return debuda_server
+    
+    raise util.TTFatalException(f"Port {port} not available. A debuda server might alreasdy be running.")
+
+
+# The server needs the runtime_data.yaml to get the netlist path, arch, and device
+def spawn_standalone_debuda_stub(port, runtime_data_yaml_filename):
+    print("Spawning debuda-server...")
+
+    debuda_server_standalone = "/debuda-server-standalone"
+    if "BUDA_HOME" not in os.environ:
+        os.environ["BUDA_HOME"] = os.path.abspath(util.application_path() + "/../")
+    debuda_server_standalone = f"/../build/bin{debuda_server_standalone}"
+
+    debuda_stub_path = os.path.abspath(
+        util.application_path() + debuda_server_standalone
+    )
+    library_path = os.path.abspath(os.path.dirname(debuda_stub_path))
+    ld_lib_path = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = (
+        library_path + ":" + ld_lib_path if ld_lib_path else library_path
     )
 
-    if DEBUDA_SERVER_CACHED_IFC.enabled:
-        atexit.register(DEBUDA_SERVER_CACHED_IFC.save)
-        DEBUDA_SERVER_CACHED_IFC.load()
-
-    SERVER_IFC.spawning_debuda_stub = False
-    if DEBUDA_SERVER_SOCKET_IFC.enabled:
-        (ip, port) = address.split(":")
-        if ip == "localhost" and port == "0":
-            global DEBUDA_SERVER
-            DEBUDA_SERVER = debuda_pybind()
+    try:
+        if runtime_data_yaml_filename is None:
+            debuda_stub_args = [f"{port}"]
         else:
-            spawning_debuda_stub = ip == "localhost" and util.is_port_available(int(port))
+            debuda_stub_args = [f"{port}", "-y", f"{runtime_data_yaml_filename}"]
+        debuda_stub = subprocess.Popen(
+            [debuda_stub_path] + debuda_stub_args,
+            preexec_fn=os.setsid,
+            stdin=subprocess.PIPE, # We close by sending SIGTERM
+            env=os.environ.copy(),
+        )
+    except:
+        if os.path.islink(debuda_stub_path):
+            if not os.path.exists(os.readlink(debuda_stub_path)):
+                util.FATAL(f"Missing debuda-server-standalone. Try: make dbd")
+        raise
 
-            if spawning_debuda_stub:
-                success = spawn_standalone_debuda_stub(port, runtime_data_yaml_filename)
-                if not success:
-                    raise Exception("Could not connect to debuda-server")
-                SERVER_IFC.spawning_debuda_stub = True
-            else:
-                util.WARN(
-                    f"Port {port} is not available, assuming debuda-server is already running and we are connecting to it."
-                )
+    # Allow some time for debuda-server to start
+    retry_times = 50
+    sleep_time = 0.1
+    debuda_stub_is_running = False
+    util.INFO(
+        f"Waiting for debuda-server to start for up to {retry_times * sleep_time} seconds..."
+    )
+    while retry_times > 0:
+        time.sleep(sleep_time)
+        debuda_stub_terminated = debuda_stub.poll() is not None
+        if debuda_stub_terminated:
+            util.ERROR(
+                f"Debuda server terminated unexpectedly with code: {debuda_stub.returncode}"
+            )
+            process_stderr = debuda_stub.stderr.read().decode("utf-8")
+            process_stdout = debuda_stub.stdout.read().decode("utf-8")
+            if process_stdout:
+                util.INFO(f"{process_stdout}")
+            if process_stderr:
+                if "does not exist" in process_stderr:
+                    util.ERROR(
+                        f"Make sure to set the environment variable BUDA_HOME to <python-path>/site-packages/budabackend"
+                    )
+                util.ERROR(f"{process_stderr}")
+            break
 
-            connect_to_server(ip=ip, port=port, spawning_debuda_stub=spawning_debuda_stub)
+        if not util.is_port_available(
+            int(port)
+        ):  # Then we assume debuda-server has started
+            debuda_stub_is_running = True
+            break
+        retry_times -= 1
+
+    if not debuda_stub_is_running:
+        util.ERROR(
+            f"Debuda server could not be spawned on localhost after {retry_times * sleep_time} seconds."
+        )
+        return None
+    util.INFO("Debuda-server started.")
+    return debuda_stub
+
+# Terminates debuda-server spawned in connect_to_server
+def stop_server(debuda_stub):
+    if debuda_stub is not None and debuda_stub.poll() is None:
+        os.killpg(os.getpgid(debuda_stub.pid), signal.SIGTERM)
+        time.sleep(0.1)
+        if debuda_stub.poll() is None:
+            util.VERBOSE("Debuda-server did not respond to SIGTERM. Sending SIGKILL...")
+            os.killpg(os.getpgid(debuda_stub.pid), signal.SIGKILL)
+
+        time.sleep(0.1)
+        if debuda_stub.poll() is None:
+            util.ERROR(
+                f"Debuda-server did not respond to SIGKILL. The process {debuda_stub.pid} is still running. Please kill it manually."
+            )
+        else:
+            util.INFO("Debuda-server terminated.")
+
+
+def init_pybind(server_cache, runtime_data_yaml_filename):
+    init_cache_and_socket(server_cache)
+
+    global DEBUDA_SERVER
+    DEBUDA_SERVER = debuda_pybind(runtime_data_yaml_filename)
+
+    return SERVER_IFC
+
+
+# Spawns debuda-server and initializes the communication
+def connect_to_server(ip="localhost", port=5555):
+    debuda_stub_address = f"tcp://{ip}:{port}"
+    util.INFO(f"Connecting to debuda-server at {debuda_stub_address}...")
+
+    try:
+        global DEBUDA_SERVER
+        DEBUDA_SERVER = debuda_server(ip, port)
+        util.INFO("Connected to debuda-server.")
+    except:
+        raise
 
     return SERVER_IFC
 

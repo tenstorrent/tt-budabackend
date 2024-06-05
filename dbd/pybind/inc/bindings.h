@@ -18,8 +18,8 @@
 
 #include "device/tt_device.h"
 
-bool open_device(const std::string& binary_directory);
-void set_debuda_implementation(std::unique_ptr<tt::dbd::debuda_implementation>& imp);
+bool open_device(const std::string &binary_directory, const std::string &runtime_yaml_path);
+void set_debuda_implementation(std::unique_ptr<tt::dbd::debuda_implementation> imp);
 
 std::optional<uint32_t> pci_read4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address);
 std::optional<uint32_t> pci_write4(uint8_t chip_id, uint8_t noc_x, uint8_t noc_y, uint64_t address, uint32_t data);

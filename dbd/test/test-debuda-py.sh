@@ -91,4 +91,7 @@ source $THIS_SCRIPT_DIR/test-run-all-debuda-commands.sh "netlist_multi_matmul_pe
 source $THIS_SCRIPT_DIR/test-run-all-debuda-commands.sh "netlist_multi_matmul_perf"
 
 ##################################################################################################################################################
+# Test remote on local w/ limited context
+source $THIS_SCRIPT_DIR/test-debuda-server-limited.sh "netlist_multi_matmul_perf-remote"
+
 echo Done

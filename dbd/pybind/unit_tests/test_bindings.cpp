@@ -86,8 +86,7 @@ class bindings_implementation : public tt::dbd::debuda_implementation {
 };
 
 void set_debuda_test_implementation() {
-    std::unique_ptr<tt::dbd::debuda_implementation> implementation = std::make_unique<bindings_implementation>();
-    set_debuda_implementation(implementation);
+    set_debuda_implementation(std::move(std::make_unique<bindings_implementation>()));
 }
 
 PYBIND11_MODULE(tt_dbd_pybind_unit_tests, n) {

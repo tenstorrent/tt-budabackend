@@ -20,12 +20,14 @@ fi
 # --test is used to prevent main REPL loop from catching the exception. Instead,
 # it will be propagated back to the shell as a non-zero exit code.
 run_debuda() {
-    if [ -z "$TMP_OUT_FILE" ]; then
-        # If TMP_OUT_FILE is not set, show the output
-        timeout 30 $COVERAGE_CMD dbd/debuda.py --remote debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
-    else
-        timeout 30 $COVERAGE_CMD dbd/debuda.py --remote debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
-    fi
+    # TODO: What's this?
+    # if [ -z "$TMP_OUT_FILE" ]; then
+    #     # If TMP_OUT_FILE is not set, show the output
+    #     timeout 30 $COVERAGE_CMD dbd/debuda.py debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
+    # else
+    #     timeout 30 $COVERAGE_CMD dbd/debuda.py debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
+    # fi
+    timeout 30 $COVERAGE_CMD dbd/debuda.py debuda_test $EXTRA_ARGUMENTS --test --commands "$1"
     if [ $? -ne 0 ]; then
         echo "***"
         echo "Error: test failed while running dbd/debuda.py with commands: $1"
@@ -33,6 +35,8 @@ run_debuda() {
         exit 2
     fi
 }
+
+if [[ $EXTRA_ARGUMENTS == *"--server-cache=on"* ]]; then CACHE_ONLY=true; else CACHE_ONLY=false; fi
 
 # Use netlist core locations
 CORE_LOC_11="0,0"
@@ -61,8 +65,10 @@ COMMAND_LIST+=("ddb 0 32")
 COMMAND_LIST+=("ddb 0 16 hex8 $CORE_LOC_11 0")
 COMMAND_LIST+=("ddb 0 16 hex16 $CORE_LOC_22 0")
 COMMAND_LIST+=("pcir 0")
-COMMAND_LIST+=("wxy $CORE_LOC_11 0 0xabcd")
-COMMAND_LIST+=("full-dump")
+if [ "$CACHE_ONLY" = "false" ]; then
+    COMMAND_LIST+=("wxy $CORE_LOC_11 0 0xabcd")
+    COMMAND_LIST+=("full-dump")
+fi
 COMMAND_LIST+=("ha")
 if [ "$ARCH_NAME" = "grayskull" ]; then
     COMMAND_LIST+=("s $CORE_LOC_11 4")

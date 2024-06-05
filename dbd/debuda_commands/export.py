@@ -43,12 +43,12 @@ def run(cmd_text, context, ui_state=None):
     util.VERBOSE(f"{util.pretty (filelist)}")
 
     # 2. See if server cache is made
-    if tt_device.DEBUDA_SERVER_CACHED_IFC.enabled:
+    if tt_device.DEBUDA_SERVER_CACHED_IFC.enabled and tt_device.DEBUDA_SERVER_CACHED_IFC.cache_mode == "through":
         tt_device.DEBUDA_SERVER_CACHED_IFC.save()
         filelist.append(tt_device.DEBUDA_SERVER_CACHED_IFC.filepath)
     else:
         util.WARN(
-            "Warning: server cache is missing and will not be included in this export (see '--server-cache')"
+            "Warning: there is no server cache to export ('--server-cache' must be set to 'through')"
         )
 
     # 3. Save command history

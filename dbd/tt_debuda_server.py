@@ -336,8 +336,8 @@ sys.path.append(tt_dbd_pybind_path)
 import tt_dbd_pybind
 
 class debuda_pybind:
-    def __init__(self):
-        if not tt_dbd_pybind.open_device(binary_path):
+    def __init__(self, runtime_data_yaml_filename: str = ""):
+        if not tt_dbd_pybind.open_device(binary_path, runtime_data_yaml_filename):
             raise Exception("Failed to open device using pybind library")
         print("Device opened")
 

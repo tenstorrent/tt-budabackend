@@ -412,13 +412,12 @@ class YamlFile:
     # Cache
     file_cache = {}
 
-    def __init__(self, filepath, post_process_yaml=None):
-        self.filepath = filepath
+    def __init__(self, yamlname, post_process_yaml=None, file_content=None ):
+        self.filepath = yamlname
+        self.content = file_content
         # Some files (such as pipegen.yaml) contain multiple documents (separated by ---). We post-process them
         self.post_process_yaml = post_process_yaml
-        YamlFile.file_cache[self.filepath] = None  # Not loaded yet
-        if not os.path.isfile(self.filepath):
-            WARN(f"File '{self.filepath}' does not exist")
+        YamlFile.file_cache[self.filepath] = None
 
     def load(self):
         if self.filepath in YamlFile.file_cache and YamlFile.file_cache[self.filepath]:
@@ -429,8 +428,14 @@ class YamlFile:
             self.root = dict()
 
             # load self.filepath into string
-            with open(self.filepath, "r") as stream:
-                yaml_string = stream.read()
+            if self.content is None:
+                with open(self.filepath, "r") as stream:
+                    yaml_string = stream.read()
+            else:
+                yaml_string = self.content
+                
+                # Clear the content to save memory
+                self.content = None
 
             if self.post_process_yaml is not None:
                 self.root = self.post_process_yaml(ryml_load_all(yaml_string))
