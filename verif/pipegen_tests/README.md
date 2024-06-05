@@ -53,8 +53,7 @@ python3 verif/pipegen_tests/run_backend_compile_many_files.py \
 --netlists /localdev/$USER/work/output_netlist_collector \
 --out_net2pipe /localdev/$USER/work/output_net2pipe \
 --out_pipegen /localdev/$USER/work/output_pipegen \
---out_blobgen /localdev/$USER/work/output_blobgen \
---blobgen_path ./src/overlay/blob_gen.rb
+--out_blobgen /localdev/$USER/work/output_blobgen
 ```
 
 You can add --overwrite parameter to overwrite output folders.
@@ -95,8 +94,7 @@ python3 verif/pipegen_tests/run_backend_compile_many_files.py \
 --netlists /localdev/$USER/work/output_netlist_collector \
 --out_net2pipe /localdev/$USER/work/output_net2pipe_master \
 --out_pipegen /localdev/$USER/work/output_pipegen_master \
---out_blobgen /localdev/$USER/work/output_blobgen_master \
---blobgen_path ./src/overlay/blob_gen.rb
+--out_blobgen /localdev/$USER/work/output_blobgen_master
 ```
 
 ## Compare outputs

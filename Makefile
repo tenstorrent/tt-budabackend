@@ -235,7 +235,6 @@ include common/module.mk
 include umd/device/module.mk
 include src/ckernels/module.mk
 include src/firmware/module.mk
-include src/overlay/module.mk
 #include python_env/module.mk
 
 include model/module.mk
@@ -267,6 +266,7 @@ include runtime/tests/module.mk
 #include docs/public/module.mk
 #include bg/module.mk
 #include rbg/module.mk
+include tb/llk_tb/overlay/module.mk
 include tb/llk_tb/module.mk
 include dbd/module.mk
 include verif/op_tests/tools/spm/module.mk

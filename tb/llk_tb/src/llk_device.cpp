@@ -58,7 +58,7 @@ string llk::get_overlay_version(const ARCH arch_name) {
 void llk::Device::generate_overlay_blob(
     std::string root, std::string output_root, std::map<std::string, std::string> blob_args) {
     std::stringstream gen_blob_cmd;
-    gen_blob_cmd << "ruby " << root << "/src/overlay/blob_gen.rb ";
+    gen_blob_cmd << "ruby " << root << "/tb/llk_tb/overlay/blob_gen.rb ";
     gen_blob_cmd << "--blob_out_dir " << output_root << "/overlay/out  ";
     gen_blob_cmd << "--root " + root;
     for (auto const &[key, val] : blob_args) {

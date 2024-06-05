@@ -31,8 +31,6 @@ Example vscode launch config:
         "out/output_pipegen",
         "--out_blobgen",
         "out/output_blobgen",
-        "--blobgen_path",
-        "./src/overlay/blob_gen.rb",
         // "--overwrite",
         // "--num_netlists",
         // "20"
@@ -41,7 +39,7 @@ Example vscode launch config:
 Example command line:
     python3 verif/pipegen_tests/run_backend_compile_many_files.py --builds_dir build_archs --log_out_root out/ \
     --netlists out/output_netlist_collector --out_net2pipe out/output_net2pipe --out_pipegen_filter out/output_filter \
-    --out_pipegen out/output_pipegen --out_blobgen out/output_blobgen --blobgen_path ./src/overlay/blob_gen.rb
+    --out_pipegen out/output_pipegen --out_blobgen out/output_blobgen
 
 Note: You can safely omit --out_pipegen_filter argument if you don't want to filter the pipegen yamls. The pipegen part
 of the script will still work with the net2pipe output.

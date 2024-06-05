@@ -5,7 +5,7 @@ RELEASE = 0
 endif
 
 .PHONY: tb/llk_tb
-tb/llk_tb: src/ckernels src/firmware src/overlay
+tb/llk_tb: src/ckernels src/firmware tb/llk_tb/overlay
 	$(MAKE) RELEASE=$(RELEASE) -C tb/llk_tb
 
 .PHONY: clean_llk_tb

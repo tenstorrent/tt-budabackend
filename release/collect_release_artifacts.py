@@ -16,46 +16,47 @@ bbe_files = {
     },
     "backend_includes": {
         "path": "build/include",
-        "files": ["tt_backend.hpp",
-                  "tt_backend_api_types.hpp",]
+        "files": [
+            "tt_backend.hpp",
+            "tt_backend_api_types.hpp",
+        ],
     },
     "netlist_includes": {
         "path": "netlist",
         "target_path": "build/include",
-        "files": ["tt_backend_api.hpp",]
+        "files": [
+            "tt_backend_api.hpp",
+        ],
     },
     "common_includes": {
         "path": "common",
         "target_path": "build/include/common",
-        "files": ["param_lib.hpp",
-                  "tti_lib.hpp",
-                  "env_lib.hpp"]
+        "files": ["param_lib.hpp", "tti_lib.hpp", "env_lib.hpp"],
     },
     "device_includes": {
         "path": "device",
         "target_path": "build/include/device",
-        "files": ["tt_arch_types.h",
-                  "tt_xy_pair.h"]
+        "files": ["tt_arch_types.h", "tt_xy_pair.h"],
     },
     "perf_lib_includes": {
         "path": "perf_lib/op_model",
         "target_path": "build/include/perf_lib/op_model",
-        "files": ["op_model.hpp",
-                  "op_params.hpp",
-                  "sparse_matmul_params.hpp"]
+        "files": ["op_model.hpp", "op_params.hpp", "sparse_matmul_params.hpp"],
     },
     "third_party_includes": {
         "target_path": "build/include/third_party/json",
         "path": "third_party/json",
-        "files": ["json.hpp",]
+        "files": [
+            "json.hpp",
+        ],
     },
     "demos": {
         "path": "demos",
         "target_path": "../demos",  # /demos folder to be placed at the same level as /budabackend_lib
-        "files": "*"
+        "files": "*",
     },
     "bin": {
-        "path": "build/bin" ,
+        "path": "build/bin",
         "files": ["net2pipe", "pipegen2", "op_model"],
     },
     "device_descriptors": {
@@ -72,51 +73,34 @@ bbe_files = {
             "wormhole_b0_80_harvested.yaml",
             "wormhole_b0_1x1.yaml",
             "grayskull_10x12.yaml",
-        ]
+        ],
     },
     "architecture_headers": {
         "path": "umd/device",
         "files": ["architecture.h", "xy_pair.h"],
-        "target_path": "build/include/device"
+        "target_path": "build/include/device",
     },
-    "params": {
-        "path": "perf_lib/op_model/params",
-        "files": "*"
-    },
+    "params": {"path": "perf_lib/op_model/params", "files": "*"},
     "device_silicon_wormhole_bin_x86": {
         "supported_arches": [ARCH_AMD64],
         "path": "./umd/device/bin/silicon/x86",
-        "files": [
-            "create-ethernet-map"
-        ]
+        "files": ["create-ethernet-map"],
     },
     "device_silicon_wormhole_bin_aarch64": {
         "supported_arches": [ARCH_ARM64],
         "path": "./umd/device/bin/silicon/aarch64",
-        "files": [
-            "create-ethernet-map"
-        ]
+        "files": ["create-ethernet-map"],
     },
-    "misc": {
-        "path": "infra",
-        "files": [
-            "common.mk"
-        ]
-    },
-    "firmware": {
-        "path": "src/firmware/riscv",
-        "files": "*"
-    },
+    "misc": {"path": "infra", "files": ["common.mk"]},
+    "firmware": {"path": "src/firmware/riscv", "files": "*"},
     "firmware_brisc_hex": {
         "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/brisc/out",
-        "files": [
-            "brisc.hex"
-        ]
+        "files": ["brisc.hex"],
     },
     "kernels": {
-        "path": "src/ckernels", # TODO clean up, maybe we don't need *everything* here?
-        "files": "*" 
+        "path": "src/ckernels",  # TODO clean up, maybe we don't need *everything* here?
+        "files": "*",
     },
     "kernel_gen": {
         "supported_arches": [ARCH_AMD64],
@@ -127,28 +111,17 @@ bbe_files = {
         "path": "hlks",
         "files": "*",
     },
-    "perf_lib": {
-        "path": "perf_lib",
-        "files": [
-            "scratch_api.h"
-        ]
-    },
+    "perf_lib": {"path": "perf_lib", "files": ["scratch_api.h"]},
     "overlay": {
-        "path": "src/overlay",
-        "files": "*" # TODO, clean-up, don't need everything
+        "path": "tb/llk_tb/overlay",
+        "files": "*",  # TODO, clean-up, don't need everything
     },
-    "versim_lib": { # TODO, remove
+    "versim_lib": {  # TODO, remove
         "path": "common_lib",
         "files": "*",
     },
-    "sfpi-compiler": {
-        "path": "third_party/sfpi",
-        "files": "*" 
-    },
-    "llk": {
-        "path": "third_party/tt_llk_" + os.environ["ARCH_NAME"],
-        "files": "*" 
-    }
+    "sfpi-compiler": {"path": "third_party/sfpi", "files": "*"},
+    "llk": {"path": "third_party/tt_llk_" + os.environ["ARCH_NAME"], "files": "*"},
 }
 
 # Only copy eric if we are building Wormhole
@@ -156,12 +129,13 @@ if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wor
     bbe_files["firmware_erisc_hex"] = {
         "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/erisc_app/out",
-        "files": [
-            "erisc_app.hex"
-        ]
+        "files": ["erisc_app.hex"],
     }
 
-if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wormhole_b0":
+if (
+    "BACKEND_ARCH_NAME" in os.environ
+    and os.environ["BACKEND_ARCH_NAME"] == "wormhole_b0"
+):
     bbe_files["firmware_erisc_hex"] = {
         "supported_arches": [ARCH_AMD64],
         "path": "build/src/firmware/riscv/targets/erisc_app/out",
@@ -169,10 +143,9 @@ if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wor
             "erisc_app.hex",
             "erisc_app.iram.hex",
             "erisc_app.l1.hex",
-            "split_iram_l1"
-        ]
+            "split_iram_l1",
+        ],
     }
-
 
 
 def _copy_budabackend(target_folder, src_root, arch):
@@ -183,7 +156,7 @@ def _copy_budabackend(target_folder, src_root, arch):
     for t, d in bbe_files.items():
 
         # Skip if files are not supported by current arch
-        supported_arches = d.get('supported_arches')
+        supported_arches = d.get("supported_arches")
         if supported_arches and arch not in supported_arches:
             continue
 
@@ -205,14 +178,31 @@ def _copy_budabackend(target_folder, src_root, arch):
         for f in files:
             file_path = os.path.join(root, f)
             os.chmod(file_path, 0o777)
-            
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--release_folder", required=True, type=str, help="Folder where to collect release artifacts.")
-    parser.add_argument("--src_root", required=False, type=str, default = "", help="Folder containing Budabackend build binaries relative to where the script is being called from.")
-    parser.add_argument("--arch", required=False, type=str, default=ARCH_AMD64, help=f"Platform architecture {SUPPORTED_ARCHES}")
+    parser.add_argument(
+        "--release_folder",
+        required=True,
+        type=str,
+        help="Folder where to collect release artifacts.",
+    )
+    parser.add_argument(
+        "--src_root",
+        required=False,
+        type=str,
+        default="",
+        help="Folder containing Budabackend build binaries relative to where the script is being called from.",
+    )
+    parser.add_argument(
+        "--arch",
+        required=False,
+        type=str,
+        default=ARCH_AMD64,
+        help=f"Platform architecture {SUPPORTED_ARCHES}",
+    )
     args = parser.parse_args()
 
     assert args.arch in SUPPORTED_ARCHES
     _copy_budabackend(args.release_folder, args.src_root, args.arch)
-

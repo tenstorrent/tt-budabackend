@@ -206,9 +206,9 @@ void generate_brisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_
     // This signals to nrisc firmware that there is no blob preloaded and the first epoch
     // needs to be loaded from DRAM before running.
     string blob_bin_filename = "blob_init.hex.static";
-    fs::path blob_init_bin(root + "/src/overlay/" + blob_bin_filename);
+    fs::path blob_init_bin(root + "/src/blobgen2/" + blob_bin_filename);
     log_assert(fs::exists(blob_init_bin), "Error: {} doesn't exist", blob_init_bin);
-    fs::copy(root + "/src/overlay/" + blob_bin_filename, out_dir_path + "/blob_init/blob_init.hex");
+    fs::copy(blob_init_bin, out_dir_path + "/blob_init/blob_init.hex");
 }
 
 void generate_erisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_name, const std::string& out_dir_path) {

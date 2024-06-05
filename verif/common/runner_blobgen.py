@@ -28,7 +28,7 @@ from verif.common.test_utils import (
 
 logger = get_logger(__name__)
 
-BLOBGEN_RB_PATH = "./src/overlay/blob_gen.rb"
+BLOBGEN_RB_PATH = "./tb/llk_tb/overlay/blob_gen.rb"
 BLOBGEN_CPP_PATH = "blobgen2"
 
 
@@ -289,7 +289,7 @@ class BlobgenRunner:
         """Returns blobgen command.
         Example command
         ---------------
-        ruby ./src/overlay/blob_gen.rb
+        ruby ./tb/llk_tb/overlay/blob_gen.rb
             --blob_out_dir out/a/output_blobgen/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile
             --graph_yaml 1
             --graph_input_file out/a/output_pipegen/filtered_yamls_Everything/wormhole_b0/netlist_softmax_single_tile/blob_0.yaml

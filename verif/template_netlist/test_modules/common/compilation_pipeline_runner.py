@@ -22,10 +22,6 @@ from verif.template_netlist.scripts.utility.generate_netlists_from_configs impor
 
 PROCESS_DUMP_FOLDER_PREFIX = "test_dir_config"
 
-NET2PIPE_BIN_PATH = "./build/bin/net2pipe"
-PIPEGEN_BIN_PATH = "./build/bin/pipegen2"
-BLOBGEN_BIN_PATH = "./src/overlay/blob_gen.rb"
-
 RED = "\033[0;31m"
 GRN = "\033[0;32m"
 YLW = "\033[0;33m"

@@ -43,6 +43,7 @@ $PARAMS = {
   :alignment => 32,
 }
 
+print("This script is DEPRECATED. Please use src/blobgen2.")
 print("ruby ")
 print($PROGRAM_NAME)
 print(" ")
