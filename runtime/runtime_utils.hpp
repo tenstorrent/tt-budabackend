@@ -123,8 +123,6 @@ vector<uint32_t> pad_entry_to_padding_blob(const YAML::Node& pad_entry);
 void match_failure_target(std::string& failure_target, const std::string& e);
 void populate_compile_result_from_string_net2pipe(tt_overlay_compile_result *result, const std::string& exception_string);
 void populate_compile_result_from_string_blobgen(tt_compile_result_per_epoch *result, const std::string& exception_string, const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph);
-void populate_compile_stats_from_logs(tt_compile_result *result, const std::string& output_dir, uint num_temporal_epochs, uint global_epoch_start_id);
-std::vector<std::string> retrieve_compile_stats_info(tt_compile_result* result, const std::unordered_map<uint32_t, std::unordered_map<chip_id_t, std::string>>& global_epoch_device_to_graph);
 
 const perf::PerfOverlayDecoupleMode get_overlay_decouplings_for_op(const tt_op_info& op_info, const perf::PerfDesc& perf_desc);
 const uint16_t get_input_output_overlay_decouple_mask(const tt_op_info& op_info, const perf::PerfDesc& perf_desc);

@@ -399,14 +399,6 @@ tt::DEVICE_STATUS_CODE tt_runtime::initialize(tt_compile_result *result) {
                 uint num_temporal_epochs = this->workload.get_number_of_temporal_graphs();
                 // the global epoch start id for this workload is the number of epochs we've compiled across all workloads minus number of temporal epochs of this workload
                 log_assert(compiled_epochs >= num_temporal_epochs, "Unexpected {} epochs compiled < {} epochs current workload.", compiled_epochs, num_temporal_epochs);
-                uint global_epoch_start_id = compiled_epochs - num_temporal_epochs;
-
-                // Parse compile logs before throwing/reporting any errors
-                populate_compile_stats_from_logs(result, config.output_dir, num_temporal_epochs, global_epoch_start_id);
-                std::vector<std::string> all_compile_stats_info = retrieve_compile_stats_info(result, this->global_epoch_device_to_graph);
-                for (const std::string& info : all_compile_stats_info) {
-                    log_trace(tt::LogCompileTrisc, "{}", info);
-                }
             }
             else {
                 log_debug(tt::LogCompileTrisc, "Compile skipped");
@@ -2377,24 +2369,6 @@ void tt_runtime::merge_compile_results(tt_compile_result* result, const tt_fw_co
         result->failure_type = overlay_compile_result.failure_type;
         result->failure_message = overlay_compile_result.failure_message;
         result->failure_target = overlay_compile_result.failure_target;
-
-        // TODO : remove copying of legacy fields once PyByda side is
-        // updated and no longer uses them.
-        result->blob_usage_per_epoch_per_core = overlay_compile_result.blob_usage_per_epoch_per_core;
-        if (!overlay_compile_result.failed_compile_results_per_epoch.empty()) {
-            const tt_compile_result_per_epoch& failed_compile_result_epoch = overlay_compile_result.failed_compile_results_per_epoch[0];
-            result->failure_type = failed_compile_result_epoch.failure_type;
-            result->failure_message = failed_compile_result_epoch.failure_message;
-            result->failure_target = failed_compile_result_epoch.failure_target;
-            result->device_id = failed_compile_result_epoch.device_id;
-            result->temporal_epoch_id = failed_compile_result_epoch.temporal_epoch_id;
-            result->logical_core_x = failed_compile_result_epoch.logical_core_x;
-            result->logical_core_y = failed_compile_result_epoch.logical_core_y;
-            result->maximum_size_bytes = failed_compile_result_epoch.maximum_size_bytes;
-            result->allocated_size_bytes = failed_compile_result_epoch.allocated_size_bytes;
-            result->extra_size_bytes = failed_compile_result_epoch.extra_size_bytes;
-            result->graph_name = failed_compile_result_epoch.graph_name;
-        }
     }
 }
 

@@ -321,13 +321,6 @@ std::string tt_compile_result::get_string() const {
     return out.str();
 }
 
-// TODO : remove this functions when old fields are removed from tt_compile_result
-// function is also part of the old code we are keeping until PyBuda is updated 
-// to use new fields and functions
-std::string get_string(const tt_compile_result& compile_result) {
-    return compile_result.get_string();
-}
-
 std::string get_string(const IO_TYPE &io_type) {
     switch(io_type) {
         case IO_TYPE::Queue:
