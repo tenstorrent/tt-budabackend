@@ -794,12 +794,14 @@ void print_placement(const netlist_workload_data& workload, const string& build_
     const int cell_width = 4;
     int worker_grid_size_x = -1;
     int worker_grid_size_y = -1;
-    // FIXME MT: Add proper grid for Blackhole
-    if (workload.device_info.arch == tt::ARCH::GRAYSKULL || workload.device_info.arch == tt::ARCH::BLACKHOLE) {
+    if (workload.device_info.arch == tt::ARCH::GRAYSKULL) {
         worker_grid_size_x = 12;
         worker_grid_size_y = 10;
     } else if (workload.device_info.arch == tt::ARCH::WORMHOLE || workload.device_info.arch == tt::ARCH::WORMHOLE_B0) {
         worker_grid_size_x = 8;
+        worker_grid_size_y = 10;
+    } else if (workload.device_info.arch == tt::ARCH::BLACKHOLE) {
+        worker_grid_size_x = 14;
         worker_grid_size_y = 10;
     } else {
         log_warning(tt::LogCompileTrisc, "Skipping placement print, since device type is not supported");
