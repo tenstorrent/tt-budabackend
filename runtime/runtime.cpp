@@ -1270,18 +1270,19 @@ void tt_runtime::profile_l1_binary_buffer_reserved_sizes() {
             perf::L1ProfileStage::ReservedBinaries
         );
 
-        // if we don't run pipegen, then we don't know the actual reserved sizes of the overlay blobs
+        // if we don't compile overlay, then we don't know the actual reserved sizes of the overlay blobs
         // the sizes in op info and TT_BACKEND_OVERLAY_MAX_EXTRA_BLOB_SIZE can get overriden by pipegen if they're too large
-        bool will_run_pipegen = (config.do_compile() or need_risc_recompile_during_run);
+        // keep consistent with runtime.cpp::compile_overlay
+        bool overlay_compile = (config.do_compile() or need_overlay_recompile_during_run);
 
         memory_profiler->broadcast_add_buffer_l1(
             perf::L1BufferType::BinaryBuffer,
             perf::overlay_buffer_name,
             l1_mem::address_map::OVERLAY_BLOB_BASE,
             placeholder_consumed_size,
-            // reserve default overlay size here if we will run pipegen
+            // reserve default overlay size here if we will compile overlay
             // extra size will be appended accordingly when profiling pipegen
-            will_run_pipegen ? l1_mem::address_map::OVERLAY_BLOB_SIZE : perf::buffer_size_undefined,
+            overlay_compile ? l1_mem::address_map::OVERLAY_BLOB_SIZE : perf::buffer_size_undefined,
             perf::L1ProfileStage::ReservedBinaries
         );
         memory_profiler->update_profile_stage_all_graphs_l1(perf::L1ProfileStage::ReservedBinaries);
