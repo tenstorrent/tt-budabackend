@@ -545,11 +545,10 @@ void PhaseBlobFiller::setup_phase_blob_for_resend(BlobSection& phase_blob, const
     else
     {
         PhaseBlobFillerArchSpecific::setup_stream_wr_ptr_reg(phase_blob);
-
-        phase_blob.append(
-            configure_4_byte_register(STREAM_MSG_INFO_WR_PTR_REG_INDEX, phase_helper.get_msg_info_buf_addr_end()),
-            "STREAM_MSG_INFO_WR_PTR_REG_INDEX");
     }
+    phase_blob.append(
+        configure_4_byte_register(STREAM_MSG_INFO_WR_PTR_REG_INDEX, phase_helper.get_msg_info_buf_addr_end()),
+        "STREAM_MSG_INFO_WR_PTR_REG_INDEX");
 }
 
 void PhaseBlobFiller::setup_misc_cfg_reg_regular_phase(
