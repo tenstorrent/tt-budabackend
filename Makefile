@@ -165,7 +165,18 @@ ifeq ($(EMULATION_DEVICE_EN), 1)
 
 endif
 
-PYTHON_VERSION ?= python3.8
+ifndef PYTHON_VERSION
+    PYTHON_VERSION := python$(shell python3 --version 2>&1 | cut -d " " -f 2 | cut -d "." -f 1,2)
+    ifeq ($(PYTHON_VERSION),python3.8)
+        $(info PYTHON_VERSION was not set previously, setting to installed python version 3.8)
+    else ifeq ($(PYTHON_VERSION),python3.10)
+        $(info PYTHON_VERSION was not set previously, setting to installed python version 3.10)
+    else
+        $(error PYTHON_VERSION was not set previously, and python3 installed version neither 3.8 nor 3.10)
+    endif
+else
+    $(info PYTHON_VERSION was already set to $(PYTHON_VERSION))
+endif
 
 build: backend build_hw
 ifeq ("$(HOST_ARCH)", "aarch64")
