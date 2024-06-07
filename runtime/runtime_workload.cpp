@@ -804,3 +804,29 @@ const std::pair<std::string, std::string> &tt_runtime_workload::get_single_graph
         return empty_pair;
     }
 }
+
+std::string tt_runtime_workload::get_op_name(const string& graph_name, const tt_xy_pair& logical_core_xy) {
+    unsigned int logical_x = logical_core_xy.x;
+    unsigned int logical_y = logical_core_xy.y;
+    const std::map<string, tt_digraph>& graph_map = this->graphs;
+    const auto graph_map_iterator = graph_map.find(graph_name);
+
+    if (graph_map_iterator == graph_map.end()) {
+        log_fatal("Cannot find a graph with name {} to return the op name for logical coordinates x = {} and y = {}. "
+                  "This message indicates bug in compilation process", graph_name, 
+                  std::to_string(logical_x), std::to_string(logical_y));
+    }
+
+    const std::map<string, tt_op_info>& op_map = graph_map_iterator->second.my_graph_info.op_map;
+
+    for (const auto& [op_name, op_info] : op_map) {
+        if (logical_x >= op_info.grid_loc_x() && logical_x <= op_info.grid_end_x() &&
+            logical_y >= op_info.grid_loc_y() && logical_y <= op_info.grid_end_y()) {
+            return op_name;
+        }
+    }
+
+    log_fatal("No op for graph {} with specified logical coordinates x = {} and y = {}. "
+              "This message indicates bug in compilation process",
+              graph_name, std::to_string(logical_x), std::to_string(logical_y));
+}

@@ -20,6 +20,7 @@
 namespace tt {
 
 static constexpr std::uint32_t PY_TENSOR_DIMS = 4;
+static constexpr std::uint32_t unmapped_logical_coordinate = 255;
 
 /**
  * @brief Tile dimension enum used to pass variable tile sizes across the SW+HW stack.
@@ -269,12 +270,13 @@ struct tt_compile_result_per_epoch : public tt_base_compile_result {
 
     uint32_t device_id = 0;
     uint32_t temporal_epoch_id = 0;
-    uint32_t logical_core_x = 0;
-    uint32_t logical_core_y = 0;
+    uint32_t logical_core_x = unmapped_logical_coordinate;
+    uint32_t logical_core_y = unmapped_logical_coordinate;
     uint32_t maximum_size_bytes = 0;
     uint32_t allocated_size_bytes = 0;
     uint32_t extra_size_bytes = 0;
     std::string graph_name;
+    std::string op_name;
 };
 
 /**

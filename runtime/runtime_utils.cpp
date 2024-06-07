@@ -1322,6 +1322,10 @@ std::chrono::seconds get_api_timeout(const tt_timeout_api_type &api_type) {
         default: log_fatal("Unrecognized enum type for tt_timeout_api_type");
     }
 }
+
+bool is_valid_logical_location(const tt_xy_pair& logical_location) {
+    return logical_location.x != unmapped_logical_coordinate && logical_location.y != unmapped_logical_coordinate;
+}
 }
 
 std::ostream &operator<<(std::ostream &os, std::pair<std::string, std::set<std::string>> const &pair) {

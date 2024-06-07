@@ -136,6 +136,8 @@ std::string get_tt_runtime_hostname();
 
 std::chrono::seconds get_api_timeout(const tt_timeout_api_type &api_type);
 
+bool is_valid_logical_location(const tt_xy_pair& logical_location);
+
 const std::string overlay_blobs_dir = "blobs";
 
 }

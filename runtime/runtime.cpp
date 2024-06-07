@@ -2416,6 +2416,7 @@ void tt_runtime::compile_overlay(tt_overlay_compile_result& overlay_compile_resu
             }
 
             overlay_compile_result = create_graph_overlay_binaries();
+            patch_overlay_compile_result_with_op_name(overlay_compile_result);
         } 
         assign_global_epoch_ids(true);
     } catch (const std::exception &e) {
@@ -2425,5 +2426,16 @@ void tt_runtime::compile_overlay(tt_overlay_compile_result& overlay_compile_resu
         overlay_compile_result.success = false;
         overlay_compile_result.failure_type = COMPILE_FAILURE::Invalid;
         overlay_compile_result.failure_message = e.what();
+    }
+}
+
+void tt_runtime::patch_overlay_compile_result_with_op_name(tt_overlay_compile_result& overlay_compile_result) {
+    for (tt_compile_result_per_epoch& compile_result_epoch : overlay_compile_result.failed_compile_results_per_epoch) {
+        const tt_xy_pair logical_location = tt_xy_pair(compile_result_epoch.logical_core_x, compile_result_epoch.logical_core_y);
+
+        if (is_valid_logical_location(logical_location)) {
+            compile_result_epoch.op_name = this->workload.get_op_name(
+                compile_result_epoch.graph_name, logical_location);
+        }
     }
 }

@@ -120,6 +120,7 @@ class tt_runtime_workload : public netlist_workload_data
     void allocate_queue_untilized_memory(string queue_name);
     buffer_range_t get_buffer_range(string queue_name, int buf_id);
     bool check_buffer_overlap(buffer_range_t lhs, buffer_range_t rhs, bool host = false) const;
+    std::string get_op_name(const string& graph_name, const tt_xy_pair& logical_core_xy);
 
     //! Queue state management
     void bind_queue_field_vars(std::vector<tt_queue_setting_info> &queue_settings, string prog_name);

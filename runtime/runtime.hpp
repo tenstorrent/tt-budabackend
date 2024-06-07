@@ -150,6 +150,8 @@ class tt_runtime : public tt_backend
                                const tt_overlay_compile_result& overlay_compile_result);
     void compile_firmware(tt_fw_compile_result& fw_compile_result);
     void compile_overlay(tt_overlay_compile_result& overlay_compile_result);
+    void patch_overlay_compile_result_with_op_name(tt_overlay_compile_result& compile_result);
+
     public:
     std::unique_ptr<tt_cluster> cluster;
     std::unique_ptr<tt_epoch_loader> loader;
