@@ -1,3 +1,21 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+
+# SPDX-License-Identifier: Apache-2.0
+"""
+Example:
+    Path to folder with single zipfile in it:
+        python verif/template_netlist/scripts/utility/fix_queue_locations.py 
+        --path-to-netlists verif/graph_tests/netlists/add_and_norm_train/nightly/blackhole/unharvested
+
+    Path to single netlist:        
+        python verif/template_netlist/scripts/utility/fix_queue_locations.py 
+        --path-to-netlists verif/graph_tests/netlists/wormhole_b0/dram_reads_subsumed_into_gather_streams.yaml
+
+    Path to folder with folders with netlists (like 1_row_harvested/test_123/netlist_123.yaml):
+        python verif/template_netlist/scripts/utility/fix_queue_locations.py 
+        --path-to-netlists verif/graph_tests/netlists/add_and_norm/nightly/wormhole_b0/1row_harvested
+"""
 from __future__ import annotations
 
 import argparse
@@ -30,6 +48,7 @@ class Netlist:
     def store_in_zip(self) -> None:
         if self.parent_zip:
             with zipfile.ZipFile(self.parent_zip, "a") as zipf:
+                print(f"Storing in zipfile {self.parent_zip}")
                 zipf.write(self.path, self.zip_archive)
 
 
@@ -103,9 +122,7 @@ class NetlistFinder:
             os.makedirs(out_dir, exist_ok=True)
             os.system(f"unzip -qo {netlist_zip} -d {out_dir}")
 
-            unzipped_netlists.extend(
-                [Netlist(netlist.path, netlist_zip) for netlist in self.find_netlists(out_dir)]
-            )
+            unzipped_netlists.extend([Netlist(netlist.path, netlist_zip) for netlist in self.find_netlists(out_dir)])
 
         return unzipped_netlists
 
@@ -208,9 +225,7 @@ class FixNetlistForBH:
 
     def reset_starting_addresses(self) -> None:
         # Starting addresses for queues located on DRAM and HOST.
-        self.curr_dram_start_address = [
-            self.arch.dram_buffer_start_addr
-        ] * self.arch.num_dram_channels
+        self.curr_dram_start_address = [self.arch.dram_buffer_start_addr] * self.arch.num_dram_channels
         self.curr_host_addr = 0
 
     def read_netlist(self, netlist_path: str) -> dict:
@@ -249,8 +264,7 @@ class FixNetlistForBH:
         # Single DRAM buffer size is guaranteed to be aligned to arch, since queue headers are aligned as well as
         # tile sizes. Therefore, total queue size will also be arch aligned.
         single_dram_buffer_size = (
-            queue.num_tiles_in_buffer * self.arch.get_tile_size(queue.data_format)
-            + self.arch.dram_queue_header_size
+            queue.num_tiles_in_buffer * self.arch.get_tile_size(queue.data_format) + self.arch.dram_queue_header_size
         )
         total_queue_size = queue.num_buffers * single_dram_buffer_size
 
@@ -289,11 +303,18 @@ class FixNetlistForBH:
                 netlist_dict["devices"]["arch"] = str(self.arch)
 
     def fix_netlists(self) -> None:
-        for netlist in self.netlists:
-            netlist_dict = self.read_netlist(netlist.path)
-            self.fix_queues_locations(netlist_dict)
-            self.overwrite_netlist(netlist.path, netlist_dict)
-            netlist.store_in_zip()
+        for i, netlist in enumerate(self.netlists):
+            try:
+                print(f"Processing {i+1}/{len(self.netlists)}: {netlist.path}")
+                netlist_dict = self.read_netlist(netlist.path)
+                self.fix_queues_locations(netlist_dict)
+                self.overwrite_netlist(netlist.path, netlist_dict)
+                netlist.store_in_zip()
+                print("Done.")
+            except Exception as e:
+                print(f"Exception raised for {netlist.path}")
+                print(e)
+                continue
 
     def overwrite_netlist(self, netlist_path: str, netlist_dict: dict) -> None:
         with open(netlist_path, "w") as output_yaml_file:
@@ -306,7 +327,7 @@ if __name__ == "__main__":
         "--path-to-netlists",
         required=True,
         type=str,
-        help="Path to folder with netlist yamls, or separate folders with netlists in them, or zips with netlists",
+        help="Path to folder with either: netlist yamls, separate folders with netlists in them, zips.",
     )
     parser.add_argument(
         "--keep-arch",
