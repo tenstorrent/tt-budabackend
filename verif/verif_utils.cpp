@@ -32,11 +32,15 @@ set<verif::ExternalBinaryMode> verif::cmdline_to_external_binary_mode(string all
     for (string mode: each_mode) {
         if (mode == "") {
             return {};
-        } else if (mode == "all" || mode == "constants") {
+        } else if (mode == "all") {
             each_mode_external.insert(verif::ExternalBinaryMode::Constants);
-        } else if (mode == "all" || mode == "all_inputs") {
             each_mode_external.insert(verif::ExternalBinaryMode::AllInputs);
-        } else if (mode == "all" || mode == "all_outputs") {
+            each_mode_external.insert(verif::ExternalBinaryMode::AllOutputs);
+        } else if (mode == "constants") {
+            each_mode_external.insert(verif::ExternalBinaryMode::Constants);
+        } else if (mode == "all_inputs") {
+            each_mode_external.insert(verif::ExternalBinaryMode::AllInputs);
+        } else if (mode == "all_outputs") {
             each_mode_external.insert(verif::ExternalBinaryMode::AllOutputs);
         } else {
             log_fatal("Invalid ExternalBinaryMode");
