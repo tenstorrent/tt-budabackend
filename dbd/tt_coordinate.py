@@ -190,6 +190,18 @@ class OnChipCoordinate:
         else:
             raise Exception("Unknown output coordinate system: " + output_type)
 
+    def to_user_str(self):
+        """
+        Returns a string representation of the coordinate that is suitable for the user.
+        """
+        virt_str = self.to_str("nocTr")
+        try:
+            netlist_str = self.to("netlist")
+            return f"{virt_str} ({netlist_str})"
+        except CoordinateTranslationError:
+            pass
+        return virt_str
+
     # The default string representation is the netlist coordinate. That's what the user deals with.
     def __str__(self) -> str:
         return self.to_str("netlist")

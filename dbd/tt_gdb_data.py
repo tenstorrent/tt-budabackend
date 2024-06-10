@@ -16,6 +16,7 @@ class GdbProcess:
     elf_path: str
     risc_debug: RiscDebug
     virtual_core_id: int
+    core_type: str
 
     @cached_property
     def thread_id(self):

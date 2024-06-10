@@ -7,9 +7,10 @@ from tt_firmware import ELF, BUDA_FW_VARS
 
 # All-encompassing structure representing a Debuda context
 class Context:
-    def __init__(self, cluster_desc_path):
+    def __init__(self, cluster_desc_path, short_name):
         self.server_ifc = None # This will be set from outside
         self._cluster_desc_path = cluster_desc_path
+        self.short_name = short_name
 
     @property
     @abstractmethod
@@ -89,7 +90,7 @@ class Context:
 
 class BudaContext(Context):
     def __init__(self, netlist_filepath, run_dirpath, runtime_data_yaml, cluster_desc_path):
-        super().__init__(cluster_desc_path)
+        super().__init__(cluster_desc_path, "buda")
         self._netlist_filepath = netlist_filepath
         self._run_dirpath = run_dirpath
         self._runtime_data_yaml = runtime_data_yaml
@@ -170,7 +171,7 @@ class BudaContext(Context):
 
 class LimitedContext(Context):
     def __init__(self, cluster_desc_path):
-        super().__init__(cluster_desc_path)
+        super().__init__(cluster_desc_path, "limited")
         self.loaded_elfs = {} # (OnChipCoordinate, risc_id) => elf_path
 
     @cached_property
@@ -188,5 +189,8 @@ class LimitedContext(Context):
 
 # TODO: We should implement support for Metal
 class MetalContext(Context):
+    def __init__(self, cluster_desc_path):
+        super().__init__(cluster_desc_path, "metal")
+
     def __repr__(self):
         return f"MetalContext"

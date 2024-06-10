@@ -40,7 +40,7 @@ class GdbThreadListPaged:
 # Gdb remote protocol documentation: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Remote-Protocol.html
 class GdbServer(threading.Thread):
     def __init__(self, context: Context, server: ServerSocket):
-        super().__init__()
+        super().__init__(daemon=True) # Spawn as deamon, so we don't block exit
         self.context = context # debuda context
         self.server = server # server socket used for listening to incoming connections
         self.is_connected = False # flag that indicates if gdb client is connected
@@ -76,10 +76,11 @@ class GdbServer(threading.Thread):
                     # TODO: In ideal world, we would have "start time" for a core (time when core was taken out of reset) and use that as a key for reusing process id; for now, we can just check if elf path is the same
                     last_process = self._last_available_processes.get(risc_debug.location)
                     if last_process is None or last_process.elf_path != elf_path:
+                        core_type = "worker" # TODO: once we add support for ETH cores, we should update this
                         pid = self.next_pid
                         self.next_pid += 1
                         virtual_core = pid # TODO: Maybe we should actually have some mapping from RiscLoc to virtual core
-                        process = GdbProcess(pid, elf_path, risc_debug, virtual_core)
+                        process = GdbProcess(pid, elf_path, risc_debug, virtual_core, core_type)
                     else:
                         process = last_process
                     available_processes[process.process_id] = process
@@ -647,6 +648,10 @@ class GdbServer(threading.Thread):
                 stop_watching = False
                 client_socket = writer.socket
                 while not stop_watching:
+                    # Check if user wants to stop gdb
+                    if self.stop_event.is_set():
+                        stop_watching = True
+
                     # Check if client sent break to stop all processes
                     if client_socket.input_ready():
                         peek = client_socket.peek(1)
@@ -1031,16 +1036,14 @@ class GdbServer(threading.Thread):
         processes = []
         for pid, process in self.available_processes.items():
             processes.append({
-                # "Official" fields supported by gdb
                 'pid': pid,
-                'user': 'fake', # TODO: This can be runner that started firmware on this core: buda, metal, ...
-                'command': process.elf_path,
+                'user': self.context.short_name,
                 'cores': process.virtual_core_id,
-                # our custom fields that carry information about RISC-V core we can debug with this virtual process
                 'device': process.risc_debug.location.loc._device._id,
-                'core': process.risc_debug.location.loc.to_str("nocVirt"),
-                'risc': get_risc_name(process.risc_debug.location.risc_id),
-                # TODO: If we can debug ETH cores, do we need to print core type here (worker, ETH, ...)?
+                'core_type': process.core_type,
+                'core_location': process.risc_debug.location.loc.to_user_str(),
+                'risc': get_risc_name(process.risc_debug.location.risc_id), # TODO: Once we add support for ETH cores, we should update this -> method should be part of device class and it also needs coordinate as well
+                'command': process.elf_path,
             })
 
         return GdbServer.serialize_to_xml("osdata", "processes", processes)

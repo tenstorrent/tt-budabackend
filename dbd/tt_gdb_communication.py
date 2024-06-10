@@ -22,8 +22,8 @@ class ClientSocket:
                 pass
             self.socket = None
 
-    def input_ready(self):
-        readable, _, _ = select.select([self.socket], [], [], 0)
+    def input_ready(self, timeout: float = 0):
+        readable, _, _ = select.select([self.socket], [], [], timeout)
         if readable:
             return True
         return False
