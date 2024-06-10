@@ -116,7 +116,7 @@ class input_constraints;
 
     constraint rand_transpose {
         transpose_enabled == 0 -> transpose_en == 0;
-        transpose_en dist {0:=1, 1:=99};
+        transpose_en dist {0:=90, 1:=10};
         (consumer.tensor.grid_size_x >= `GRID_SIZE_Y) || (consumer.tensor.grid_size_y >= `GRID_SIZE_X) -> (transpose_en == 0);
     }
 

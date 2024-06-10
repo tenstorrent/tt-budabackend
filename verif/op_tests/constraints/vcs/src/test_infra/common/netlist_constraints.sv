@@ -40,9 +40,19 @@ class netlist_constraints;
             q[in_q.size() + i] = out_q[i];
         end
 
-        if (this.max_inputs < in_q.size())
+    if (this.max_inputs < in_q.size())
             $fatal(0, "max_inputs cannot be greater than number of inputs");
     endfunction
+
+     constraint rand_dram_addr {
+        foreach (q[i]) {
+            if (i < q.size() - 1) {
+                q[i].q_dram_addr + q[i].q_size *`get_core_count(q[i].tensor) < (q[i+1].q_dram_addr);
+            } else {
+                q[i].q_dram_addr + q[i].q_size *`get_core_count(q[i].tensor) < (`DRAM_BUFFER_END_ADDR);
+            }
+        }
+    }
 
     constraint rand_host_addr {
         foreach (q[i]) {
@@ -115,7 +125,7 @@ class netlist_constraints;
         $fwrite(out_filehandle, "  loop_count: %0d\n", num_loops);
         $fwrite(out_filehandle, "  input_count: %0d\n", num_inputs);
         $fwrite(out_filehandle, "  target_device: %0d\n", target_device);
-        $fwrite(out_filehandle, "  queue_wrap_size: %0d\n", 2 * num_entries * num_loops);
+        $fwrite(out_filehandle, "  queue_wrap_size: %0d\n", num_entries * num_loops);
 
         // inputs
         for (int i = 0; i < max_inputs; i++) begin

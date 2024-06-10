@@ -244,7 +244,7 @@ virtual class operation_constraints extends node_constraints;
         if (accumulate_en == 0) {
             _z == 1;
         } else {
-            _z dist {[1:1]:=10, [2:32]:=90};
+            _z > 1;
         }
     }
 

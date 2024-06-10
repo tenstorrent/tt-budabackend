@@ -141,4 +141,46 @@ class blackhole_emulator_architecture extends architecture;
     }
 endclass;
 
+class blackhole_architecture extends architecture;
+    constraint rand_tiny_tile_enabled {
+        tiny_tile_enabled == 1;
+    }
+
+    constraint rand_sfpu_execution_en {
+        sfpu_execution_en == 1;
+    }
+
+    constraint rand_same_exponent_out_intermed {
+        same_exponent_out_intermed == 1;
+    }
+
+    constraint rand_transpose_input_0_binary {
+        transpose_input_0_binary == 1;
+    }
+
+    constraint rand_l1_acc_enable {
+        l1_acc_enable == 1;
+    }
+
+    constraint rand_srnd_enable {
+        srnd_enable dist {0:=1, 1:=3};
+    }
+
+    constraint math_fidelity_constraint {
+        math_fidelity inside {LoFi, HiFi2, HiFi3, HiFi4};
+    }
+
+    constraint rand_gradient_binary_multiply {
+        gradient_binary_multiply_constraint == 1;
+    }
+
+    constraint rand_force_emulator_grid_size {
+        force_emulator_grid_size == 0;
+    }
+
+    constraint rand_force_emulator_input_count {
+        force_emulator_input_count == 0;
+    }
+endclass;
+
 `endif

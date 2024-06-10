@@ -5,6 +5,7 @@ virtual class queue_constraints extends node_constraints;
 
     string input_name; // HOST or operation name
 
+    rand bit[39:0] q_dram_addr;
     rand bit[39:0] q_host_addr;
     rand bit[39:0] q_tensor_size_per_core;
     rand bit[39:0] q_size;
@@ -34,6 +35,11 @@ virtual class queue_constraints extends node_constraints;
         q_host_addr inside {[`HOST_BUFFER_START_ADDR:`HOST_BUFFER_END_ADDR]};
     }
 
+    constraint rand_q_dram_addr {
+        q_dram_addr[5:0] == 6'b000000; // align to 64B
+        q_dram_addr inside {[`DRAM_BUFFER_START_ADDR:`DRAM_BUFFER_END_ADDR]};
+    }
+
     constraint rand_target_device {
         target_device == 0;
     }
@@ -42,9 +48,9 @@ virtual class queue_constraints extends node_constraints;
         $fwrite(out_filehandle, "input: %0s, ", input_name);
         $fwrite(out_filehandle, "entries: %0d, ", num_entries);
         $fwrite(out_filehandle, "target_device: %0d, ", target_device);
-        $fwrite(out_filehandle, "loc: host, ");
-        $fwrite(out_filehandle, "host: ");
-        `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[%0d, 0x%0x]", 0, q_host_addr + i * q_size));
+        $fwrite(out_filehandle, "loc: dram, ");
+        $fwrite(out_filehandle, "dram: ");
+        `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[%0d, 0x%0x]", 0, q_dram_addr + i * q_size));
     endfunction
 
     virtual function write_queue_settings_to_file(int out_filehandle);

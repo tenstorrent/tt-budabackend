@@ -52,6 +52,8 @@ class main_program;
             arch = wormhole_b0_architecture::new();
         end else if (`DEVICE == "BLACKHOLE_EMULATOR") begin
             arch = blackhole_emulator_architecture::new();
+        end else if (`DEVICE == "BLACKHOLE") begin
+            arch = blackhole_architecture::new();
         end
     endfunction
 
