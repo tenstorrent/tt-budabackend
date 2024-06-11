@@ -263,7 +263,8 @@ class BlackholeArchitecture(DeviceArchitecture):
             tile_header = 16,
             tile_r = 32,
             tile_c = 32,
-            grid_size_x = 8,
+            grid_size_x = 14,
+            #ToDo: Adjust harversting to be per column not per row on BH
             grid_size_y = 10 - harvested_rows,
             l1_mem_size = 1464 * 1024,
             fw_l1_mem_size = 204 * 1024,
