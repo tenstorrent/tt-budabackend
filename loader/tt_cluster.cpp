@@ -599,6 +599,11 @@ void tt_cluster::broadcast_write_to_all_dram_in_cluster(const vector<uint32_t>& 
         device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude_for_grayskull_dram_broadcast, 
                                             cols_to_exclude_for_grayskull_dram_broadcast, tlb_to_use);
     }
+    if (cluster_arch == tt::ARCH::BLACKHOLE) {
+        std::set<uint32_t> rows_to_exclude = {};
+        device -> broadcast_write_to_cluster(vec.data(), vec.size() * 4, addr, chips_to_exclude, rows_to_exclude, 
+                                            cols_to_exclude_for_blackhole_dram_broadcast, tlb_to_use);
+    }
     else {
         // DRAM Group 1 on WH (column 5)
         std::set<uint32_t> rows_to_exclude = {};
