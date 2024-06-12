@@ -123,8 +123,15 @@ std::string create_help_string()
     return help_string;
 }
 
+std::string flatten_input_args(const std::vector<std::string> &input_args) {
+    return std::accumulate(input_args.begin(), input_args.end(), std::string(""), [](const std::string &acc, const std::string &arg) {
+        return acc + " " + arg;
+    });
+}
+
 struct test_args
 {
+    std::string flattened_input_args;
     std::string netlist_path;
     std::string output_dir;
     std::string bin_path;
@@ -161,6 +168,7 @@ test_args parse_test_args(std::vector<std::string> input_args)
 
     try
     {
+        args.flattened_input_args = flatten_input_args(input_args);
         bool help = false;
         std::tie(help, input_args) = verif_args::has_command_option_and_remaining_args(input_args, c_help_arg_name);
         if (help)
@@ -312,6 +320,7 @@ std::shared_ptr<tt_backend> create_target_backend(const test_args& args, tt::ARC
         .mode = get_device_mode(args.backend_mode),
         .optimization_level = args.opt_level,
         .output_dir = args.output_dir,
+        .perf_desc_args = args.flattened_input_args,
         .l1_profiler_en = !args.disable_l1_profiler
     };
 
@@ -319,7 +328,6 @@ std::shared_ptr<tt_backend> create_target_backend(const test_args& args, tt::ARC
 
     // Performance counter setup
     std::shared_ptr<tt_runtime> target_runtime = std::dynamic_pointer_cast<tt_runtime>(target_backend);
-    target_runtime->config.perf_desc = args.perf_desc;
 
     if (args.vcd_dump_cores != "")
     {
