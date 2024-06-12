@@ -84,7 +84,33 @@ inline __attribute__((always_inline)) bool stream_phase_id_is_active(uint32_t st
 }
 
 inline __attribute__((always_inline)) uint32_t stream_phase_advance_wait(uint32_t stream_id) {
+
+  // phase_state_reg is state machine behind phase control. PHASE_STATE_WIDTH = 4.
+  // It has following states
+  // PHASE_START = 4'h0;
+  // PHASE_AUTO_CONFIG = 4'h1;
+  // PHASE_AUTO_CONFIG_SENT = 4'h2;
+  // PHASE_ADVANCE_WAIT = 4'h3;
+  // PHASE_PREV_DATA_FLUSH_WAIT = 4'h4;
+  // PHASE_FWD_DATA = 4'h5;
+  // STREAM_WAIT_STATUS_REG_INDEX has following layout
+  // +----------------------------------------------------------------------------------------------+
+  // |     |                 |                    |                            |                    |
+  // |  0  | phase_state_reg | phase_state_reg == | phase_state_reg ==         | phase_state_reg == |
+  // |     |                 | PHASE_FWD_DATA     | PHASE_PREV_DATA_FLUSH_WAIT | PHASE_ADVANCE_WAIT |
+  // |     |                 |                    |                            |                    |
+  // +----------------------------------------------------------------------------------------------+
+  // <--1--><-------4--------><--------1---------><-------------1--------------><---------1--------->
   uint32_t advance_wait = NOC_STREAM_READ_REG_FIELD(stream_id, STREAM_WAIT_STATUS_REG_INDEX, WAIT_SW_PHASE_ADVANCE_SIGNAL);
+
+  // num_tiles_pending represents data_forwarded_not_cleared_reqs_num
+  // debug9 status register is assigned as follows:
+  // +------------------------------------------------------------------+
+  // |      |                             |                             |
+  // |  0s  | data_forwarded_not_cleared  | words_cleared_for           |
+  // |      |       _reqs_num             | _remote_ack_reg             |
+  // +------------------------------------------------------------------+
+  //         <-- OUTSTANDING_REQ_CNT(4) --> <-- MEM_WORD_ADDR_WIDTH(17)-->
   uint32_t num_tiles_pending = NOC_STREAM_READ_REG(stream_id, STREAM_DEBUG_STATUS_REG_INDEX+9) >> MEM_WORD_ADDR_WIDTH;
   return advance_wait && (num_tiles_pending == 0);
 }
@@ -149,17 +175,14 @@ inline __attribute__((always_inline)) uint32_t stream_phase_tiles_received(uint3
   return NOC_STREAM_READ_REG(stream_id, STREAM_MSG_INFO_WR_PTR_REG_INDEX) - msg_info_buf_start_addr;
 }
 
-
 inline __attribute__((always_inline)) uint32_t stream_rec_endpoint_get_phase_tiles_count(uint32_t stream_id) {
   return NOC_STREAM_READ_REG(stream_id, STREAM_REMOTE_DEST_REG_INDEX) & 0xffff;  // used as scratch reg for receiver endpoint streams
 }
-
 
 inline __attribute__((always_inline)) void stream_rec_endpoint_set_phase_tiles_count(uint32_t stream_id, uint32_t val) {
   uint32_t rmw = NOC_STREAM_READ_REG(stream_id, STREAM_REMOTE_DEST_REG_INDEX) & ~0xffff;
   NOC_STREAM_WRITE_REG(stream_id, STREAM_REMOTE_DEST_REG_INDEX, (rmw | val));  // used as scratch reg for receiver endpoint streams
 }
-
 
 inline __attribute__((always_inline)) uint32_t stream_src_endpoint_get_phase_tiles_count(uint32_t stream_id) {
   return NOC_STREAM_READ_REG(stream_id, STREAM_REMOTE_SRC_PHASE_REG_INDEX) & 0xffff;  // used as scratch reg for source endpoint streams
