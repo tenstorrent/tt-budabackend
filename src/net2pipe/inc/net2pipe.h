@@ -368,5 +368,6 @@ protected:
 
   export_router_to_net2pipe(const router::Router &router) const;
 
+  tt_cxy_pair get_translated_harvesting_location(tt_cxy_pair const& original_loc) const;
   void emit_operand_and_pipe_info(const std::unordered_map<string, tt_op_info>& temporal_epoch_op_map, int epoch_id, const temporal_epoch_context& epoch_context, const n2p::DeterministicKeyMap& deterministic_id_map) const;
 };

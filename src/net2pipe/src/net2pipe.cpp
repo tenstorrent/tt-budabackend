@@ -6346,6 +6346,45 @@ void Net2Pipe::build_padding_table() {
     assert(addr_offset <= blob_size);
 }
 
+// Translate chip charvesting mask from cluster_desc to logical row numbers.
+// Board types: 0 = n150, 1 = n300, 2 = Galaxy, 3 = Default
+std::vector<int> get_harvested_noc_rows(uint32_t board_type, uint32_t harvesting_mask) {
+    std::vector<uint32_t> harv_to_noc_loc;
+    if (board_type == 3) {
+        harv_to_noc_loc = {5, 7, 4, 8, 3, 9, 2, 10, 1, 11 };
+    } else if (board_type == 0 || board_type == 1) {
+        harv_to_noc_loc = {11, 1, 10, 2, 9, 3, 8, 4, 7, 5 };
+    }
+    std::vector<int> harv_noc_rows;
+
+    for (size_t pos=0; pos<harv_to_noc_loc.size(); ++pos) {
+        bool is_row_harvested = harvesting_mask & 0x1;
+        if (is_row_harvested) {
+            harv_noc_rows.push_back(harv_to_noc_loc[pos]);
+        }
+        harvesting_mask = harvesting_mask >> 1;
+    }
+    return harv_noc_rows;
+}
+
+// Translate y-coordinate of tt_cxy_pair based on the harvested rows of the specific chip.
+tt_cxy_pair Net2Pipe::get_translated_harvesting_location(tt_cxy_pair const& original_loc) const {
+    chip_id_t chip_id = original_loc.chip;
+    if (this->cluster_description->get_harvesting_info().find(chip_id) != this->cluster_description->get_harvesting_info().end()) {
+        std::vector<int> harvested_rows = get_harvested_noc_rows(this->cluster_description->get_board_type(chip_id), this->cluster_description->get_harvesting_info()[chip_id]);
+        int translated_y = original_loc.y;
+        for (int row : harvested_rows) {
+            if (translated_y >= row) {
+                translated_y++;
+            }
+        }
+        return tt_cxy_pair(original_loc.chip, tt_xy_pair(original_loc.x, translated_y));
+    } else {
+        return original_loc;
+    }
+    
+}
+
 void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op_info>& temporal_epoch_op_map, int epoch_id, const temporal_epoch_context& epoch_context, const n2p::DeterministicKeyMap& deterministic_id_map) const {
     std::unordered_map<std::string, std::map<int, std::unordered_map<tt_cxy_pair, std::set<router::unique_id_t>>>> consumer_to_pipe_id_map;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<tt_cxy_pair, std::set<router::unique_id_t>>>> producer_to_pipe_id_map;
@@ -6358,14 +6397,16 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
                 for (const auto& buffer_ids: pipe.time_multiplexed_output_buffer_ids()) {
                     for (const auto& buffer_id: buffer_ids) {
                         const auto& buffer = epoch_context.buffer_map.at(buffer_id);
-                        consumer_map[buffer.core_location()].insert(pipe_unique_id);
+                        tt_cxy_pair translated_loc = get_translated_harvesting_location(buffer.core_location());
+                        consumer_map[translated_loc].insert(pipe_unique_id);
                     }
                 }
             }
             else {
                 for (const auto& buffer_id: pipe.output_buffer_ids()) {
                     auto& buffer = epoch_context.buffer_map.at(buffer_id);
-                    consumer_map[buffer.core_location()].insert(pipe_unique_id);
+                    tt_cxy_pair translated_loc = get_translated_harvesting_location(buffer.core_location());
+                    consumer_map[translated_loc].insert(pipe_unique_id);
                 }
             }
         }
@@ -6387,7 +6428,8 @@ void Net2Pipe::emit_operand_and_pipe_info(const std::unordered_map<string, tt_op
 
         for (const auto& buffer_id: pipe.input_buffer_ids) {
             auto& buffer = epoch_context.buffer_map.at(buffer_id);
-            producer_to_pipe_id_map[input_name][consumer_name][buffer.core_location()].insert(pipe_unique_id);
+            tt_cxy_pair translated_loc = get_translated_harvesting_location(buffer.core_location());
+            producer_to_pipe_id_map[input_name][consumer_name][translated_loc].insert(pipe_unique_id);
         }
     }
 #if 0
