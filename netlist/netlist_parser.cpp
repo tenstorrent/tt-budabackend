@@ -2145,9 +2145,11 @@ std::vector<string> netlist_parser::expand_multi_instance_queues() {
     // Expand each multi-device queue into multiple single-device queues
     for (const auto &[queue_name, devices] : queue_to_devices_map) {
         int q_size = 0;
+        // assuming first device in device vector is mmio
+        const int mmio_device = devices[0];
         for (auto &device : devices) {
             tt_queue_info queue_info = queue_map[queue_name];
-            queue_info.target_device = (queue_info.loc != QUEUE_LOCATION::HOST ? device : 0); // host queues must be on MMIO chip, assuming chip 0
+            queue_info.target_device = (queue_info.loc != QUEUE_LOCATION::HOST ? device : mmio_device); // host queues must be on MMIO chip
             if (queue_info.input != "HOST") {
                 queue_info.input = queue_info.input + "." + std::to_string(device);
             }
@@ -2155,7 +2157,7 @@ std::vector<string> netlist_parser::expand_multi_instance_queues() {
             queue_info.name = name;
 
             if (queue_info.loc == QUEUE_LOCATION::HOST) {
-                if (device == 0) {
+                if (device == mmio_device) {
                     // assuming chip 0 is mmio
                     int curr_size = get_tensor_size_in_bytes(queue_info, true) * queue_info.entries;
                     q_size += curr_size;
