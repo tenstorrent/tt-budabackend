@@ -273,7 +273,7 @@ class BlackholeArchitecture(DeviceArchitecture):
             max_tiles_in_dest = 16,
             noc_data_word_width_bytes = 64,
             max_ethernet_links = 14,
-            num_dram_channels = 6,
+            num_dram_channels = 8,
             dram_buffer_start_addr = 256 * 1024 * 1024,
             dram_buffer_end_addr = 1024 * 1024 * 1024 - 1,
             dram_queue_header_size = 64,
