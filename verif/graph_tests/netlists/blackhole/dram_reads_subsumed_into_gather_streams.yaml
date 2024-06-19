@@ -1,0 +1,65 @@
+# git checkout 288197191
+# pytest pybuda/test/benchmark/benchmark.py -m openpose_hand -c basic -opt 4 --loop_count 128 -mb 64 -df Fp16_b -mf HiFi2 --env PYBUDA_RIBBON2=1 -o perf.json
+
+devices:
+  arch: blackhole
+
+queues:
+
+  q0: {input: HOST, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x10d48040],
+      [0, 0x11a90080], [0, 0x127d80c0]]}
+  q1: {input: HOST, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x13520100], [0, 0x14268140],
+      [0, 0x14fb0180], [0, 0x15cf81c0]]}
+  q2: {input: HOST, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 1], ublock: [1, 4], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x10000000], [4, 0x10d48040],
+      [4, 0x11a90080], [4, 0x127d80c0]]}
+
+
+  output0: {input: reader_0, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 4], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x16a40200], [0, 0x17788240],
+      [0, 0x184d0280], [0, 0x192182c0]]}
+  output1: {input: reader_1, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 4], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x13520100], [4, 0x14268140],
+      [4, 0x14fb0180], [4, 0x15cf81c0]]}
+  output2: {input: reader_2, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 4], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x10000000], [5, 0x10d48040],
+      [5, 0x11a90080], [5, 0x127d80c0]]}
+  output3: {input: reader_3, type: queue, entries: 64, grid_size: [1, 4], t: 5, mblock: [5, 4], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x19f60300], [0, 0x1aca8340],
+      [0, 0x1b9f0380], [0, 0x1c7383c0]]}
+
+graphs:
+  graph:
+    target_device: 0
+    input_count: 64
+    _fused_op_10: {type: fused_op, grid_loc: [0, 0], grid_size: [1, 1], inputs: [q0, q1, q2], t: 5, mblock: [5, 4], ublock: [1, 4], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b],
+      out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2, attributes: {fused_op_id: 0}}
+    reader_0: {type: datacopy, inputs: [_fused_op_10], grid_loc: [1, 0], t: 5, grid_size: [1, 4], mblock: [5, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b,
+      intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2}
+    reader_1: {type: datacopy, inputs: [_fused_op_10], grid_loc: [2, 0], t: 5, grid_size: [1, 4], mblock: [5, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b,
+      intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2}
+    reader_2: {type: datacopy, inputs: [_fused_op_10], grid_loc: [3, 0], t: 5, grid_size: [1, 4], mblock: [5, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b,
+      intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2}
+    reader_3: {type: datacopy, inputs: [_fused_op_10], grid_loc: [4, 0], t: 5, grid_size: [1, 4], mblock: [5, 4], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b], out_df: Float16_b,
+      intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi2}
+
+
+programs:
+- run_fwd_0:
+  - var: {$c_loop_count: 1}
+  - staticvar: {$gptr_q10_shadow: 0, $gptr_q17_shadow: 0, $gptr_q14: 0, $lptr_q13: 0, $gptr_q18: 0, $gptr_q19: 0, $gptr_q20: 0, $lptr_q8: 0, $gptr_q21: 0, $lptr_q5: 0, $lptr_q21: 0, $gptr_q3: 0, $lptr_q18: 0,
+      $lptr_q20: 0, $gptr_q24: 0, $gptr_q6_shadow: 0, $lptr_q23: 0, $lptr_q24: 0, $gptr_q25: 0, $gptr_q1: 0, $lptr_q29: 0, $lptr_q25: 0, $gptr_q30: 0, $c_microbatch_size: 64, $gptr_q15: 0, $gptr_q15_shadow: 0,
+      $lptr_q22: 0, $lptr_q12: 0, $gptr_q27: 0, $gptr_q12: 0, $lptr_q30: 0, $gptr_q29: 0, $gptr_q28: 0, $lptr_q19: 0, $gptr_q22: 0, $lptr_q1: 0, $lptr_q26: 0, $lptr_q16: 0, $c_zero: 0, $gptr_q9: 0, $c_one: 1,
+      $lptr_q14: 0, $gptr_q13: 0, $lptr_q17: 0, $lptr_q7: 0, $gptr_q7: 0, $gptr_q17: 0, $gptr_q4: 0, $gptr_q6: 0, $gptr_q16: 0, $gptr_q23: 0, $lptr_q15: 0, $lptr_q27: 0, $lptr_q28: 0, $lptr_q11: 0, $lptr_q2: 0,
+      $gptr_q2: 0, $lptr_q3: 0, $lptr_q9: 0, $gptr_q26: 0, $lptr_q10: 0, $lptr_q4: 0, $gptr_q5: 0, $gptr_q10: 0, $lptr_q6: 0, $gptr_q22_shadow: 0, $gptr_q8: 0, $gptr_q11: 0}
+  - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+  - loop: $c_loop_count
+  - execute: {graph_name: graph, queue_settings: {q0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2}, q1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2}, q2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q2, rd_ptr_global: $gptr_q2}}}
+  - varinst: [$gptr_q2, incwrap, $c_microbatch_size, 128]
+  - varinst: [$lptr_q2, incwrap, $c_microbatch_size, 128]
+  - endloop
+
+
+fused_ops:
+  0:
+    inputs: 3
+    intermediates: 0
+    schedules:
+    - - conv2d_19.dc.add.6: {type: add, inputs: [input0, input1], mblock: [5, 4], ublock: [1, 4], output: dest}
+      - conv2d_19.dc.add.7: {type: add, inputs: [input2, dest], attributes: {relu_en: true, relu_mode: min, relu_threshold: 0.000000e+07}, mblock: [5, 4], ublock: [1, 4], output: output}
