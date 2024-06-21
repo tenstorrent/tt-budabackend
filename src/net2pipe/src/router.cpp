@@ -327,7 +327,13 @@ int compute_pipe_segment_gather_extra_input_buffering_size(
     }
 
     if (input_from_dram) {
-        extra_bytes = extra_bytes * 2 > (100 * 1024/*PIPE_REDUCE_MEM_USAGE_THRESHOLD*/) ? extra_bytes: extra_bytes * 2;
+        if(pipe.input_dram_io_buf_size_tiles == 0) {
+            extra_bytes = extra_bytes * 2 > (100 * 1024/*PIPE_REDUCE_MEM_USAGE_THRESHOLD*/) ? extra_bytes: extra_bytes * 2;
+        }
+        else {
+            extra_bytes = tile_size_in_bytes * pipe.input_dram_io_buf_size_tiles;
+            // fmt::print("PipeID: {}: EXTRA DRAM BYTES tiles {} * size {} = {}\n", pipe_id, pipe.input_dram_io_buf_size_tiles, tile_size_in_bytes, extra_bytes);
+        }
     }
 
     return extra_bytes;
@@ -1828,7 +1834,7 @@ bool Router::can_assign_connected_pipe_to_core(pipe_segment_id_t const& pipe_seg
     can_assign_to_core = can_assign_to_core && (has_any_output_to_dram ? core_attrs.has_available_output_to_dram_slots() : true);
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_input_from_dram ? core_attrs.has_available_input_from_dram_slot() : true);
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_gather ? core_attrs.has_extra_streams_available(compute_pipe_segment_gather_extra_stream_use(*this, pipe_segment_id, core_location)) : true);
-    can_assign_to_core = can_assign_to_core && (pipe_attrs.has_gather ? core_attrs.can_allocate_bytes(compute_pipe_segment_gather_extra_input_buffering_size(*this, pipe_segment_id)) : true);
+    can_assign_to_core = can_assign_to_core && (core_attrs.can_allocate_bytes(compute_pipe_segment_gather_extra_input_buffering_size(*this, pipe_segment_id)));
     can_assign_to_core = can_assign_to_core && (pipe_attrs.has_multicast ? core_attrs.has_available_multicast_stream_slots(1) : true);
     can_assign_to_core = can_assign_to_core && core_attrs.has_extra_streams_available(compute_pipe_segment_extra_stream_use(*this, pipe_segment_id, core_location));
 
@@ -2340,7 +2346,8 @@ void Router::disconnect_pipe(unique_id_t pipe_id) {
 
             auto const& snapshot_after = HwCoreResourceUsageSnapshot::create(core_resources, {ResourceUsageType::L1_MEMORY, ResourceUsageType::EXTRA_STREAMS});
             log_trace(tt::LogRouter,
-                "\tsegment: {}s on core (c={},y={},x={}). Resources regained: {}. Resources total on core: {}",
+                "\tpipe_id:{} segment: {}s on core (c={},y={},x={}). Resources regained: {}. Resources total on core: {}",
+                pipe_id,
                 s,
                 location.chip,
                 location.y,
