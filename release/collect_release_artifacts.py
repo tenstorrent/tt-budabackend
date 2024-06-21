@@ -126,9 +126,14 @@ bbe_files = {
 
 # Only copy eric if we are building Wormhole
 if "BACKEND_ARCH_NAME" in os.environ and os.environ["BACKEND_ARCH_NAME"] == "wormhole":
+    if "TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH" in os.environ:
+        erisc_binaries_path = os.environ["TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH"]
+    else:
+        erisc_binaries_path = "build/src/firmware/riscv/targets/erisc_app/out"
+
     bbe_files["firmware_erisc_hex"] = {
         "supported_arches": [ARCH_AMD64],
-        "path": "build/src/firmware/riscv/targets/erisc_app/out",
+        "path": erisc_binaries_path,
         "files": ["erisc_app.hex"],
     }
 
@@ -136,9 +141,16 @@ if (
     "BACKEND_ARCH_NAME" in os.environ
     and os.environ["BACKEND_ARCH_NAME"] == "wormhole_b0"
 ):
+<<<<<<< HEAD
+=======
+    if "TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH" in os.environ:
+        erisc_binaries_path = os.environ["TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH"]
+    else:
+        erisc_binaries_path = "build/src/firmware/riscv/targets/erisc_app/out"
+>>>>>>> d542744496 (Added precompiled erisc binary hack.)
     bbe_files["firmware_erisc_hex"] = {
         "supported_arches": [ARCH_AMD64],
-        "path": "build/src/firmware/riscv/targets/erisc_app/out",
+        "path": erisc_binaries_path,
         "files": [
             "erisc_app.hex",
             "erisc_app.iram.hex",

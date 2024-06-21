@@ -1,9 +1,18 @@
-ifeq ($(ARCH_NAME),$(filter $(ARCH_NAME),wormhole wormhole_b0 blackhole))
-ERISC_MAKE = BUDA_HOME=$(BUDA_HOME) $(MAKE) -C src/firmware/riscv/targets/erisc
-ERISC_MAKE_CLEAN = BUDA_HOME=$(BUDA_HOME) $(MAKE) -C src/firmware/riscv/targets/erisc clean
-else
+
+ERISC_USE_PRECOMPILED_BINARIES = ${TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH} 
+ifdef TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH
+# Environment variable is set, use the else branch
 ERISC_MAKE =
 ERISC_MAKE_CLEAN =
+else
+	# Precomiled headers are not set 
+	ifeq ($(ARCH_NAME),$(filter $(ARCH_NAME),wormhole wormhole_b0 blackhole))
+	ERISC_MAKE = BUDA_HOME=$(BUDA_HOME) $(MAKE) -C src/firmware/riscv/targets/erisc
+	ERISC_MAKE_CLEAN = BUDA_HOME=$(BUDA_HOME) $(MAKE) -C src/firmware/riscv/targets/erisc clean
+	else
+	ERISC_MAKE =
+	ERISC_MAKE_CLEAN =
+	endif
 endif
 
 CONFIG?=develop
