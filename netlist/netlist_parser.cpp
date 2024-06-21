@@ -12,6 +12,7 @@
 #include "netlist_utils.hpp"
 #include "size_lib.hpp"
 #include "tt_backend_api_types.hpp"
+#include "tt_backend_api.hpp"
 #include "utils/logger.hpp"
 #include "utils/scoped_timer.hpp"
 
@@ -1362,6 +1363,7 @@ void netlist_parser::parse_yaml(const YAML::Node& netlist) {
 
     try {
         expand_multi_instance_structures();
+        recalculate_expanded_queue_addresses();
     } catch (const std::exception &e) {
         log_fatal("{}", e.what());
     }
@@ -2144,7 +2146,6 @@ std::vector<string> netlist_parser::expand_multi_instance_queues() {
     std::vector<std::string> old_queue_names;
     // Expand each multi-device queue into multiple single-device queues
     for (const auto &[queue_name, devices] : queue_to_devices_map) {
-        int q_size = 0;
         // assuming first device in device vector is mmio
         const int mmio_device = devices[0];
         for (auto &device : devices) {
@@ -2155,25 +2156,46 @@ std::vector<string> netlist_parser::expand_multi_instance_queues() {
             }
             std::string name = queue_name + "." + std::to_string(device);
             queue_info.name = name;
-
-            if (queue_info.loc == QUEUE_LOCATION::HOST) {
-                if (device == mmio_device) {
-                    // assuming chip 0 is mmio
-                    int curr_size = get_tensor_size_in_bytes(queue_info, true) * queue_info.entries;
-                    q_size += curr_size;
-                } else {
-                    for (auto& ainfo: queue_info.alloc_info) {
-                        ainfo.address += q_size + tt::io::io_queue_header_size_bytes; // make sure the addresses don't overlap
-                        // TODO align
-                    }
-                }
-            }
+            // starting address of <queue>.1 will be adjusted in recalculate_expanded_queue_addresses()
 
             queue_map[name] = queue_info;
         }
         old_queue_names.push_back(queue_name);
     }
     return old_queue_names;
+}
+
+void netlist_parser::recalculate_expanded_queue_addresses() {
+    for (const auto &[old_queue_name, devices] : queue_to_devices_map) {
+        for (auto &device : devices) {
+            std::string q_name = old_queue_name + "." + std::to_string(device);
+            tt_queue_info& queue_info = queue_map[q_name];
+            if (queue_info.loc == QUEUE_LOCATION::HOST) {
+                if (device != devices[0]) { // non mmio
+                    bool include_header_padding = false;
+                    if (queue_info.input == "HOST") {
+                        include_header_padding = true;
+                    } else {
+                        std::string q_input = queue_info.input;
+                        std::string graph_name = op_graph_map.at(q_input);
+                        tt_graph_info graph_info = graph_map.at(graph_name);
+                        tt_op_info op_info = graph_info.op_map.at(q_input);
+                        include_header_padding = not op_info.untilize_output;
+                    }
+
+                    // calculation here needs to be consistent with what the frontend function get_queue_size() does
+                    std::uint32_t q_size = tt::backend::get_next_aligned_address(
+                            get_tensor_size_in_bytes(queue_info, include_header_padding) * queue_info.entries
+                            + tt::io::io_queue_header_size_bytes);
+                    log_trace(tt::LogNetlist, "Adding {} to {}, include_header_padding is {}.",
+                            q_size, q_name, include_header_padding);
+                    for (auto &ainfo: queue_info.alloc_info) {
+                        ainfo.address += q_size;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void netlist_parser::expand_multi_instance_structures() {
