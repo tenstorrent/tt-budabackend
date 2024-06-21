@@ -270,6 +270,7 @@ class pipe_t {
     // Vector of IDs or 0 to include padding for outputscatter pipes. Must be the same length as the output_list
     std::vector<router::unique_id_t> output_padding_buffer_list;
     int consumer_tile_granularity;
+    int input_dram_io_buf_size_tiles = 0;
 
     pipe_t(const std::vector<router::unique_id_t> &_input_buffer_ids, const pipe_output_list_t &_output_buffer_ids, const std::string &_consumer_name = "", int _input_index_of_consumer = -1, int _consumer_tile_granularity = 1) :
       locations({}),

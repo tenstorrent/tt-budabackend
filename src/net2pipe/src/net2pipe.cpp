@@ -6031,6 +6031,16 @@ void Net2Pipe::run_router(int temporal_epoch, temporal_epoch_context& epoch_cont
 
     // Need this info for pipes generated inside Router:
     validate::unique_id_range_covers_all_buffers(epoch_context.buffer_map, epoch_context.queue_unique_id_info_map);
+    
+    for(auto& [pipe_unique_id, pipe] : epoch_context.pipes) {
+        if (pipe.has_consumer()) {
+            std::string dest_name = pipe.consumer_name();
+            if (name_is_op(dest_name, epoch_context)) {
+                const tt_op_info &op_info = epoch_context.op_info_map.at(dest_name);
+                pipe.input_dram_io_buf_size_tiles = op_info.input_dram_io_buf_size_tiles.at(pipe.consumer_input_index());
+            }
+        }
+    }
 
     auto router = router::Router(
         this->soc_descriptors,

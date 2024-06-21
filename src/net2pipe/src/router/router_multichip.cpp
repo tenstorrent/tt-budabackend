@@ -593,7 +593,7 @@ void reorder_ethernet_links_by_priority(
  */
 void decompose_chip_to_chip_gather_into_unicast_chip_to_chips(router::Router &router, const ClusterGraph &cluster_graph, unique_id_t pipe_id, std::vector<unique_id_t> &buffers_to_delete) {
     constexpr int CONSUMER_CHIP_GATHER_ENABLE_INPUT_COUNT = 16;
-    const auto &gather_pipe = router.get_pipes().at(pipe_id);
+    const auto gather_pipe = router.get_pipes().at(pipe_id);
     const int consumer_tile_granularity = gather_pipe.consumer_tile_granularity;
     const auto old_gather_location = gather_pipe.core_location();
 
@@ -635,6 +635,8 @@ void decompose_chip_to_chip_gather_into_unicast_chip_to_chips(router::Router &ro
 
         // create the gather side pipe
         auto gather_pipe_id = router.create_gather_pipe_connection(gather_input_buf_ids, src_chip_gather_buffer_id, consumer_tile_granularity);
+        router.get_pipes_mutable().at(gather_pipe_id).input_dram_io_buf_size_tiles = gather_pipe.input_dram_io_buf_size_tiles;
+
         // Choose core locations
         const std::optional<tt_cxy_pair> &gather_pipe_location =
             !reuse_pipe_location_for_producer_side_gather
@@ -1297,6 +1299,8 @@ void insert_relay_buffer_on_input_pipe_to_ethernet_route(
     std::vector<unique_id_t> &removable_buffers
 ) {
     const pipe_t &pipe = router.get_pipe(pipe_id);
+    print_pipe_verbose(router, pipe_id,  tt::Logger::Level::Debug);
+    auto dram_io_tiles = pipe.input_dram_io_buf_size_tiles;
     TT_ASSERT(pipe.input_buffer_ids.size() == 1 && !pipe.has_multiple_timesteps() && pipe.output_buffer_ids().size() == 1);
     const int consumer_tile_granularity = pipe.consumer_tile_granularity;
 
@@ -1312,12 +1316,17 @@ void insert_relay_buffer_on_input_pipe_to_ethernet_route(
     router.disconnect_pipe(pipe_id);
     router.remove_pipe(pipe_id);
 
+    // fmt::print("DEBUG3: buffer id: {} , cyx={},{},{}\n", input_buffer_id, input_buffer.core_location().chip, input_buffer.core_location().y, input_buffer.core_location().x);
     chip_id_t chip_id = input_buffer.chip_location();
     auto relay_buffer_id = router.add_new_buffer(output_buffer.info(), chip_id);
     removable_buffers.push_back(relay_buffer_id);
 
     // create the multicast side pipe
     auto input_buffer_to_relay_pipe_id = router.create_unicast_pipe_connection(input_buffer_id, relay_buffer_id, consumer_tile_granularity);
+    pipe_t& new_pipe = router.get_pipes_mutable().at(input_buffer_to_relay_pipe_id);
+    new_pipe.input_dram_io_buf_size_tiles = dram_io_tiles;
+    // fmt::print("DEBUG2: Copied from {} to id {}: input_dram_io_buf_size_tiles={}\n", pipe_id, input_buffer_to_relay_pipe_id, dram_io_tiles);
+
     auto relay_to_ethernet_pipe_id = router.create_unicast_pipe_connection_at_core(relay_buffer_id, output_buffer_id, output_buffer.core_location(), consumer_tile_granularity);
 
     const auto &pipe_location = choose_valid_pipe_and_buffer_location(router, pipe_segment_id_t{.pipe_id=input_buffer_to_relay_pipe_id, .segment=0}, relay_buffer_id, chip_id, {}, {}, true);
@@ -1403,6 +1412,12 @@ void link_original_sender_and_receiver_buffers_to_route(
         if (router.get_buffer_input_pipes().find(original_src_buf_id) != router.get_buffer_input_pipes().end()) {
             source_buffer_output_pipe_id = router.get_buffer_input_pipes().at(original_src_buf_id);
         }
+    }
+    
+    if(source_buffer_output_pipe_id.has_value()) {
+        pipe_t& new_pipe = router.get_pipes_mutable().at(source_buffer_output_pipe_id.value());
+        new_pipe.input_dram_io_buf_size_tiles = original_pipe_copy.input_dram_io_buf_size_tiles;
+        // fmt::print("DEBUG1: Copied to id {}: input_dram_io_buf_size_tiles={}\n", source_buffer_output_pipe_id.value(), original_pipe_copy.input_dram_io_buf_size_tiles);
     }
 
     bool fw_eth_streams_enabled = env_var("TT_ENABLE_FW_ETH_STREAMS", false) || env_var("TT_FORCE_USE_FW_ETH_STREAMS", false);
@@ -1584,6 +1599,7 @@ void implement_chip_to_chip_route_with_selected_ethernet_channels(
     TT_ASSERT(route.size() == ethernet_channels.size());
     // We take a copy because we need some of the original attributes in later helpers
     pipe_t original_pipe_copy = router.get_pipe(original_chip_to_chip_pipe_id);
+    print_pipe_verbose(router, original_chip_to_chip_pipe_id, tt::Logger::Level::Debug);
     const int consumer_tile_granularity = original_pipe_copy.consumer_tile_granularity;
 
     router.disconnect_pipe(original_chip_to_chip_pipe_id);
