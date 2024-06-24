@@ -220,7 +220,9 @@ void generate_erisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_
     string log_file = fs::absolute(out_dir_path).string() + "/erisc_build.log";
     bool default_epoch_q_num_slots = !parse_env("TT_BACKEND_EPOCH_QUEUE_NUM_SLOTS", false);
     int firmware_num_loop_iterations = parse_env("NUM_EXEC_LOOP_ITERATIONS", 0);
-    const char* precompiled_erisc_binaries = std::getenv("TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH");
+    string tt_backend_erisc_precompiled_binaries_path = std::string(std::getenv("TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH"));
+    string precompiled_erisc_binaries = root + tt_backend_erisc_precompiled_binaries_path;
+    bool precompiled_erisc_binaries_flag = tt_backend_erisc_precompiled_binaries_path.size() > 0;
     bool is_perf_dump_en = perf_desc.device_perf_mode != perf::PerfDumpMode::Disable;
     uint32_t perf_dump_level = perf_desc.perf_dump_level;
     bool is_overlay_decoupled = is_perf_dump_en && perf_desc.overlay_decouplings.size() > 0;
@@ -230,7 +232,7 @@ void generate_erisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_
     if (use_default_erisc_fw) {
         
         fs::path erisc_build_path;
-        if(precompiled_erisc_binaries)
+        if(precompiled_erisc_binaries_flag)
         {
             log_debug(tt::LogCompileTrisc, "Using precompiled ERISC binaries");
             erisc_build_path = precompiled_erisc_binaries;
@@ -238,7 +240,7 @@ void generate_erisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_
         else
         {
             log_debug(tt::LogCompileTrisc, "Using Default ERISC Bin");
-            erisc_build_path = root + "build/src/firmware/riscv/targets/erisc_app/out/";
+            erisc_build_path = root + "build/src/firmware/riscv/targets/erisc_app/out";
         }
         fs::path erisc_fw_path(erisc_build_path.string() + "/erisc_app.hex");
         log_assert(fs::exists(erisc_fw_path), "Error {} doesn't exist", erisc_fw_path);
