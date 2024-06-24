@@ -220,7 +220,7 @@ void generate_erisc_fw(const perf::PerfDesc& perf_desc, const std::string& arch_
     string log_file = fs::absolute(out_dir_path).string() + "/erisc_build.log";
     bool default_epoch_q_num_slots = !parse_env("TT_BACKEND_EPOCH_QUEUE_NUM_SLOTS", false);
     int firmware_num_loop_iterations = parse_env("NUM_EXEC_LOOP_ITERATIONS", 0);
-    string tt_backend_erisc_precompiled_binaries_path = std::string(std::getenv("TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH"));
+    string tt_backend_erisc_precompiled_binaries_path = "erisc_hex"; //std::string(std::getenv("TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH"));
     string precompiled_erisc_binaries = root + tt_backend_erisc_precompiled_binaries_path;
     bool precompiled_erisc_binaries_flag = tt_backend_erisc_precompiled_binaries_path.size() > 0;
     bool is_perf_dump_en = perf_desc.device_perf_mode != perf::PerfDumpMode::Disable;
