@@ -299,7 +299,11 @@ const DataFormat get_single_pack_src_format(
         } else if(is_exp_b_format(output_format) || (output_format == DataFormat::Float32)) {
             pack_src_format = output_format;
         } else if(output_format == DataFormat::Float16){
-            pack_src_format = DataFormat::Float16_b;
+            if (arch == tt::ARCH::BLACKHOLE) {
+                pack_src_format = DataFormat::Float16;
+            } else {
+                pack_src_format = DataFormat::Float16_b;
+            }
         } else if(output_format == DataFormat::Int32){
             pack_src_format = DataFormat::Int32;
         } else if(output_format == DataFormat::UInt16){
@@ -336,7 +340,7 @@ const DataFormat get_single_pack_src_format(
         }
     } else {
         //Inputs and outputs are different exponent widths, gs/wha0 only support this mode for fp16
-        if(arch != tt::ARCH::WORMHOLE_B0) {
+        if(arch == tt::ARCH::GRAYSKULL or arch == tt::ARCH::WORMHOLE) {
             log_assert((output_format == DataFormat::Float16_b) || (output_format == DataFormat::Float16), 
                 "Exponent width conversion is only supported for float16 formats for grayskull/wormhole_a0");
         }
@@ -351,8 +355,14 @@ const DataFormat get_single_pack_src_format(
 
         if (pack_src_format_tmp != DataFormat::Float32) {
             pack_src_format = CONVERT_EXP_WIDTH.at(pack_src_format_tmp);
+            if (arch == tt::ARCH::BLACKHOLE) {
+                if (pack_src_format_tmp == DataFormat::Float16 and pack_src_format == DataFormat::Float16_b) {
+                    pack_src_format = DataFormat::Float16;
+                }
+            }
             if (input_format != DataFormat::Float32) {
-                log_assert(input_exp_width == get_exp_precison(pack_src_format), 
+                bool allow_input_output_exp_precision_mismatch = (arch == tt::ARCH::BLACKHOLE) and (pack_src_format == DataFormat::Float16);
+                log_assert((input_exp_width == get_exp_precison(pack_src_format)) or allow_input_output_exp_precision_mismatch, 
                     "Input format exponent width = {}, must match pack src format exponent width = {}", input_format, pack_src_format);
             }
         } else {
