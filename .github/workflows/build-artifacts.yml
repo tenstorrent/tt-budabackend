@@ -1,0 +1,33 @@
+name: Build artifacts
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  PYTHON_VERSION: "python3.10"
+
+jobs:
+  build-artifacts:
+    strategy:
+      matrix:
+        arch: ["grayskull", "wormhole_b0"]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-deps
+        with:
+          os: ubuntu-22.04
+      - name: Update submodule
+        run: git submodule update --init --recursive
+      - name: Build for ${{ matrix.arch }}
+        run: |
+          ARCH_NAME=${{ matrix.arch }}
+          TT_BACKEND_ERISC_PRECOMPILED_BINARIES_PATH=erisc_hex
+          make -j$(nproc) build_hw
