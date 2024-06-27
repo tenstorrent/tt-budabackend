@@ -290,7 +290,12 @@ uint64_t calculate_host_trace_info(
         .chip_id = uint8_t(unharvested_worker_core_location.chip & 0xff),
         .thread_id = 0,
         .epoch_id = 0};
-    uint32_t header_word = *(reinterpret_cast<uint32_t*>(&header));
+    
+    // This breaks compalation with G++ 11.4.0
+    // uint32_t header_word = *(reinterpret_cast<uint32_t*>(&header));
+    perf::PerfDumpHeader* h1 = &header;
+    uint32_t* h2 = reinterpret_cast<uint32_t*>(h1);
+    uint32_t header_word = *h2;
 
     uint64_t dram_buf_info =
         (is_first_core_in_bank & 0xff) | ((num_host_queue_slots & 0xff) << 8) | (uint64_t(header_word) << 32);
