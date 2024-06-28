@@ -290,7 +290,7 @@ uint64_t calculate_host_trace_info(
         .chip_id = uint8_t(unharvested_worker_core_location.chip & 0xff),
         .thread_id = 0,
         .epoch_id = 0};
-    
+
     // This breaks compalation with G++ 11.4.0
     // uint32_t header_word = *(reinterpret_cast<uint32_t*>(&header));
     perf::PerfDumpHeader* h1 = &header;
