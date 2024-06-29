@@ -21,8 +21,8 @@
 #include "llk_unpack_common.h"
 
 /*************************************************************************
-* LLK UNPACK A  
-*************************************************************************/ 
+* LLK UNPACK A
+*************************************************************************/
 
 template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void llk_unpack_A_hw_configure(const llk_unpack_A_params_t *unpack_A_params, const int within_face_16x16_transpose = 0) {
@@ -31,10 +31,10 @@ inline void llk_unpack_A_hw_configure(const llk_unpack_A_params_t *unpack_A_para
     const uint32_t unpA_face_r_dim = get_operand_face_r_dim(unpA_operand_id);
 
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
-        unpack_dst_format[unpA_operand_id], 
-        unpA_face_r_dim, 
-        within_face_16x16_transpose, 
+        unpack_src_format[unpA_operand_id],
+        unpack_dst_format[unpA_operand_id],
+        unpA_face_r_dim,
+        within_face_16x16_transpose,
         unpA_num_faces);
 }
 
@@ -49,12 +49,12 @@ inline void llk_unpack_A_hw_configure_disaggregated(const std::uint32_t unpA_ope
 
 template <BroadcastType BType = BroadcastType::NONE, bool acc_to_dest = false, EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE, bool unpack_to_dest = false>
 inline void llk_unpack_A_mop_config(const bool transpose_of_faces, const std::uint32_t operand_id, const std::uint32_t unpack_src_format = 0, std::uint32_t unpack_dst_format = 0) {
-    const std::uint32_t num_faces = get_operand_num_faces(operand_id); 
+    const std::uint32_t num_faces = get_operand_num_faces(operand_id);
 
     _llk_unpack_A_mop_config_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(
-        transpose_of_faces>0, 
-        num_faces, 
-        unpack_src_format, 
+        transpose_of_faces>0,
+        num_faces,
+        unpack_src_format,
         unpack_dst_format
     );
 }
@@ -70,10 +70,10 @@ inline void llk_unpack_A_init(const std::uint32_t transpose_of_faces=0, const st
     const std::uint32_t num_faces  = get_operand_num_faces(operand_id);
 
     _llk_unpack_A_init_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(
-        transpose_of_faces, 
-        within_face_16x16_transpose, 
-        face_r_dim, num_faces, 
-        unpack_src_format[operand_id], 
+        transpose_of_faces,
+        within_face_16x16_transpose,
+        face_r_dim, num_faces,
+        unpack_src_format[operand_id],
         unpack_dst_format[operand_id]
     );
 }
@@ -88,37 +88,37 @@ inline void llk_unpack_A(const std::uint32_t operand, const std::uint32_t tile_i
     std::uint32_t address = base_address + offset_address;
 
     _llk_unpack_A_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(
-        address, 
-        transpose_of_faces>0, 
-        unpack_src_format[operand_id], 
+        address,
+        transpose_of_faces>0,
+        unpack_src_format[operand_id],
         unpack_dst_format[operand_id]
     );
 }
 
 /*************************************************************************
-* LLK UNPACK AB  
-*************************************************************************/ 
+* LLK UNPACK AB
+*************************************************************************/
 
 template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void llk_unpack_AB_hw_configure(const llk_unpack_AB_params_t *unpack_AB_params, const int within_face_16x16_transpose = 0) {
-    // In0 -> unpA 
-    // In1 -> unpB 
+    // In0 -> unpA
+    // In1 -> unpB
     const uint32_t unpA_operand_id = get_operand_id(unpack_AB_params->unpA_operand);
     const uint32_t unpB_operand_id = get_operand_id(unpack_AB_params->unpB_operand);
 
     // unpA -> srcA
     // unpB -> srcB
     const uint32_t num_faces = get_operand_num_faces(unpA_operand_id);  // num faces in unpA and unpB are the same
- 
+
     const uint32_t face_r_dim = get_operand_face_r_dim(unpA_operand_id); // face r dim in unpA and unpB are the same
 
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
-        unpack_src_format[unpB_operand_id], 
-        unpack_dst_format[unpA_operand_id], 
-        unpack_dst_format[unpB_operand_id], 
-        face_r_dim, 
-        within_face_16x16_transpose, 
+        unpack_src_format[unpA_operand_id],
+        unpack_src_format[unpB_operand_id],
+        unpack_dst_format[unpA_operand_id],
+        unpack_dst_format[unpB_operand_id],
+        face_r_dim,
+        within_face_16x16_transpose,
         num_faces
     );
 }
@@ -128,7 +128,7 @@ inline void llk_unpack_AB_hw_configure_disaggregated(
     const std::uint32_t unpA_operand, const std::uint32_t unpB_operand, const int within_face_16x16_transpose = 0 ) {
 
     TT_LLK_DUMP("llk_unpack_AB_hw_configure_disaggregated<{}, {}>({}, {}, {})", is_fp32_dest_acc_en, (uint8_t)stoch_rnd_mode, unpA_operand, unpB_operand, within_face_16x16_transpose);
-    
+
     const llk_unpack_AB_params_t unpack_AB_params = {.unpA_operand = unpA_operand, .unpB_operand = unpB_operand};
 
     llk_unpack_AB_hw_configure<is_fp32_dest_acc_en, stoch_rnd_mode>(&unpack_AB_params, within_face_16x16_transpose);
@@ -136,12 +136,12 @@ inline void llk_unpack_AB_hw_configure_disaggregated(
 
 template <BroadcastType BType = BroadcastType::NONE>
 inline void llk_unpack_AB_mop_config(const bool transpose_of_faces=false, const std::uint32_t operand_id=0) {
-    const std::uint32_t num_faces = get_operand_num_faces(operand_id); 
+    const std::uint32_t num_faces = get_operand_num_faces(operand_id);
     const bool narrow_tile = get_operand_narrow_tile(operand_id); // if narrow tile read face 0 twice for row broadcast
                                                           // or read face 0 and 1 for col broadcast
     _llk_unpack_AB_mop_config_<BType>(
-        transpose_of_faces, 
-        num_faces, 
+        transpose_of_faces,
+        num_faces,
         narrow_tile
     );
 }
@@ -152,17 +152,17 @@ inline void llk_unpack_AB_init(const std::uint32_t operandA, const std::uint32_t
 
     const std::uint32_t operandA_id = get_operand_id(operandA);
     const std::uint32_t face_r_dim = get_operand_face_r_dim(operandA_id); // face r dim in unpA and unpB are the same
-    const std::uint32_t num_faces = get_operand_num_faces(operandA_id); 
+    const std::uint32_t num_faces = get_operand_num_faces(operandA_id);
     const bool narrow_tile = get_operand_narrow_tile(operandA_id); // if narrow tile read face 0 twice for row broadcast
 
     _llk_unpack_AB_init_<BType>(
-        face_r_dim, 
-        num_faces, 
-        narrow_tile, 
-        transpose, 
+        face_r_dim,
+        num_faces,
+        narrow_tile,
+        transpose,
         acc_to_dest
     );
-}    
+}
 
 template <BroadcastType BType = BroadcastType::NONE>
 inline void llk_unpack_AB(
@@ -179,22 +179,22 @@ inline void llk_unpack_AB(
     std::uint32_t address_b = base_address_b + offset_address_b;
 
     _llk_unpack_AB_<BType>(
-        address_a, 
-        address_b, 
+        address_a,
+        address_b,
         transpose_of_faces>0
     );
 }
 
 /*************************************************************************
-* LLK UNPACK AB MATMUL  
-*************************************************************************/ 
+* LLK UNPACK AB MATMUL
+*************************************************************************/
 
 template<bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void llk_unpack_AB_matmul_hw_configure(const llk_unpack_AB_matmul_params_t *unpack_AB_params) {
     const bool transpose_xy_srca = unpack_AB_params->transpose_xy_srca;
 
-    // In0 -> unpB 
-    // In1 -> unpA 
+    // In0 -> unpB
+    // In1 -> unpA
     const uint32_t unpA_operand_id = get_operand_id(unpack_AB_params->unpB_operand);
     const uint32_t unpB_operand_id = get_operand_id(unpack_AB_params->unpA_operand);
 
@@ -207,14 +207,14 @@ inline void llk_unpack_AB_matmul_hw_configure(const llk_unpack_AB_matmul_params_
     const uint32_t unpB_face_r_dim = get_operand_face_r_dim(unpB_operand_id);
 
     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
-        unpack_src_format[unpB_operand_id], 
-        unpack_dst_format[unpA_operand_id], 
-        unpack_dst_format[unpB_operand_id], 
-        unpA_face_r_dim, 
-        unpB_face_r_dim, 
-        transpose_xy_srca, 
-        unpA_num_faces, 
+        unpack_src_format[unpA_operand_id],
+        unpack_src_format[unpB_operand_id],
+        unpack_dst_format[unpA_operand_id],
+        unpack_dst_format[unpB_operand_id],
+        unpA_face_r_dim,
+        unpB_face_r_dim,
+        transpose_xy_srca,
+        unpA_num_faces,
         unpB_num_faces,
         operands[unpA_operand_id].f.tile_size_words,
         operands[unpB_operand_id].f.tile_size_words
@@ -231,15 +231,16 @@ inline void llk_unpack_AB_matmul_hw_configure_disaggregated(
 }
 
 template <std::uint32_t operandA_kernel_broadcast=0, std::uint32_t operandB_kernel_broadcast=0>
-inline void llk_unpack_AB_matmul_mop_config(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const bool partial_face) {
+inline void llk_unpack_AB_matmul_mop_config(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const bool unpA_partial_face, const bool unpB_partial_face) {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
-    _llk_unpack_AB_matmul_mop_config_(
-        transpose, 
-        ct_dim, 
-        rt_dim, 
-        kt_dim, 
-        partial_face
+    _llk_unpack_AB_matmul_mop_config_<operandA_kernel_broadcast, operandB_kernel_broadcast>(
+        transpose,
+        ct_dim,
+        rt_dim,
+        kt_dim,
+        unpA_partial_face,
+        unpB_partial_face
     );
 }
 
@@ -255,29 +256,32 @@ __attribute__((always_inline)) inline void llk_unpack_AB_matmul_init(const std::
     const uint32_t unpA_face_r_dim = get_operand_face_r_dim(operandA_id);
     const uint32_t unpB_face_r_dim = get_operand_face_r_dim(operandB_id);
 
-    const bool reuse_a = ct_dim >= rt_dim; 
-    const bool partial_face = get_operand_partial_face(operandB_id);
+    const bool reuse_a = ct_dim >= rt_dim;
+    const bool unpA_partial_face = get_operand_partial_face(operandA_id);
+    const bool unpB_partial_face = get_operand_partial_face(operandB_id);
 
-    const uint32_t unpA_num_faces = get_operand_num_faces(operandA_id);
-    const uint32_t unpB_num_faces = partial_face ? 1 : get_operand_num_faces(operandB_id); // if partial face -> unpack face by face
+    const uint32_t unpA_num_faces = unpA_partial_face ? 1 : get_operand_num_faces(operandA_id);
+    const uint32_t unpB_num_faces = unpB_partial_face ? 1 : get_operand_num_faces(operandB_id); // if partial face -> unpack face by face
 
-    _llk_unpack_AB_matmul_init_(
-        transpose, 
-        ct_dim, 
-        rt_dim, 
-        kt_dim, 
-        unpA_face_r_dim, 
-        unpB_face_r_dim, 
-        unpA_num_faces, 
-        unpB_num_faces, 
-        partial_face
+    _llk_unpack_AB_matmul_init_<operandA_kernel_broadcast, operandB_kernel_broadcast>(
+        transpose,
+        ct_dim,
+        rt_dim,
+        kt_dim,
+        unpA_face_r_dim,
+        unpB_face_r_dim,
+        unpA_num_faces,
+        unpB_num_faces,
+        unpA_partial_face,
+        unpB_partial_face
     );
 }
 
 template <std::uint32_t operandA_kernel_broadcast=0, std::uint32_t operandB_kernel_broadcast=0>
 inline void llk_unpack_AB_matmul(
     const std::uint32_t operandA, const std::uint32_t operandB, const std::uint32_t tile_index_a, const std::uint32_t tile_index_b, const std::uint32_t ct_dim=1, const std::uint32_t rt_dim=1, const std::uint32_t kt_dim=1) {
-    TT_LLK_DUMP("llk_unpack_AB_matmul({}, {}, {}, {}, {}, {, {})", operandA, operandB, tile_index_a, tile_index_b, ct_dim, rt_dim, kt_dim);
+    TT_LLK_DUMP("llk_unpack_AB_matmul(opA:{}, opB:{}, tileIdxA:{}, tileIdxB:{})", operandA, operandB, tile_index_a, tile_index_b);
+    TT_LLK_DUMP("llk_unpack_AB_matmul(ct:{}, rt:{}, kt:{})", ct_dim, rt_dim, kt_dim);
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
@@ -288,7 +292,8 @@ inline void llk_unpack_AB_matmul(
     const std::uint32_t unpA_face_r_dim = get_operand_face_r_dim(operandB_id); // In1/InB -> srcA
     const std::uint32_t unpB_face_r_dim = get_operand_face_r_dim(operandA_id); // In0/InA -> srcB
 
-    const bool partial_face = get_operand_partial_face(operandA_id);
+    const bool unpA_partial_face = get_operand_partial_face(operandA_id);
+    const bool unpB_partial_face = get_operand_partial_face(operandB_id);
 
     std::uint32_t base_address_a = operands[operandA_id].f.fifo_rd_ptr;
     std::uint32_t base_address_b = operands[operandB_id].f.fifo_rd_ptr;
@@ -296,25 +301,26 @@ inline void llk_unpack_AB_matmul(
     std::uint32_t tile_size_a = operands[operandA_id].f.tile_size_words;
     std::uint32_t tile_size_b = operands[operandB_id].f.tile_size_words;
 
-    _llk_unpack_AB_matmul_(
-        base_address_a, 
-        base_address_b, 
-        tile_index_a, 
-        tile_index_b, 
-        tile_size_a, 
-        tile_size_b, 
-        unpA_face_r_dim, 
-        unpB_face_r_dim, 
-        partial_face, 
-        ct_dim, 
-        rt_dim, 
+    _llk_unpack_AB_matmul_<operandA_kernel_broadcast, operandB_kernel_broadcast>(
+        base_address_a,
+        base_address_b,
+        tile_index_a,
+        tile_index_b,
+        tile_size_a,
+        tile_size_b,
+        unpA_face_r_dim,
+        unpB_face_r_dim,
+        unpA_partial_face,
+        unpB_partial_face,
+        ct_dim,
+        rt_dim,
         kt_dim
     );
-}   
+}
 
 /*************************************************************************
-* LLK UNPACK REDUCE  
-*************************************************************************/ 
+* LLK UNPACK REDUCE
+*************************************************************************/
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void llk_unpack_reduce_hw_configure(
@@ -327,17 +333,17 @@ inline void llk_unpack_reduce_hw_configure(
     const std::uint32_t unpA_face_r_dim = get_operand_face_r_dim(unpA_operand_id);
 
     constexpr std::uint32_t unpB_src_format = (std::uint32_t) DataFormat::Float32;
-    const std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[unpA_operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a 
+    const std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[unpA_operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a
                                ((((std::uint32_t)unpack_dst_format[unpA_operand_id]>>2)&0x1) ? (std::uint32_t) DataFormat::Float16_b : (std::uint32_t) DataFormat::Float16);
 
     _llk_unpack_reduce_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
+        unpack_src_format[unpA_operand_id],
         unpB_src_format,
-        unpack_dst_format[unpA_operand_id], 
+        unpack_dst_format[unpA_operand_id],
         unpB_dst_format,
-        unpA_face_r_dim, 
-        unpA_face_r_dim, 
-        within_face_16x16_transpose, 
+        unpA_face_r_dim,
+        unpA_face_r_dim,
+        within_face_16x16_transpose,
         unpA_num_faces,
         unpA_num_faces
     );
@@ -349,7 +355,7 @@ inline void llk_unpack_reduce_hw_configure(
         } f2u = {.f = const_mult};
 
         for (uint i = 0; i < 16; i++) l1_buffer[i] = f2u.u;  // Load const into L1 buffer
-    }    
+    }
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en=false, StochRndType stoch_rnd_mode = StochRndType::None>
@@ -371,7 +377,7 @@ inline void llk_unpack_reduce_init(const std::uint32_t within_face_16x16_transpo
     constexpr std::uint32_t unpA_operand_id = 0;
 
     constexpr std::uint32_t unpB_src_format = (std::uint32_t) DataFormat::Float32;
-    constexpr std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[unpA_operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a 
+    constexpr std::uint32_t unpB_dst_format = ((std::uint32_t)unpack_dst_format[unpA_operand_id] == (std::uint32_t) DataFormat::Int8) ? (std::uint32_t) DataFormat::Float16 : // Int8 is treated as fp16_a
                                ((((std::uint32_t)unpack_dst_format[unpA_operand_id]>>2)&0x1) ? (std::uint32_t) DataFormat::Float16_b : (std::uint32_t) DataFormat::Float16);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG1_SrcB_RMW>(unpB_dst_format);
@@ -403,8 +409,8 @@ inline void llk_unpack_reduce(const std::uint32_t operand, const std::uint32_t t
 }
 
 /*************************************************************************
-* LLK UNPACK TILIZE  
-*************************************************************************/ 
+* LLK UNPACK TILIZE
+*************************************************************************/
 
 template <bool is_fp32_dest_acc_en = false>
 inline void llk_unpack_tilize_hw_configure(const llk_unpack_A_params_t *unpack_tilize_params) {
@@ -417,10 +423,10 @@ inline void llk_unpack_tilize_hw_configure(const llk_unpack_A_params_t *unpack_t
     const uint32_t unpA_face_r_dim = get_operand_face_r_dim(unpA_operand_id);
 
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
+        unpack_src_format[unpA_operand_id],
         unpack_dst_format[unpA_operand_id],
-        unpA_face_r_dim, 
-        within_face_16x16_transpose, 
+        unpA_face_r_dim,
+        within_face_16x16_transpose,
         unpA_num_faces
     );
 }
@@ -455,10 +461,10 @@ inline void llk_unpack_tilize_init(const std::uint32_t operand = 0, const std::u
     TTI_RDCFG(p_gpr_unpack::SR_UNPACK_TILIZER_STATE_1, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32); // Save tile x dim per context
 
     _llk_unpack_tilize_init_(
-        unpack_src_format[operand_id], 
-        unpack_dst_format[operand_id], 
-        ct_dim, 
-        face_r_dim, 
+        unpack_src_format[operand_id],
+        unpack_dst_format[operand_id],
+        ct_dim,
+        face_r_dim,
         narrow_tile
     );
 
@@ -481,19 +487,19 @@ inline void llk_unpack_tilize(std::uint32_t operand, std::uint32_t tile_index, s
     std::uint32_t base_address = operands[operand_id].f.fifo_rd_ptr - 1;  // Remove header size added by descriptor
 
     _llk_unpack_tilize_(
-        base_address, 
+        base_address,
         tile_index,
-        unpack_src_format[operand_id], 
-        block_ct_dim, 
-        face_r_dim, 
-        num_faces, 
+        unpack_src_format[operand_id],
+        block_ct_dim,
+        face_r_dim,
+        num_faces,
         narrow_tile
     );
 }
 
 /*************************************************************************
-* LLK UNPACK UNTILIZE  
-*************************************************************************/ 
+* LLK UNPACK UNTILIZE
+*************************************************************************/
 template <bool is_fp32_dest_acc_en = false>
 inline void llk_unpack_untilize_hw_configure(const llk_unpack_A_params_t *unpack_untilize_params) {
     constexpr bool is_row_pool = false;
@@ -505,10 +511,10 @@ inline void llk_unpack_untilize_hw_configure(const llk_unpack_A_params_t *unpack
     const uint32_t unpA_face_r_dim = FACE_R_DIM;
 
     _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpack_src_format[unpA_operand_id], 
-        unpack_dst_format[unpA_operand_id], 
-        unpA_face_r_dim, 
-        within_face_16x16_transpose, 
+        unpack_src_format[unpA_operand_id],
+        unpack_dst_format[unpA_operand_id],
+        unpA_face_r_dim,
+        within_face_16x16_transpose,
         unpA_num_faces
     );
 }
@@ -524,7 +530,7 @@ inline void llk_unpack_untilize_mop_config() {
     _llk_unpack_untilize_mop_config_();
 }
 
-inline void llk_unpack_untilize_init(std::uint32_t operand = 0) { 
+inline void llk_unpack_untilize_init(std::uint32_t operand = 0) {
     const std::uint32_t operand_id = get_operand_id(operand);
     const std::uint32_t face_r_dim = 1;
     const std::uint32_t num_faces = get_operand_num_faces(operand_id);
@@ -558,8 +564,8 @@ inline void llk_unpack_untilize_pass(std::uint32_t operand, std::uint32_t block_
     const std::uint32_t base_address = operands[operand_id].f.fifo_rd_ptr;
 
     _llk_unpack_untilize_pass_<first_pass>(
-        base_address, 
-        block_tile_cols 
+        base_address,
+        block_tile_cols
     );
 }
 
@@ -569,8 +575,8 @@ inline void llk_unpack_untilize(std::uint32_t operand, std::uint32_t block_c_til
 }
 
 /*************************************************************************
-* LLK UNPACK COMMON  
-*************************************************************************/ 
+* LLK UNPACK COMMON
+*************************************************************************/
 
 void llk_zero_operand(std::uint32_t operand) {
     std::uint32_t operand_id = get_operand_id(operand);
@@ -609,7 +615,7 @@ inline void llk_unpack_config_tile_dim_srca(const std::uint32_t srca_new_operand
     const std::uint32_t srca_operand_id = get_operand_id(srca_new_operand);
     const std::uint32_t num_faces = get_operand_num_faces(srca_operand_id);
     const std::uint32_t face_r_dim = get_operand_face_r_dim(srca_operand_id);
-    
+
     _llk_unpack_config_tile_dim_srca_impl_(face_r_dim, num_faces);
 }
 
@@ -637,8 +643,8 @@ inline void llk_unpack_reconfig_data_format_srca(const std::uint32_t srca_new_op
     const std::uint32_t srca_operand_id = get_operand_id(srca_new_operand);
 
     _llk_unpack_reconfig_data_format_srca_impl_(
-        unpack_src_format[srca_operand_id], 
-        unpack_dst_format[srca_operand_id], 
+        unpack_src_format[srca_operand_id],
+        unpack_dst_format[srca_operand_id],
         operands[srca_operand_id].f.tile_size_words
     );
 }
@@ -648,7 +654,7 @@ inline void llk_unpack_config_tile_dim_srcb(const std::uint32_t srcb_new_operand
     std::uint32_t srcb_operand_id = get_operand_id(srcb_new_operand);
     const std::uint32_t num_faces = get_operand_num_faces(srcb_operand_id);
     const std::uint32_t face_r_dim = get_operand_face_r_dim(srcb_operand_id);
-    
+
     _llk_unpack_config_tile_dim_srcb_impl_(face_r_dim, num_faces);
 }
 
@@ -658,8 +664,8 @@ inline void llk_unpack_reconfig_data_format_srcb(const std::uint32_t srcb_new_op
     std::uint32_t srcb_operand_id = get_operand_id(srcb_new_operand);
 
     _llk_unpack_reconfig_data_format_srcb_impl_(
-        unpack_src_format[srcb_operand_id], 
-        unpack_dst_format[srcb_operand_id], 
+        unpack_src_format[srcb_operand_id],
+        unpack_dst_format[srcb_operand_id],
         operands[srcb_operand_id].f.tile_size_words
     );
 }
