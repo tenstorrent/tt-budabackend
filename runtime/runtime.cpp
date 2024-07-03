@@ -1425,7 +1425,6 @@ tt::DEVICE_STATUS_CODE tt_runtime::run_program(const string &program_name, const
             cluster->perf_state.initialize_for_program(
                     program ,cluster->get_sdesc_for_all_devices(),
                     workload.graphs, workload.op_to_outputs, workload.queues);
-            
         }
 
         // Main program execution loop

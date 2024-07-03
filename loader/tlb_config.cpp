@@ -132,6 +132,8 @@ static constexpr uint32_t DYNAMIC_TLB_COUNT = 16;
 static constexpr unsigned int MEM_SMALL_READ_WRITE_TLB = tt::umd::blackhole::MEM_SMALL_READ_WRITE_TLB;
 static constexpr uint32_t DYNAMIC_TLB_BASE_INDEX = tt::umd::blackhole::DYNAMIC_TLB_BASE_INDEX;
 static constexpr uint32_t TENSIX_STATIC_TLB_START = 38;
+static constexpr uint32_t NUM_PORTS_PER_DRAM_CHANNEL = 3;
+static constexpr uint32_t NUM_DRAM_CHANNELS = 8;
 
 std::int32_t get_static_tlb_index(tt_xy_pair target) {
     bool is_eth_location =
@@ -147,6 +149,15 @@ std::int32_t get_static_tlb_index(tt_xy_pair target) {
             std::cend(tt::umd::blackhole::T6_Y_LOCATIONS);
     // implementation migrated from blackhole.py in `src/t6ifc/t6py/packages/tenstorrent/chip/blackhole.py` from tensix
     // repo (t6py-blackhole-bringup branch)
+
+    auto DRAM_TLB_IDX =
+        std::find(tt::umd::blackhole::DRAM_LOCATIONS.begin(), tt::umd::blackhole::DRAM_LOCATIONS.end(), target);
+    if (DRAM_TLB_IDX != tt::umd::blackhole::DRAM_LOCATIONS.end()) {
+        auto dram_index = DRAM_TLB_IDX - tt::umd::blackhole::DRAM_LOCATIONS.begin();
+        // We have 3 ports per DRAM channel so we divide index by 3 to map
+        // all the channels of the same core to the same TLB
+        return tt::umd::blackhole::TLB_BASE_INDEX_4G + (dram_index / NUM_PORTS_PER_DRAM_CHANNEL);
+    }
 
     if (is_eth_location) {
         // TODO(pjanevski): fix calculation of tlb index for eth cores
@@ -169,6 +180,12 @@ std::int32_t get_static_tlb_index(tt_xy_pair target) {
     }
 
     return -1;
+}
+
+// Returns first port of dram channel passed as the argument.
+// This core will be used for configuring 4GB TLB.
+tt_xy_pair ddr_to_noc0(unsigned i) {
+    return tt::umd::blackhole::DRAM_LOCATIONS[NUM_PORTS_PER_DRAM_CHANNEL * i];
 }
 
 }  // namespace blackhole
@@ -219,7 +236,6 @@ void configure_static_tlbs(
         throw std::runtime_error("Unsupported architecture");
     }
 
-    // MT Initial BH - Skip static TLB mapping
     if (arch != tt::ARCH::BLACKHOLE) {
 
         auto statically_mapped_cores = sdesc.workers;
@@ -251,7 +267,7 @@ void configure_static_tlbs(
             // Align address space to TLB size
         }
         device->setup_core_to_tlb_map([get_static_tlb_index](tt_xy_pair core) { return get_static_tlb_index(core); });
-    }else {
+    } else {
         
         auto worker_cores = sdesc.workers;
         std::int32_t address = 0;
@@ -262,7 +278,15 @@ void configure_static_tlbs(
             device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Posted);
         }
 
-        device->setup_core_to_tlb_map([get_static_tlb_index](tt_xy_pair core) { return get_static_tlb_index(core);});
+        // Setup static 4GB tlbs for DRAM cores
+        std::uint32_t dram_addr = 0;
+        for (std::uint32_t dram_channel = 0; dram_channel < blackhole::NUM_DRAM_CHANNELS; dram_channel++) {
+            tt_xy_pair dram_core = blackhole::ddr_to_noc0(dram_channel);
+            auto tlb_index = tt::umd::blackhole::TLB_COUNT_2M + dram_channel;
+            device->configure_tlb(chip, dram_core, tlb_index, dram_addr, TLB_DATA::Posted);
+        }
+
+        device->setup_core_to_tlb_map([get_static_tlb_index](tt_xy_pair core) { return get_static_tlb_index(core); });
     }
 
 }
