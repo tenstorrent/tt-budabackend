@@ -169,6 +169,7 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
             }
         }
     }
+
     if (translatable_range) {
         for (auto &addr_channel_pair : io_desc.bufq_start_addr_channel) {
             auto [offset, channel] = addr_channel_pair;
@@ -203,9 +204,6 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
                 log_assert(io_desc.bufq_mapping.back() != nullptr, "Must be able to translate host queue address for ch: {}. Possible hugepage issue, check for earlier warnings.", std::to_string(channel));
             } else if (queue_info.loc == QUEUE_LOCATION::DRAM) {
                 if (cluster->type == TargetDevice::Versim || cluster->type == TargetDevice::Emulation) {
-                    io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
-                } else if (cluster->type == TargetDevice::Silicon && cluster->cluster_arch == tt::ARCH::BLACKHOLE) {
-                    // MT Initial BH - no translation
                     io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
                 } else {
                     if (cluster->get_cluster_desc()->is_chip_mmio_capable(queue_info.target_device)) {
@@ -824,11 +822,11 @@ void push_host_input(tt_dram_io_desc &io, std::function<tt_tensor(tt_queue_info&
         push_host_inputs_with_sw_tilize(workload, io, get_tensor_callback, calc_num_pushes, ram_ptr, cluster);
     }
     else{
-        if(tilizer_backend == Tilizer::FastTilizeDevicePush){
+        if (tilizer_backend == Tilizer::FastTilizeDevicePush) {
             log_debug(tt::LogIO, "Using HW Tilize with writes through the TLB for queue: {}", io.queue_name);
             push_host_inputs_with_hw_tilize<Tilizer::FastTilizeDevicePush>(workload, io, get_tensor_callback, calc_num_pushes, ram_ptr, cluster);
         }
-        else{
+        else {
             log_debug(tt::LogIO, "Using HW Tilize with MMIO writes for queue: {}", io.queue_name);
             push_host_inputs_with_hw_tilize<Tilizer::FastTilizeMMIOPush>(workload, io, get_tensor_callback, calc_num_pushes, ram_ptr, cluster);
         }

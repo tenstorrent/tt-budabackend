@@ -1467,8 +1467,10 @@ Tilizer get_tilizer_based_on_io_config(const tt_dram_io_desc &io, DataFormat hos
 
     // Issue #2651 - Bringup hack for Blackhole silicon until support is ready.
     tt_cluster *cluster = tt::io::get_cluster(io.netlist_path, io.backend_type);
-    const bool bh_silicon_hack = (cluster->type == TargetDevice::Silicon && cluster->cluster_arch == tt::ARCH::BLACKHOLE);
-    if (bh_silicon_hack) log_warning(tt::LogIO, "Issue #2651 - Blackhole silicon bringup hack, disabling Tilizer::FastTilizeMMIOPush until 4GB TLBs ready.");
+    const bool bh_silicon_hack = cluster->type == TargetDevice::Silicon && cluster->cluster_arch == tt::ARCH::BLACKHOLE;
+    if (bh_silicon_hack) {
+        log_warning(tt::LogIO, "Issue #2651 - Blackhole silicon bringup hack, disabling Tilizer::FastTilizeMMIOPush until 4GB TLBs ready.");
+    }
 
     #ifdef __ARM_ARCH
     bool fast_tilize_support = (host_data_format == device_data_format) && (io.layout == tt::IO_LAYOUT::Flat);
