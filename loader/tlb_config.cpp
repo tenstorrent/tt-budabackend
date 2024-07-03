@@ -131,6 +131,7 @@ const std::vector<uint32_t> EPOCH_CMD_QUEUE_TLBS = {};
 static constexpr uint32_t DYNAMIC_TLB_COUNT = 16;
 static constexpr unsigned int MEM_SMALL_READ_WRITE_TLB = tt::umd::blackhole::MEM_SMALL_READ_WRITE_TLB;
 static constexpr uint32_t DYNAMIC_TLB_BASE_INDEX = tt::umd::blackhole::DYNAMIC_TLB_BASE_INDEX;
+static constexpr uint32_t TENSIX_STATIC_TLB_START = 38;
 
 std::int32_t get_static_tlb_index(tt_xy_pair target) {
     bool is_eth_location =
@@ -147,7 +148,27 @@ std::int32_t get_static_tlb_index(tt_xy_pair target) {
     // implementation migrated from blackhole.py in `src/t6ifc/t6py/packages/tenstorrent/chip/blackhole.py` from tensix
     // repo (t6py-blackhole-bringup branch)
 
-  return -1;
+    if (is_eth_location) {
+        // TODO(pjanevski): fix calculation of tlb index for eth cores
+        // once we can bringup Blackhole with eth
+        return -1;
+    } else if (is_tensix_location) {
+        // BH worker cores are starting from x = 1, y = 2
+        target.y-=2;
+        target.x--;
+
+        if (target.x >= 8) {
+            target.x -= 2;
+        }
+
+        int flat_index = target.y * 14 + target.x;
+
+        int tlb_index = TENSIX_STATIC_TLB_START + flat_index;
+
+        return tlb_index;
+    }
+
+    return -1;
 }
 
 }  // namespace blackhole
@@ -230,6 +251,18 @@ void configure_static_tlbs(
             // Align address space to TLB size
         }
         device->setup_core_to_tlb_map([get_static_tlb_index](tt_xy_pair core) { return get_static_tlb_index(core); });
+    }else {
+        
+        auto worker_cores = sdesc.workers;
+        std::int32_t address = 0;
+
+        // Setup static TLBs for all worker cores
+        for (auto& core : worker_cores) {
+            auto tlb_index = get_static_tlb_index(core);
+            device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Posted);
+        }
+
+        device->setup_core_to_tlb_map([get_static_tlb_index](tt_xy_pair core) { return get_static_tlb_index(core);});
     }
 
 }
