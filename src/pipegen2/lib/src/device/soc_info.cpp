@@ -222,7 +222,17 @@ std::uint64_t SoCInfo::get_buffer_noc_address_through_pcie(
 {
     tt_cxy_pair noc_pcie_core = get_first_pcie_core_physical_location(chip_id);
 
-    return NOC_XY_ADDR(noc_pcie_core.x, noc_pcie_core.y, pcie_buf_addr);
+    std::uint64_t noc_pcie_address = NOC_XY_ADDR(noc_pcie_core.x, noc_pcie_core.y, pcie_buf_addr);
+
+    // All reads over PCIe go through an Address Translation Unit (ATU), that translates the requested address to one in
+    // host system (hugepage) memory. For BLACKHOLE, we currently need to set ATU index 4 for this to work.
+    // Note that this needs to propagate properly through blobgen and firmware to the address on NOC.
+    if (get_device_arch() == tt::ARCH::BLACKHOLE)
+    {
+        noc_pcie_address += soc_info_constants::bh_pcie_host_noc_address_offset;
+    }
+
+    return noc_pcie_address;
 }
 
 tt_cxy_pair SoCInfo::get_first_pcie_core_physical_location(const ChipId chip_id) const

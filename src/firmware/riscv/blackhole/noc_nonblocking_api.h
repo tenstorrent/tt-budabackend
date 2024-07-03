@@ -96,7 +96,7 @@ inline void ncrisc_noc_fast_read(uint32_t noc, uint32_t cmd_buf, uint64_t src_ad
     ptr[NOC_RET_ADDR_HI  >> 2] = noc_xy_local_addr[noc];
     ptr[NOC_CTRL >> 2] = noc_rd_cmd_field;
     ptr[NOC_TARG_ADDR_LO  >> 2] = (uint32_t)src_addr;
-    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0xF;
+    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0x1000000F;
     ptr[NOC_TARG_ADDR_HI  >> 2] = (uint32_t)(src_addr >> 36) & 0xFFFFFF;
     ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
     ptr[NOC_AT_LEN_BE >> 2] = len_bytes;
@@ -118,7 +118,7 @@ inline __attribute__((always_inline)) void ncrisc_noc_fast_read_scatter(uint32_t
     ptr[NOC_RET_ADDR_HI  >> 2] = noc_xy_local_addr[noc];
     ptr[NOC_CTRL >> 2] = noc_rd_cmd_field;
     ptr[NOC_TARG_ADDR_LO  >> 2] = (uint32_t)src_addr;
-    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0xF;
+    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0x1000000F;
     ptr[NOC_TARG_ADDR_HI  >> 2] = (uint32_t)(src_addr >> 36) & 0xFFFFFF;
     ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
     ptr[NOC_AT_LEN_BE >> 2] = len_bytes;
@@ -189,7 +189,13 @@ inline void ncrisc_noc_fast_write(uint32_t noc, uint32_t cmd_buf, uint32_t src_a
     ptr[NOC_TARG_ADDR_MID >> 2] = 0x0;
     ptr[NOC_TARG_ADDR_HI  >> 2] = noc_xy_local_addr[noc];
     ptr[NOC_RET_ADDR_LO  >> 2] = (uint32_t)dest_addr;
-    ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(dest_addr >> 32) & 0xF;
+    // BR: BH bringup
+    // Note that on Blackhole, local addresses are 64 bit. So we can't combine coordinates and local address into a single 64bit
+    // variable, like we did for Wormhole. This requires significant changes across the backend stack.
+    // At the moment, only this 60th bit is passed from the address, which is needed to write to host queues through PCIe.
+    // This works since the most significant byte isn't used for anything else in the address, ATM, since the coordinates are encoded
+    // lower in the address (as you can see in NOC_RET_ADDR_HI field).
+    ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(dest_addr >> 32) & 0x1000000F;
     ptr[NOC_RET_ADDR_HI  >> 2] = (uint32_t)(dest_addr >> 36) & 0xFFFFFF;
     ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
     ptr[NOC_AT_LEN_BE >> 2] = len_bytes;
@@ -241,7 +247,7 @@ inline void ncrisc_noc_blitz_write_setup(uint32_t noc, uint32_t cmd_buf, uint64_
   while (!ncrisc_noc_fast_write_ok(noc, cmd_buf)); 
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_CTRL, noc_cmd_field);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_LEN_BE, len_bytes);
-  NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_RET_ADDR_MID, (uint32_t)(dest_addr >> 32) & 0xF);
+  NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_RET_ADDR_MID, (uint32_t)(dest_addr >> 32) & 0x1000000F);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_RET_ADDR_HI,  (uint32_t)(dest_addr >> 36) & 0xFFFFFF);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_PACKET_TAG, NOC_PACKET_TAG_TRANSACTION_ID(transaction_id));
 }
@@ -411,7 +417,7 @@ inline void noc_fast_posted_write_dw_inline(uint32_t noc, uint32_t cmd_buf, uint
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_DATA, val);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_CTRL, noc_cmd_field);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_TARG_ADDR_LO, (uint32_t)(dest_addr & ~(NOC_WORD_BYTES-1)));
-  NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_TARG_ADDR_MID, (dest_addr >> 32) & 0xF);
+  NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_TARG_ADDR_MID, (dest_addr >> 32) & 0x1000000F);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_TARG_ADDR_HI, (dest_addr >> 36) & 0xFFFFFF);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_LEN_BE, be32);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_LEN_BE_1, 0x0);
@@ -427,11 +433,11 @@ inline void noc_atomic_read_and_increment(uint32_t noc, uint32_t cmd_buf, uint64
   uint32_t atomic_resp = NOC_STATUS_READ_REG(noc, NIU_MST_ATOMIC_RESP_RECEIVED);
 
   ptr[NOC_TARG_ADDR_LO  >> 2] = (uint32_t)(addr & 0xFFFFFFFF);
-  ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(addr >> 32) & 0xF;
+  ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(addr >> 32) & 0x1000000F;
   ptr[NOC_TARG_ADDR_HI  >> 2] = (uint32_t)(addr >> 36) & 0xFFFFFF;
   ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
   ptr[NOC_RET_ADDR_LO  >> 2] = (uint32_t)(read_addr & 0xFFFFFFFF);
-  ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(read_addr >> 32) & 0xF;
+  ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(read_addr >> 32) & 0x1000000F;
   ptr[NOC_RET_ADDR_HI  >> 2] = (uint32_t)(read_addr >> 36) & 0xFFFFFF;
   ptr[NOC_CTRL >> 2] = (linked ? NOC_CMD_VC_LINKED : 0x0) |
                        NOC_CMD_AT |

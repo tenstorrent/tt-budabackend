@@ -11,7 +11,13 @@ namespace soc_info_constants
 {
 
 // NOC address offset when WH chip is reading from host over PCIe.
+// Related to get_pcie_base_addr_from_device in UMD.
 constexpr std::uint64_t wh_pcie_host_noc_address_offset = 0x800000000;
+
+// NOC bit to set when BH chip is writing to host over PCIe.
+// Related to get_pcie_base_addr_from_device in UMD.
+// This will give signal to ATU to use window index 4 for translation (these are set by bits 58-60).
+constexpr std::uint64_t bh_pcie_host_noc_address_offset = 1ULL << 60;
 
 // PCIe NOC address offset when sending data downstream the NOC.
 constexpr std::uint64_t pcie_downstream_offset = 0x80000000;
