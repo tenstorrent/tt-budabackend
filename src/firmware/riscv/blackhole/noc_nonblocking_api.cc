@@ -18,7 +18,7 @@ void ncrisc_noc_fast_read_l1(uint32_t noc, uint32_t cmd_buf, uint64_t src_addr, 
     ptr[NOC_RET_ADDR_HI  >> 2] = noc_xy_local_addr[noc];
     ptr[NOC_CTRL >> 2] = noc_rd_cmd_field;
     ptr[NOC_TARG_ADDR_LO  >> 2] = (uint32_t)src_addr;
-    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0xF;
+    ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(src_addr >> 32) & 0x1000000F;
     ptr[NOC_TARG_ADDR_HI  >> 2] = (uint32_t)(src_addr >> 36) & 0xFFFFFF;
     ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
     ptr[NOC_AT_LEN_BE >> 2] = len_bytes;
@@ -46,7 +46,7 @@ void ncrisc_noc_fast_write_l1(uint32_t noc, uint32_t cmd_buf, uint32_t src_addr,
     ptr[NOC_TARG_ADDR_MID >> 2] = 0x0;
     ptr[NOC_TARG_ADDR_HI  >> 2] = noc_xy_local_addr[noc];
     ptr[NOC_RET_ADDR_LO  >> 2] = (uint32_t)dest_addr;
-    ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(dest_addr >> 32) & 0xF;
+    ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(dest_addr >> 32) & 0x1000000F;
     ptr[NOC_RET_ADDR_HI  >> 2] = (uint32_t)(dest_addr >> 36) & 0xFFFFFF;
     ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
     ptr[NOC_AT_LEN_BE >> 2] = len_bytes;
@@ -98,11 +98,11 @@ void noc_atomic_read_and_increment_l1(uint32_t noc, uint32_t cmd_buf, uint64_t a
   uint32_t atomic_resp = NOC_STATUS_READ_REG(noc, NIU_MST_ATOMIC_RESP_RECEIVED);
 
   ptr[NOC_TARG_ADDR_LO  >> 2] = (uint32_t)(addr & 0xFFFFFFFF);
-  ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(addr >> 32) & 0xF;
+  ptr[NOC_TARG_ADDR_MID >> 2] = (uint32_t)(addr >> 32) & 0x1000000F;
   ptr[NOC_TARG_ADDR_HI  >> 2] = (uint32_t)(addr >> 36) & 0xFFFFFF;
   ptr[NOC_PACKET_TAG >> 2] = NOC_PACKET_TAG_TRANSACTION_ID(transaction_id);
   ptr[NOC_RET_ADDR_LO  >> 2] = (uint32_t)(read_addr & 0xFFFFFFFF);
-  ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(read_addr >> 32) & 0xF;
+  ptr[NOC_RET_ADDR_MID >> 2] = (uint32_t)(read_addr >> 32) & 0x1000000F;
   ptr[NOC_RET_ADDR_HI  >> 2] = (uint32_t)(read_addr >> 36) & 0xFFFFFF;
   ptr[NOC_CTRL >> 2] = (linked ? NOC_CMD_VC_LINKED : 0x0) |
                        NOC_CMD_AT |
