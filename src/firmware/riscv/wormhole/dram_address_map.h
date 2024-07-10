@@ -19,7 +19,7 @@ struct address_map {
     static constexpr std::int32_t DRAM_EACH_BANK_PERF_BUFFER_SIZE = 4800 * 1024;
     static constexpr std::int32_t DRAM_EACH_BANK_CONST_BLOB_SIZE = 100 * 1024;
     static constexpr std::int32_t DRAM_EACH_BANK_CONST_BLOB_ADDR = 6 * 1024 * 1024;
-    static constexpr std::int32_t DRAM_EACH_BANK_TILE_HEADER_BUFFER = DRAM_EACH_BANK_CONST_BLOB_ADDR + DRAM_EACH_BANK_CONST_BLOB_SIZE - l1_mem::address_map::TILE_HEADER_BUF_SIZE;
+    static constexpr std::int32_t DRAM_EACH_BANK_TILE_HEADER_BUFFER = DRAM_EACH_BANK_CONST_BLOB_ADDR + DRAM_EACH_BANK_CONST_BLOB_SIZE - l1_mem::address_map::TILE_HEADER_BUFFER_SIZE;
     static constexpr std::int32_t TRISC_BINARY_SIZE = l1_mem::address_map::TRISC0_SIZE + l1_mem::address_map::TRISC1_SIZE + l1_mem::address_map::TRISC2_SIZE;
     static constexpr std::int32_t FW_DRAM_BLOCK_SIZE_NO_EXTRAS = TRISC_BINARY_SIZE + l1_mem::address_map::OVERLAY_BLOB_SIZE + l1_mem::address_map::EPOCH_RUNTIME_CONFIG_SIZE;
     static constexpr std::int32_t DRAM_BARRIER_SIZE = 0x20; // 32 bytes reserved for L1 Barrier

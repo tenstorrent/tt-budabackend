@@ -11,14 +11,14 @@ struct L1AddressMap {
     std::int32_t MAX_SIZE;
     std::int32_t FW_BLOCK_SIZE;
     std::int32_t DATA_BUFFER_SPACE_BASE;
-    std::int32_t TILE_HEADER_BUF_SIZE;
+    std::int32_t TILE_HEADER_BUFFER_SIZE;
 };
 
 struct EthernetL1AddressMap {
     std::int32_t MAX_SIZE;
     std::int32_t FW_BLOCK_SIZE;
     std::int32_t DATA_BUFFER_SPACE_BASE;
-    std::int32_t TILE_HEADER_BUF_SIZE;
+    std::int32_t TILE_HEADER_BUFFER_SIZE;
 };
 
 struct ArchConstants {

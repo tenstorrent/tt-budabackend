@@ -37,26 +37,30 @@ struct address_map {
   static constexpr std::uint32_t NCRISC_DATA_SIZE = 4 * 1024;        // 4KB
   static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;      //
   static constexpr std::uint32_t OVERLAY_BLOB_SIZE = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
-  static constexpr std::uint32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     //
+  static constexpr std::uint32_t TILE_HEADER_BUFFER_SIZE = 32 * 1024;     //
   static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
-  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUFFER_SIZE;
 
   // Base addresses
   static constexpr std::uint32_t FIRMWARE_BASE = 0;
   static constexpr std::uint32_t L1_BARRIER_BASE = 0x16dfc0;
   static constexpr std::uint32_t ZEROS_BASE = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE;
   static constexpr std::uint32_t NCRISC_FIRMWARE_BASE = FIRMWARE_BASE + FIRMWARE_SIZE;
+  static constexpr std::uint32_t NCRISC_DATA_BASE = NCRISC_FIRMWARE_BASE; // Defined at tensix-memory.ld. Overloads the NCRISC_FIRMWARE_BASE that is copied to IRAM.
   static constexpr std::uint32_t NCRISC_L1_CODE_BASE =  NCRISC_FIRMWARE_BASE + NCRISC_IRAM_CODE_SIZE;
   static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
   static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE = NCRISC_FIRMWARE_BASE + 0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
   static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE = NCRISC_FIRMWARE_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
-  static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_FIRMWARE_BASE + 0x40;
+  static constexpr std::uint32_t NCRISC_L1_CONTEXT_SIZE= 0x20;
+  static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_L1_CONTEXT_BASE + NCRISC_L1_CONTEXT_SIZE;
+  static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_SIZE = 0x1C0;
   static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE = 8 * 8; // Half of this value must be 32B aligned
   static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR = NCRISC_FIRMWARE_BASE + NCRISC_L1_SCRATCH_SIZE; // L1 Performance Buffer used by NCRISC
   static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE = NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE; // L1 Performance Buffer used by NCRISC
   static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
   static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4*1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
-  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE = NCRISC_L1_PERF_BUF_BASE + NCRISC_PERF_BUF_SIZE_LEVEL_1; // Epoch Q start in L1.
+  static constexpr std::uint32_t NCRISC_L1_PERF_BUF_SIZE = NCRISC_PERF_BUF_SIZE_LEVEL_1;
+  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE = NCRISC_L1_PERF_BUF_BASE + NCRISC_L1_PERF_BUF_SIZE; // Epoch Q start in L1.
 
   static constexpr std::uint32_t TRISC_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
   static constexpr std::uint32_t TRISC0_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
@@ -65,9 +69,10 @@ struct address_map {
   static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
   static constexpr std::uint32_t TRISC2_BASE = TRISC1_BASE + TRISC1_SIZE;
   static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::uint32_t TILE_HEADER_BUFFER_BASE = TRISC2_BASE + TRISC2_SIZE;
+  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TILE_HEADER_BUFFER_BASE + TILE_HEADER_BUFFER_SIZE;
   static constexpr std::uint32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
-  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
+  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = OVERLAY_BLOB_BASE + OVERLAY_BLOB_SIZE;
 
   static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
   static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
