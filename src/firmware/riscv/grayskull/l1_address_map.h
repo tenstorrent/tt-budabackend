@@ -36,9 +36,9 @@ struct address_map {
   static constexpr std::uint32_t NCRISC_DATA_SIZE = 4 * 1024;        // 4KB
   static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;      //
   static constexpr std::uint32_t OVERLAY_BLOB_SIZE = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
-  static constexpr std::uint32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     //
+  static constexpr std::uint32_t TILE_HEADER_BUFFER_SIZE = 32 * 1024;     //
   static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
-  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUFFER_SIZE;
 
   // Base addresses
   static constexpr std::uint32_t FIRMWARE_BASE = 0;
@@ -64,9 +64,10 @@ struct address_map {
   static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
   static constexpr std::uint32_t TRISC2_BASE = TRISC1_BASE + TRISC1_SIZE;
   static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::uint32_t TILE_HEADER_BUFFER_BASE = TRISC2_BASE + TRISC2_SIZE;
+  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TILE_HEADER_BUFFER_BASE + TILE_HEADER_BUFFER_SIZE;
   static constexpr std::uint32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
-  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
+  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = OVERLAY_BLOB_BASE + OVERLAY_BLOB_SIZE;
 
   static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
   static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");

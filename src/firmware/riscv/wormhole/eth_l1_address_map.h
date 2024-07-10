@@ -21,10 +21,10 @@ struct address_map {
   static constexpr std::int32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;     //
   static constexpr std::int32_t OVERLAY_BLOB_SIZE = (32 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
   static constexpr std::int32_t OVERLAY_MAX_EXTRA_BLOB_SIZE = (0 * 1024);     
-  static constexpr std::int32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     // 
+  static constexpr std::int32_t TILE_HEADER_BUFFER_SIZE = 32 * 1024;     // 
   static constexpr std::int32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
-  static constexpr std::int32_t FW_L1_BLOCK_SIZE = OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
-  static constexpr std::int32_t FW_DRAM_BLOCK_SIZE = OVERLAY_BLOB_SIZE + OVERLAY_MAX_EXTRA_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::int32_t FW_L1_BLOCK_SIZE = OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUFFER_SIZE;
+  static constexpr std::int32_t FW_DRAM_BLOCK_SIZE = OVERLAY_BLOB_SIZE + OVERLAY_MAX_EXTRA_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUFFER_SIZE;
   // Base addresses
   static constexpr std::int32_t FIRMWARE_BASE = 0x9040;
   static constexpr std::int32_t ERISC_BARRIER_BASE = 0x11FE0;
@@ -33,7 +33,7 @@ struct address_map {
   static constexpr std::int32_t COMMAND_Q_BASE = L1_EPOCH_Q_BASE + FIRMWARE_SIZE;
   static constexpr std::int32_t DATA_BUFFER_BASE = COMMAND_Q_BASE + COMMAND_Q_SIZE;
   static constexpr std::int32_t TILE_HEADER_BUFFER_BASE = DATA_BUFFER_BASE + DATA_BUFFER_SIZE;
-  static constexpr std::int32_t EPOCH_RUNTIME_CONFIG_BASE = TILE_HEADER_BUFFER_BASE + TILE_HEADER_BUF_SIZE;
+  static constexpr std::int32_t EPOCH_RUNTIME_CONFIG_BASE = TILE_HEADER_BUFFER_BASE + TILE_HEADER_BUFFER_SIZE;
   static constexpr std::int32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
   static constexpr std::int32_t DATA_BUFFER_SPACE_BASE = OVERLAY_BLOB_BASE + OVERLAY_BLOB_SIZE;
 

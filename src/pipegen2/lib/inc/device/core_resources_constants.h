@@ -75,9 +75,7 @@ constexpr StreamId gather_multicast_streams_id_range_start = 0;
 constexpr StreamId gather_multicast_streams_id_range_end = 3;
 
 // Predefined tile header buffer address in L1.
-constexpr unsigned int l1_predefined_tile_header_buffer_address = eth_l1_mem::address_map::OVERLAY_BLOB_BASE -
-                                                                  128 /* cushion bytes */ -
-                                                                  pipegen2::constants::tile_header_buffer_size_bytes;
+constexpr unsigned int l1_predefined_tile_header_buffer_address = eth_l1_mem::address_map::TILE_HEADER_BUFFER_BASE;
 
 }  // namespace ethernet_core_resources_constants
 
@@ -85,9 +83,7 @@ namespace worker_core_resources_constants
 {
 
 // Predefined tile header buffer address in L1.
-constexpr unsigned int l1_predefined_tile_header_buffer_address = l1_mem::address_map::OVERLAY_BLOB_BASE -
-                                                                  128 /* cushion bytes */ -
-                                                                  pipegen2::constants::tile_header_buffer_size_bytes;
+constexpr unsigned int l1_predefined_tile_header_buffer_address = l1_mem::address_map::TILE_HEADER_BUFFER_BASE;
 }  // namespace worker_core_resources_constants
 
 namespace worker_core_resources_gs_constants

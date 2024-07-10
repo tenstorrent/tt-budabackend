@@ -1190,7 +1190,7 @@ void Router::constructor_allocate_extra_tile_headers_for_tensix_cores() {
                 int new_extra_tile_header_count = num_extra_tile_headers - old_extra_tile_header_count;
                 if (new_extra_tile_header_count > 0) {
                     core.used_tile_sizes.insert(tile_sizes.begin(), tile_sizes.end());
-                    core.allocate_bytes(new_extra_tile_header_count * address_map.l1.TILE_HEADER_BUF_SIZE);
+                    core.allocate_bytes(new_extra_tile_header_count * address_map.l1.TILE_HEADER_BUFFER_SIZE);
                 }
             }
         }
