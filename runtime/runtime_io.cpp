@@ -156,16 +156,20 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
     log_trace(tt::LogIO, "translate_address() with queue_name: {} loc: {} src_device_id: {}", queue_info.name, queue_info.loc, queue_info.src_device_id);
     uint32_t buf_size = tt::size::get_entry_size_in_bytes(io_desc.bufq_target_format, io_desc.layout == IO_LAYOUT::Tilized, io_desc.ublock_ct, io_desc.ublock_rt, io_desc.mblock_m, io_desc.mblock_n, io_desc.t, get_tile_dim_y(queue_info), get_tile_dim_x(queue_info)) * queue_info.entries + tt::io::io_queue_header_size_bytes;
     if (queue_info.loc == QUEUE_LOCATION::DRAM) {
-        for (auto &alloc : queue_info.alloc_info) {
-            // check if the address is in the mmio range - chan, start, end
-            translatable_range &=
-                (alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL &&
-                 alloc.address >= tt::DRAM_HOST_MMIO_RANGE_START &&
-                 alloc.address + buf_size <= tt::DRAM_HOST_MMIO_RANGE_START + DRAM_HOST_MMIO_SIZE_BYTES);
-            if (translatable_range) {
-                log_assert(
-                    alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL &&
-                    (alloc.address + buf_size <= tt::DRAM_HOST_MMIO_RANGE_START + DRAM_HOST_MMIO_SIZE_BYTES), "Queue does not fit in MMIO range: {}", queue_info.name);
+        // For Blackhole, translatable_range should always be true,
+        // that is why we are checking it only for other archs.
+        if (cluster->cluster_arch != tt::ARCH::BLACKHOLE) {
+            for (auto &alloc : queue_info.alloc_info) {
+                // check if the address is in the mmio range - chan, start, end
+                translatable_range &=
+                    (alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL &&
+                    alloc.address >= tt::DRAM_HOST_MMIO_RANGE_START &&
+                    alloc.address + buf_size <= tt::DRAM_HOST_MMIO_RANGE_START + DRAM_HOST_MMIO_SIZE_BYTES);
+                if (translatable_range) {
+                    log_assert(
+                        alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL &&
+                        (alloc.address + buf_size <= tt::DRAM_HOST_MMIO_RANGE_START + DRAM_HOST_MMIO_SIZE_BYTES), "Queue does not fit in MMIO range: {}", queue_info.name);
+                }
             }
         }
     }
@@ -754,9 +758,13 @@ void push_host_inputs_with_hw_tilize(tt_runtime_workload &workload, tt_dram_io_d
             log_warning(tt::LogIO, "IO {} of entires={} cannot fit push #{}, skipping...", queue_info.name, queue_info.entries, i);
             continue; // handle param input only once
         }
+        
         for (auto &alloc : queue_info.alloc_info) {
-            log_assert(tilizer_backend == Tilizer::FastTilizeDevicePush ||  (alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL && alloc.address >= tt::DRAM_HOST_MMIO_RANGE_START) || queue_info.loc == QUEUE_LOCATION::HOST, 
-                        "HW tilize path only supports DRAM channel 0 above tt::DRAM_HOST_MMIO_RANGE_START or Input Queues on Host");
+            // We can push any address on Blackhole using Fast MMIO push, no need to check address range.
+            if (cluster->cluster_arch != tt::ARCH::BLACKHOLE) {
+               log_assert(tilizer_backend == Tilizer::FastTilizeDevicePush ||  (alloc.channel == tt::DRAM_HOST_MMIO_CHANNEL && alloc.address >= tt::DRAM_HOST_MMIO_RANGE_START) || queue_info.loc == QUEUE_LOCATION::HOST, 
+                        "HW tilize path only supports DRAM channel 0 above tt::DRAM_HOST_MMIO_RANGE_START or Input Queues on Host"); 
+            }
         }
 
         log_debug(tt::LogIO, "HW tilize input queue {} push #{}, host data_format={}, device data_format={}", dram_io_desc.queue_name, i, input.get_data_format(), queue_info.data_format);

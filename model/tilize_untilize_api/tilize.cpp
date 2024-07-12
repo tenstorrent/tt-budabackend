@@ -1464,20 +1464,12 @@ template class DeviceTilizer<Tilizer::FastTilizeDevicePush>;
 template class DeviceTilizer<Tilizer::FastTilizeMMIOPush>;
 
 Tilizer get_tilizer_based_on_io_config(const tt_dram_io_desc &io, DataFormat host_data_format, DataFormat device_data_format, TargetDevice backend_type) {
-
-    // Issue #2651 - Bringup hack for Blackhole silicon until support is ready.
-    tt_cluster *cluster = tt::io::get_cluster(io.netlist_path, io.backend_type);
-    const bool bh_silicon_hack = cluster->type == TargetDevice::Silicon && cluster->cluster_arch == tt::ARCH::BLACKHOLE;
-    if (bh_silicon_hack) {
-        log_warning(tt::LogIO, "Issue #2651 - Blackhole silicon bringup hack, disabling Tilizer::FastTilizeMMIOPush until 4GB TLBs ready.");
-    }
-
     #ifdef __ARM_ARCH
     bool fast_tilize_support = (host_data_format == device_data_format) && (io.layout == tt::IO_LAYOUT::Flat);
     if(!fast_tilize_support) return Tilizer::SlowTilize;
 
     bool supported_tlb_range = io.bufq_mapping.size() > 0 && (backend_type != TargetDevice::Versim);
-    if(supported_tlb_range && !bh_silicon_hack) return Tilizer::FastTilizeMMIOPush;
+    if(supported_tlb_range) return Tilizer::FastTilizeMMIOPush;
     return Tilizer::FastTilizeDevicePush;
     #else
     tt_queue_info &queue_info = (*tt::io::get_workload(io.netlist_path)).queues.at(io.queue_name).my_queue_info;
@@ -1486,10 +1478,13 @@ Tilizer get_tilizer_based_on_io_config(const tt_dram_io_desc &io, DataFormat hos
     if(not (supported_conversion && supported_tile_shape)) return Tilizer::SlowTilize;
     bool supported_tlb_ranges = io.bufq_mapping.size() > 0;
 
+    tt_cluster *cluster = tt::io::get_cluster(io.netlist_path, io.backend_type);
     bool queue_on_mmio_chip = cluster->get_cluster_desc()->is_chip_mmio_capable(queue_info.target_device);
     bool use_hw_tilize = supported_conversion && supported_tlb_ranges && queue_on_mmio_chip;
 
-    if(use_hw_tilize and !(backend_type == TargetDevice::Versim or backend_type == TargetDevice::Emulation or bh_silicon_hack)) return Tilizer::FastTilizeMMIOPush;
+    if(use_hw_tilize and !(backend_type == TargetDevice::Versim or backend_type == TargetDevice::Emulation)) {
+        return Tilizer::FastTilizeMMIOPush;
+    }
     return Tilizer::FastTilizeDevicePush;
     #endif
 }
