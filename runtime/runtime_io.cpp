@@ -211,7 +211,8 @@ void translate_addresses(tt_dram_io_desc &io_desc) {
                     io_desc.bufq_mapping.push_back(reinterpret_cast<void*>(offset));
                 } else {
                     if (cluster->get_cluster_desc()->is_chip_mmio_capable(queue_info.target_device)) {
-                        io_desc.bufq_mapping.push_back(cluster->channel_0_address(offset, queue_info.target_device));
+                        tt_target_dram dram = {queue_info.target_device, channel, 0};
+                        io_desc.bufq_mapping.push_back(cluster->channel_address(offset, dram));
                         log_assert(io_desc.bufq_mapping.back() != nullptr, "Must be able to translate dram queue address");
                     }
                 }

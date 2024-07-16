@@ -18,3 +18,5 @@ class DataFormat(Enum):
     Float16_b   = 6
     Float16     = 7
     Float32     = 8
+    RawUInt32   = 9
+    

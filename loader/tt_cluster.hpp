@@ -156,7 +156,7 @@ struct tt_cluster
     void read_sysmem_vec(vector<uint32_t> &vec, uint64_t addr, uint16_t channel, uint32_t size, chip_id_t src_device_id);
 
     //! address translation
-    void *channel_0_address(std::uint32_t offset, std::uint32_t device_id) const;
+    void *channel_address(std::uint32_t offset, const tt_target_dram &dram);
     void *host_dma_address(std::uint64_t offset, chip_id_t src_device_id, uint16_t channel) const;
 
     std::map<int, int> get_all_device_aiclks();

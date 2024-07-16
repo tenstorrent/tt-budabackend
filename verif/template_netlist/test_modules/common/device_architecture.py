@@ -101,6 +101,8 @@ class DeviceArchitecture:
             return calculate_size(multiplier=2)
         elif data_format == DataFormat.Float32:
             return calculate_size(multiplier=4)
+        elif data_format == DataFormat.RawUInt32:
+            return calculate_size(multiplier=4)
         else:
             raise RuntimeError(f"Unsupported data format: {data_format}")
 
