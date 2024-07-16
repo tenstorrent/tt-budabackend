@@ -701,8 +701,8 @@ void tt_cluster::check_hex_from_dram(tt_hex *hex, std::string name) {
     }
 }
 
-void *tt_cluster::channel_0_address(std::uint32_t offset, std::uint32_t device_id) const {
-    return device->channel_0_address(offset, device_id);
+void *tt_cluster::channel_address(std::uint32_t offset, const tt_target_dram &dram) {
+    return device->channel_address(offset, get_dram_core(dram));
 }
 
 void *tt_cluster::host_dma_address(std::uint64_t offset, chip_id_t src_device_id, uint16_t channel) const {

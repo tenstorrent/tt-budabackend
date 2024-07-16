@@ -19,6 +19,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import random
 
@@ -289,18 +290,35 @@ class FixNetlistForBH:
         # For each new netlist we process, bring address counters to the beginning.
         self.reset_starting_addresses()
 
+        # Some queues are aliased, so they need to have all parameters the same including addresses.
+        # Aliased queues represent the same queue with different name.
+        old_queue_to_new_queue_addresses = {
+            "host" : {},
+            "dram": {},
+        }
+
         for q_name, q_dict in netlist_dict["queues"].items():
             # Wrap queue data from netlist into an abstraction.
             queue = QueueNode(q_name, q_dict)
-            # Based on new arch restrictions for queue addresses, recalculate buffers locations.
-            self.calculate_new_buffers_locations(queue)
 
+            # New address is calculated if this is a queue with new address (not an aliased queue).
+            # We use the old location string as the key to the dictionary.
+            old_loc_value = str(netlist_dict["queues"][queue.name][queue.location])
+            if old_loc_value not in old_queue_to_new_queue_addresses[queue.location]:
+                # Based on new arch restrictions for queue addresses, recalculate buffers locations.
+                self.calculate_new_buffers_locations(queue)
+
+                # Save the new location for all the future uses.
+                old_queue_to_new_queue_addresses[queue.location][old_loc_value] = queue.buffers_locations
+                
             # Overwrite old queue addresses with new data.
-            netlist_dict["queues"][queue.name][queue.location] = queue.buffers_locations
+            # Note that we need to copy the list each time. If we don't then all the yaml nodes representing the same address would point
+            # to the same list object. Then, when ruamel.YAML serializes it will print some of this as references, without full value.
+            netlist_dict["queues"][queue.name][queue.location] = copy.deepcopy(old_queue_to_new_queue_addresses[queue.location][old_loc_value])
 
-            if not self.keep_old_arch:
-                # Overwrite arch.
-                netlist_dict["devices"]["arch"] = str(self.arch)
+        # Overwrite arch for this netlist if needed.
+        if not self.keep_old_arch:
+            netlist_dict["devices"]["arch"] = str(self.arch)
 
     def fix_netlists(self) -> None:
         for i, netlist in enumerate(self.netlists):
