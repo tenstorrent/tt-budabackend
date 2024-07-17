@@ -139,11 +139,18 @@ struct address_map {
   static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
   static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
   static constexpr std::uint32_t PERF_UNUSED_SIZE = 24;
+  static_assert(PERF_TOTAL_SETUP_BUFFER_SIZE == PERF_QUEUE_HEADER_SIZE
+   + PERF_RISC_MAILBOX_SIZE + PERF_RESET_PTR_MAILBOX_SIZE + PERF_ANALYZER_COMMAND_START_PTR_SIZE
+   + PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE,
+   "PERF_TOTAL_SETUP_BUFFER_SIZE must be equal to the sum of all the subsequent sizes in this section");
 
   static constexpr std::uint32_t MATH_PERF_BUF_SIZE = 64;
   static constexpr std::uint32_t BRISC_PERF_BUF_SIZE = 640; // Half of this value must be 32B aligned
+  static_assert(BRISC_PERF_BUF_SIZE % NOC_ADDRESS_ALIGNMENT == 0, "BRISC_PERF_BUF_SIZE must be NOC_ADDRESS_ALIGNMENT bytes aligned");
   static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+  static_assert(UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
   static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = (12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2;
+  static_assert(UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
 
   static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
   static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;

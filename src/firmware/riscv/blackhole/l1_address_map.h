@@ -58,9 +58,12 @@ struct address_map {
 
   static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR = NCRISC_DATA_BASE + NCRISC_DATA_SIZE; // L1 Performance Buffer used by NCRISC
   static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE = 2 * 8 * 8; // Half of this value must be NOC_ADDRESS_ALIGNMENT aligned
+  static_assert(NCRISC_PERF_QUEUE_HEADER_SIZE / 2 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_QUEUE_HEADER_SIZE / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
   static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE = NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE; // L1 Performance Buffer used by NCRISC
   static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+  static_assert(NCRISC_PERF_BUF_SIZE_LEVEL_0 / 2 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_0 / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
   static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4*1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
+  static_assert(NCRISC_PERF_BUF_SIZE_LEVEL_1 / 2 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_1 / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
   static constexpr std::uint32_t NCRISC_L1_PERF_BUF_SIZE = NCRISC_PERF_BUF_SIZE_LEVEL_1;
   static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE = NCRISC_L1_PERF_BUF_BASE + NCRISC_L1_PERF_BUF_SIZE; // Epoch Q start in L1.
 
@@ -155,11 +158,19 @@ struct address_map {
   static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
   static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
   static constexpr std::uint32_t PERF_UNUSED_SIZE = 24;
+  static_assert(PERF_TOTAL_SETUP_BUFFER_SIZE == PERF_QUEUE_HEADER_SIZE
+   + PERF_RISC_MAILBOX_SIZE + PERF_RESET_PTR_MAILBOX_SIZE + PERF_ANALYZER_COMMAND_START_PTR_SIZE
+   + PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE,
+   "PERF_TOTAL_SETUP_BUFFER_SIZE must be equal to the sum of all the subsequent sizes in this section");
 
-  static constexpr std::uint32_t MATH_PERF_BUF_SIZE = 64;
-  static constexpr std::uint32_t BRISC_PERF_BUF_SIZE = 640; // Half of this value must be 32B aligned
-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = (12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2;
+  static constexpr std::uint32_t MATH_PERF_BUF_SIZE = 128  & ~(NOC_ADDRESS_ALIGNMENT*2 - 1);
+  static_assert(MATH_PERF_BUF_SIZE / 2 % NOC_ADDRESS_ALIGNMENT == 0, "MATH_PERF_BUF_SIZE / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+  static constexpr std::uint32_t BRISC_PERF_BUF_SIZE = 640 & ~(NOC_ADDRESS_ALIGNMENT*2 - 1); // Half of this value must be NOC_ADDRESS_ALIGNED aligned
+  static_assert(BRISC_PERF_BUF_SIZE / 2 % NOC_ADDRESS_ALIGNMENT == 0, "BRISC_PERF_BUF_SIZE / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640 & ~(NOC_ADDRESS_ALIGNMENT*2 - 1); // smaller buffer size for limited logging
+  static_assert(UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 / 2 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = ((12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2) & ~(NOC_ADDRESS_ALIGNMENT*2 - 1);
+  static_assert(UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 / 2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
 
   static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
   static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;

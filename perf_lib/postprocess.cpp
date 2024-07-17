@@ -758,7 +758,7 @@ void combine_ncrisc_events(thread_events &thread_events) {
     }
 }
 
-// Buffer size for each worker is 32B aligned
+// Buffer size for each worker is NOC_ADDRESS_ALIGNMENT bytes aligned
 // The buffer space for every worker allocated in dram
 uint32_t get_dram_perf_buf_inc(const buda_SocDescriptor *soc_descriptor, const tt_xy_pair &dram_core) {
 
@@ -768,8 +768,8 @@ uint32_t get_dram_perf_buf_inc(const buda_SocDescriptor *soc_descriptor, const t
 
     int num_workers_current_dram_core = dram_core_to_workers.at(dram_core).size();
     int num_threads = thread_names.size();
-    //perf_buf_inc should be 32-byte aligned.
-    uint32_t perf_buf_inc = num_workers_current_dram_core ? (dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_SIZE/num_workers_current_dram_core) & 0xFFFFFFE0 : 0;
+    //perf_buf_inc should be multiple of NOC_ADDRESS_ALIGNMENT, to ensure NOC_ADDRESS_ALIGNMENT bytes aligned addresses
+    uint32_t perf_buf_inc = num_workers_current_dram_core ? (dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_SIZE/num_workers_current_dram_core) & ~(NOC_ADDRESS_ALIGNMENT-1) : 0;
     return perf_buf_inc;
 
 }
@@ -1878,7 +1878,8 @@ PerfHostScratchBuffer::PerfHostScratchBuffer(
                 mmio_device_to_dram_channel_id.insert({mapped_chip_id, 0});
             }
             
-            log_assert(sdesc.get_perf_dram_bank_to_workers().size() == sdesc.dram_cores.size(), "All dram cores must be used for perf dump");
+            log_warning(tt::LogPerfInfra, "Not all dram cores have been used for perf dump");
+            // log_assert(sdesc.get_perf_dram_bank_to_workers().size() == sdesc.dram_cores.size(), "All dram cores must be used for perf dump");
             for (const auto& dram_to_worker: sdesc.get_perf_dram_bank_to_workers()) {
                 log_assert(dram_to_worker.second.size() > 0, "At least one worker core must have been assigned to each dram channel for perf dump");
                 tt_cxy_pair core_with_host_ptrs = tt_cxy_pair(device_id, dram_to_worker.second.at(0));

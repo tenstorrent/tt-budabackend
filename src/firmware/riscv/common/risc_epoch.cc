@@ -56,7 +56,11 @@ void run_epoch(
     RISC_EPOCH_INFO_PTR->end_program = 0;
     if (RISC_EPOCH_INFO_PTR->overlay_valid) {
 #ifdef PERF_DUMP
+    #ifdef RISC_B0_HW
+        risc::init_perf_dram_state();
+    #else
         call_with_cpu_flush((void *)risc::init_perf_dram_state, 0);
+    #endif
 #endif
 #if defined(ERISC) || defined(RISC_B0_HW)
         /*For Erisc init_ncrisc_streams is a pointer to init_erisc_streams()*/
@@ -146,7 +150,11 @@ void run_epoch(
 #endif
 #ifdef PERF_DUMP
         risc::record_timestamp_at_offset(risc::perf_event::EPOCH, risc::EPOCH_END_OFFSET);
+        #ifdef RISC_B0_HW
+        risc::record_perf_dump_end();
+        #else
         call_with_cpu_flush((void *)risc::record_perf_dump_end, 0);
+        #endif
 #endif
     }
 }

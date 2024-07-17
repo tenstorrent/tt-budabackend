@@ -44,7 +44,7 @@ void allocate_perf_buffer() {
    } else if ((uint32_t) __firmware_start == (uint32_t)l1_mem::address_map::TRISC1_BASE) {
       perf_buf_base_addr = l1_mem::address_map::MATH_PERF_BUF_BASE_ADDR;
       perf_index = 4; // The first 4 32b regs are skipped in recording math perf counters.
-      perf_end = 16;
+      perf_end = l1_mem::address_map::MATH_PERF_BUF_SIZE/2;
 
       // Initialize math_dram_dump_req_local in the beginning of epoch.
       // EPOCH_INFO_PTR->perf_dram_copy_req counters do not get reset between epochs.

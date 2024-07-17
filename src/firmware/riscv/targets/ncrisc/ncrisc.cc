@@ -256,7 +256,11 @@ int main(int argc, char *argv[]) {
   LoopStack<4> loopstack;
 
 #ifdef PERF_DUMP
-  call_with_cpu_flush((void *)risc::allocate_perf_buffer, 0);
+  #ifdef RISC_B0_HW
+    risc::allocate_perf_buffer();
+  #else
+    call_with_cpu_flush((void *)risc::allocate_perf_buffer, 0);
+  #endif
 #endif
 
 #ifdef RISC_GSYNC_ENABLED
@@ -379,7 +383,11 @@ int main(int argc, char *argv[]) {
           break;
         }
 #ifdef PERF_DUMP
-        call_with_cpu_flush((void *)risc::allocate_perf_buffer, 0);
+  #ifdef RISC_B0_HW
+    risc::allocate_perf_buffer();
+  #else
+    call_with_cpu_flush((void *)risc::allocate_perf_buffer, 0);
+  #endif
 #endif
       }
 #if defined(PERF_DUMP)

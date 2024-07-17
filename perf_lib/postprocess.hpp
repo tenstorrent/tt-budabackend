@@ -311,6 +311,14 @@ private:
         return host_mem::address_map::NUM_HOST_PERF_QUEUES;
     }
     inline const uint32_t get_queue_size_bytes() const {
+        static_assert(host_mem::address_map::HOST_PERF_QUEUE_SLOT_SIZE > 
+            l1_mem::address_map::PERF_TOTAL_SETUP_BUFFER_SIZE
+             + l1_mem::address_map::MATH_PERF_BUF_SIZE
+             + l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1
+             + l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1
+             + l1_mem::address_map::BRISC_PERF_BUF_SIZE
+             + l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1, "Host perf queue slot size must be larger than the sum of all the performance buffers");
+
         return host_mem::address_map::HOST_PERF_QUEUE_SLOT_SIZE;
     }
     
@@ -328,8 +336,8 @@ private:
         return num_queues_pow_2;
     }
     inline void check_valid_config() {
-        log_assert(l1_mem::address_map::NCRISC_PERF_QUEUE_HEADER_ADDR % 32 == 0, "ncrisc perf base address must be 32B aligned");
-        log_assert(l1_mem::address_map::PERF_QUEUE_HEADER_SIZE % sizeof(uint32_t) == 0, "performance queue header size must be divisable by 4b");
+        static_assert(l1_mem::address_map::NCRISC_PERF_QUEUE_HEADER_ADDR % NOC_ADDRESS_ALIGNMENT == 0, "ncrisc perf base address must be 32B aligned");
+        static_assert(l1_mem::address_map::PERF_QUEUE_HEADER_SIZE % sizeof(uint32_t) == 0, "performance queue header size must be divisable by 4B");
     }
 
 public:
