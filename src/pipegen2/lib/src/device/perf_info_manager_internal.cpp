@@ -148,7 +148,11 @@ tt_cxy_pair get_nearest_dram_core(
 
 uint32_t calculate_worker_mem_size(std::size_t num_workers)
 {
-    return num_workers > 0 ? (dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_SIZE / num_workers) & 0xFFFFFFE0 : 0;
+    // to ensure NOC_ADDRESS_ALIGNMENT bytes aligned address,
+    // allocate memory in multiples of NOC_ADDRESS_ALIGNMENT bytes.
+    return num_workers > 0
+               ? (dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_SIZE / num_workers) & ~(NOC_ADDRESS_ALIGNMENT - 1)
+               : 0;
 }
 
 void calculate_worker_threads_mem_size(

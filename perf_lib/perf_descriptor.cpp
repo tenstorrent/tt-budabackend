@@ -460,29 +460,28 @@ vector<PerfComparisonConfig> set_comparison_configs(const string &netlist_file, 
 }
 
 void check_perf_buffer_addresses_aligned() {
-    log_assert(dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_BASE % 32 == 0, "Perf buffer base address for each dram bank must be 32B aligned");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::PERF_QUEUE_HEADER_ADDR % 32 == 0, "Perf queue header address must be 32B aligned");
-    log_assert(l1_mem::address_map::MATH_PERF_BUF_SIZE % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::MATH_PERF_BUF_SIZE/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::BRISC_PERF_BUF_SIZE % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::BRISC_PERF_BUF_SIZE/2 % 32 == 0, "Perf buffer size address for each thread must be 32B aligned");
-    log_assert(l1_mem::address_map::MATH_PERF_BUF_BASE_ADDR % 32 == 0, "Perf buffer base address must be 32B aligned");
-    log_assert(l1_mem::address_map::BRISC_PERF_BUF_BASE_ADDR % 32 == 0, "Perf buffer base address must be 32B aligned");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_BASE_ADDR % 32 == 0, "Perf buffer base address must be 32B aligned");
-    log_assert(l1_mem::address_map::PERF_BUF_SIZE == 12 * 1024 - 768, "Perf buffer size must be equal to 12KB. 640B are given to BRISC code space");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 >= l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0, "Unpack/pack perf buffer size must be the largest");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::MATH_PERF_BUF_SIZE, "Unpack/pack perf buffer size must be the largest");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::BRISC_PERF_BUF_SIZE, "Unpack/pack perf buffer size must be the largest");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0, "Unpack/pack perf buffer size must be the largest");
-    log_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 >= l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1, "Unpack/pack perf buffer size must be the largest");
+    static_assert(dram_mem::address_map::DRAM_EACH_BANK_PERF_BUFFER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DRAM_EACH_BANK_PERF_BUFFER_BASE must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0/2 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1/2 % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_0 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0/2 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_0/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_1 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1/2 % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_PERF_BUF_SIZE_LEVEL_1/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::PERF_QUEUE_HEADER_ADDR % NOC_ADDRESS_ALIGNMENT == 0, "PERF_QUEUE_HEADER_ADDR must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::MATH_PERF_BUF_SIZE % NOC_ADDRESS_ALIGNMENT == 0, "MATH_PERF_BUF_SIZE must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::MATH_PERF_BUF_SIZE/2 % NOC_ADDRESS_ALIGNMENT == 0, "MATH_PERF_BUF_SIZE/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::BRISC_PERF_BUF_SIZE % NOC_ADDRESS_ALIGNMENT == 0, "BRISC_PERF_BUF_SIZE must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::BRISC_PERF_BUF_SIZE/2 % NOC_ADDRESS_ALIGNMENT == 0, "BRISC_PERF_BUF_SIZE/2 must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::MATH_PERF_BUF_BASE_ADDR % NOC_ADDRESS_ALIGNMENT == 0, "MATH_PERF_BUF_BASE_ADDR must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::BRISC_PERF_BUF_BASE_ADDR % NOC_ADDRESS_ALIGNMENT == 0, " BRISC_PERF_BUF_BASE_ADDR must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_BASE_ADDR % NOC_ADDRESS_ALIGNMENT == 0, "UNPACK_PACK_PERF_BUF_BASE_ADDR must be NOC_ADDRESS_ALIGNMENT bytes aligned");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 >= l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0, "Unpack/pack perf buffer size must be the largest");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::MATH_PERF_BUF_SIZE, "Unpack/pack perf buffer size must be the largest");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::BRISC_PERF_BUF_SIZE, "Unpack/pack perf buffer size must be the largest");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 >= l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_0, "Unpack/pack perf buffer size must be the largest");
+    static_assert(l1_mem::address_map::UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 >= l1_mem::address_map::NCRISC_PERF_BUF_SIZE_LEVEL_1, "Unpack/pack perf buffer size must be the largest");
 }
 
 PerfDesc::PerfDesc() {

@@ -29,8 +29,8 @@ struct address_map {
   static constexpr std::int32_t HOST_PERF_SCRATCH_BUF_START = DEVICE_TO_HOST_SCRATCH_START_PER_CHANNEL[0] + ETH_ROUTING_BUFFERS_SIZE; // Implicit assumption: Perf buffers will be placed on host channel 0.
   static constexpr std::int32_t HOST_PERF_SCRATCH_BUF_SIZE = 64 * 1024 * 1024;
   static constexpr std::int32_t NUM_THREADS_IN_EACH_DEVICE_DUMP = 1;
-  static constexpr std::int32_t NUM_HOST_PERF_QUEUES = 6 * 64;
-  static constexpr std::int32_t HOST_PERF_QUEUE_SLOT_SIZE = HOST_PERF_SCRATCH_BUF_SIZE / NUM_HOST_PERF_QUEUES / 32 * 32;  
+  static constexpr std::int32_t NUM_HOST_PERF_QUEUES = 8 * 64; // 8 is number of DRAM channels
+  static constexpr std::int32_t HOST_PERF_QUEUE_SLOT_SIZE = HOST_PERF_SCRATCH_BUF_SIZE / NUM_HOST_PERF_QUEUES / 32 * 32;
   
   constexpr static std::int32_t ALLOCATABLE_QUEUE_REGION_START(std::int32_t channel) {
     // queue region starts at the base of host memory region

@@ -7,22 +7,22 @@
 #include "l1_address_map.h"
 
 void buda_SocDescriptor::map_workers_to_dram_banks() {
+    // This functionality should be copied over from pipegen2 :: perf_info_manager_internal
+    // Plus it doesnt look optimized on WH, nor BH. 
+    // On WH: dram ch2 5-0 and ch3 5-2 are mapped to 4 cores only
+    // On BH: algorithm doesnt map any workers to dram ch0 0-0 and ch4 9-0
+
+    log_assert(dram_cores.size() > 0, "No DRAM cores found");
+
+    std::vector<std::vector<tt_xy_pair>> dram_cores_per_channel; // take first core of each channel
+    for (std::vector<tt_xy_pair>& channel_cores : dram_cores) {
+        dram_cores_per_channel.push_back(std::vector<tt_xy_pair>());
+        dram_cores_per_channel.back().push_back(channel_cores[0]);
+    }
+
     for (tt_xy_pair worker : workers) {
-        log_assert(dram_cores.size() > 0, "No DRAM cores found");
         // Initialize target dram core to the first dram.
         tt_xy_pair target_dram_bank = dram_cores.at(0).at(0);
-        std::vector<std::vector<tt_xy_pair>> dram_cores_per_channel;
-        if (arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) {
-            dram_cores_per_channel = {
-                {tt_xy_pair(0, 0)},
-                {tt_xy_pair(0, 5)},
-                {tt_xy_pair(5, 0)},
-                {tt_xy_pair(5, 2)},
-                {tt_xy_pair(5, 3)},
-                {tt_xy_pair(5, 5)}};
-        } else {
-            dram_cores_per_channel = dram_cores;
-        }
         for (const auto& dram_cores : dram_cores_per_channel) {
             for (tt_xy_pair dram : dram_cores) {
                 int diff_x = worker.x - dram.x;

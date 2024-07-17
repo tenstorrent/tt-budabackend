@@ -1822,7 +1822,11 @@ void risc_dram_stream_handler_loop(
     bool check_dram_spill = (perf_spill_check_cnt == 0);
     perf_spill_check_cnt = (perf_spill_check_cnt + 1) & risc::PERF_SPILL_CHECK_MASK;
     if (check_dram_spill) {
-      call_with_cpu_flush((void *)risc::check_dram_spill_requests_once, 0);
+      #ifdef RISC_B0_HW
+        risc::check_dram_spill_requests_once();
+      #else
+        call_with_cpu_flush((void *)risc::check_dram_spill_requests_once, 0);
+      #endif
     }
 #endif
 
