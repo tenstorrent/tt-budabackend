@@ -15,14 +15,16 @@ namespace blobgen2
 std::map<tt_cxy_pair, BlobData> BlobFiller::fill_blobs(
     const std::map<tt_cxy_pair, EpochAllocator>& epoch_allocators,
     EpochBlobData& epoch_blob_data,
-    const SoCHelper& soc_helper)
+    const SoCHelper& soc_helper,
+    const int epoch_num)
 {
     std::map<tt_cxy_pair, BlobData> blobs;
 
     for (auto& [core_id, core_blob_data] : epoch_blob_data.cores)
     {
         blobs.emplace(core_id, BlobData{});
-        fill_valid_blob(core_id, blobs.at(core_id), soc_helper, epoch_allocators.at(core_id), core_blob_data);
+        fill_valid_blob(
+            core_id, epoch_num, blobs.at(core_id), soc_helper, epoch_allocators.at(core_id), core_blob_data);
     }
 
     std::set<tt_cxy_pair> valid_cores;
@@ -39,6 +41,7 @@ std::map<tt_cxy_pair, BlobData> BlobFiller::fill_blobs(
 
 void BlobFiller::fill_valid_blob(
     const tt_cxy_pair& core_id,
+    const int epoch_num,
     BlobData& blob,
     const SoCHelper& soc_helper,
     const EpochAllocator& epoch_allocator,
@@ -68,9 +71,17 @@ void BlobFiller::fill_valid_blob(
                                    : (l1_mem::address_map::OVERLAY_BLOB_SIZE + epoch->overlay_blob_extra_size);
     log_assert(
         curr_size <= overlay_blob_size,
-        "Blob size {} exceeds predefined maximum overlay blob size for chip {}",
-        curr_size,
-        overlay_blob_size);
+        "The overlay blob for chip_{}__y_{}__x_{} (epoch:{},chip:{},y:{},x:{}) does not fit, the max size is {}, "
+        "however we tried to allocate {}",
+        core_id.chip,
+        core_id.y,
+        core_id.x,
+        epoch_num,
+        core_id.chip,
+        core_id.y,
+        core_id.x,
+        overlay_blob_size,
+        curr_size);
 }
 
 void BlobFiller::fill_epoch_section(
