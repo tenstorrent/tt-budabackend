@@ -78,7 +78,8 @@ void Blobgen2::create_and_output_blobs_internal(
         epoch_num,
         soc_helper);
 
-    std::map<tt_cxy_pair, BlobData> blobs = BlobFiller::fill_blobs(epoch_allocators, epoch_blob_data, soc_helper);
+    std::map<tt_cxy_pair, BlobData> blobs =
+        BlobFiller::fill_blobs(epoch_allocators, epoch_blob_data, soc_helper, epoch_num);
 
     output_blobs(blobs, output_dir, epoch_num, dump_debug_info);
 }

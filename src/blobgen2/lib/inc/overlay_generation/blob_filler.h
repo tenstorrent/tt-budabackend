@@ -23,12 +23,14 @@ public:
     static std::map<tt_cxy_pair, BlobData> fill_blobs(
         const std::map<tt_cxy_pair, EpochAllocator>& epoch_allocators,
         EpochBlobData& epoch_blob_data,
-        const SoCHelper& soc_helper);
+        const SoCHelper& soc_helper,
+        const int epoch_num);
 
 private:
     // Fill a single valid blob.
     static void fill_valid_blob(
         const tt_cxy_pair& core_id,
+        const int epoch_num,
         BlobData& blob,
         const SoCHelper& soc_helper,
         const EpochAllocator& epoch_allocator,
