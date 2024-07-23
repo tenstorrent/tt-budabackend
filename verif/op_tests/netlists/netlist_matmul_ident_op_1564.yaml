@@ -4,43 +4,44 @@
 # coverge for bug tenstorrent/budabackend#1564
 
 devices:
-  arch: wormhole_b0
+  arch: [wormhole_b0, blackhole]
 
 queues:
 
   # input
-  input_1:    {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 392], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
+  input_1: {input: HOST, type: queue, entries: 4, grid_size: [1, 1], t: 1, mblock: [1, 392], ublock: [1, 1], ublock_order: c, df: Float32, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
 
   # output
-  output:     {input: op0, type: queue, entries: 4, grid_size: [8, 1], t: 1, mblock: [98, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x30000000], [2, 0x30000000], [3, 0x30000000], [4, 0x30000000], [5, 0x30000000], [1, 0x38000000], [2, 0x38000000], [3, 0x38000000]]}
+  output: {input: op0, type: queue, entries: 4, grid_size: [8, 1], t: 1, mblock: [98, 1], ublock: [1, 1], ublock_order: r, df: Float32, target_device: 0, loc: dram, dram: [[1, 0x10000000], [1, 0x10194440],
+      [1, 0x10328880], [1, 0x104bccc0], [1, 0x10651100], [1, 0x107e5540], [1, 0x10979980], [1, 0x10b0ddc0]]}
 
   # constant
-  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0:  {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 5], ublock: [1, 1], ublock_order: c, df: Bfp2_b, target_device: 0, loc: dram, dram: [[3, 0xad80ce0], [3, 0x40214ea0], [4, 0xaf34d80], [4, 0x40a68660], [5, 0x4c45b60], [5, 0x4335d0a0], [0, 0x89cf660], [0, 0x436d4b80]]}
-  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1:  {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r, df: RawUInt32, target_device: 0, loc: dram, dram: [[5, 0x4c44b20], [5, 0x4335c060], [0, 0x89ce620], [0, 0x436d3b40], [1, 0x4bf3b00], [1, 0x40564840], [2, 0x5accb20], [2, 0x4035a520]]}
+  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 5], ublock: [1, 1], ublock_order: c,
+    df: Bfp2_b, target_device: 0, loc: dram, dram: [[3, 0x10000000], [3, 0x100007c0], [3, 0x10000f80], [3, 0x10001740], [3, 0x10001f00], [3, 0x100026c0], [3, 0x10002e80], [3, 0x10003640]]}
+  lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {input: HOST, type: queue, entries: 1, grid_size: [8, 1], t: 1, mblock: [1, 1], ublock: [1, 1], ublock_order: r,
+    df: RawUInt32, target_device: 0, loc: dram, dram: [[5, 0x10000000], [5, 0x100010c0], [5, 0x10002180], [5, 0x10003240], [5, 0x10004300], [5, 0x100053c0], [5, 0x10006480], [5, 0x10007540]]}
 
 graphs:
   test_op:
     target_device: 0
     input_count: 4
     op0: {type: matmul, grid_loc: [0, 0], grid_size: [8, 1], inputs: [lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0, input_1, lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1],
-         t: 1, mblock: [98, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Float32, RawUInt32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3,
-         input_1_tms: [transpose],
-         attributes: {act_t: 1, fracture_factor: 1, identity: true, m_k: 392, num_index_tiles: 1, num_sparse_tiles: 5, sparse_tile_ptr_bits: 8, u_kt: 1}}
+      t: 1, mblock: [98, 1], ublock: [1, 1], buf_size_mb: 2, ublock_order: r, in_df: [Bfp2_b, Float32, RawUInt32], out_df: Float32, intermed_df: Float32, acc_df: Float32, math_fidelity: HiFi3, input_1_tms: [
+        transpose], attributes: {act_t: 1, fracture_factor: 1, identity: true, m_k: 392, num_index_tiles: 1, num_sparse_tiles: 5, sparse_tile_ptr_bits: 8, u_kt: 1}}
 
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count, $c_zero]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst : [$c_input_count, set, 4]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-          input_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-          lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero},
-          lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {prologue: false, epilogue: false, zero: False, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 4] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 4] # add two variables
-      - endloop
+- program0:
+  - var: [$c_loop_count, $c_input_count, $c_zero]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 4]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0: {
+          prologue: false, epilogue: false, zero: false, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}, lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1: {
+          prologue: false, epilogue: false, zero: false, rd_ptr_autoinc: 0, rd_ptr_local: $c_zero, rd_ptr_global: $c_zero}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 4]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 4]     # add two variables
+  - endloop
 
 test-config:
   comparison-config:
@@ -52,3 +53,14 @@ test-config:
     type: Uniform
     uniform_lower_bound: -1.0
     uniform_upper_bound: 1.0
+    overrides:
+      lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.0:
+        type: sparse
+        matmul_ident_name: op0
+      lc.input_tensor.conv2d_0.dc.conv2d.3.dc.conv2d.1.dc.sparse_matmul.9.dc.sparse_matmul.1.1:
+        type: sparse_encoding
+        matmul_ident_name: op0
+        zero_strip_freq: 0.9 # a strip/block is zero. This will cover zero strip in the first/last position too.
+        zero_ublock_freq: 0.9 # an ublock within non-zero strip is zero. Ensure that non-zero strip contains an non-zero ublock.
+        zero_tile_freq: 0.5  # a tile within non-zero ublock is zero. Ensure that non-zero ublock contains a non-zero tile.
+        enc_tile_byte_size: 4096

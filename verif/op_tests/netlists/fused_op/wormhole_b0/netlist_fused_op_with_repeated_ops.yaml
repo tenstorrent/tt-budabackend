@@ -1,10 +1,10 @@
 devices:
-  arch: [wormhole_b0]
+  arch: [wormhole_b0, blackhole]
 queues:
-  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x60000000]]}
-  input2:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x30000000]]}
-  output0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Bfp8, target_device: 0, loc: dram, dram: [[1, 0x60000000]]}
+  input0: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input1: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10006640]]}
+  input2: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Bfp8_b, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 3], df: Bfp8, target_device: 0, loc: dram, dram: [[1, 0x10003640]]}
 graphs:
   test_op:
     target_device: 0
@@ -28,36 +28,31 @@ graphs:
       mblock: [2, 1]
       ublock: [2, 3]
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - var: [$ramrdptr, $ramwrptr]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 1]  # input count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         }}
-      -   varinst: [$lptr, incwrap, $c_input_count, 1]
-      -   varinst: [$gptr, incwrap, $c_input_count, 1]
-      - endloop
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - var: [$ramrdptr, $ramwrptr]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]      # input count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 1]
+  - varinst: [$gptr, incwrap, $c_input_count, 1]
+  - endloop
 fused_ops:
   0:
     inputs: 3
     intermediates: 1
     schedules:
-      -
         # this netlist tests net2hlks logic for adding init calls when we have repeated ops
         # but we still need to insert init calls between since op params are not the same
-        - abs: {type: abs, inputs: [input0], mblock: [2, 1], ublock: [2, 3], output: dest}
+    - - abs: {type: abs, inputs: [input0], mblock: [2, 1], ublock: [2, 3], output: dest}
         # dest is on different inputs
-        - add1: {type: add, inputs: [dest, input1], mblock: [2, 1], ublock: [2, 3], output: dest}
-        - add2: {type: add, inputs: [input2, dest], mblock: [2, 1], ublock: [2, 3], output: dest}
+      - add1: {type: add, inputs: [dest, input1], mblock: [2, 1], ublock: [2, 3], output: dest}
+      - add2: {type: add, inputs: [input2, dest], mblock: [2, 1], ublock: [2, 3], output: dest}
         # input comes from dest and intermed buffer
-        - sqrt1: {type: sqrt, inputs: [dest], mblock: [2, 1], ublock: [2, 3], output: intermed0}
-        - sqrt2: {type: sqrt, inputs: [intermed0], pop: [intermed0], mblock: [2, 1], ublock: [2, 3], output: output}
-
+      - sqrt1: {type: sqrt, inputs: [dest], mblock: [2, 1], ublock: [2, 3], output: intermed0}
+      - sqrt2: {type: sqrt, inputs: [intermed0], pop: [intermed0], mblock: [2, 1], ublock: [2, 3], output: output}
 test-config:
   comparison-config:
     type: AllCloseHw
@@ -69,4 +64,4 @@ test-config:
   stimulus-config:
     type: Uniform
     uniform_lower_bound: 0.0
-    uniform_upper_bound: 2.0 
+    uniform_upper_bound: 2.0

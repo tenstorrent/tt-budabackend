@@ -1,63 +1,64 @@
 devices:
-  arch: [wormhole_b0]
+  arch: [wormhole_b0, blackhole]
 
 queues:
-  input0:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 5, mblock: [2, 8], ublock: [4, 2], tile_dim: [16, 32], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x30000000], [1, 0x30000000], [2, 0x30000000], [3, 0x30000000]]}
-  input1:  {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 5, mblock: [8, 2], ublock: [2, 2], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x31000000], [1, 0x31000000], [2, 0x31000000], [3, 0x31000000]]}
-  output: {type: queue, input: op1 , entries: 8, grid_size: [2, 2], t: 5, mblock: [2, 2], ublock: [4, 2], tile_dim: [32, 32], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x10000000], [1, 0x10000000], [2, 0x10000000], [3, 0x10000000]]}
+  input0: {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 5, mblock: [2, 8], ublock: [4, 2], tile_dim: [16, 32], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x105a0040],
+      [0, 0x10b40080], [0, 0x110e00c0]]}
+  input1: {type: queue, input: HOST, entries: 8, grid_size: [2, 2], t: 5, mblock: [8, 2], ublock: [2, 2], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x11680100], [0, 0x11950140], [0, 0x11c20180],
+      [0, 0x11ef01c0]]}
+  output: {type: queue, input: op1, entries: 8, grid_size: [2, 2], t: 5, mblock: [2, 2], ublock: [4, 2], tile_dim: [32, 32], df: Bfp8, target_device: 0, loc: dram, dram: [[0, 0x121c0200], [0, 0x12328240],
+      [0, 0x12490280], [0, 0x125f82c0]]}
 
 graphs:
   test_op:
     target_device: 0
     input_count: 4
     op0:
-      type: nop 
+      type: nop
       grid_loc: [0, 0]
       grid_size: [2, 2]
-      inputs: [input0] 
-      in_df: [Bfp8] 
+      inputs: [input0]
+      in_df: [Bfp8]
       acc_df: Float16
-      out_df: Bfp8  
-      intermed_df: Bfp8 
+      out_df: Bfp8
+      intermed_df: Bfp8
       ublock_order: r
       buf_size_mb: 2
-      math_fidelity: LoFi 
-      untilize_output: false 
+      math_fidelity: LoFi
+      untilize_output: false
       t: 5
       mblock: [2, 8]
       ublock: [4, 2]
       tile_dim: [16, 32]
-    op1: 
-      type: matmul 
+    op1:
+      type: matmul
       grid_loc: [0, 2]
       grid_size: [2, 2]
-      inputs: [op0, input1] 
-      in_df: [Bfp8, Bfp8] 
+      inputs: [op0, input1]
+      in_df: [Bfp8, Bfp8]
       acc_df: Float16
-      out_df: Bfp8  
-      intermed_df: Bfp8 
+      out_df: Bfp8
+      intermed_df: Bfp8
       ublock_order: r
       buf_size_mb: 2
-      math_fidelity: LoFi 
-      untilize_output: false 
+      math_fidelity: LoFi
+      untilize_output: false
       t: 5
       mblock: [2, 2]
       ublock: [4, 2]
       tile_dim: [32, 32]
       attributes: {m_k: 16, u_kt: 2}
-      
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 4]  # load loop count
-      - loop: $c_loop_count
-      -   execute: {graph_name: test_op, queue_settings: {
-           input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-           input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      -   varinst: [$lptr, incwrap, $c_input_count, 2]
-      -   varinst: [$gptr, incwrap, $c_input_count, 2]
-      - endloop 
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 4]      # load loop count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 2]
+  - varinst: [$gptr, incwrap, $c_input_count, 2]
+  - endloop
 
 test-config:
   comparison-config:

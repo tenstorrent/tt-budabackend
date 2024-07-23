@@ -1,9 +1,9 @@
 devices:
-  arch: wormhole_b0
+  arch: [wormhole_b0, blackhole]
 
 queues:
   in_0: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
-  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x10040820]]}
+  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float32, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
 
 graphs:
   test_op:
@@ -44,9 +44,8 @@ fused_ops:
     inputs: 1
     intermediates: 0
     schedules:
-    - 
-      - nop: {type: nop, inputs: [input0], mblock: [1, 1], ublock: [1, 1], output: dest}
-      - abs2: {type: abs, inputs: [dest],  mblock: [1, 1], ublock: [1, 1], output: output}
+    - - nop: {type: nop, inputs: [input0], mblock: [1, 1], ublock: [1, 1], output: dest}
+      - abs2: {type: abs, inputs: [dest], mblock: [1, 1], ublock: [1, 1], output: output}
 test-config:
   comparison-config:
     type: AllCloseHw

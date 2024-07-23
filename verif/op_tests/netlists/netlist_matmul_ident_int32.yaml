@@ -1,16 +1,16 @@
 devices:
-  arch: [wormhole_b0]
+  arch: [wormhole_b0, blackhole]
 
 queues:
-  input0_sparse:  {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 128], ublock: [1, 1], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x107e33e0], [1, 0x107ee400]]} #sparse tile input
-  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [8, 4], ublock: [2, 4], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x1085fcc0]]}
-  input2_encoding:  {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 16], ublock: [1, 1], df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x3d7042a0], [0, 0x3d7144c0]]} #index tile encoding input
-  output0: {type: queue, input: op0 , entries: 1, grid_size: [2, 1], t: 2, mblock: [1, 4], ublock: [1, 4], df: Int32, target_device: 0, loc: dram, dram: [[0, 0x3da19640], [1, 0x3e04b560]]}
+  input0_sparse: {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 128], ublock: [1, 1], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x10044040]]}  #sparse tile input
+  input1: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 2, mblock: [8, 4], ublock: [2, 4], df: Int8, target_device: 0, loc: dram, dram: [[0, 0x10088080]]}
+  input2_encoding: {type: ram, input: HOST, entries: 1, grid_size: [2, 1], t: 1, mblock: [1, 16], ublock: [1, 1], df: RawUInt32, target_device: 0, loc: dram, dram: [[0, 0x101980c0], [0, 0x101a8900]]}  #index tile encoding input
+  output0: {type: queue, input: op0, entries: 1, grid_size: [2, 1], t: 2, mblock: [1, 4], ublock: [1, 4], df: Int32, target_device: 0, loc: dram, dram: [[0, 0x101b9140], [0, 0x101da180]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  1
+    input_count: 1
     op0:
       type: matmul
       grid_loc: [0, 0]   # [r,c]
@@ -30,19 +30,17 @@ graphs:
       ublock: [1, 4]
 
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count, $c_zero]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst : [$c_input_count, set, 1]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0_sparse: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input2_encoding: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 2] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 2] # add two variables
-      - endloop
+- program0:
+  - var: [$c_loop_count, $c_input_count, $c_zero]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0_sparse: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}, input1: {prologue: false, epilogue: false,
+          zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input2_encoding: {prologue: true, epilogue: false, zero: false, wr_ptr_global: $c_zero, rd_ptr_global: $c_zero}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 2]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 2]     # add two variables
+  - endloop
 
 test-config:
   test-args:

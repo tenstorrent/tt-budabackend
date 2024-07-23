@@ -1,51 +1,51 @@
 devices:
-  arch: [grayskull, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
-  input0:  {type: queue, input: HOST, entries: 4, grid_size: [2, 2], t: 1, mblock: [4, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x35a2a1c0], [4, 0x35a4a9e0], [5, 0x35a6b200], [3, 0x35a8ba20]]}
-  input1:  {type: queue, input: HOST, entries: 4, grid_size: [2, 2], t: 1, mblock: [2, 1], ublock: [1, 8], df: Bfp8, target_device: 0, loc: dram, dram: [[2, 0x3783f660], [4, 0x37862680], [5, 0x378856a0], [3, 0x378a86c0]]}
-  input2:  {type: queue, input: HOST, entries: 4, grid_size: [1, 2], t: 1, mblock: [1, 1], ublock: [1, 8], df: Bfp8, target_device: 0, loc: dram, dram: [[2, 0x3c6e5ba0], [4, 0x3c72bbc0]]}
-  output: {type: queue, input: op0 , entries: 4, grid_size: [2, 2], t: 1, mblock: [4, 1], ublock: [1, 8], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x3ce0bd20], [4, 0x3ce8dd40], [5, 0x3cf0fd60], [3, 0x3cf91d80]]}
+  input0: {type: queue, input: HOST, entries: 4, grid_size: [2, 2], t: 1, mblock: [4, 2], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10000000], [2, 0x10011040], [2, 0x10022080],
+      [2, 0x100330c0]]}
+  input1: {type: queue, input: HOST, entries: 4, grid_size: [2, 2], t: 1, mblock: [2, 1], ublock: [1, 8], df: Bfp8, target_device: 0, loc: dram, dram: [[2, 0x10044100], [2, 0x10056140], [2, 0x10068180],
+      [2, 0x1007a1c0]]}
+  input2: {type: queue, input: HOST, entries: 4, grid_size: [1, 2], t: 1, mblock: [1, 1], ublock: [1, 8], df: Bfp8, target_device: 0, loc: dram, dram: [[2, 0x1008c200], [2, 0x10095240]]}
+  output: {type: queue, input: op0, entries: 4, grid_size: [2, 2], t: 1, mblock: [4, 1], ublock: [1, 8], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x1009e280], [2, 0x100e22c0], [2, 0x10126300],
+      [2, 0x1016a340]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  2
-    op0: 
+    input_count: 2
+    op0:
       type: matmul
       grid_loc: [5, 2]   # [r,c]
       grid_size: [2, 2] # [r,c]
-      inputs: [input0, input1, input2] 
-      in_df: [Float16, Bfp8, Bfp8] 
+      inputs: [input0, input1, input2]
+      in_df: [Float16, Bfp8, Bfp8]
       acc_df: Float16
-      out_df: Float16  
+      out_df: Float16
       intermed_df: Float16
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi3
-      attributes: {m_k: 4, u_kt: 1, bias: true, l1_acc: False, sfpu_op: gelu, sfpu_execution_thread: math, relu_en: false, relu_threshold: 0.000000, relu_mode: none}
-      untilize_output: false 
+      attributes: {m_k: 4, u_kt: 1, bias: true, l1_acc: false, sfpu_op: gelu, sfpu_execution_thread: math, relu_en: false, relu_threshold: 0.000000, relu_mode: none}
+      untilize_output: false
       t: 1
-      mblock: [4,  1]
+      mblock: [4, 1]
       ublock: [1, 8]
       input_0_tms:
       input_1_tms: None
       input_2_tms: [broadcast: {r: 8}]
-      
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 2]  # load loop count
-      - varinst : [$c_input_count, set, 2]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 8] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 8] # add two variables
-      - endloop 
+- program0:
+  - var: [$c_loop_count, $c_input_count]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 2]      # load loop count
+  - varinst: [$c_input_count, set, 2]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 8]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 8]     # add two variables
+  - endloop
 
 test-config:
   test-args:

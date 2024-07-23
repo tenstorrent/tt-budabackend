@@ -1,67 +1,59 @@
 devices:
-  arch: [grayskull, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
-  in_0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 3], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  in_1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 3], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x33000000]]}
-  in_2:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x36000000]]}
-  in_3:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x39000000]]}
-  output0:  {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [2, 4], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+  in_0: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 3], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  in_1: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 3], ublock: [2, 2], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x1000a240]]}
+  in_2: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10014480]]}
+  in_3: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1002dcc0]]}
+  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [2, 4], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x10047500]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  1
-    op0: 
+    input_count: 1
+    op0:
       type: fused_op
       grid_loc: [0, 0]
       grid_size: [1, 1]
       inputs: [in_0, in_1, in_2, in_3]
       in_df: [Bfp8_b, Bfp8_b, Float16_b, Float16_b]
       acc_df: Float16
-      out_df: Bfp8_b  
+      out_df: Bfp8_b
       intermed_df: Bfp8_b
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi3
-      untilize_output: false 
+      untilize_output: false
       gradient_op: false
       attributes: {fused_op_id: 0}
       t: 1
       mblock: [3, 1]
       ublock: [2, 4]
-      
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - var: [$ramrdptr, $ramwrptr]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 1]  # load loop count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-          in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-          in_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-          in_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-          in_3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-          }}
-      -   varinst: [$lptr, incwrap, $c_input_count, 2]
-      -   varinst: [$gptr, incwrap, $c_input_count, 2]
-      - endloop 
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - var: [$ramrdptr, $ramwrptr]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]      # load loop count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, in_1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, in_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, in_3: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 2]
+  - varinst: [$gptr, incwrap, $c_input_count, 2]
+  - endloop
 
 fused_ops:
-  0: 
+  0:
     inputs: 4
     intermediates: 4
-    schedules: 
-      -
-        - add0: { type: add, inputs: [input0, input1], mblock: [3, 3], ublock: [2, 2], output: intermed0}
-        - reduce0: { type: reduce, inputs: [intermed0], pop: [intermed0],  attributes: {dim: c, type: max, m_k: 3, u_kt: 2}, mblock: [3, 1], ublock: [2, 1], output: intermed1}
-      -
-        - add1: { type: add, inputs: [input2, input3], mblock: [6, 1], ublock: [2, 4], output: intermed2}
-        - reduce1: { type: reduce, inputs: [intermed2], pop: [intermed2],  attributes: {dim: r, type: max, m_k: 6, u_kt: 2}, mblock: [1, 1], ublock: [1, 4], output: intermed3}
-      - 
-        - sub2: { type: subtract, inputs: [intermed1, intermed3], pop: [intermed1, intermed3], input_0_tms: [broadcast: {c: 4}], input_1_tms: [broadcast: {r: 6}], mblock: [3, 1], ublock: [2, 4], output: output}
-
+    schedules:
+    - - add0: {type: add, inputs: [input0, input1], mblock: [3, 3], ublock: [2, 2], output: intermed0}
+      - reduce0: {type: reduce, inputs: [intermed0], pop: [intermed0], attributes: {dim: c, type: max, m_k: 3, u_kt: 2}, mblock: [3, 1], ublock: [2, 1], output: intermed1}
+    - - add1: {type: add, inputs: [input2, input3], mblock: [6, 1], ublock: [2, 4], output: intermed2}
+      - reduce1: {type: reduce, inputs: [intermed2], pop: [intermed2], attributes: {dim: r, type: max, m_k: 6, u_kt: 2}, mblock: [1, 1], ublock: [1, 4], output: intermed3}
+    - - sub2: {type: subtract, inputs: [intermed1, intermed3], pop: [intermed1, intermed3], input_0_tms: [broadcast: {c: 4}], input_1_tms: [broadcast: {r: 6}], mblock: [3, 1], ublock: [2, 4], output: output}
 test-config:
   comparison-config:
     type: AllCloseHw
@@ -74,4 +66,4 @@ test-config:
     type: Uniform
     uniform_lower_bound: 0.000
     uniform_upper_bound: 1.000
-  
+

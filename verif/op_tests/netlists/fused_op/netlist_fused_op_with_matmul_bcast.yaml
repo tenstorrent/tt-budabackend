@@ -1,9 +1,9 @@
 devices:
-  arch: [grayskull, wormhole, wormhole_b0]
+  arch: [grayskull, wormhole, wormhole_b0, blackhole]
 queues:
-  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [4, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
-  output0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x32000000]]}
+  input0: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input1: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [4, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10004440]]}
+  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10008880]]}
 graphs:
   test_op:
     target_device: 0
@@ -28,28 +28,25 @@ graphs:
       ublock: [2, 1]
       input_0_tms:
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - var: [$ramrdptr, $ramwrptr]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 1]  # input count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      -   varinst: [$lptr, incwrap, $c_input_count, 2]
-      -   varinst: [$gptr, incwrap, $c_input_count, 2]
-      - endloop
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - var: [$ramrdptr, $ramwrptr]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]      # input count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 2]
+  - varinst: [$gptr, incwrap, $c_input_count, 2]
+  - endloop
 fused_ops:
   0:
     inputs: 2
     intermediates: 2
     schedules:
-      -
-        - nop0: {type: datacopy, inputs: [input0], mblock: [2, 1], ublock: [2, 2], output: intermed0}
-        - matmul1: { type: matmul, inputs: [intermed0, input1], pop: [intermed0], input_0_tms: [broadcast: {c: 4}], attributes: {m_k: 2, u_kt: 4}, mblock: [2, 1], ublock: [2, 1], output: intermed1}
-      -
-        - nop1: {type: datacopy, inputs: [intermed1], pop: [intermed1], mblock: [2, 1], ublock: [2, 1], output: output}
+    - - nop0: {type: datacopy, inputs: [input0], mblock: [2, 1], ublock: [2, 2], output: intermed0}
+      - matmul1: {type: matmul, inputs: [intermed0, input1], pop: [intermed0], input_0_tms: [broadcast: {c: 4}], attributes: {m_k: 2, u_kt: 4}, mblock: [2, 1], ublock: [2, 1], output: intermed1}
+    - - nop1: {type: datacopy, inputs: [intermed1], pop: [intermed1], mblock: [2, 1], ublock: [2, 1], output: output}
 test-config:
   comparison-config:
     type: AllCloseHw

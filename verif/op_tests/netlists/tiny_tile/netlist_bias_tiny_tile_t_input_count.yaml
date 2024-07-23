@@ -1,52 +1,47 @@
 devices:
-  arch: wormhole_b0
+  arch: [wormhole_b0, blackhole]
 
 queues:
-  input0:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [1, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x113e65c0]]}
-  input1:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x2c1b1b00]]}
-  input2:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x2fb88760]]}
-  output:  {type: queue, input: op0 , entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x38b65ca0]]}
+  input0: {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [1, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10000000]]}
+  input1: {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10002240]]}
+  input2: {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x10004480]]}
+  output: {type: queue, input: op0, entries: 2, grid_size: [1, 1], t: 2, mblock: [1, 1], ublock: [1, 1], tile_dim: [32, 32], df: Float16, target_device: 0, loc: dram, dram: [[2, 0x100066c0]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  2
-    op0: 
+    input_count: 2
+    op0:
       type: matmul
       grid_loc: [0, 0]   # [r,c]
       grid_size: [1, 1] # [r,c]
-      inputs: [input0, input1, input2] 
-      in_df: [Float16, Float16, Float16] 
+      inputs: [input0, input1, input2]
+      in_df: [Float16, Float16, Float16]
       acc_df: Float16
-      out_df: Float16  
+      out_df: Float16
       intermed_df: Float16
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi2
-      attributes: {m_k: 1, u_kt: 1, bias: true, l1_acc: False,
-        sfpu_op: invalid, sfpu_execution_thread: pack,
-        relu_en: false, relu_threshold: 0.000000, relu_mode: max,
-        stoch_rnd_mode: none}
-      untilize_output: false 
+      attributes: {m_k: 1, u_kt: 1, bias: true, l1_acc: false, sfpu_op: invalid, sfpu_execution_thread: pack, relu_en: false, relu_threshold: 0.000000, relu_mode: max, stoch_rnd_mode: none}
+      untilize_output: false
       t: 2
       mblock: [1, 1]
       ublock: [1, 1]
       tile_dim: [32, 32]
 
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst : [$c_input_count, set, 3]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 4] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 4] # add two variables
-      - endloop 
+- program0:
+  - var: [$c_loop_count, $c_input_count]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 3]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 4]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 4]     # add two variables
+  - endloop
 
 test-config:
   test-args:
@@ -63,7 +58,7 @@ test-config:
     uniform_lower_bound: 1.0
     uniform_upper_bound: 1.0
     overrides:
-      input2: 
+      input2:
         type: Constant
         constant_value: 100
 
