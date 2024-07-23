@@ -1,45 +1,40 @@
 devices:
-  arch: WORMHOLE_B0
+  arch: [WORMHOLE_B0, blackhole]
 
 queues:
-  input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [1, 2], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x26df7ac0]], }
-  input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [3, 2], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x28d80620]], }
-  input_2: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [1, 1], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x2cf67580]], }
-  input_3: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [3, 1], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x2fb683e0]], }
-  output0: {type: queue, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [3, 2], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x332b0740]], }
+  input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [1, 2], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [3, 2], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x10001b40]]}
+  input_2: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [1, 1], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x10006c80]]}
+  input_3: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [3, 1], df: Bfp8, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x100087c0]]}
+  output0: {type: queue, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [3, 2], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x1000d900]]}
 
 graphs:
   test_op:
     target_device: 0
     input_count: 1
-    op: {type: splice, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [3, 2], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1, input_2, input_3], in_df: [Bfp8, Bfp8, Bfp8, Bfp8], math_fidelity: HiFi3, intermed_df: Bfp8, acc_df: Float16_b, attributes: {stoch_rnd_mode: none, kernel_broadcast : {input_0 : 18}, kernel_broadcast_per_t : {input_1 : 18}, input0: [1, 3, 7], input1: [4, 1, 2], input2: [1, 1, 7], input3: [2, 1, 10]}, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, ], input_1_tms: [broadcast: {r: 2}, ], input_2_tms: [broadcast: {r: 8}, ], input_3_tms: [broadcast: {r: 4}, ], }
-    
-    
-    
-    
-    
+    op: {type: splice, grid_size: [1, 1], t: 1, mblock: [6, 1], ublock: [3, 2], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1, input_2, input_3], in_df: [Bfp8, Bfp8, Bfp8, Bfp8], math_fidelity: HiFi3,
+      intermed_df: Bfp8, acc_df: Float16_b, attributes: {stoch_rnd_mode: none, kernel_broadcast: {input_0: 18}, kernel_broadcast_per_t: {input_1: 18}, input0: [1, 3, 7], input1: [4, 1, 2], input2: [1, 1,
+          7], input3: [2, 1, 10]}, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}], input_1_tms: [broadcast: {r: 2}], input_2_tms: [broadcast: {
+            r: 8}], input_3_tms: [broadcast: {r: 4}]}
 
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst : [$c_input_count, set, 1]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input_3: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         }}
-      - varinst: [$lptr, incwrap, $c_input_count, 2] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 2] # add two variables
-      - endloop
+- program0:
+  - var: [$c_loop_count, $c_input_count]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input_1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input_2: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input_3: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 2]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 2]     # add two variables
+  - endloop
 
 test-config:
   test-args:
     program_loop_count: 1
-  comparison-config: {type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }
+  comparison-config: {type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32]}
   stimulus-config:
     overrides:
       input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}

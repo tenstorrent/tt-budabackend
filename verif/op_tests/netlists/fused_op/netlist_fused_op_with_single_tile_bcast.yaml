@@ -1,59 +1,55 @@
 devices:
-  arch: [grayskull, wormhole, wormhole_b0]
+  arch: [grayskull, wormhole, wormhole_b0, blackhole]
 
 queues:
-  in_0:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 1], ublock: [2, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  in_1:  {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x31000000]]}
-  output0:  {type: queue, input: op0 , entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 3], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x3e000000]]}
+  in_0: {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 1], ublock: [2, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  in_1: {type: queue, input: HOST, entries: 8, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 2], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1001b040]]}
+  output0: {type: queue, input: op0, entries: 8, grid_size: [1, 1], t: 2, mblock: [3, 3], ublock: [2, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10023880]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  8
-    op0: 
+    input_count: 8
+    op0:
       type: fused_op
       grid_loc: [0, 0]   # [r,c]
       grid_size: [1, 1] # [r,c]
       inputs: [in_0, in_1]
       in_df: [Bfp8_b, Float16_b]
       acc_df: Float16
-      out_df: Float16_b  
+      out_df: Float16_b
       intermed_df: Bfp8_b
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi3
-      untilize_output: false 
+      untilize_output: false
       gradient_op: false
-      attributes: {fused_op_id: 0, kernel_broadcast: {input_1 : 2}}
+      attributes: {fused_op_id: 0, kernel_broadcast: {input_1: 2}}
       t: 2
       mblock: [3, 3]
       ublock: [2, 4]
       input_0_tms:
       input_1_tms: [broadcast: {r: 6}, broadcast: {c: 6}, broadcast: {z: 2}]
-      
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - var: [$ramrdptr, $ramwrptr]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 8]  # load loop count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         in_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      -   varinst: [$lptr, incwrap, $c_input_count, 16]
-      -   varinst: [$gptr, incwrap, $c_input_count, 16]
-      - endloop 
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - var: [$ramrdptr, $ramwrptr]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 8]      # load loop count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {in_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, in_1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 16]
+  - varinst: [$gptr, incwrap, $c_input_count, 16]
+  - endloop
 
 fused_ops:
-  0: 
+  0:
     inputs: 2
     intermediates: 1
-    schedules: 
-      -
-        - softmax_19.dc.reciprocal.2: { type: reciprocal, inputs: [input0], mblock: [3, 1], ublock: [2, 1], output: intermed0}
-        - softmax_19.dc.multiply.3: { type: multiply, inputs: [input1, intermed0], input_1_tms: [broadcast: {c: 12}], pop: [intermed0], mblock: [3, 3], ublock: [2, 4], output: output}
-
+    schedules:
+    - - softmax_19.dc.reciprocal.2: {type: reciprocal, inputs: [input0], mblock: [3, 1], ublock: [2, 1], output: intermed0}
+      - softmax_19.dc.multiply.3: {type: multiply, inputs: [input1, intermed0], input_1_tms: [broadcast: {c: 12}], pop: [intermed0], mblock: [3, 3], ublock: [2, 4], output: output}
 test-config:
   comparison-config:
     type: AllCloseHw

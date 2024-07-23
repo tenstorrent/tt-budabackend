@@ -1,46 +1,44 @@
 devices:
-  arch: [grayskull, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
-  input0:  {type: queue, input: HOST, entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x1d5c0f60], [2, 0x1d685d80], [2, 0x1d74aba0]]}
-  input1:  {type: queue, input: HOST, entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x23d16a60], [2, 0x23e84480], [2, 0x23ff1ea0]]}
-  output: {type: queue, input: op0 , entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x25247780], [2, 0x2530c5a0], [2, 0x253d13c0]]}
+  input0: {type: queue, input: HOST, entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x10000000], [2, 0x100ca840], [2, 0x10195080]]}
+  input1: {type: queue, input: HOST, entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[2, 0x1025f8c0], [2, 0x103de100], [2, 0x1055c940]]}
+  output: {type: queue, input: op0, entries: 12, grid_size: [3, 1], t: 4, mblock: [1, 3], ublock: [5, 1], df: Bfp8_b, target_device: 0, loc: dram, dram: [[2, 0x106db180], [2, 0x107a59c0], [2, 0x10870200]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  3
-    op0: 
-      type: subtract 
+    input_count: 3
+    op0:
+      type: subtract
       grid_loc: [5, 1]   # [r,c]
       grid_size: [3, 1] # [r,c]
-      inputs: [input0, input1] 
-      in_df: [Bfp8_b, Float16_b] 
+      inputs: [input0, input1]
+      in_df: [Bfp8_b, Float16_b]
       acc_df: Float16
-      out_df: Bfp8_b  
+      out_df: Bfp8_b
       intermed_df: Bfp8_b
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi2
-      untilize_output: false 
+      untilize_output: false
       t: 4
-      mblock: [1,  3]
+      mblock: [1, 3]
       ublock: [5, 1]
       input_0_tms:
-      
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 2]  # load loop count
-      - varinst: [$c_input_count, set, 3]  # load input count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 24]
-      - varinst: [$gptr, incwrap, $c_input_count, 24]
-      - endloop 
+- program0:
+  - var: [$c_loop_count, $c_input_count]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 2]      # load loop count
+  - varinst: [$c_input_count, set, 3]      # load input count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 24]
+  - varinst: [$gptr, incwrap, $c_input_count, 24]
+  - endloop
 
 test-config:
   test-args:

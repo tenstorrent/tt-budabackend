@@ -1,5 +1,5 @@
 devices:
-  arch: [wormhole, wormhole_b0]
+  arch: [wormhole, wormhole_b0, blackhole]
 
 ### This variant for wha0 differs only in the dram channels that are selected for each queue. This is because of a constraint imposed
 ### for wha0 where there is a HW bug for DRAM reads that can cause a hang, for which the work-around involves occassionally performing
@@ -8,49 +8,53 @@ devices:
 ###   1) have all queue allocations on the same dram channel if any of the pipe inputs are scatter buffers
 ###   2) queue allocations can be to any channel if none are scatter buffers
 queues:
-  input0:  {type: queue, input: HOST, entries: 8, grid_size: [5, 5], t: 2, mblock: [1, 2], ublock: [1, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x2c84c3e0], [3, 0x2c995500], [3, 0x2cade620], [3, 0x2cc27740], [3, 0x2cd70860], [3, 0x2ceb9980], [3, 0x2d002aa0], [3, 0x2d14bbc0], [3, 0x2d294ce0], [3, 0x2d3dde00], [3, 0x2d526f20], [3, 0x2d670040], [3, 0x2d7b9160], [3, 0x2d902280], [3, 0x2da4b3a0], [3, 0x2db944c0], [3, 0x2dcdd5e0], [3, 0x2de26700], [3, 0x2df6f820], [3, 0x2e0b8940], [3, 0x2e201a60], [3, 0x2e34ab80], [3, 0x2e493ca0], [3, 0x2e5dcdc0], [3, 0x2e725ee0]]}
-  input1:  {type: queue, input: HOST, entries: 8, grid_size: [5, 5], t: 2, mblock: [2, 1], ublock: [4, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x2f1b4820], [4, 0x2fbfd040], [4, 0x30645860], [4, 0x3108e080], [4, 0x31ad68a0], [4, 0x3251f0c0], [4, 0x32f678e0], [4, 0x339b0100], [4, 0x343f8920], [4, 0x34e41140], [4, 0x35889960], [4, 0x362d2180], [4, 0x36d1a9a0], [4, 0x377631c0], [4, 0x381ab9e0], [4, 0x38bf4200], [4, 0x3963ca20], [4, 0x3a085240], [4, 0x3aacda60], [4, 0x3b516280], [4, 0x3bf5eaa0], [4, 0x3c9a72c0], [4, 0x3d3efae0], [4, 0x3de38300], [4, 0x3e880b20]]}
-  output: {type: ram, input: op0 , entries: 1, grid_size: [5, 5], t: 2, mblock: [1, 1], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x3f6c4d20], [5, 0x3f6f5940], [5, 0x3f726560], [5, 0x3f757180], [5, 0x3f787da0], [5, 0x3f7b89c0], [5, 0x3f7e95e0], [5, 0x3f81a200], [5, 0x3f84ae20], [5, 0x3f87ba40], [5, 0x3f8ac660], [5, 0x3f8dd280], [5, 0x3f90dea0], [5, 0x3f93eac0], [5, 0x3f96f6e0], [5, 0x3f9a0300], [5, 0x3f9d0f20], [5, 0x3fa01b40], [5, 0x3fa32760], [5, 0x3fa63380], [5, 0x3fa93fa0], [5, 0x3fac4bc0], [5, 0x3faf57e0], [5, 0x3fb26400], [5, 0x3fb57020]]}
+  input0: {type: queue, input: HOST, entries: 8, grid_size: [5, 5], t: 2, mblock: [1, 2], ublock: [1, 4], df: Float16_b, target_device: 0, loc: dram, dram: [[3, 0x10000000], [3, 0x10044040], [3, 0x10088080],
+      [3, 0x100cc0c0], [3, 0x10110100], [3, 0x10154140], [3, 0x10198180], [3, 0x101dc1c0], [3, 0x10220200], [3, 0x10264240], [3, 0x102a8280], [3, 0x102ec2c0], [3, 0x10330300], [3, 0x10374340], [3, 0x103b8380],
+      [3, 0x103fc3c0], [3, 0x10440400], [3, 0x10484440], [3, 0x104c8480], [3, 0x1050c4c0], [3, 0x10550500], [3, 0x10594540], [3, 0x105d8580], [3, 0x1061c5c0], [3, 0x10660600]]}
+  input1: {type: queue, input: HOST, entries: 8, grid_size: [5, 5], t: 2, mblock: [2, 1], ublock: [4, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[4, 0x10000000], [4, 0x10220040], [4, 0x10440080],
+      [4, 0x106600c0], [4, 0x10880100], [4, 0x10aa0140], [4, 0x10cc0180], [4, 0x10ee01c0], [4, 0x11100200], [4, 0x11320240], [4, 0x11540280], [4, 0x117602c0], [4, 0x11980300], [4, 0x11ba0340], [4, 0x11dc0380],
+      [4, 0x11fe03c0], [4, 0x12200400], [4, 0x12420440], [4, 0x12640480], [4, 0x128604c0], [4, 0x12a80500], [4, 0x12ca0540], [4, 0x12ec0580], [4, 0x130e05c0], [4, 0x13300600]]}
+  output: {type: ram, input: op0, entries: 1, grid_size: [5, 5], t: 2, mblock: [1, 1], ublock: [1, 8], df: Float16_b, target_device: 0, loc: dram, dram: [[5, 0x10000000], [5, 0x10008840], [5, 0x10011080],
+      [5, 0x100198c0], [5, 0x10022100], [5, 0x1002a940], [5, 0x10033180], [5, 0x1003b9c0], [5, 0x10044200], [5, 0x1004ca40], [5, 0x10055280], [5, 0x1005dac0], [5, 0x10066300], [5, 0x1006eb40], [5, 0x10077380],
+      [5, 0x1007fbc0], [5, 0x10088400], [5, 0x10090c40], [5, 0x10099480], [5, 0x100a1cc0], [5, 0x100aa500], [5, 0x100b2d40], [5, 0x100bb580], [5, 0x100c3dc0], [5, 0x100cc600]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  4
-    op0: 
+    input_count: 4
+    op0:
       type: matmul
       grid_loc: [2, 0]   # [r,c]
       grid_size: [5, 5] # [r,c]
-      inputs: [input0, input1] 
-      in_df: [Float16_b, Float16_b] 
+      inputs: [input0, input1]
+      in_df: [Float16_b, Float16_b]
       acc_df: Float16
-      out_df: Float16_b  
+      out_df: Float16_b
       intermed_df: Float16_b
       ublock_order: r
       buf_size_mb: 2
       math_fidelity: HiFi3
       attributes: {m_k: 10, u_kt: 4}
-      untilize_output: false 
+      untilize_output: false
       gradient_op: true
       t: 2
-      mblock: [1,  1]
+      mblock: [1, 1]
       ublock: [1, 8]
       input_0_tms:
       input_1_tms: None
-      
+
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - var: [$ramrdptr, $ramwrptr]
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 4]  # load loop count
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
-      -   varinst: [$lptr, incwrap, $c_input_count, 16]
-      -   varinst: [$gptr, incwrap, $c_input_count, 16]
-      - endloop 
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - var: [$ramrdptr, $ramwrptr]
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 4]      # load loop count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}, output: {prologue: true, epilogue: true, zero: true, rd_ptr_global: $ramrdptr, wr_ptr_global: $ramwrptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 16]
+  - varinst: [$gptr, incwrap, $c_input_count, 16]
+  - endloop
 
 test-config:
   comparison-config:

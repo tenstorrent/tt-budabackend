@@ -110,6 +110,9 @@ void netlist_parser::parse_queues(const YAML::Node& queues, unordered_map<string
                     log_assert(
                         it->second["dram"].size(), "dram allocation information needs to be supplied if location is dram");
                     for (const YAML::Node &per_core_alloc_info : it->second["dram"]) {
+                        if (this->device_info.arch == tt::ARCH::BLACKHOLE) {
+                            log_assert(per_core_alloc_info[1].as<std::uint32_t>() % 64 == 0, "For blackhole, all dram addresses need to be 64B aligned");
+                        }
                         queue_map[name].alloc_info.push_back(tt_queue_allocation_info{
                             .channel = per_core_alloc_info[0].as<std::uint32_t>(),
                             .address = per_core_alloc_info[1].as<std::uint32_t>()});

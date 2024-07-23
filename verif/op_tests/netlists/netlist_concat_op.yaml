@@ -2,39 +2,39 @@
 # pytest pybuda/test/test_sanity.py::test_concat[inference-Golden--1]
 
 devices:
-  arch: [grayskull, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
 
   # input
-  input_0_concatenate_1:                             {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 3], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  input_1_concatenate_1:                             {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x310124a0]]}
-  input_2_concatenate_1:                             {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x320124a0]]}
+  input_0_concatenate_1: {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 3], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input_1_concatenate_1: {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 2], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x10013240]]}
+  input_2_concatenate_1: {input: HOST, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [4, 1], ublock: [1, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x1001fe80]]}
 
   # output
-  ModuleBuilder.simple_concat.output_concatenate_1:  {input: concatenate_1, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [2, 6], ublock: [2, 1], ublock_order: r, df: Float16_b, target_device: 0, loc: dram, dram: [[0x0, 0x33000000]]}
+  ModuleBuilder.simple_concat.output_concatenate_1: {input: concatenate_1, type: queue, entries: 1, grid_size: [1, 1], t: 3, mblock: [2, 6], ublock: [2, 1], ublock_order: r, df: Float16_b, target_device: 0,
+    loc: dram, dram: [[0x0, 0x100264c0]]}
 
 graphs:
   fwd_0_temporal_epoch_0:
     target_device: 0
     input_count: 1
-    concatenate_1: {type: splice, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_0_concatenate_1, input_1_concatenate_1, input_2_concatenate_1], untilize_output: true,
-         t: 3, mblock: [2, 6], ublock: [2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3,
-         attributes: {input0: [0, 3, 3], input1: [0, 2, 2], input2: [0, 1, 1]}}
+    concatenate_1: {type: splice, grid_loc: [0, 0], grid_size: [1, 1], inputs: [input_0_concatenate_1, input_1_concatenate_1, input_2_concatenate_1], untilize_output: true, t: 3, mblock: [2, 6], ublock: [
+        2, 1], buf_size_mb: 2, ublock_order: r, in_df: [Float16_b, Float16_b, Float16_b], out_df: Float16_b, intermed_df: Float16_b, acc_df: Float16_b, math_fidelity: HiFi3, attributes: {input0: [0, 3,
+          3], input1: [0, 2, 2], input2: [0, 1, 1]}}
 
 
 programs:
-  - run_fwd:
-    - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
-    - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
-    - loop: $p_loop_count
-    -   execute: {graph_name: fwd_0_temporal_epoch_0, queue_settings: {
-               input_0_concatenate_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
-               input_1_concatenate_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0},
-               input_2_concatenate_1: {prologue: false, epilogue: false, zero: False, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}} }
-    -   varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
-    -   varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
-    - endloop
+- run_fwd:
+  - var: {$c_microbatch_size: 1, $c_one: 1, $c_zero: 0, $p_loop_count: 1}
+  - staticvar: {$gptr_q0: 0, $lptr_q0: 0}
+  - loop: $p_loop_count
+  - execute: {graph_name: fwd_0_temporal_epoch_0, queue_settings: {input_0_concatenate_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}, input_1_concatenate_1: {
+          prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0, rd_ptr_global: $gptr_q0}, input_2_concatenate_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr_q0,
+          rd_ptr_global: $gptr_q0}}}
+  - varinst: [$gptr_q0, incwrap, $c_microbatch_size, 2]
+  - varinst: [$lptr_q0, incwrap, $c_microbatch_size, 2]
+  - endloop
 
 test-config:
   comparison-config:

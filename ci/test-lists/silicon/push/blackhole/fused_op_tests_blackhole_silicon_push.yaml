@@ -1,0 +1,165 @@
+fused_op_tests_blackhole_silicon_push:
+    build_on_runner: true
+    tag: push
+    owner: [macimovic, sjovic, ppopovic, pjosipovic, skrstic, rtawfik]
+    arch_name: blackhole
+    harvested_rows_supported: 2
+    device_runner: Silicon
+    test_flow: ./build/test/verif/op_tests/test_op
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 verif/op_tests
+      - echo Copy the netlist files to the test directory verif/op_tests/netlists/fused_op
+      - rm -fr build/test/verif/op_tests/netlists/fused_op
+      - mkdir -p build/test/verif/op_tests/netlists/fused_op
+      - cp -a verif/op_tests/netlists/fused_op/. build/test/verif/op_tests/netlists/fused_op/
+      - echo Copy the netlist files to the test directory verif/op_tests/netlists/fused_op/wormhole_b0
+      - rm -fr build/test/verif/op_tests/netlists/fused_op/wormhole_b0
+      - mkdir -p build/test/verif/op_tests/netlists/fused_op/wormhole_b0
+      - cp -a verif/op_tests/netlists/fused_op/wormhole_b0/. build/test/verif/op_tests/netlists/fused_op/wormhole_b0/
+    build_timeout: '900'
+    timeout: '600'
+    run_on_same_runner: true
+    artifacts: []
+# ========== Tests ========== #
+    fused_op_with_intermed_relu:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_intermed_relu.yaml --silicon --seed 0
+    fused_op_with_16_inputs:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_16_inputs.yaml --silicon --seed 0
+    fused_op_perf_tune:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_perf_tune.yaml --silicon --seed 0
+    fused_op_with_matmul_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_bcast.yaml --silicon --seed 0
+    fused_op_with_matmul_reduce_multi_rows:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_reduce_multi_rows.yaml --silicon --seed 0
+    fused_op_with_relu:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_relu.yaml --silicon --seed 0
+    fused_op_with_kernel_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_kernel_bcast.yaml --silicon --seed 0
+    fused_op_with_dest_relu:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_dest_relu.yaml --silicon --seed 0
+    fused_op_with_matmul_reduce_input_fork:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_reduce_input_fork.yaml --silicon --seed 0
+    fused_op_r_bcast_with_matmul:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_r_bcast_with_matmul.yaml --silicon --seed 0
+    fused_op_two_different_broadcasts:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_two_different_broadcasts.yaml --silicon --seed 0
+    fused_op_with_fork:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_fork.yaml --silicon --seed 0
+    # fused_op_dest_to_srcb_fp32:
+    #     command:
+    #     -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_dest_to_srcb_fp32.yaml --silicon --seed 0
+    # fused_op_with_matmul_fp32:
+    #     command:
+    #     -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_with_matmul_fp32.yaml --silicon --seed 0
+    fused_op_with_reduce:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_reduce.yaml --silicon --seed 0
+    fused_op_with_reduce_r_and_c:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_reduce_r_c.yaml --silicon --seed 0
+    fused_op_with_single_tile_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_single_tile_bcast.yaml --silicon --seed 0
+    fused_op_with_matmul_reduce:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_reduce.yaml --silicon --seed 0
+    fused_op:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op.yaml --silicon --seed 0
+    fused_op_with_matmul_reduce_large_m_k:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_reduce_large_m_k.yaml --silicon --seed 0
+    fused_op_r_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_r_bcast.yaml --silicon --seed 0
+    fused_op_with_matmul_kernel_broadcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_kernel_broadcast.yaml --silicon --seed 0
+    fused_op_c_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_c_bcast.yaml --silicon --seed 0
+    fused_op_with_tile_bcast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_tile_bcast.yaml --silicon --seed 0
+    fused_op_mixed_precision_inputs:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_mixed_precision_inputs.yaml --silicon --seed 0
+    fused_op_with_matmul:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul.yaml --silicon --seed 0
+    fused_op_with_input_fork:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_input_fork.yaml --silicon --seed 0
+    fused_op_kernel_bcast_with_relu:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_kernel_bcast_with_relu.yaml --silicon --seed 0
+    fused_op_with_repeated_ops:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_with_repeated_ops.yaml --silicon --seed 0
+    fused_op_no_unpack_reconfig_dest_float32_cast:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_no_unpack_reconfig_dest_float32_cast.yaml --silicon --seed 0
+    # fused_op_multiply_dest_fp32_tile_bcast:
+    #     command:
+    #     -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_multiply_dest_fp32_tile_bcast.yaml --silicon --seed 0
+    fused_op_with_bcast_and_repeated_ops:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_bcast_and_repeated_ops.yaml --silicon --seed 0
+    fused_op_reduce_single_data_format:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_reduce_single_data_format.yaml --silicon --seed 0
+    fused_op_int8:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_int8.yaml --silicon --seed 0
+    fused_op_quantization:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_quantization.yaml --silicon --seed 0
+    fused_op_dequantization:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_dequantization.yaml --silicon --seed 0
+    fused_op_requantization:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_requantization.yaml --silicon --seed 0
+    fused_op_requant_int8:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_requantization_int8.yaml --silicon --seed 0
+    fused_op_quant_dequant:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_quant_dequant.yaml --silicon --seed 0
+    fused_op_with_kernel_bcast_per_t:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_kernel_bcast_per_t.yaml --silicon --seed 0
+    fused_op_with_vector_mode:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_vector_mode.yaml --silicon --seed 0
+    fused_op_add_int32:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_add_int32.yaml --silicon --seed 0
+    fused_op_matmul_input1_row_and_column:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_input1_row_and_column.yaml --silicon --seed 0
+    fused_op_matmul_input1_row_and_column_input0_intermed:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_matmul_input1_row_and_column_input0_intermed.yaml --silicon --seed 0
+    fused_op_add_max:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_add_max.yaml --silicon --seed 0
+    fused_op_add_max_int32:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/wormhole_b0/netlist_fused_op_add_max_int32.yaml --silicon --seed 0
+    fused_op_lrelu:
+        command:
+        -   --netlist build/test/verif/op_tests/netlists/fused_op/netlist_fused_op_with_lrelu.yaml --silicon --seed 0

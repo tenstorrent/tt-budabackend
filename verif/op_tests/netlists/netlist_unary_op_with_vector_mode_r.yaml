@@ -1,44 +1,42 @@
 devices:
-  arch: [grayskull, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
-  input:  {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  output: {type: queue, input: op0 , entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input: {type: queue, input: HOST, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  output: {type: queue, input: op0, entries: 2, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10011040]]}
 
 graphs:
   test_op:
     target_device: 0
     input_count: 2
-    op0: 
-      type: exp 
-      grid_loc: [0, 1] 
+    op0:
+      type: exp
+      grid_loc: [0, 1]
       grid_size: [1, 1]
-      inputs: [input] 
-      in_df: [Float16] 
+      inputs: [input]
+      in_df: [Float16]
       acc_df: Float16
-      out_df: Float16  
-      intermed_df: Float16 
+      out_df: Float16
+      intermed_df: Float16
       ublock_order: r
       buf_size_mb: 2
-      math_fidelity: HiFi3 
-      untilize_output: true 
+      math_fidelity: HiFi3
+      untilize_output: true
       attributes: {sfpu_execution_thread: math, vector: r}
       t: 1
       mblock: [2, 1]
       ublock: [2, 4]
-      input_0_tms: 
-      
+      input_0_tms:
 programs:
-  - program0:
-      - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
-      - varinst: [$c_loop_count,  set, 1]  # load loop count
-      - varinst: [$c_input_count, set, 2]  # load input count
-      - loop: $c_loop_count
-      -   execute: {graph_name: test_op, queue_settings: {
-            input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      -   varinst: [$lptr, incwrap, $c_input_count, 4]
-      -   varinst: [$gptr, incwrap, $c_input_count, 4]
-      - endloop 
+- program0:
+  - staticvar: [$lptr, $gptr, $c_loop_count, $c_input_count]
+  - varinst: [$c_loop_count, set, 1]       # load loop count
+  - varinst: [$c_input_count, set, 2]      # load input count
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 4]
+  - varinst: [$gptr, incwrap, $c_input_count, 4]
+  - endloop
 
 test-config:
   comparison-config:

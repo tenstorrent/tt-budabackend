@@ -1,15 +1,15 @@
 devices:
-  arch: [WORMHOLE_B0, grayskull]
+  arch: [WORMHOLE_B0, grayskull, blackhole]
 
 queues:
-  input0:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000]]}
-  input1:  {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x38000000]]}
-  output0: {type: queue, input: op0 , entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x3e000000]]}
+  input0: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000]]}
+  input1: {type: queue, input: HOST, entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10000000]]}
+  output0: {type: queue, input: op0, entries: 1, grid_size: [1, 1], t: 4, mblock: [1, 1], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[1, 0x10002240]]}
 
 graphs:
   test_op:
     target_device: 0
-    input_count:  1
+    input_count: 1
     op0:
       type: depthwise
       grid_loc: [0, 0]   # [r,c]
@@ -29,18 +29,17 @@ graphs:
       ublock: [1, 1]
 
 programs:
-  - program0:
-      - var : [$c_loop_count, $c_input_count, $c_zero]
-      - staticvar : {$lptr: 0, $gptr: 0}
-      - varinst: [$c_loop_count, set, 1]  # load loop count
-      - varinst : [$c_input_count, set, 1]
-      - loop: $c_loop_count
-      - execute: {graph_name: test_op, queue_settings: {
-         input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},
-         input1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
-      - varinst: [$lptr, incwrap, $c_input_count, 256] # add two variables
-      - varinst: [$gptr, incwrap, $c_input_count, 256] # add two variables
-      - endloop
+- program0:
+  - var: [$c_loop_count, $c_input_count, $c_zero]
+  - staticvar: {$lptr: 0, $gptr: 0}
+  - varinst: [$c_loop_count, set, 1]      # load loop count
+  - varinst: [$c_input_count, set, 1]
+  - loop: $c_loop_count
+  - execute: {graph_name: test_op, queue_settings: {input0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr}, input1: {prologue: false, epilogue: false, zero: false,
+          rd_ptr_local: $lptr, rd_ptr_global: $gptr}}}
+  - varinst: [$lptr, incwrap, $c_input_count, 256]     # add two variables
+  - varinst: [$gptr, incwrap, $c_input_count, 256]     # add two variables
+  - endloop
 
 test-config:
   test-args:
