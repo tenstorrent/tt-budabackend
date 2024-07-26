@@ -39,7 +39,7 @@ BlobYamlWriter::BlobYamlWriter(const std::string& blob_yaml_path) : m_current_in
     try
     {
         std::filesystem::path directory = std::filesystem::path(blob_yaml_path).parent_path();
-        if (!std::filesystem::exists(directory))
+        if (!directory.empty() && !std::filesystem::exists(directory))
         {
             std::filesystem::create_directories(directory);
         }
