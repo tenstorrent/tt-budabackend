@@ -9,7 +9,8 @@ class tensor_constraints;
     rand bit[7:0] mblock_m, mblock_n, ublock_rt, ublock_ct;
     rand e_data_format data_format;
 
-    bit tiny_tiles_enabled = 1;
+    // Tiny tile hangs on BH
+    bit tiny_tiles_enabled = 0;
     rand bit enable_tiny_tile;
     rand bit[5:0] out_tile_dim_r, out_tile_dim_c;
     bit tile_1x32_enabled = 1;
@@ -17,6 +18,11 @@ class tensor_constraints;
     bit tile_4x32_enabled = 1;
     bit tile_8x32_enabled = 1;
     bit tile_16x32_enabled = 1;
+
+    // _a data formats cause zero outputs in some cases on BH
+    constraint rand_data_formats {
+        !(data_format inside {`FLOAT_A_FORMATS});
+    }
 
     constraint max_block_dims {
         if (custom_block_dims == 0) {

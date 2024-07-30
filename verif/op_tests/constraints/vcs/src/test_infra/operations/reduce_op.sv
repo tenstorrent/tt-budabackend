@@ -10,8 +10,9 @@ class reduce_op extends operation_constraints;
 
     rand e_reduce_type reduce_type;
     rand e_reduce_dim reduce_dim;
+    string reduce_dim_string;
 
-    function new(string name);
+    function new(string name, string dim);
         super.new(name);
         this.node_type = "reduce";
 
@@ -24,6 +25,7 @@ class reduce_op extends operation_constraints;
         bias_enabled = 0;
         l1_acc_enabled = 0;
         gradient_op_enabled = 0;
+        reduce_dim_string = dim;
     endfunction
 
     virtual function void initialize_inputs();
@@ -50,10 +52,14 @@ class reduce_op extends operation_constraints;
             input_0.data_format inside {bfp2_b, bfp4_b, bfp8_b, fp32, fp16_b};
         }
         input_0.data_format == output_data_format;
-        intermed_data_format == output_data_format;
+
+        reduce_dim == z -> input_0.data_format == intermed_data_format;
     }
 
     constraint rand_reduce_dim {
+        reduce_dim_string == "r" -> reduce_dim == r;
+        reduce_dim_string == "c" -> reduce_dim == c;
+        reduce_dim_string == "z" -> reduce_dim == z;
         if (reduce_dim == r) {
             tensor.grid_size_y == 1;
             tensor.mblock_m == 1;

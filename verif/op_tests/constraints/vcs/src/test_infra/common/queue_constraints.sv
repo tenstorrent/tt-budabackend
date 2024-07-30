@@ -48,9 +48,7 @@ virtual class queue_constraints extends node_constraints;
         $fwrite(out_filehandle, "input: %0s, ", input_name);
         $fwrite(out_filehandle, "entries: %0d, ", num_entries);
         $fwrite(out_filehandle, "target_device: %0d, ", target_device);
-        $fwrite(out_filehandle, "loc: dram, ");
-        $fwrite(out_filehandle, "dram: ");
-        `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[%0d, 0x%0x]", 0, q_dram_addr + i * q_size));
+        write_loc_addresses(out_filehandle);
     endfunction
 
     virtual function write_queue_settings_to_file(int out_filehandle);
@@ -62,6 +60,7 @@ virtual class queue_constraints extends node_constraints;
     endfunction
 
     protected pure virtual function write_queue_settings_to_file_internal(int out_filehandle);
+    protected pure virtual function write_loc_addresses(int out_filehandle);
 
 endclass
 
@@ -94,6 +93,11 @@ class input_queue_constraints extends queue_constraints;
         end
     endfunction
 
+    function write_loc_addresses(int out_filehandle);
+        $fwrite(out_filehandle, "loc: dram, ");
+        $fwrite(out_filehandle, "dram: ");
+        `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[%0d, 0x%0x]", 0, q_dram_addr + i * q_size));
+    endfunction
 endclass
 
 class output_queue_constraints extends queue_constraints;
@@ -144,6 +148,18 @@ class output_queue_constraints extends queue_constraints;
     virtual function string get_node_type();
         if (input_op.gradient_op_en == 1) return "ram";
         return super.get_node_type();
+    endfunction
+
+    function write_loc_addresses(int out_filehandle);
+        if (input_op.gradient_op_en == 0) begin
+            $fwrite(out_filehandle, "loc: host, ");
+            $fwrite(out_filehandle, "host: ");
+            `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[0, 0x%0x]", q_host_addr + i * q_size));
+        end else begin
+            $fwrite(out_filehandle, "loc: dram, ");
+            $fwrite(out_filehandle, "dram: ");
+            `WRITE_ARRAY(out_filehandle, `get_core_count(tensor), $sformatf("[%0d, 0x%0x]", 0, q_dram_addr + i * q_size));
+        end
     endfunction
 endclass
 
