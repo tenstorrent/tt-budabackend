@@ -44,6 +44,7 @@ class main_program;
     e_ops_config ops_config;
     bit gradient_acc;
     bit accumulate_z;
+    string reduce_dim_string;
 
     function new();
         if (`DEVICE == "GRAYSKULL") begin
@@ -68,6 +69,7 @@ class main_program;
         $value$plusargs("bfp=%d", bfp_enabled);
         $value$plusargs("gradient_acc=%d", gradient_acc);
         $value$plusargs("accumulate_z=%d", accumulate_z);
+        $value$plusargs("reduce_dim=%s", reduce_dim_string);
         if (!$value$plusargs("out=%s", out_filename)) begin
             $fatal("Out file name not specified!");
         end else begin
@@ -203,7 +205,7 @@ class main_program;
         end else if (op_name == "splice") begin
             operation = splice_op::new("op");
         end else if (op_name == "reduce") begin
-            operation = reduce_op::new("op");
+            operation = reduce_op::new("op", reduce_dim_string);
         end else if (op_name == "binary_sfpu") begin
             operation = binary_sfpu_op::new("op");
         end else if (op_name == "depthwise") begin

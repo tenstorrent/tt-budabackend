@@ -12,6 +12,8 @@ make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/binary/binary_s
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/binary/binary_gradient_acc_single_configs HARVESTED_ROWS=0 LOOPS=50 SEED=0 C=main.sv ARGS='+op=binary +gradient_acc=1'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/binary/binary_feeder_drainer_configs HARVESTED_ROWS=0 LOOPS=50 SEED=0 C=main.sv ARGS='+op=binary +ops_config=feeder_drainer'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_single_configs HARVESTED_ROWS=0 LOOPS=400 SEED=0 C=main.sv ARGS='+op=matmul'
+zip test_configs/blackhole/silicon/matmul/matmul_single_configs.zip test_configs/blackhole/silicon/matmul/matmul_single_configs.yaml
+rm test_configs/blackhole/silicon/matmul/matmul_single_configs.yaml
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_gradient_acc_single_configs HARVESTED_ROWS=0 LOOPS=50 SEED=0 C=main.sv ARGS='+op=matmul +gradient_acc=1'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_accumulate_z_single_configs HARVESTED_ROWS=0 LOOPS=20 SEED=0 C=main.sv ARGS='+op=matmul +accumulate_z=1'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_feeder_drainer_configs HARVESTED_ROWS=0 LOOPS=50 SEED=0 C=main.sv ARGS='+op=matmul +ops_config=feeder_drainer'

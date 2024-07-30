@@ -150,6 +150,7 @@ class matmul_op extends operation_constraints;
 
     constraint rand_sfpu_execution_en {
         arch.sfpu_execution_en == 0 -> sfpu_op_en == 0;
+        quant_en == 1 -> sfpu_op_en == 0; 
     }
 
     constraint rand_l1_acc_arch_enabled {

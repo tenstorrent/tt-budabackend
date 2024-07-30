@@ -5,8 +5,9 @@
 
 `define DEVICE                   "BLACKHOLE"
 `define HARVESTED_ROWS           (0)
-`define GRID_SIZE_X              (14)
-`define GRID_SIZE_Y              (10-`HARVESTED_ROWS)
+// Large grid size can cause what appears to be di/dt issues on BH
+`define GRID_SIZE_X              (8)
+`define GRID_SIZE_Y              (8-`HARVESTED_ROWS)
 `define L1_MEM_SIZE              (1464*1024)
 `define FW_L1_MEM_SIZE           (204*1024)
 `define PIPEGEN_L1_MEM_SIZE      (312*1024)

@@ -69,11 +69,13 @@ class netlist_constraints;
     }
 
     constraint rand_num_inputs {
-        num_inputs dist {[1:16]:=95, [17:1023]:/4, [1024:1024]:=1};
+        //num_inputs dist {[1:16]:=95, [17:1023]:/4, [1024:1024]:=1};
         op[0].gradient_op_en == 1 -> num_inputs <= 16;
 
         // must be 1 or multiple of 2 due to pipegen limitations
-        (num_inputs != 1) -> (num_inputs%2==0);
+        //(num_inputs != 1) -> (num_inputs%2==0);
+        // Sparse MM on BH hangs with num_input > 1
+        num_inputs == 1;
     }
 
     constraint rand_entries {
@@ -125,7 +127,7 @@ class netlist_constraints;
         $fwrite(out_filehandle, "  loop_count: %0d\n", num_loops);
         $fwrite(out_filehandle, "  input_count: %0d\n", num_inputs);
         $fwrite(out_filehandle, "  target_device: %0d\n", target_device);
-        $fwrite(out_filehandle, "  queue_wrap_size: %0d\n", num_entries * num_loops);
+        $fwrite(out_filehandle, "  queue_wrap_size: %0d\n", 2 * num_entries);
 
         // inputs
         for (int i = 0; i < max_inputs; i++) begin

@@ -37,7 +37,7 @@ class unary_op extends operation_constraints;
     constraint rand_input_data_format {
         dest_data_format == int32 -> {
             input0.data_format == tensor.data_format;
-            input0.data_format == int8 || int32;
+            input0.data_format == int8;
             // Transpose is not supported for Int32
             in[0].transpose_en == 1 -> input0.data_format == int8;
         }

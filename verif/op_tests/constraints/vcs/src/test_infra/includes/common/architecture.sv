@@ -143,7 +143,8 @@ endclass;
 
 class blackhole_architecture extends architecture;
     constraint rand_tiny_tile_enabled {
-        tiny_tile_enabled == 1;
+        // Tiny tile is causing hangs on BH
+        tiny_tile_enabled == 0;
     }
 
     constraint rand_sfpu_execution_en {
