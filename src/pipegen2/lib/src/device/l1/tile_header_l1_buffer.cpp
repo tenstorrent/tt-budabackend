@@ -11,9 +11,9 @@ std::string TileHeaderL1Buffer::get_name() const { return "Tile header buffer"; 
 std::string TileHeaderL1Buffer::get_allocation_info() const
 {
     std::stringstream string_stream;
-    string_stream << "\tType: " << get_name() << "\n"
-                  << "\tBuffer size: " << get_size() << "\n"
-                  << "\tBuffer address: " << get_address();
+    string_stream << "\t\tType: " << get_name() << "\n"
+                  << "\t\t\tBuffer size: " << get_size() << "\n"
+                  << "\t\t\tBuffer address: " << get_address();
 
     return string_stream.str();
 }

@@ -73,7 +73,7 @@ public:
     // Returns tile header buffer address for a given tile size. Asserts if such buffer was not allocated previously.
     unsigned int get_tile_header_buffer_address(const unsigned int tile_size) const;
 
-    void set_op_name(const std::string& op_name) { m_op_name = op_name; }
+    void set_op_name(const std::string& op_name);
 
     // Returns a string with formatted allocation info about buffers allocated on this core.
     const std::string get_l1_memory_layout_info() const;
@@ -128,11 +128,6 @@ protected:
     std::set<StreamId> m_allocated_stream_ids;
 
 private:
-    const std::string get_op_name() const { return m_op_name != "" ? m_op_name : "undefined"; }
-
-    // Name of an OP (from netlist) which spreads accross this core.
-    std::string m_op_name;
-
     // Starting ID in the extra streams ID range.
     // Extra streams are used for general purpose, for example as gather input streams.
     const StreamId c_extra_streams_id_range_start;

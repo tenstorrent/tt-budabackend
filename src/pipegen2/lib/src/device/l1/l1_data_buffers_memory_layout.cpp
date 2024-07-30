@@ -208,6 +208,11 @@ const L1Buffer *L1DataBuffersMemoryLayout::store_buffer(std::unique_ptr<L1Buffer
     }
 }
 
+bool L1DataBuffersMemoryLayout::is_empty() const
+{
+    return m_l1_data_buffers_start_section.empty() && m_l1_data_buffers_end_section.empty();
+}
+
 std::string L1DataBuffersMemoryLayout::get_allocation_info() const
 {
     std::stringstream string_stream;
@@ -216,6 +221,10 @@ std::string L1DataBuffersMemoryLayout::get_allocation_info() const
     {
         // No allocations done.
         return string_stream.str();
+    }
+    if (m_op_name != "")
+    {
+        string_stream << "\tOp_name: " << m_op_name << "\n";
     }
 
     for (const std::unique_ptr<L1Buffer> &l1_buffer : m_l1_data_buffers_start_section)

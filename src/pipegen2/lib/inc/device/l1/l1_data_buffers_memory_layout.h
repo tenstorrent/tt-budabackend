@@ -68,6 +68,15 @@ public:
     // objects, thus better API should be devised.
     std::vector<const L1Buffer*> get_all_allocated_buffers() const;
 
+    // Returns the name of the op on the specific core.
+    const std::string get_op_name() const { return m_op_name; }
+
+    // Sets the name of the op on the specific core.
+    void set_op_name(const std::string& op_name) { m_op_name = op_name; }
+
+    // Checks if any memory is allocated on the core.
+    bool is_empty() const;
+
 private:
     // Allocates memory for data buffer in L1 and returns the allocation address.
     // Memory is allocated from the end of L1 data buffers space towards beginning.
@@ -101,6 +110,9 @@ private:
 
     // Current address in L1 data buffers space available for allocation.
     unsigned int m_l1_current_data_buffers_space_address;
+
+    // Name of the op which is present on the core in question.
+    std::string m_op_name;
 
     // Models starting section of L1 data buffers space where, for now, only extra overlay blob space is allocated at
     // and only once per core. Addresses of buffers are increasing to the right and this section is growing to the
