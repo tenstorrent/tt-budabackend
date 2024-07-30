@@ -131,19 +131,23 @@ unsigned int CoreResources::get_tile_header_buffer_address(const unsigned int ti
     return m_l1_data_buffers_memory->get_tile_header_buffer_address(tile_size);
 }
 
+void CoreResources::set_op_name(const std::string& op_name) { m_l1_data_buffers_memory->set_op_name(op_name); }
+
 const std::string CoreResources::get_l1_memory_layout_info() const
 {
     std::stringstream string_stream;
 
     // clang-format off
-    string_stream << "L1 memory usage breakdown for core:\n"
-                  << "Physical location: " << m_core_physical_location.str() << "\n"
-                  << "Netlist coordinates: "
-                  << "(chip=" << m_core_logical_location.chip
-                  << ", r=" << m_core_logical_location.y
-                  << ", c=" << m_core_logical_location.x << ")\n"
-                  << "OP name: " << get_op_name() << "\n"
-                  << m_l1_data_buffers_memory->get_allocation_info();
+    if (!m_l1_data_buffers_memory->is_empty())
+    {
+        string_stream << "L1 memory usage breakdown for core:\n"
+                    << "Physical location: " << m_core_physical_location.str() << "\n"
+                    << "Netlist coordinates: "
+                    << "(chip=" << m_core_logical_location.chip
+                    << ", r=" << m_core_logical_location.y
+                    << ", c=" << m_core_logical_location.x << ")\n"
+                    << m_l1_data_buffers_memory->get_allocation_info();
+    }
     // clang-format on
 
     return string_stream.str();

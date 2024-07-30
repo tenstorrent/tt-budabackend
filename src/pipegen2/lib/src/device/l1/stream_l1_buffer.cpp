@@ -11,11 +11,11 @@ std::string StreamL1Buffer::get_name() const { return stream_type_to_string(m_st
 std::string StreamL1Buffer::get_allocation_info() const
 {
     std::stringstream string_stream;
-    string_stream << "\tType: " << get_name() << "\n";
+    string_stream << "\t\tType: " << get_name() << "\n";
 
     if (m_stream_node->get_stream_type() == StreamType::Unpacker)
     {
-        string_stream << "\tOperand ID: " << m_stream_node->get_operand_id() << "\n";
+        string_stream << "\t\t\tOperand ID: " << m_stream_node->get_operand_id() << "\n";
     }
 
     if (m_stream_node->is_ncrisc_reader_or_writer())
@@ -23,13 +23,13 @@ std::string StreamL1Buffer::get_allocation_info() const
         const NcriscConfig& ncrisc_config = m_stream_node->get_ncrisc_configs()[0];
         if (ncrisc_config.prefetch_type.has_value())
         {
-            string_stream << "\tPrefetch type: " << prefetch_type_to_string(ncrisc_config.prefetch_type.value())
+            string_stream << "\t\t\tPrefetch type: " << prefetch_type_to_string(ncrisc_config.prefetch_type.value())
                           << "\n";
         }
     }
 
-    string_stream << "\tBuffer size: " << get_size() << "\n"
-                  << "\tBuffer address: " << get_address();
+    string_stream << "\t\t\tBuffer size: " << get_size() << "\n"
+                  << "\t\t\tBuffer address: " << get_address();
 
     return string_stream.str();
 }
