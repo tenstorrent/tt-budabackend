@@ -1,0 +1,57 @@
+op_tests_blackhole_silicon_determinism_nightly:
+    build_on_runner: true
+    tag: nightly
+    owner: [rtawfik, macimovic, sjovic, ppopovic, pjosipovic, skrstic]
+    arch_name: blackhole
+    harvested_rows_supported: 2
+    device_runner: Silicon
+    test_flow: ./build/test/verif/op_tests/test_op
+    envs: {TT_BACKEND_TIMEOUT: 7200}
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 verif/op_tests
+      - echo Copy the netlist files to the test directory verif/op_tests/netlists
+      - rm -fr build/test/verif/op_tests/netlists
+      - mkdir -p build/test/verif/op_tests/netlists
+      - cp -a verif/op_tests/netlists/. build/test/verif/op_tests/netlists/
+    build_timeout: '750'
+    timeout: '7200'
+    run_on_same_runner: true
+    artifacts: []
+# ========== Tests ========== #
+
+    op_tests_netlist_matmul_large_grid_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_large_grid.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_transpose_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_transpose.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_reconfig_df_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_acc_reconfig_df_wh.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_l1_acc_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_l1_acc.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_z_accumulate_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_z_accumulate.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_min_buffer_input_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_min_buffer_input.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_with_bias_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_with_bias.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_matmul_gradient_op_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_matmul_gradient_op.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_unary_op_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_unary_op_with_relu.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_unary_op_gradient_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_unary_gradient_reconfig_unpack_df.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_binary_op_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_binary_op.yaml --silicon --num-loops 1000 --determinism-tests]
+
+    op_tests_netlist_binary_op_gradient_non_determinism:
+        command: [--netlist build/test/verif/op_tests/netlists/netlist_binary_gradient_reconfig_unpack_df.yaml --silicon --num-loops 1000 --determinism-tests]
