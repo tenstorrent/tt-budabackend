@@ -17,7 +17,7 @@
 
 /*************************************************************************
 * LLK PACK
-*************************************************************************/ 
+*************************************************************************/
 
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
 inline void llk_pack_mop_config(const uint32_t output) {
@@ -31,9 +31,9 @@ inline void llk_pack_mop_config(const uint32_t output) {
 
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(
         pack_dst_format[output_id],
-        face_r_dim, 
-        tile_c_dim, 
-        num_faces, 
+        face_r_dim,
+        tile_c_dim,
+        num_faces,
         partial_face,
         narrow_tile
     );
@@ -103,7 +103,7 @@ inline void llk_pack_reduce_hw_configure_disaggregated(std::uint32_t pack_output
     llk_pack_params_t llk_pack_params = {
         .pack_output = pack_output, .relu_config = {.f = {.ApplyRelu = (std::uint32_t)relu_type, .Threshold = relu_threshold}}};
     llk_pack_reduce_hw_configure<untilize, type, dim, is_fp32_dest_acc_en>(&llk_pack_params);
-} 
+}
 
 template <std::uint32_t block_ct_dim = 8>
 inline void llk_pack_untilize_init() {
@@ -125,9 +125,9 @@ inline void llk_pack_init(const std::uint32_t pack_output) {
 
     _llk_pack_init_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
         pack_dst_format[output_id],
-        face_r_dim, 
+        face_r_dim,
         tile_c_dim,
-        num_faces, 
+        num_faces,
         partial_face,
         narrow_tile
     );
@@ -222,7 +222,7 @@ inline void llk_pack(std::uint32_t tile_index, std::uint32_t output, std::uint32
 
 /*************************************************************************
 * LLK PACK COMMON
-*************************************************************************/ 
+*************************************************************************/
 
 
 inline void llk_packer_wait_for_math_done() {
@@ -239,7 +239,7 @@ template <DstSync Dst, bool is_fp32_dest_acc_en = false>
 inline void llk_pack_dest_section_done() {
     TT_LLK_DUMP("llk_pack_dest_section_done<{}, {}>()", Dst, is_fp32_dest_acc_en);
     _llk_pack_dest_section_done_<Dst, is_fp32_dest_acc_en>();
-} 
+}
 
 template <DstSync Dst, DstTileFaceLayout FaceLayout, bool untilize = false>
 inline void llk_init_packer_dest_offset_registers(const std::uint32_t pack_output) {
@@ -248,7 +248,7 @@ inline void llk_init_packer_dest_offset_registers(const std::uint32_t pack_outpu
     const std::uint32_t face_r_dim = get_output_face_r_dim(output_id);
     const bool narrow_tile = get_output_narrow_tile(output_id);
 
-    _llk_init_packer_dest_offset_registers_<Dst, FaceLayout, untilize>(
+    _llk_init_packer_dest_offset_registers_<Dst, FaceLayout>(
         face_r_dim,
         narrow_tile
     );
@@ -262,11 +262,11 @@ inline void llk_pack_dest_init(const std::uint32_t pack_output = 0) {
     const std::uint32_t face_r_dim = get_output_face_r_dim(output_id);
     const bool narrow_tile = get_output_narrow_tile(output_id);
 
-    _llk_pack_dest_init_<Dst, FaceLayout, untilize, is_fp32_dest_acc_en>(
+    _llk_pack_dest_init_<Dst, FaceLayout, is_fp32_dest_acc_en>(
         face_r_dim,
         narrow_tile
     );
-}    
+}
 
 template <bool mail2math=true, bool mail2pack=true>
 inline void llk_pack_get_tile(std::uint32_t output, std::uint32_t tile_index, std::uint32_t *p_tile) {
@@ -315,7 +315,7 @@ inline void llk_pack_reconfig_data_format(const std::uint32_t new_output) {
     const bool narrow_tile = get_output_narrow_tile(output_id);
 
     _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en, is_tile_dim_reconfig_en, FaceLayout>(
-        pack_src_format[output_id], 
+        pack_src_format[output_id],
         pack_dst_format[output_id],
         outputs[output_id].f.tile_size_words,
         face_r_dim,
@@ -333,7 +333,7 @@ inline void llk_pack_reconfig_data_format(const std::uint32_t old_output, const 
     std::uint32_t new_output_id = get_output_id(new_output);
 
     if((pack_dst_format[old_output_id] != pack_dst_format[new_output_id])
-       && (pack_dst_format[old_output_id] != (uint)DataFormat::Invalid) 
+       && (pack_dst_format[old_output_id] != (uint)DataFormat::Invalid)
        && (pack_dst_format[new_output_id] != (uint)DataFormat::Invalid)) {
         llk_pack_reconfig_data_format<is_fp32_dest_acc_en, is_tile_dim_reconfig_en, FaceLayout>(new_output);
     } else if constexpr (is_tile_dim_reconfig_en) {
