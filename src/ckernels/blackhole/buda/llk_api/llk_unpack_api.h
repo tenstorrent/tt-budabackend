@@ -292,8 +292,9 @@ inline void llk_unpack_AB_matmul(
     const std::uint32_t unpA_face_r_dim = get_operand_face_r_dim(operandB_id); // In1/InB -> srcA
     const std::uint32_t unpB_face_r_dim = get_operand_face_r_dim(operandA_id); // In0/InA -> srcB
 
-    const bool unpA_partial_face = get_operand_partial_face(operandA_id);
-    const bool unpB_partial_face = get_operand_partial_face(operandB_id);
+    // For matmul operands A and B are switched, which is why we are determining flags using inversed operand IDs.
+    const bool unpA_partial_face = get_operand_partial_face(operandB_id);
+    const bool unpB_partial_face = get_operand_partial_face(operandA_id);
 
     std::uint32_t base_address_a = operands[operandA_id].f.fifo_rd_ptr;
     std::uint32_t base_address_b = operands[operandB_id].f.fifo_rd_ptr;
