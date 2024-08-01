@@ -66,6 +66,10 @@ double inf_to_num(double in) {
     }
 }
 
+double nan_to_num(double in) {
+    return isnan(in) ? 0.0 : in;
+}
+
 bool inf_compare(float a, float b) {
     log_assert(isinf(a) || isinf(b), "At least 1 value must be infinity");
     log_assert(!isnan(a) && !isnan(b), "Cannot be nan");
@@ -212,13 +216,13 @@ bool pcc_compare_on_vectors(vector<float>::iterator lhs, vector<float>::iterator
 
     bool is_same_t1 = true;
     bool is_same_t2 = true;
-    
-    const double first_val_t1 = inf_to_num(static_cast<double>(*lhs));
-    const double first_val_t2 = inf_to_num(static_cast<double>(*rhs));
+
+    const double first_val_t1 = nan_to_num(inf_to_num(static_cast<double>(*lhs)));
+    const double first_val_t2 = nan_to_num(inf_to_num(static_cast<double>(*rhs)));
 
     for(int idx = 0; idx < num_datums_to_check; idx++){
-        double num1 = inf_to_num((double)*(lhs + idx));
-        double num2 = inf_to_num((double)*(rhs + idx));
+        double num1 = nan_to_num(inf_to_num((double)*(lhs + idx)));
+        double num2 = nan_to_num(inf_to_num((double)*(rhs + idx)));
 
         is_same_t1 = is_same_t1 && (num1 == first_val_t1);
         is_same_t2 = is_same_t2 && (num2 == first_val_t2);
