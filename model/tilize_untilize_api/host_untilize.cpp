@@ -314,6 +314,13 @@ void tt_tile::packed_data_to_tile() {
     #endif
 }
 
+ 
+void tt_tile::verify_tile_header() {
+    if ((packed_data[0] << 4) != size_bytes(true)) {
+        throw std::runtime_error("Invalid tile header. Expected tile size: " + std::to_string(size_bytes(true)) + 
+            " but got: " + std::to_string(packed_data[0]));
+    }
+}
 
 
 /////////////////////////////////////////////////////////

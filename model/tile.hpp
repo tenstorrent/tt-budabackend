@@ -135,6 +135,7 @@ class tt_tile : public tt_dram_resident
     uint32_t get_half(uint32_t word, uint32_t index);
     uint32_t get_indexed_num(uint32_t data_index);
     void packed_data_to_tile();
+    void verify_tile_header();
     void adjust_tile_for_accuracy(bool truncate_bfp_mantissa = false);
     tt_tile isclose(tt_tile &rhs, float target);
     bool allclose(const tt_tile &rhs, const double rtol = tt::constants::DEFAULT_RTOL, const double atol = tt::constants::DEFAULT_ATOL, double pct_matched=tt::constants::DEFAULT_PCT_MATCHED, bool print_diffs=false) const;
