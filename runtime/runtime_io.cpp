@@ -970,6 +970,7 @@ void get_ublock_data(
             uint32_t tile_size = tile->size_bytes(true);
             tile->packed_data.resize(tile_size);
             std::memcpy(tile->packed_data.data(), rv.data() + global_offset + buf_offset, tile_size);
+            tile->verify_tile_header();
             tile->packed_data_to_tile();
             buf_offset += tile_size / sizeof(uint32_t);
         }
