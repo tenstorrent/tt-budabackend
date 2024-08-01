@@ -56,6 +56,10 @@ class reduce_op extends operation_constraints;
         reduce_dim == z -> input_0.data_format == intermed_data_format;
     }
 
+    constraint rand_intermed_data_format_int {
+        dest_data_format == int32 -> intermed_data_format == int32 | intermed_data_format == int8;
+    }
+
     constraint rand_reduce_dim {
         reduce_dim_string == "r" -> reduce_dim == r;
         reduce_dim_string == "c" -> reduce_dim == c;

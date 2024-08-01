@@ -176,7 +176,6 @@ virtual class operation_constraints extends node_constraints;
     }
 
     constraint rand_intermed_data_format {
-        dest_data_format == int32 -> intermed_data_format == int32;
         dest_data_format != int32 -> intermed_data_format inside {`FLOAT_OUTPUT_FORMATS};
 
         l1_acc_en == 1 -> intermed_data_format inside {fp16_b, fp32, int32};
@@ -186,6 +185,10 @@ virtual class operation_constraints extends node_constraints;
         output_data_format inside {bfp2, bfp4, bfp8, fp16} -> intermed_data_format inside {bfp8, fp16};
 
         gradient_op_en -> intermed_data_format == output_data_format;
+    }
+
+    constraint rand_intermed_data_format_int {
+        dest_data_format == int32 -> intermed_data_format == int32;
     }
 
     constraint rand_output_data_format {
