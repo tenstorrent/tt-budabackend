@@ -1,0 +1,71 @@
+op_tests_int8_blackhole_silicon_nightly:
+  build_on_runner: True
+  tag: nightly
+  owner: ["macimovic", "sjovic", "ppopovic", "pjosipovic", "skrstic"]
+  arch_name: blackhole
+  harvested_rows_supported: 2
+  device_runner: Silicon
+  test_flow: "./build/test/verif/op_tests/test_op"
+  build_cmd: ["make -j8 build_hw",
+              "make -j8 verif/op_tests",
+              "verif/op_tests/constraints/vcs/scripts/create_blackhole_silicon_int8_netlists.sh"
+              ]
+  build_timeout: "750"
+  timeout: "600"
+  run_on_same_runner: True
+  artifacts: []
+# ========== Tests ========== #
+
+  op_tests_int8_random_splice:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/splice-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_int8_random_reduce_dim_r:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/reduce-dim-r-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_int8_random_reduce_dim_c:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/reduce-dim-c-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_int8_random_reduce_dim_z:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/reduce-dim-z-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_int8_random_matmul_ident:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-ident-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_binary_int8:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/binary-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_matmul_int8_quant:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-quant-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_quantization_op_int8:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/binary-sfpu-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_nop_op_int8_int32:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/unary-int8-nightly"
+    multi_test_netlists: True
+    multi_test: True
