@@ -1067,14 +1067,15 @@ vector<uint32_t> tt_epoch_control::get_valid_qcmd(tt_xy_pair dram_xy, uint64_t c
     vector<uint32_t> qcmd(5, 0);
     qcmd[0] = (uint32_t) (combined_binary_dram_addr & 0xffffffff);
     qcmd[1] = (epoch_queue::EpochCmdValid << 28) | (dram_xy.y << 22) | (dram_xy.x << 16) |
-              (uint32_t)((combined_binary_dram_addr & (uint64_t)0x0000ffff00000000) >> 32);
+              // (uint32_t)((combined_binary_dram_addr & (uint64_t)0x0000ffff00000000) >> 32);
+              get_dram_address_upper_bits(combined_binary_dram_addr);
     qcmd[2] = (uint32_t) (
         (perf_en ? 0xff : 0) |
         (uint32_t(overlay_decouple_mask & 0xffff) << 8));
 
     // Address to slot in kernel cache for trisc binary. Ignored by FW when kernel cache disabled.
     qcmd[3] = (uint32_t) (trisc_binary_dram_addr & 0xffffffff);
-    qcmd[4] = (uint32_t) ((trisc_binary_dram_addr & (uint64_t) 0x0000ffff00000000) >> 32);
+    qcmd[4] = get_dram_address_upper_bits(trisc_binary_dram_addr); //(uint32_t) ((trisc_binary_dram_addr & (uint64_t) 0x0000ffff00000000) >> 32);
     return qcmd;
 }
 
@@ -1615,7 +1616,8 @@ vector<uint32_t> get_q_update_read_qcmd(
     vector<uint32_t> qcmd(8, 0);
     qcmd[0] = (uint32_t) (queue_header_or_binary_addr & 0xffffffff);
     qcmd[1] = (epoch_queue::EpochCmdIOQueueUpdate << 28) | (dram_xy.y << 22) | (dram_xy.x << 16) |
-              (uint32_t)((queue_header_or_binary_addr & (uint64_t)0x0000ffff00000000) >> 32);
+              //   (uint32_t)((queue_header_or_binary_addr & (uint64_t)0x0000ffff00000000) >> 32);
+              get_dram_address_upper_bits(queue_header_or_binary_addr);
     vector<uint32_t> queue_header = queue_wrap.get_vec();
     log_assert(queue_header.size() == QUEUE_HEADER_WORDS, "The queue header size must match the QUEUE_HEADER_WORDS parameter.");
     uint8_t update_mask = mask.get();
@@ -1643,7 +1645,7 @@ vector<uint32_t> tt_epoch_loader::get_q_header_binaries(
     }
     vector<uint32_t> qcmd(2, 0);
     qcmd[0] = (q_addr & 0xffffffff);
-    qcmd[1] = (core.y << 22) | (core.x << 16) | (q_addr & (uint64_t)0x0000ffff00000000) >> 32;
+    qcmd[1] = (core.y << 22) | (core.x << 16) | (get_dram_address_upper_bits(q_addr)); // (q_addr & (uint64_t)0x0000ffff00000000) >> 32
     return qcmd;
 }
 

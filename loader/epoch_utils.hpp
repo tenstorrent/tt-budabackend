@@ -173,6 +173,15 @@ inline int varinst_instr_to_cmd_opcode(VAR_INSTRUCTION_OPCODE opcode_instr){
     return opcode;
 }
 
+// TODO: This is a Blackhole hack. Remove when proper implementation of 64bit addresses is implemented.
+// Only 36 bit of address are used by the firmware. So we can use the uppermost 4bits of the passed 48 bits to encode the uppermost
+// 4bits of the 64bit addresses required by blackhole. This is specifically used to enable ATU translation for host queues, that are
+// accessed through PCI core.
+// See risc_get_noc_addr_from_dram_ptr to see how is this decoded.
+inline uint32_t get_dram_address_upper_bits(uint64_t dram_address) {
+    return ((((dram_address & (uint64_t)0xf000000000000000) >> 16) | (dram_address & (uint64_t)0x00000fff00000000)) >> 32);
+}
+
 inline epoch_queue::VarinstCmdInfo get_varinst_cmd_for_io_queue_update(
     const tt_varinst_queue_update_cmd_info &info,
     uint64_t addr,
@@ -184,7 +193,7 @@ inline epoch_queue::VarinstCmdInfo get_varinst_cmd_for_io_queue_update(
     static const int field_size_bytes = 2; // Only support 16b fields, to match get_16b_header_position_for_field()
     return {
         .dram_addr_lower = static_cast<uint32_t>(addr & 0xffffffff),
-        .dram_addr_upper = static_cast<uint16_t>((addr & (uint64_t)0x0000ffff00000000) >> 32),
+        .dram_addr_upper = static_cast<uint16_t>(get_dram_address_upper_bits(addr)), // (addr & (uint64_t)0x0000ffff00000000) >> 32),
         .dram_core_x = static_cast<uint16_t>(buffer_dram_core.x & 0x3F),
         .dram_core_y = static_cast<uint16_t>(buffer_dram_core.y & 0x3F),
         .cmd_type = epoch_queue::EpochCmdVarinst,
