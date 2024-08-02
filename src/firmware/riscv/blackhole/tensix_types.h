@@ -251,11 +251,11 @@ enum class DataFormat : std::uint8_t
   Bfp4_b    = 7,
   Bfp2_b    = 15,
   Lf8       = 10,
-  UInt16    = 12,
+  UInt16    = 9,
   Int8      = 14,
   UInt8     = 30,
   Int32     = 8,
-  Int16     = 9,
+  Int16     = 25,
   Tf32      = 4,
   Fp8_e4m3  = 26,         //Not a valid HW encoding, it is Lf8 encoding + extra 5th bit set to specify Lf8 with E4M3
   testMan7  = 0x82,       // intermediate format for testing: 7bit mantissa (6+hidden)
