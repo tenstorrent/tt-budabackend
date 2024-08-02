@@ -177,9 +177,17 @@ inline bool risc_is_epoch_q_empty(volatile uint32_t *noc_read_scratch_buf, uint6
 }
 
 // CMD in DRAM has 1 address
+// This function is exclusively used in combination with NOC_XY_ADDR, which allows for 36bit addresses, and not 48bits.
+// So the 0xFFF0 part in dram_addr_offset_hi are actually not used.
+// For Blackhole we need the upmost 4 bits to be passed from pipegen, so that we can enable ATU translation for host queues.
+// You can also see how NOC ADDR MID is calculated in noc functions in noc_nonblocking_api.
+// So we'll move the upmost 4bits from the 0xFFFF to move it to the upmost 4bits of the 64 bit address.
+// See get_q_update_read_qcmd on how are these addresses generated.
 inline void risc_get_noc_addr_from_dram_ptr(volatile uint32_t tt_l1_ptr *noc_read_dest_buf_ptr, uint64_t& dram_addr_offset, uint32_t& dram_coord_x, uint32_t& dram_coord_y) {
   uint64_t dram_addr_offset_lo = noc_read_dest_buf_ptr[0];
   uint64_t dram_addr_offset_hi = noc_read_dest_buf_ptr[1] & 0xFFFF;
+  // TODO: Blackhole specific hack, remove when 64 bit addresses are properly implemented. Should not affect GS and WH.
+  dram_addr_offset_hi = (dram_addr_offset_hi & 0xF000) << 16 | (dram_addr_offset_hi & 0x0FFF);
   dram_addr_offset = dram_addr_offset_lo | (dram_addr_offset_hi << 32);
   dram_coord_x = (noc_read_dest_buf_ptr[1] >> 16) & 0x3F;
   dram_coord_y = (noc_read_dest_buf_ptr[1] >> 22) & 0x3F;
