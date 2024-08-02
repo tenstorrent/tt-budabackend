@@ -332,7 +332,6 @@ inline void llk_math_eltwise_unary_sfpu_init(
     TT_LLK_DUMP("llk_math_eltwise_unary_sfpu_init<{}, {}>({}, {}, {}, {}, {}, {})", sfpu_op, APPROXIMATE, param0, param1, param2, param3, param4, param5);
 
     _llk_math_eltwise_unary_sfpu_init_<sfpu_op>();
-    sfpu::_init_sfpu_config_reg();
 
     switch (sfpu_op) {
         case SfpuType::reciprocal:

@@ -312,7 +312,7 @@ inline void llk_math_eltwise_unary_sfpu(
             _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
             _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
         }    
-    } else {
+    } else if (vector_mode == (int)VectorMode::RC) {
         // Do all four faces, and iterate through all 4 blocks of 4 rows each
 #pragma GCC unroll 0
         for (int face = 0; face < 4; face++) {
@@ -320,6 +320,8 @@ inline void llk_math_eltwise_unary_sfpu(
             // Move to the next face
             _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
         }
+    } else {
+        llk_math_calculate_sfpu<sfpu_op, APPROXIMATE, 0, ITERATIONS, IS_INT_SFPU_EN>(ITERATIONS, param0, param1, param2, param3, param4, param5);
     }
     _llk_math_eltwise_unary_sfpu_done_();
 }
@@ -708,17 +710,17 @@ inline void llk_math_eltwise_unary_sfpu_topk_init(const uint operand) {
 
 template <bool APPROXIMATE, DstSync Dst>
 inline void llk_math_sfpu_topk_local_sort(int stream, int dst_index, int dir, int end_phase, int start_phase, int end_step, int start_step) {
-    llk_math_eltwise_unary_sfpu<SfpuType::topk_local_sort, APPROXIMATE, Dst, false>(stream, dst_index, (std::int32_t)Dim::RC_custom, dir, end_phase, start_phase, end_step, start_step);
+    llk_math_eltwise_unary_sfpu<SfpuType::topk_local_sort, APPROXIMATE, Dst, false>(stream, dst_index, (int)VectorMode::RC_custom, dir, end_phase, start_phase, end_step, start_step);
 }
 
 template <bool APPROXIMATE, DstSync Dst>
 inline void llk_math_sfpu_topk_merge(int stream, int dst_index, int m, int k) {
-    llk_math_eltwise_unary_sfpu<SfpuType::topk_merge, APPROXIMATE, Dst, false>(stream, dst_index, (std::int32_t)Dim::RC_custom, m, k);
+    llk_math_eltwise_unary_sfpu<SfpuType::topk_merge, APPROXIMATE, Dst, false>(stream, dst_index, (int)VectorMode::RC_custom, m, k);
 }
 
 template <bool APPROXIMATE, DstSync Dst>
 inline void llk_math_sfpu_topk_rebuild(int stream, int dst_index, int dir, int m, int k, int logk, bool skip_second_tile) {
-    llk_math_eltwise_unary_sfpu<SfpuType::topk_rebuild, APPROXIMATE, Dst, false>(stream, dst_index, (std::int32_t)Dim::RC_custom, dir, m, k, logk, skip_second_tile);
+    llk_math_eltwise_unary_sfpu<SfpuType::topk_rebuild, APPROXIMATE, Dst, false>(stream, dst_index, (int)VectorMode::RC_custom, dir, m, k, logk, skip_second_tile);
 }
 
 /*************************************************************************
