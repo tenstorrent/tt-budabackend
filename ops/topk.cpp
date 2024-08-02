@@ -158,7 +158,7 @@ void cmp_and_swap(bool direction, int left_idx, int right_idx, std::vector<data>
             data tmp = array.at(left_idx);
             array.at(left_idx) = array.at(right_idx);
             array.at(right_idx) = tmp;
-        } else if (array.at(right_idx).value > 0 && array.at(left_idx).value > 0 &&
+        } else if (array.at(right_idx).value >= 0 && array.at(left_idx).value >= 0 && // ensure correct handling of 0's
                 array.at(right_idx).value == array.at(left_idx).value) {
             data tmp = array.at(left_idx);
             array.at(left_idx) = array.at(right_idx);
