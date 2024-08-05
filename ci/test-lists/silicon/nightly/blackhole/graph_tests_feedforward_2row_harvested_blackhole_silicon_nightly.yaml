@@ -1,0 +1,36 @@
+graph_tests_feedforward_2row_harvested_blackhole_silicon_nightly:
+  build_on_runner: True
+  tag: disabled
+  arch_name: blackhole
+  harvested_rows_supported: 2
+  device_runner: Silicon
+
+  test_flow: "./build/test/verif/graph_tests/test_graph"
+
+  # Build everything needed to run the tests.
+  build_cmd:
+    # Build repo.
+    - make -j8 build_hw
+
+    # Build test runner application.
+    - make -j8 verif/graph_tests
+
+    # Copy pre-generated constrained-random tests.
+    - rm -rf build/test/verif/graph_tests/netlists/feedforward/nightly/blackhole/2row_harvested/constrained_random_pregenerated
+    - mkdir -p build/test/verif/graph_tests/netlists/feedforward/nightly/blackhole/2row_harvested/constrained_random_pregenerated
+    - unzip -qo verif/graph_tests/netlists/feedforward/nightly/blackhole/2row_harvested/constrained_random_pregenerated.zip
+      -d build/test/verif/graph_tests/netlists/feedforward/nightly/blackhole/2row_harvested/constrained_random_pregenerated
+
+  build_timeout: "3600"
+  timeout: "700"
+  run_on_same_runner: True
+  artifacts: []
+
+
+  # Run pre-generated constrained-random tests.
+  graph_tests_feedforward_2row_harvested_constrained_random_pregenerated_blackhole_silicon_nightly:
+    owner: ["rpavlovic", "mrakita", "kmitrovic"]
+    command: ["--silicon", "--seed", "0"]
+    multi_test_dir: "build/test/verif/graph_tests/netlists/feedforward/nightly/blackhole/2row_harvested/constrained_random_pregenerated"
+    multi_test_netlists: True
+    multi_test: True

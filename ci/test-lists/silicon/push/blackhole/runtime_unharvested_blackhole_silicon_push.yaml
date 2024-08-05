@@ -1,0 +1,30 @@
+runtime_unharvested_blackhole_silicon_push:
+    build_on_runner: true
+    tag: push
+    owner: [kmabee, asaigal]
+    arch_name: blackhole
+    harvested_rows_supported: 0
+    device_runner: Silicon
+    test_flow: ''
+    build_cmd:
+      - make -j8 build_hw
+      - make -j16 verif/netlist_tests
+      - echo Copy the netlist files to the test directory loader/tests/loop_on_device
+      - rm -fr build/test/loader/tests/loop_on_device
+      - mkdir -p build/test/loader/tests/loop_on_device
+      - cp -a loader/tests/loop_on_device/. build/test/loader/tests/loop_on_device/
+      - echo Copy the netlist files to the test directory verif/graph_tests/netlists/blackhole
+      - rm -fr build/test/verif/graph_tests/netlists/blackhole
+      - mkdir -p build/test/verif/graph_tests/netlists/blackhole
+      - cp -a verif/graph_tests/netlists/blackhole/. build/test/verif/graph_tests/netlists/blackhole/
+    build_timeout: '750'
+    timeout: '240'
+    envs: {TT_SILICON_DRIVER_AICLK: 800} # TODO: Erase this line when ARC on blackhole is enabled.
+    run_on_same_runner: true
+    artifacts: []
+  # ========== Tests ========== #
+    test_bert_host_input_output_only:
+        timeout: '400'
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --netlist build/test/verif/graph_tests/netlists/blackhole/netlist_encoder_grid.yaml --backend Silicon --dump-perf-events

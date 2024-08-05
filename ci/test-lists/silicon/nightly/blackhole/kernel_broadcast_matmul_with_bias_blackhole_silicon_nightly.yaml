@@ -1,0 +1,34 @@
+kernel_broadcast_matmul_with_bias_blackhole_silicon_nightly:
+  build_on_runner: True
+  tag: disabled
+  arch_name: blackhole
+  harvested_rows_supported: 2
+  device_runner: Silicon
+
+  # test_flow is not used if multi_test_netlists is not set, wheareas multi_test and multi_test_dir are set at test level.
+  # Instead, a script per netlist is expected in the directory with netlists that runs the test command.
+  test_flow: "./build/test/verif/graph_tests/test_graph"
+
+  build_cmd:
+    - "make -j8 build_hw"
+    - "make -j8 verif/graph_tests"
+
+    - "mkdir -p build/test/verif/multi_tm_tests/nightly/blackhole"
+
+    - unzip -qo verif/template_netlist/netlists/multi_tm_tests/nightly/blackhole/test_dram_input_matmul_with_bias_kernel_bcast_1_tms.zip
+      -d build/test/verif/multi_tm_tests/nightly/blackhole/test_dram_input_matmul_with_bias_kernel_bcast_1_tms
+    - rm -f build/test/verif/multi_tm_tests/nightly/blackhole/test_dram_input_matmul_with_bias_kernel_bcast_1_tms/test_configs.yaml
+
+  build_timeout: "3500"
+  timeout: "500"
+  run_on_same_runner: True
+  artifacts: []
+
+
+# ========== Tests ========== #
+  test_dram_input_matmul_with_bias_kernel_bcast_1_tms:
+    owner: ["derdeljan", "ajakovljevic"]
+    command: ["--silicon"]
+    multi_test_dir: "build/test/verif/multi_tm_tests/nightly/blackhole/test_dram_input_matmul_with_bias_kernel_bcast_1_tms"
+    multi_test_netlists: True
+    multi_test: True

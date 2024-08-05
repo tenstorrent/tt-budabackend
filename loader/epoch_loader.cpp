@@ -3904,7 +3904,7 @@ void tt_epoch_loader::insert_sync_on_cores(tt_epoch_control& ctrl, const std::un
 
     const int num_buffers                   = 1;
     const tt_queue_header_mask header_mask  = {tt_queue_header_mask::NULL_MASK};
-    const vector<uint32_t> header_vec       = {0,0,0,0,0,0,0,0};
+    const vector<uint32_t> header_vec(QUEUE_HEADER_WORDS, 0);
     tt_queue_header_wrap header_wrap        = {header_vec};
 
     // External sync loc. FW Sync logic requires min one buffer, so re-use 32B sync slot as target.

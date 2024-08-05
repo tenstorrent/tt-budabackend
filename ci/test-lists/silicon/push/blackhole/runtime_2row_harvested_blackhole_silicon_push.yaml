@@ -1,0 +1,520 @@
+runtime_2row_harvested_blackhole_silicon_push:
+    build_on_runner: true
+    tag: push
+    owner: [kmabee, asaigal]
+    arch_name: blackhole
+    harvested_rows_supported: 2
+    device_runner: Silicon
+    test_flow: ''
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 loader/tests
+      - make -j8 eager_backend
+      - make -j16 verif/netlist_tests
+      - echo Copy the netlist files to the test directory loader/tests/net_pybuda
+      - rm -fr build/test/loader/tests/net_pybuda
+      - mkdir -p build/test/loader/tests/net_pybuda
+      - cp -a loader/tests/net_pybuda/. build/test/loader/tests/net_pybuda/
+      - echo Copy the netlist files to the test directory loader/tests/net_tilize_untilize
+      - rm -fr build/test/loader/tests/net_tilize_untilize
+      - mkdir -p build/test/loader/tests/net_tilize_untilize
+      - cp -a loader/tests/net_tilize_untilize/. build/test/loader/tests/net_tilize_untilize/
+      - echo Copy the netlist files to the test directory verif/op_tests/netlists
+      - rm -fr build/test/verif/op_tests/netlists
+      - mkdir -p build/test/verif/op_tests/netlists
+      - cp -a verif/op_tests/netlists/. build/test/verif/op_tests/netlists/
+      - echo Copy the netlist files to the test directory loader/tests/net_program
+      - rm -fr build/test/loader/tests/net_program
+      - mkdir -p build/test/loader/tests/net_program
+      - cp -a loader/tests/net_program/. build/test/loader/tests/net_program/
+      - echo Copy the netlist files to the test directory verif/netlist_tests/netlists/basic_queue
+      - rm -fr build/test/verif/netlist_tests/netlists/basic_queue
+      - mkdir -p build/test/verif/netlist_tests/netlists/basic_queue
+      - cp -a verif/netlist_tests/netlists/basic_queue/. build/test/verif/netlist_tests/netlists/basic_queue/
+      - echo Copy the netlist files to the test directory loader/tests/net_perf
+      - rm -fr build/test/loader/tests/net_perf
+      - mkdir -p build/test/loader/tests/net_perf
+      - cp -a loader/tests/net_perf/. build/test/loader/tests/net_perf/
+      - echo Copy the netlist files to the test directory loader/tests/net_basic
+      - rm -fr build/test/loader/tests/net_basic
+      - mkdir -p build/test/loader/tests/net_basic
+      - cp -a loader/tests/net_basic/. build/test/loader/tests/net_basic/
+      - echo Copy the netlist files to the test directory verif/netlist_tests/netlists/basic_ram
+      - rm -fr build/test/verif/netlist_tests/netlists/basic_ram
+      - mkdir -p build/test/verif/netlist_tests/netlists/basic_ram
+      - cp -a verif/netlist_tests/netlists/basic_ram/. build/test/verif/netlist_tests/netlists/basic_ram/
+      - echo Copy the netlist files to the test directory loader/tests/loop_on_device
+      - rm -fr build/test/loader/tests/loop_on_device
+      - mkdir -p build/test/loader/tests/loop_on_device
+      - cp -a loader/tests/loop_on_device/. build/test/loader/tests/loop_on_device/
+    build_timeout: '750'
+    timeout: '240'
+    run_on_same_runner: true
+    artifacts: []
+  # ========== Tests ========== #
+    test_silicon_driver:
+        test_flow: ./build/test/loader/tests/test_silicon_driver
+        command:
+        -   --netlist build/test/loader/tests/net_basic/netlist_double_matmul.yaml --num-loops 100 --tests multi_inst_sequential,multi_inst_concurrent,init_shutdown_sequential
+
+    test_int8_bfp8_mmio:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_bfp8_mmio.yaml --host-data-format Int8 --batched-push --push-timeout-seconds 1]
+    test_int8_bfp8_non_mmio:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_bfp8_non_mmio.yaml --host-data-format Int8 --batched-push --push-timeout-seconds 1]
+    test_netlist_double_matmul:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command:
+        -   --netlist build/test/loader/tests/net_basic/netlist_double_matmul.yaml --silicon --O 0
+
+    test_queue_state_gptr_updates:
+        test_flow: ./build/test/loader/tests/test_queue_state
+        command:
+        -   --netlist build/test/loader/tests/net_program/gptr_updates.yaml --silicon --O 1
+    test_queue_state_gptr_multiple_side_effects:
+        test_flow: ./build/test/loader/tests/test_queue_state
+        command:
+        -   --netlist build/test/loader/tests/net_program/gptr_multiple_side_effects.yaml --silicon --O 1
+    test_queue_state_gptr_lptr_settings:
+        test_flow: ./build/test/loader/tests/test_queue_state
+        command:
+        -   --netlist build/test/loader/tests/net_basic/netlist_unary_lptr_gptr.yaml --silicon --O 1
+    test_queue_ping_pong:
+        test_flow: ./build/test/loader/tests/test_queue_ping_pong
+        command: [--silicon]
+    test_queue_ping_pong_programmed_eq:
+        test_flow: ./build/test/loader/tests/test_queue_ping_pong
+        command: [--silicon]
+        envs: {TT_BACKEND_EPOCH_QUEUE_NUM_SLOTS: 1}
+    test_out_of_order_exec:
+        test_flow: ./build/test/loader/tests/test_out_of_order_exec
+        command: [--silicon]
+    test_compile_only_run_only:
+        test_flow: ./build/test/loader/tests/test_compile_only_run_only
+        command:
+        -   --netlist build/test/loader/tests/net_basic/netlist_binary.yaml --silicon
+        envs: {TT_BACKEND_ALLOW_RUNTIME_RECOMPILE: 1}
+
+    test_o3_external_buffer_update_split:
+        owner: [asaigal]
+        test_flow: ' ./build/test/verif/netlist_tests/test_inference'
+        command: [--netlist build/test/verif/netlist_tests/netlists/basic_queue/netlist_split_binaries_across_bufs.yaml --inputs q0 --outputs output --sequential --O 3 --num-loops 1  --push-all-entries]
+        envs: {TT_BACKEND_QUEUE_UPDATE_BLOB_NUM_ENTRIES: 4}
+    test_o4_external_buffer_update_split:
+        owner: [asaigal]
+        test_flow: ' ./build/test/verif/netlist_tests/test_inference'
+        command: [--netlist build/test/verif/netlist_tests/netlists/basic_queue/netlist_split_binaries_across_bufs.yaml --inputs q0 --outputs output --sequential --O 4 --num-loops 1  --push-all-entries]
+        envs: {TT_BACKEND_QUEUE_UPDATE_BLOB_NUM_ENTRIES: 4}
+
+    test_host_bfloat_device_bfloat_bfp8b_bfp4b:
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_tilize_untilize/host_bfloat_device_bfloat_bfp8b_bfp4b.yaml --inputs input_0_matmul1,input_0_matmul2 --outputs data_formats.output_add --host-data-format Float16_b
+        envs: {TT_BACKEND_FORCE_SW_TILIZE: 1}
+
+    test_pybuda_api_wh_device_push:
+        timeout: '500'
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_wh_device_push.yaml --num-loops 4 --batched-push --skip-tile-check
+    test_host_untilize_hstack_vstack:
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_pybuda/test_tstack_dram_tilized.yaml --inputs in --outputs out --host-hstack-factor 2 --host-vstack-factor 3 --sequential
+    test_host_untilize_vstack_row_major:
+        owner: [asaigal]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_pybuda/test_tstack_dram_tilized.yaml --inputs in --outputs out --host-vstack-factor 3 --host-stack-row-major 1 --sequential
+    test_host_untilize_vstack_col_major:
+        owner: [asaigal]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_pybuda/test_tstack_dram_tilized.yaml --inputs in --outputs out --host-vstack-factor 3 --host-stack-row-major 0 --sequential
+    test_host_untilize_vstack_row_major_host_q:
+        owner: [asaigal]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_pybuda/test_tstack_host_tilized.yaml --inputs in --outputs out --host-vstack-factor 3 --host-stack-row-major 1 --sequential
+    test_device_untilize_vstack_row_major_host_q:
+        owner: [asaigal]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --seed 0 --netlist build/test/loader/tests/net_pybuda/test_tstack_host_untilized.yaml --inputs in --outputs out --host-vstack-factor 3 --host-stack-row-major 1 --sequential
+    test_sw_tilize_hq:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--netlist build/test/loader/tests/net_basic/netlist_sw_tilize_host_queue.yaml --num-loops 4 --batched-push --silicon]
+
+    #TODO: Does not work on --O 3, find out why.
+    # test_hq_dq_sanity:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command:
+    #     -   --netlist build/test/loader/tests/net_basic/netlist_input_output_host_queue.yaml --backend Silicon --O 3 --sequential
+
+    #TODO: Currently not enabled on blackhole architecture. Will be enabled at a later point.
+    # test_pybuda_api_hq_input_4gb_sanity:
+    #     test_flow: ./build/test/loader/tests/test_pybuda_api
+    #     command:
+    #     -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_multicore_4gb_host_queue_input.yaml
+
+    # test_hq_dq_sanity_host_4gb_microbatches_o4:
+    #     owner: [kmabee]
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command:
+    #     -   --netlist build/test/loader/tests/net_basic/netlist_input_output_host_queue_4gb.yaml --backend Silicon --O 4 --push-all-entries --io-timeout 100
+
+    test_netlist_hw_tilize_fp32_bfp8b:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/tilize_bfp8b_untilize_fp16b.yaml
+    test_netlist_hw_tilize_fp16b_bfp8b:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/tilize_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b
+    test_netlist_hw_tilize_fp16_bfp8:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/tilize_bfp8_untilize_fp16.yaml --host-data-format Float16
+
+    #TODO: Float16_b to Float16 not supported on blackhole architectures. Enable this that when the regression is fixed.
+    # test_pybuda_api_sanity_sw_tilize_1:
+    #     test_flow: ./build/test/loader/tests/test_pybuda_api
+    #     command:
+    # -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_multicore_sw_tilize.yaml --sw-tilize-test
+
+    test_pybuda_api_microbatch_host_queue:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_host_queue.yaml --num-pushes 2 --batched-push
+    test_pybuda_api_microbatch_dram_tilized_queue:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_dram_tilized_queue.yaml --num-pushes 4 --batched-push
+    test_pybuda_api_reduce_dims:
+        test_flow: ./build/test/loader/tests/test_pybuda_reduce_dims
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_host_queue.yaml --num-pushes 2 --batched-push
+    test_pybuda_api_tstack_operations:
+        test_flow: ./build/test/loader/tests/test_pybuda_tstack
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_pybuda/test_tstack_dram_tilized.yaml --num-pushes 1 --batched-push
+    #TODO: Float16_b to Float16 not supported on blackhole architectures. Enable this that when the regression is fixed.
+    # test_pybuda_api_timeouts_output_dram_untilized:
+    #     test_flow: ./build/test/loader/tests/test_pybuda_api
+    #     command:
+    #     -   --silicon --netlist build/test/loader/tests/net_pybuda/netlist_unary_api_timeouts_output_dram_untilized.yaml --io-api-timeout-test --num-pushes 3
+    test_graph_loops_ubach_looping:
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:
+        -   --netlist build/test/loader/tests/net_program/netlist_ubatch_looping.yaml --silicon --epoch-cache-hits 128 --epoch-cache-misses 0 --epoch-cache-preloads 1 --epoch-barriers 128
+    test_graph_loops_b2b_epochs:
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:
+        -   --netlist build/test/loader/tests/net_program/netlist_b2b_epochs.yaml --silicon --epoch-cache-hits 12 --epoch-cache-misses 0 --epoch-cache-preloads 3 --epoch-barriers 12
+    test_graph_loops_parallel_epochs:
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:
+        -   --netlist build/test/loader/tests/net_program/netlist_parallel_epochs.yaml --silicon --epoch-cache-hits 32 --epoch-cache-misses 0 --epoch-cache-preloads 4 --epoch-barriers 8
+    test_graph_loops_full_epoch_queue:
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:
+        -   --netlist build/test/loader/tests/net_program/netlist_full_epoch_queue.yaml --silicon --epoch-cache-hits 38 --epoch-cache-misses 4 --epoch-cache-preloads 32 --epoch-barriers 3
+
+    test_pybuda_api_ram:
+        test_flow: ./build/test/loader/tests/test_pybuda_ram
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/ram.yaml --num-pushes 128
+        randomize_seed: true
+    test_pybuda_api_ram_sw_tilize:
+        test_flow: ./build/test/loader/tests/test_pybuda_ram
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/ram.yaml --num-pushes 128
+        randomize_seed: true
+        envs: {TT_BACKEND_FORCE_SW_TILIZE: 1}
+    test_pybuda_api_perf:
+        timeout: '500'
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_perf/netlist_unary_dram_queue.yaml --skip-tile-check --num-loops 10 --num-pushes 4 --batched-push --push-duration-thresh 50000 --pop-duration-thresh 50000000
+    test_pybuda_api_perf2:
+        timeout: '500'
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_perf/netlist_unary_dram_queue.yaml --skip-tile-check --num-loops 10 --num-pushes 4096 --push-duration-thresh 750000 --pop-duration-thresh 50000000
+    test_pybuda_api_perf3:
+        timeout: '500'
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_perf/netlist_unary_host_queue.yaml --skip-tile-check --num-loops 10 --num-pushes 8 --batched-push --push-duration-thresh 50000 --pop-duration-thresh 3000
+    test_pybuda_api_perf4:
+        timeout: '500'
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_perf/netlist_unary_host_queue.yaml --skip-tile-check --num-loops 10 --num-pushes 8192 --push-duration-thresh 1500000 --pop-duration-thresh 10000
+
+    test_queue_state_gptr_updates_2:
+        test_flow: ./build/test/loader/tests/test_queue_state
+        command:
+        -   --netlist build/test/loader/tests/net_program/gptr_updates.yaml --silicon --O 1
+    test_queue_state_gptr_multiple_side_effects_2:
+        test_flow: ./build/test/loader/tests/test_queue_state
+        command:
+        -   --netlist build/test/loader/tests/net_program/gptr_multiple_side_effects.yaml --silicon --O 1
+    #TODO: Float16_b to Float16 not supported on blackhole architectures. Enable this that when the regression is fixed.
+    # test_pybuda_api_sanity2:
+    #     test_flow: ./build/test/loader/tests/test_pybuda_api
+    #     command:
+    #     -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_lptr_gptr_nonzero_init.yaml --num-pushes 4
+    test_pybuda_api_sanity_sw_tilize_2:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_multicore.yaml --sw-tilize-test
+        envs: {TT_BACKEND_FORCE_SW_TILIZE: 1}
+    test_pybuda_api_sanity_sw_tilize_3:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_multicore.yaml --sw-tilize-test --host-data-format Float16_b
+    test_pybuda_api_microbatch_dram_untilized_queue:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_basic/netlist_unary_dram_untilized_queue.yaml --num-pushes 4 --batched-push
+    test_pybuda_api_timeouts_output_dram_tilized:
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_pybuda/netlist_unary_api_timeouts_output_dram_tilized.yaml --io-api-timeout-test --num-pushes 3
+    test_pybuda_multiprocess_sanity:
+        test_flow: ./build/test/loader/tests/test_pybuda_multiprocess
+        command: ["--silicon","--seed","1"]
+        randomize_seed: true
+    test_netlist_fast_tilize:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/tilize_fp16_untilize_fp16b.yaml --host-data-format Float16
+    test_netlist_fast_tilize_2:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/tilize_fp16b_untilize_fp16.yaml --host-data-format Float16_b
+    test_tilize_mixed_formats:
+        test_flow: ./build/test/loader/tests/test_tilize_mixed_formats
+        command:
+        -   --silicon --num-pushes 2
+    
+    #TODO: Float16_b to Float16 not supported on blackhole architectures. Enable this that when the regression is fixed.
+    # test_tilize_mixed_formats_batched:
+    #     test_flow: ./build/test/loader/tests/test_tilize_mixed_formats
+    #     command:
+    #     -   --silicon --num-pushes 1 --batched-push
+
+    #TODO: TT_BACKEND_FORCE_SW_OFFLINE_TILIZE not supported on blackhole architectures. Enable when fixed. Needs test_offline_tilize to fix to initialize TLB.
+    # test_offline_slow_tilize:
+    #     owner: [asaigal]
+    #     timeout: '300'
+    #     test_flow: ./build/test/loader/tests/test_offline_tilize
+    #     command: [--netlist build/test/loader/tests/net_basic/netlist_multi_smaller_input.yaml --loops 2]
+    #     envs: {TT_BACKEND_FORCE_SW_OFFLINE_TILIZE: 1}
+    # test_offline_slow_tilize_golden:
+    #     owner: [asaigal]
+    #     timeout: '300'
+    #     test_flow: ./build/test/loader/tests/test_offline_tilize_golden
+    #     command: [--netlist build/test/loader/tests/net_basic/netlist_muti_input.yaml --loops 2]
+    #     envs: {TT_BACKEND_FORCE_SW_OFFLINE_TILIZE: 1}
+
+    #TODO: Check for TLB not initialized error that these tests produce. Needs test_offline_tilize to fix to initialize TLB (call setup_core_to_tlb_map()).
+    # test_offline_tilize:
+    #     owner: [asaigal]
+    #     timeout: '300'
+    #     test_flow: ./build/test/loader/tests/test_offline_tilize
+    #     command: [--netlist build/test/loader/tests/net_basic/netlist_multi_smaller_input.yaml --loops 2]
+    # test_offline_tilize_golden:
+    #     owner: [asaigal]
+    #     timeout: '300'
+    #     test_flow: ./build/test/loader/tests/test_offline_tilize_golden
+    #     command: [--netlist build/test/loader/tests/net_basic/netlist_muti_input.yaml]
+
+    test_mini_tile_32x16:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_32x16.yaml --batched-push --tile-height 32 --tile-width 16]
+    test_mini_tile_16x32:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_16x32.yaml --batched-push --tile-height 16 --tile-width 32]
+    test_mini_tile_8x32:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_8x32.yaml --batched-push --tile-height 8 --tile-width 32]
+    test_mini_tile_32x16_fp16b:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_32x16_fp16b.yaml --batched-push --tile-height 32 --tile-width 16 --host-data-format Float32]
+    test_mini_tile_16x32_fp16b:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_16x32_fp16b.yaml --batched-push --tile-height 16 --tile-width 32 --host-data-format Float32]
+    test_mini_tile_1x32_bfp8:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_1x32_bfp8.yaml --batched-push --tile-height 1 --tile-width 32 --host-data-format Float32]
+    test_mini_tile_8x32_bfp8:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_8x32_bfp8.yaml --batched-push --tile-height 8 --tile-width 32 --host-data-format Float16_b]
+    test_mini_tile_16x32_bfp8:
+        owner: [asaigal]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command: [--silicon --netlist build/test/loader/tests/net_basic/netlist_dram_tilized_16x32_bfp8.yaml --batched-push --tile-height 16 --tile-width 32 --host-data-format Float32]
+    
+    # TODO: Tilizer op currently has issues on the blackhole architecture, see issue #2710. Enable when fixed.
+    # test_flat_tile_memcpy_mmio_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x1.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --untilized-inputs flat_input]
+    # test_flat_tile_row_memcpy_mmio_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x4.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --untilized-inputs flat_input]
+    # test_flat_tile_rowcopy_mmio_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x4.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --host-data-format Float32 --untilized-inputs flat_input]
+    # test_flat_tile_memcpy_device_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x1_slow_push.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --untilized-inputs flat_input]
+    # test_flat_tile_row_memcpy_device_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x4_slow_push.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --untilized-inputs flat_input]
+    # test_flat_tile_rowcopy_device_push:
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command: [--netlist build/test/verif/op_tests/netlists/netlist_tilizer_1x4_slow_push.yaml --backend Silicon --seed 0 --O 0 --io-timeout 100 --inputs flat_input --outputs tilized_output --sequential --host-data-format Float32 --untilized-inputs flat_input]
+  
+  # Eager mode tests
+
+    cpp_eager_ops_sanity:
+        test_flow: ./build/test/loader/tests/test_eager_ops
+        command:
+        -   --seed 0
+    python_eager_ops_sanity:
+        test_flow: ./py_api/tests/test.py
+        command: []
+        envs: {PYTHONPATH: build/obj/py_api}
+    python_block_tilize_untilize:
+        test_flow: ./py_api/tests/tilize_untilize.py
+        command: []
+        envs: {PYTHONPATH: build/obj/py_api}
+
+  # Program Looping on Device
+
+    test_pybuda_program_looping_on_device_nested_parallel_loops_single_epoch:
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_programs1_nested_parallel_loops_single_epoch.yaml --O 4 --num-pushes 20 --batched-push
+
+    test_pybuda_program_looping_on_device_loops1_multi_epoch_multicore_1:
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_programs1_loops1_multiple_epochs_multicore_1.yaml --O 4 --num-pushes 5 --batched-push
+
+    program_looping_on_device_training_loops_shadows_q_reuse_within_and_across_progs:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_training
+        command:
+        -   --backend Silicon --io-timeout 100 --O 4 --netlist build/test/loader/tests/loop_on_device/netlist_training_loops_shadows_q_reuse_within_and_across_progs.yaml --microbatch-count 4
+        envs: {TT_BACKEND_VARINST_MERGE_IO_QUEUE_UPDATES: 0}
+
+    program_looping_on_device_all_varinst_sweep:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --backend Silicon --io-timeout 100 --O 4 --netlist build/test/loader/tests/loop_on_device/netlist_varinst_sweep.yaml --push-all-entries --num-loops 1
+
+    program_looping_on_device_dual_view_ram_batch_loops:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_dual_view_ram
+        command:
+        -   --backend Silicon --O 4 --num-loops 2 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_batch_loops.yaml --param-inner-loop-count 8 --param-outer-loop-count 2 --param-inner-loop-wr-incr 2 --param-outer-loop-wr-incr 3
+
+  # Single program - t=1 for reader/writer microbatch_size:2, reader chases writer across loop iterations.
+    test_dual_view_ram_batch_loops_single_program_0_o4:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_dual_view_ram
+        command:
+        -   --backend Silicon --O 4 --num-loops 10 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_single_graph_0.yaml --param-inner-loop-count 3 --param-outer-loop-count 2 --param-inner-loop-wr-incr 2 --param-outer-loop-wr-incr 3 --wr-cache-index-start 2 --param-inner-loop-rd-incr 2 --param-outer-loop-rd-incr 3
+
+  # Single program - t=1 for writer, t=2 for reader. microbatch_size:2, reader chases writer across loop iterations.
+    test_dual_view_ram_batch_loops_single_program_1_o4:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_dual_view_ram
+        command:
+        -   --backend Silicon --O 4 --num-loops 10 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_single_graph_1.yaml --param-inner-loop-count 5 --param-outer-loop-count 1 --param-inner-loop-wr-incr 4 --param-outer-loop-wr-incr 0 --wr-cache-index-start 4 --param-inner-loop-rd-incr 2 --param-outer-loop-rd-incr 0
+
+  # Reader chases writer, writing to non-adjacent slots. Writer overwriting data.  Expect reader/writer cores are operating in lock step and writer not racing ahead.
+  # Write:  1,3 | 2,4 | 3,5 
+  # Reader: 0,2 | 1,3 | 2,4
+    test_dual_view_ram_batch_loops_single_program_2_o4:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_dual_view_ram
+        command:
+        -   --backend Silicon --O 4 --num-loops 10 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_single_graph_2.yaml --param-inner-loop-count 5 --param-outer-loop-count 1 --param-inner-loop-wr-incr 1 --param-outer-loop-wr-incr 0 --wr-cache-index-start 1 --param-inner-loop-rd-incr 1 --param-outer-loop-rd-incr 0
+
+  # Inspired by #2167 and 2513 - updating dual view RAM header for those with multiple views, syncing on producer/consumer.
+  # TODO: These tests currently kill the host, make an exploration into why.
+    # test_dual_view_rams_multiple_views_o3:
+    #     owner: [kmabee]
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command:
+    #     -   --backend Silicon --io-timeout 100 --O 3 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
+
+    # test_dual_view_rams_multiple_views_o2:
+    #     owner: [kmabee]
+    #     test_flow: ./build/test/verif/netlist_tests/test_inference
+    #     command:
+    #     -   --backend Silicon --io-timeout 100 --O 2 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
+
+  # Issue #2181 epoch_id aliasing hazard/deadlocks - originally deadlock unless o3 write combine adds full-grid-sync to bypass aliasing wait (deadlock with WC)
+  # Verify number of hazards and full-grid-syncs (used for Write-Combine and program-looping avoidance)
+    test_epoch_id_aliasing_hazard_patterns_o2_single_chip_0:
+        envs: {TT_BACKEND_EPOCH_BIN_NUM_SLOTS: 64, TT_BACKEND_EPOCH_QUEUE_WC_ENA_MMIO: 1}
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:                                                                                                                                                                            # Number of hazards are device runtime dependent.
+
+  # WC No longer enabled for o3.
+  # test_epoch_id_aliasing_hazard_patterns_o3_write_combine_single_chip_0:
+  #   envs: {TT_BACKEND_EPOCH_BIN_NUM_SLOTS: 64, TT_BACKEND_EPOCH_QUEUE_WC_ENA_MMIO: 1}
+  #   owner: ["kmabee"]
+  #   test_flow: "./build/test/loader/tests/test_graph_loops"
+  #   command: ["--netlist", "build/test/loader/tests/loop_on_device/netlist_aliasing_single_chip_patterns.yaml", "--silicon", "--O", "3", "--epoch-id-alias-hazards", "35", "--full-grid-syncs", "35", "--wait-for-idle-between-programs"]
+
+        -   --netlist build/test/loader/tests/loop_on_device/netlist_aliasing_single_chip_patterns.yaml --silicon --O 2 --full-grid-syncs 0 --wait-for-idle-between-programs
+    test_epoch_id_aliasing_hazard_patterns_o4_program_looping_single_chip_0:
+        envs: {TT_BACKEND_EPOCH_BIN_NUM_SLOTS: 64, TT_BACKEND_EPOCH_QUEUE_WC_ENA_MMIO: 1}
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_graph_loops
+        command:
+        -   --netlist build/test/loader/tests/loop_on_device/netlist_aliasing_single_chip_patterns.yaml --silicon --O 4 --epoch-id-alias-hazards 16 --full-grid-syncs 21 --wait-for-idle-between-programs
+
+  # Kernel Cache Feature (Move trisc binarieas from combined binary per epoch to shared storage. Large DRAM savings).
+
+  # Sanity test - enable kernel cache on multi-graph test, with large amount of binary slots that would normally not fit in DRAM.
+    test_kernel_cache_en_sanity_1:
+        envs: {TT_BACKEND_EPOCH_BIN_NUM_SLOTS: 256, TT_BACKEND_KERNEL_CACHE_NUM_SLOTS: 2}
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_programs1_loops1_multiple_epochs_multicore_1.yaml --O 4 --num-pushes 5 --batched-push
+
+  # Test to make sure programmable extra-overlay-blob size feature still works with kernel-cache enabled.
+    test_kernel_cache_en_extra_overlay_blob_size:
+        envs: {TT_BACKEND_KERNEL_CACHE_NUM_SLOTS: 2, TT_BACKEND_OVERLAY_MAX_EXTRA_BLOB_SIZE: 4096}
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_programs1_loops1_multiple_epochs_multicore_1.yaml --O 4 --num-pushes 5 --batched-push
+
+  # Test to make sure programmable extra-overlay-blob size feature still works with kernel-cache disabled.
+    test_kernel_cache_dis_extra_overlay_blob_size:
+        envs: {TT_BACKEND_KERNEL_CACHE_NUM_SLOTS: 0, TT_BACKEND_OVERLAY_MAX_EXTRA_BLOB_SIZE: 4096}
+        owner: [kmabee]
+        test_flow: ./build/test/loader/tests/test_pybuda_api
+        command:
+        -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_programs1_loops1_multiple_epochs_multicore_1.yaml --O 4 --num-pushes 5 --batched-push
