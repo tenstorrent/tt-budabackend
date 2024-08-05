@@ -1,15 +1,15 @@
 devices:
-  arch: [grayskull, wormhole, wormhole_b0]
+  arch: [grayskull, wormhole_b0, blackhole]
 
 queues:
-  in:  {type: queue, input: HOST    , entries: 3, grid_size: [1, 2], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16_b, target_device: 0, loc: dram, dram: [[0, 0x30000000],[0, 0x32000000]]}
+  in:  {type: queue, input: HOST    , entries: 3, grid_size: [1, 2], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x30000000],[0, 0x32000000]]}
   out: {type: queue, input: unary0  , entries: 3, grid_size: [1, 2], t: 1, mblock: [4, 4], ublock: [1, 1], df: Float16, target_device: 0, loc: dram, dram: [[0, 0x10000000], [0, 0x12000000]]}
 
 graphs:
   test_unary:
     target_device: 0
     input_count: 3
-    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 2], inputs: [in], in_df: [Float16_b], acc_df: Float16, out_df: Float16,  intermed_df: Float16_b, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [4, 4], ublock: [1, 1]}
+    unary0: {type: nop, grid_loc: [0, 0], grid_size: [1, 2], inputs: [in], in_df: [Float16], acc_df: Float16, out_df: Float16,  intermed_df: Float16, ublock_order: r, buf_size_mb: 2, math_fidelity: HiFi3, untilize_output: false, t: 1, mblock: [4, 4], ublock: [1, 1]}
 
 programs:
   - tilize_untilize:

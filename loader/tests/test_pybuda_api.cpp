@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 
     std::tie(sw_tilize_test, args) = verif_args::has_command_option_and_remaining_args(args, "--sw-tilize-test");
 
-    log_assert(arch_name == "grayskull" || arch_name == "wormhole", "Invalid arch");
+    log_assert(arch_name == "grayskull" || arch_name == "wormhole" || arch_name == "blackhole", "Invalid arch");
 
     std::tie(skip_tile_check, args)      = verif_args::has_command_option_and_remaining_args(args, "--skip-tile-check");
     std::tie(skip_gets, args)            = verif_args::has_command_option_and_remaining_args(args, "--skip-gets");

@@ -1,0 +1,131 @@
+fast_tilize_device_push_blackhole_silicon_nightly:
+    build_on_runner: true
+    tag: disabled
+    owner: [asaigal]
+    arch_name: blackhole
+    harvested_rows_supported: 2
+    device_runner: Silicon
+    test_flow: ''
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 loader/tests
+      - echo Copy the netlist files to the test directory loader/tests/net_tilize_untilize
+      - rm -fr build/test/loader/tests/net_tilize_untilize
+      - mkdir -p build/test/loader/tests/net_tilize_untilize
+      - cp -a loader/tests/net_tilize_untilize/. build/test/loader/tests/net_tilize_untilize/
+    build_timeout: '1000'
+    timeout: '520'
+    run_on_same_runner: true
+    artifacts: []
+    envs: {}
+# ========== Tests ========== #
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_0:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor none
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_1:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_2:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor uniform
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_3:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal-large-stddev
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_4:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal-each-portion
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_5:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor diagonal
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_6:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal-bias-pos
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_7:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal-bias-neg
+    test_netlist_fast_tilize_device_push_fp32_bfp8b_8:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --randomize-tensor normal-small-values
+
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_0:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor none
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_1:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_2:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor uniform
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_3:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal-large-stddev
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_4:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal-each-portion
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_5:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor diagonal
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_6:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal-bias-pos
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_7:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal-bias-neg
+    test_netlist_fast_tilize_device_push_fp16b_bfp8b_8:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8b_untilize_fp16b.yaml --host-data-format Float16_b --randomize-tensor normal-small-values
+
+    test_netlist_fast_tilize_device_push_fp16_bfp8_0:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor none
+    test_netlist_fast_tilize_device_push_fp16_bfp8_1:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal
+    test_netlist_fast_tilize_device_push_fp16_bfp8_2:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor uniform
+    test_netlist_fast_tilize_device_push_fp16_bfp8_3:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal-large-stddev
+    test_netlist_fast_tilize_device_push_fp16_bfp8_4:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal-each-portion
+    test_netlist_fast_tilize_device_push_fp16_bfp8_5:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor diagonal
+    test_netlist_fast_tilize_device_push_fp16_bfp8_6:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal-bias-pos
+    test_netlist_fast_tilize_device_push_fp16_bfp8_7:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal-bias-neg
+    test_netlist_fast_tilize_device_push_fp16_bfp8_8:
+        test_flow: ./build/test/loader/tests/test_hw_tilize
+        command:
+        -   --silicon --netlist build/test/loader/tests/net_tilize_untilize/fast_tilize_device_bfp8_untilize_fp16.yaml --host-data-format Float16 --randomize-tensor normal-small-values
