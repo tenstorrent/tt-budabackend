@@ -74,7 +74,7 @@ def is_number(val):
     return isinstance(val, (int, float))
 
 def is_valid_arch(arch: str):
-    return arch.lower() in ["grayskull", "wormhole_b0"]    
+    return arch.lower() in ["grayskull", "wormhole_b0", "blackhole"]    
 
 def is_valid_tag(tag: str):
     return tag.lower() in ["push", "nightly"]

@@ -469,7 +469,7 @@ def generate_dram_channels_and_addresses(num_buffers, min_buffer_size, channels,
     start = lower_limit
     for i in indices:
         addr = random.randint(start, i + start - min_buffer_size)
-        addr = addr - (addr % 32)  # Ensure addresses are aligned to 32 bytes.
+        addr = addr - (addr % 64)  # Ensure addresses are aligned to 64 bytes.
         rv.append((channels, addr))
         start += i
 
@@ -524,12 +524,12 @@ def generate_dram_channels_and_deterministic_addresses(
         dram_assignment_valid[0] = False
         print("Not enough dram space for current config")
         return rv
-    min_buffer_size += 32  # Just in case the rounding down brings two addresses too close.
+    min_buffer_size += 64  # Just in case the rounding down brings two addresses too close.
     current_channel = get_channel(dram_assignment, channels, -1)
     # channel_idx = get_channel_idx(dram_assignment, -1, len(channels))
     start_addr = start_addr_each_channel[current_channel]
-    start_32B = start_addr + ((32 - start_addr) % 32)
-    while start_32B + min_buffer_size >= upper_limit:
+    start_64B = start_addr + ((64 - start_addr) % 64)
+    while start_64B + min_buffer_size >= upper_limit:
         current_channel_idx = channels.index(current_channel)
         channels.remove(current_channel)
         current_channel_idx -= 1
@@ -540,19 +540,19 @@ def generate_dram_channels_and_deterministic_addresses(
         new_channel = get_channel(dram_assignment, channels, current_channel_idx)
         current_channel = new_channel
         start_addr = start_addr_each_channel[current_channel]
-        start_32B = start_addr + ((32 - start_addr) % 32)
+        start_64B = start_addr + ((64 - start_addr) % 64)
 
     for i in range(num_buffers):
-        rv.append((current_channel, start_32B))
+        rv.append((current_channel, start_64B))
         channels_num_times_used[current_channel] += 1
 
-        start_32B += min_buffer_size
-        start_addr_each_channel[current_channel] = start_32B
+        start_64B += min_buffer_size
+        start_addr_each_channel[current_channel] = start_64B
 
         current_channel_idx = channels.index(current_channel)
         # We should have enough space for next buffer
         # Otherwise remove the channel from the list
-        if start_32B + min_buffer_size >= upper_limit:
+        if start_64B + min_buffer_size >= upper_limit:
             channels.remove(current_channel)
             current_channel_idx -= 1
             if len(channels) == 0:
@@ -562,7 +562,7 @@ def generate_dram_channels_and_deterministic_addresses(
         new_channel = get_channel(dram_assignment, channels, current_channel_idx)
         current_channel = new_channel
         start_addr = start_addr_each_channel[current_channel]
-        start_32B = start_addr + ((32 - start_addr) % 32)
+        start_64B = start_addr + ((64 - start_addr) % 64)
 
     if check_buf_size is not None:
         check_addresses_for_overlap(rv, check_buf_size, upper_limit)

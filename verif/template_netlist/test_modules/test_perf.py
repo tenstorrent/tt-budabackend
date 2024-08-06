@@ -230,6 +230,10 @@ def constraint_model(
         solver.add(svars["ARCH"] == ARCH.GS.value)
         max_grid_size_r = 10
         max_grid_size_c = 12
+    elif arch.lower() == "blackhole":
+        solver.add(svars["ARCH"] == ARCH.BH.value)
+        max_grid_size_r = 10
+        max_grid_size_c = 8
     else:
         raise ValueError("Invalid arch type")
     
@@ -358,6 +362,18 @@ def constraint_model(
     )
     return solver
 
+def create_arch_string(arch):
+    if arch == ARCH.WH_A0.value:
+        return "wormhole"
+    elif arch == ARCH.WH_B0.value:
+        return "wormhole_b0"
+    elif arch == ARCH.GS.value:
+        return "grayskull"
+    elif arch == ARCH.BH.value:
+        return "blackhole"
+    else:
+        raise ValueError("Invalid arch type")
+
 def create_dram_buffer_strings(model_vars, perf_config: PerfOpSweepConfig):
     if model_vars["ARCH"] == ARCH.WH_A0.value:
         max_grid_size_r = 10
@@ -368,6 +384,10 @@ def create_dram_buffer_strings(model_vars, perf_config: PerfOpSweepConfig):
         max_grid_size_c = 8
         num_dram_channels = 6
     elif model_vars["ARCH"] == ARCH.GS.value:
+        max_grid_size_r = 10
+        max_grid_size_c = 12
+        num_dram_channels = 8
+    elif model_vars["ARCH"] == ARCH.BH.value:
         max_grid_size_r = 10
         max_grid_size_c = 12
         num_dram_channels = 8
@@ -382,7 +402,8 @@ def create_dram_buffer_strings(model_vars, perf_config: PerfOpSweepConfig):
                 model_vars["num_entries"],
                 model_vars[VAR('t', i)],
                 [model_vars[VAR('mb_r', i)], model_vars[VAR('mb_c', i)]],
-                [model_vars[VAR('ub_r', i)], model_vars[VAR('ub_c', i)]]
+                [model_vars[VAR('ub_r', i)], model_vars[VAR('ub_c', i)]],
+                create_arch_string(model_vars["ARCH"])
             )
         )
 
@@ -391,7 +412,8 @@ def create_dram_buffer_strings(model_vars, perf_config: PerfOpSweepConfig):
         model_vars["input_count"],
         model_vars[VAR('t', -1)],
         [model_vars[VAR('mb_r', -1)], model_vars[VAR('mb_c', -1)]],
-        [model_vars[VAR('ub_r', -1)], model_vars[VAR('ub_c', -1)]]
+        [model_vars[VAR('ub_r', -1)], model_vars[VAR('ub_c', -1)]],
+        create_arch_string(model_vars["ARCH"])
     )
     dram_channels_prologue = [list(range(num_dram_channels)) for i in range(get_num_input_operands(perf_config.op_type))]
     output_dram_channels = list(range(num_dram_channels))
@@ -521,6 +543,10 @@ def extra_config_callback(model_vars, perf_config: PerfOpSweepConfig):
     elif model_vars["ARCH"] == ARCH.GS.value:
         max_grid_size_r = 10
         max_grid_size_c = 12
+    elif model_vars["ARCH"] == ARCH.BH.value:
+        max_grid_size_r = 10
+        max_grid_size_c = 8
+        num_dram_channels = 6
     else:
         raise ValueError("Invalid arch type")
     

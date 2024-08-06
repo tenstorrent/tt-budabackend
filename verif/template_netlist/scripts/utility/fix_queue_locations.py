@@ -243,7 +243,7 @@ class FixNetlistForBH:
         # Pick any DRAM channel we haven't filled all the way if we don't fit in this one.
         while True:
             queue_end_address = self.curr_dram_start_address[dram_channel] + total_queue_size
-            if queue_end_address < self.arch.dram_buffer_end_addr:
+            if queue_end_address <= self.arch.dram_buffer_end_addr:
                 break
             else:
                 dram_channel = random.choice(range(self.arch.num_dram_channels))
@@ -265,10 +265,9 @@ class FixNetlistForBH:
         # Single DRAM buffer size is guaranteed to be aligned to arch, since queue headers are aligned as well as
         # tile sizes. Therefore, total queue size will also be arch aligned.
         single_dram_buffer_size = (
-            queue.num_tiles_in_buffer * self.arch.get_tile_size(queue.data_format) + self.arch.dram_queue_header_size
+            queue.num_tiles_in_buffer * int(self.arch.get_tile_size(queue.data_format)) + self.arch.dram_queue_header_size
         )
         total_queue_size = queue.num_buffers * single_dram_buffer_size
-
         if queue.is_in_dram():
             dram_channel = self.pick_dram_channel(queue.dram_channel, total_queue_size)
             queue_start_address = self.curr_dram_start_address[dram_channel]

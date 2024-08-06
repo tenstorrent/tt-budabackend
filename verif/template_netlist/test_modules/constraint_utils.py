@@ -9,6 +9,7 @@ from z3 import *
 from util import *
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
+import math
 
 FP32_TILE_SIZE = 32 * 32 * 4 + 32
 FP16_TILE_SIZE = 32 * 32 * 2 + 32
@@ -26,6 +27,7 @@ class ARCH(Enum):
     GS = 1
     WH_A0 = 2
     WH_B0 = 3
+    BH = 4
 
 class BinaryType(Enum):
     add = 1
@@ -102,6 +104,38 @@ class SfpuVectorMode(Enum):
     r    = 2
     c    = 3
 
+def get_data_format_tile_size_map(arch):
+    if arch == "blackhole":
+        return {
+            DataFormat.Float32.value: math.ceil(FP32_TILE_SIZE / 64) * 64,
+            DataFormat.Int32.value: math.ceil(FP32_TILE_SIZE / 64) * 64,
+            DataFormat.RawUInt32.value: math.ceil(FP32_TILE_SIZE / 64) * 64,
+            DataFormat.Float16.value: math.ceil(FP16_TILE_SIZE / 64) * 64,
+            DataFormat.Float16_b.value: math.ceil(FP16_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp8.value: math.ceil(BFP8_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp8_b.value: math.ceil(BFP8_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp4.value: math.ceil(BFP4_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp4_b.value: math.ceil(BFP4_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp2.value: math.ceil(BFP2_TILE_SIZE / 64) * 64,
+            DataFormat.Bfp2_b.value: math.ceil(BFP2_TILE_SIZE / 64) * 64,
+            DataFormat.Int8.value: math.ceil(INT8_TILE_SIZE / 64) * 64,
+        }
+    else:
+        return {
+            DataFormat.Float32.value: FP32_TILE_SIZE,
+            DataFormat.Int32.value: FP32_TILE_SIZE,
+            DataFormat.RawUInt32.value: FP32_TILE_SIZE,
+            DataFormat.Float16.value: FP16_TILE_SIZE,
+            DataFormat.Float16_b.value: FP16_TILE_SIZE,
+            DataFormat.Bfp8.value: BFP8_TILE_SIZE,
+            DataFormat.Bfp8_b.value: BFP8_TILE_SIZE,
+            DataFormat.Bfp4.value: BFP4_TILE_SIZE,
+            DataFormat.Bfp4_b.value: BFP4_TILE_SIZE,
+            DataFormat.Bfp2.value: BFP2_TILE_SIZE,
+            DataFormat.Bfp2_b.value: BFP2_TILE_SIZE,
+            DataFormat.Int8.value: INT8_TILE_SIZE
+        }
+    
 data_format_tile_size_map = {
     DataFormat.Float32.value: FP32_TILE_SIZE,
     DataFormat.Int32.value: FP32_TILE_SIZE,
@@ -115,7 +149,7 @@ data_format_tile_size_map = {
     DataFormat.Bfp2.value: BFP2_TILE_SIZE,
     DataFormat.Bfp2_b.value: BFP2_TILE_SIZE,
     DataFormat.Int8.value: INT8_TILE_SIZE,
-}
+} 
 
 data_formats_a = [
     DataFormat.Float32.value,
@@ -377,10 +411,10 @@ def calculate_num_buffers_and_size(grid_r, grid_c, input_count, mb_r, mb_c, ub_r
         input_count * mb_r * mb_c * ub_r * ub_c * t * tile_size
     )
 
-def get_queue_buffer_size(data_format: str, num_entries, t, mblock_dim, ublock_dim):
+def get_queue_buffer_size(data_format: str, num_entries, t, mblock_dim, ublock_dim, arch: str):
     df_val = DataFormat[data_format].value
-    if df_val in data_format_tile_size_map:
-        tile_size = data_format_tile_size_map[df_val]
+    if df_val in get_data_format_tile_size_map(arch):
+        tile_size = get_data_format_tile_size_map(arch)[df_val]
     else:
         raise "Invalid data-format"
 

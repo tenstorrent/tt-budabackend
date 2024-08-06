@@ -1,0 +1,245 @@
+perf_infra_blackhole_silicon_push:
+    build_on_runner: true
+    tag:
+    -   push
+    -   perf
+    owner: [jnie]
+    arch_name: blackhole
+    harvested_rows_supported: 0
+    device_runner: Silicon
+    test_flow: ./build/test/loader/tests/test_netlist_program
+  # Also build the netlists for nightly just for sanity check
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 loader/tests
+      - make -j8 verif/netlist_tests
+      - make -j8 netlist_analyzer
+      - make perf_lib/perf_targets
+      - ./perf_lib/op_perf_test.py --op-name matmul --run-kernel-suite --netlists-output-dir build/perf-test/matmul-kernel-push
+      - ./perf_lib/op_perf_test.py --op-name binary --run-kernel-suite --netlists-output-dir build/perf-test/binary-kernel-push
+      - ./perf_lib/op_perf_test.py --op-name unary --run-kernel-suite --netlists-output-dir build/perf-test/unary-kernel-push
+      - ./perf_lib/op_perf_test.py --op-name dram_read --run-kernel-suite --netlists-output-dir build/perf-test/dram-read-kernel-push
+      - ./perf_lib/op_perf_test.py --op-name dram_write --run-kernel-suite --netlists-output-dir build/perf-test/dram-write-kernel-push
+      - ./perf_lib/op_perf_test.py --op-name unary --reblocking-mode gather --netlists-output-dir build/perf-test/unary-gather-push
+      - ./perf_lib/op_perf_test.py --op-name matmul --run-single-op --dram-assignment-mode round_robin --netlists-output-dir build/perf-test/matmul-single-op-push
+      - ./perf_lib/op_perf_test.py --op-name binary --run-single-op --dram-assignment-mode round_robin --netlists-output-dir build/perf-test/binary-single-op-push
+      - ./perf_lib/op_perf_test.py --op-name unary --nightly --netlists-output-dir build/perf-test/unary-kernel-nightly
+      - ./perf_lib/op_perf_test.py --op-name binary --nightly --netlists-output-dir build/perf-test/binary-kernel-nightly
+      - echo Copy the netlist files to the test directory loader/tests/net_basic
+      - rm -fr build/test/loader/tests/net_basic
+      - mkdir -p build/test/loader/tests/net_basic
+      - cp -a loader/tests/net_basic/. build/test/loader/tests/net_basic/
+      - mkdir -p build/test/verif/directed_tests/perf_max_tests
+      - cp -a verif/directed_tests/perf_max_tests/. build/test/verif/directed_tests/perf_max_tests
+    build_timeout: '1200'
+    timeout: '600'
+    envs: {TT_SILICON_DRIVER_AICLK: 800} # TODO: Erase this line when ARC on blackhole is enabled.
+    run_on_same_runner: true
+    artifacts: [build/perf-test/matmul-kernel-push, build/perf-test/binary-kernel-push, build/perf-test/unary-kernel-push, build/perf-test/dram-read-kernel-push, build/perf-test/dram-write-kernel-push, build/perf-test/unary-gather-push, build/perf-test/matmul-single-op-push, build/test/verif/directed_tests/perf_max_tests/blackhole/dram_read, build/test/verif/directed_tests/perf_max_tests/blackhole/gather_multicast, build/test/verif/directed_tests/perf_max_tests/blackhole/packer_fork_gather_large, build/test/verif/directed_tests/perf_max_tests/blackhole/packer_gather_with_reblock_large, build/test/verif/directed_tests/perf_max_tests/blackhole/packer_multicast, build/test/verif/directed_tests/perf_max_tests/blackhole/packer_single_fork_large, build/test/verif/directed_tests/perf_max_tests/blackhole/scatter_unicast_regular]
+# ========== Op Tests ========== #
+
+######## Kernel performance tests with feeders and drainers with decouplings ########
+    matmul_kernel_perf_test:
+      command: ['--silicon --dump-perf-events --perf-op-mode feeder0:MathPack,feeder1:MathPack,drainer:UnpMath']
+      multi_test_dir: build/perf-test/matmul-kernel-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "matmul_kernel_perf_test",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/matmul-kernel-push"]
+
+    binary_kernel_perf_test:
+      command: ['--silicon --dump-perf-events --perf-op-mode feeder0:MathPack,feeder1:MathPack,drainer:UnpMath']
+      multi_test_dir: build/perf-test/binary-kernel-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "binary_kernel_perf_test",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/binary-kernel-push"]
+
+    unary_kernel_perf_test:
+      command: [--silicon, --dump-perf-events, --perf-op-mode, 'feeder0:MathPack,feeder1:MathPack,drainer:UnpMath']
+      multi_test_dir: build/perf-test/unary-kernel-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "unary_kernel_perf_test",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/unary-kernel-push"]
+
+######## Dram read/write bw ########
+    dram_read_perf_test:
+      command: [--silicon --dump-perf-events --perf-op-mode target_op:UnpMath-MathPack]
+      multi_test_dir: build/perf-test/dram-read-kernel-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: dram-rd
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "dram_read_perf_test",
+      "--test-type", "dram-rd", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/dram-read-kernel-push"]
+
+    dram_write_perf_test:
+      command: [--silicon --dump-perf-events --perf-op-mode target_op:UnpMath-MathPack]
+      multi_test_dir: build/perf-test/dram-write-kernel-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: dram-wr
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "dram_write_perf_test",
+      "--test-type", "dram-wr", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/dram-write-kernel-push"]
+
+######## gather bw ########
+    unary_gather_perf_test:
+      command: ['--silicon --dump-perf-events --perf-op-mode feeder0:MathPack,drainer:UnpMath,target_op:UnpMath-MathPack']
+      multi_test_dir: build/perf-test/unary-gather-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: input0-bw
+          target_op_name: target_op
+      machines:
+      -   yyzc-wh-01
+      -   yyzc-wh-03
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "unary_gather_perf_test",
+      "--test-type", "input0-bw", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/unary-gather-push"]
+
+
+######## 64 core tests ########
+    matmul_full_grid:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/perf-test/matmul-single-op-push
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "matmul_full_grid",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/perf-test/matmul-single-op-push"]
+
+######## Max bandwidth tests ########
+    dram_read:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/dram_read
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "dram_read",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/dram_read"]
+
+    gather_multicast:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/gather_multicast
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "gather_multicast",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/gather_multicast"]
+
+    packer_fork_gather_large:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/packer_fork_gather_large
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "packer_fork_gather_large",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/packer_fork_gather_large"]
+
+    packer_gather_with_reblock_large:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/packer_gather_with_reblock_large
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "packer_gather_with_reblock_large",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/packer_fork_gather_large"]
+
+    packer_multicast:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/packer_multicast
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "packer_multicast",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/packer_multicast"]
+
+    packer_single_fork_large:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/packer_single_fork_large
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "packer_single_fork_large",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/packer_single_fork_large"]
+    
+    scatter_unicast_regular:
+      command: [--silicon --dump-perf-events]
+      multi_test_dir: build/test/verif/directed_tests/perf_max_tests/blackhole/scatter_unicast_regular
+      multi_test_netlists: true
+      multi_test: true
+      perf_test_config:
+          override_perf_output_dir: true
+          override_perf_check_target: true
+          test_type: op
+          target_op_name: target_op
+      analyze_script: ["perf_lib/perf_post_ci_run.py", "--arch", "blackhole", "--tag", "push", "--test-name", "scatter_unicast_regular",
+      "--test-type", "op", "--target-op-name", "target_op", "--multi-test-dir", "build/test/verif/directed_tests/perf_max_tests/blackhole/scatter_unicast_regular"]

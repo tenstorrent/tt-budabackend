@@ -159,7 +159,7 @@ def run_single_config(state, name, test_config_and_perf):
         generate_perf_input_config_and_modify_netlist(test_config_and_perf, attr.target_op_name, netlist_path, test_base_name=test_base_name, test_group=test_group)
 
 def run_sweep_and_check_perf(state):
-    assert state.arch_name == "grayskull" or state.arch_name == "wormhole" or state.arch_name == "wormhole_b0"
+    assert state.arch_name == "grayskull" or state.arch_name == "wormhole" or state.arch_name == "wormhole_b0" or state.arch_name == "blackhole"
     config_file_path = ROOT_DIR + f"/perf_lib/op_tests/{state.arch_name}/{state.op_name}"
     if state.reblocking_mode_perf_lib != ReblockTMPerfLib.Normal:
         config_file_path += f".{state.reblocking_mode.name.lower()}"
