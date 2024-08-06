@@ -1,0 +1,127 @@
+# test_config_id=470
+devices:
+  arch: blackhole
+
+queues:
+  input0_dram:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 1]
+    ublock: [7, 1]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram:
+    - - 0
+      - 0x10000000
+
+  input1_dram:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [1, 3]
+    t: 1
+    mblock: [1, 1]
+    ublock: [1, 2]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram:
+    - - 1
+      - 0x10000000
+    - - 1
+      - 0x10001140
+    - - 1
+      - 0x10002280
+
+  output_dram:
+    type: queue
+    input: drainer_op
+    entries: 64
+    grid_size: [1, 1]
+    t: 1
+    mblock: [7, 2]
+    ublock: [1, 3]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram:
+    - - 4
+      - 0x10000000
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 64
+    feeder_op:
+      type: datacopy
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      inputs: [input0_dram]
+      input_dram_io_buf_size_tiles: [600] # hack to make sure pipegen doesn't split to 2 streams
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 1
+      mblock: [1, 1]
+      ublock: [7, 1]
+
+    target_op:
+      type: matmul
+      grid_loc: [0, 1]
+      grid_size: [1, 1]
+      inputs: [feeder_op, input1_dram]
+      input_dram_io_buf_size_tiles: [0, 600] # hack to make sure pipegen doesn't split to 2 streams
+      in_df: [Float16, Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      attributes: {m_k: 1, u_kt: 1}
+      t: 1
+      mblock: [7, 2]
+      ublock: [1, 3]
+    drainer_op:
+      type: datacopy
+      grid_loc: [1, 1]
+      grid_size: [1, 1]
+      inputs: [target_op]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [7, 2]
+      ublock: [1, 3]
+
+programs:
+- program0:
+  - var: [$c_microbatch_count, $c_zero]
+  - varinst: [$c_microbatch_count, set, 1]
+  - varinst: [$c_zero, set, 0]
+  - loop: $c_microbatch_count   #loop over number of microbatches that make a minibatch
+  - execute: {graph_name: test_op, queue_settings: {input0_dram: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}, input1_dram: {prologue: true, epilogue: false,
+          zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+  - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 64 # input_count
+    minibatch_count: 1 # host loop iterations

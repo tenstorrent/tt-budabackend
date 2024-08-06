@@ -1,0 +1,47 @@
+tm_test_push_silicon_blackhole_dmaksimovic:
+    build_on_runner: true
+    tag: push
+    owner: [dmaksimovic]
+    arch_name: blackhole
+    harvested_rows_supported: 0
+    device_runner: Silicon
+    test_flow: ''
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 verif/tm_tests
+      - make -j8 loader/tests
+      - make -j8 verif/netlist_tests/test_inference
+      - tar -xzvf verif/tm_tests/directed/packer_mcast.tar.gz
+      - echo Copy the netlist files to the test directory verif/tm_tests/directed
+      - rm -fr build/test/verif/tm_tests/directed
+      - mkdir -p build/test/verif/tm_tests/directed
+      - cp -a verif/tm_tests/directed/. build/test/verif/tm_tests/directed/
+      - echo Copy the netlist files to the test directory verif/graph_tests/netlists/wormhole_b0
+      - rm -fr build/test/verif/graph_tests/netlists/wormhole_b0
+      - mkdir -p build/test/verif/graph_tests/netlists/wormhole_b0
+      - cp -a verif/graph_tests/netlists/wormhole_b0/. build/test/verif/graph_tests/netlists/wormhole_b0/
+      - echo Copy the netlist files to the test directory verif/tm_tests/directed/packer_mcast
+      - mkdir -p build/test/verif/tm_tests/directed/packer_mcast
+      - cp -a verif/tm_tests/directed/packer_mcast/. build/test/verif/tm_tests/directed/packer_mcast/
+    build_timeout: '2400'
+    timeout: '800'
+    envs: {TT_SILICON_DRIVER_AICLK: 800} # TODO: Erase this line when ARC on blackhole is enabled.
+    run_on_same_runner: true
+    artifacts: []
+# ========== Tests ========== #
+
+    dram_read_single_bank_write_perf:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command: ['--netlist build/test/verif/tm_tests/directed/netlist_dram_read_or_write_single_bank_perf.yaml --silicon --dump-perf-events-intermediate --perf-level 2 --perf-target-inputs 256:272 --perf-op-mode reader:UnpMath-MathPack,writer:UnpMath-MathPack']
+    dram_read_multi_bank_write_perf:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command: ['--netlist build/test/verif/tm_tests/directed/netlist_dram_read_or_write_multi_bank_perf.yaml --silicon --dump-perf-events-intermediate --perf-level 2 --perf-target-inputs 256:272 --perf-op-mode reader:UnpMath-MathPack,writer:UnpMath-MathPack']
+    dram_rw_single_bank_perf:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command: [--netlist build/test/verif/tm_tests/directed/netlist_dram_rw_single_bank_perf.yaml --silicon --dump-perf-events-intermediate --perf-level 2 --perf-target-inputs 256:272 --perf-op-mode rw:UnpMath-MathPack]
+    dram_rw_multi_bank_perf:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command: [--netlist build/test/verif/tm_tests/directed/netlist_dram_rw_multi_bank_perf.yaml --silicon --dump-perf-events-intermediate --perf-level 2 --perf-target-inputs 256:272 --perf-op-mode rw:UnpMath-MathPack]
+    dram_write_reblock_perf:
+        test_flow: ./build/test/loader/tests/test_netlist_program
+        command: ['--netlist build/test/verif/tm_tests/directed/netlist_dram_write_reblock_perf.yaml --silicon --dump-perf-events-intermediate --perf-level 2 --perf-target-inputs 256:272 --perf-op-mode reader:UnpMath-MathPack,writer:UnpMath-MathPack']

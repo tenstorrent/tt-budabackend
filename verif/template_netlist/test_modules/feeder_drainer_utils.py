@@ -483,7 +483,7 @@ def constrain_l1_usage(
         max_mem_usage = L1_MAX_USAGE_BYTES + (32 * 1024)
         all_data_format_vals = [e.value for e in DataFormat]
         for df_val in all_data_format_vals:
-            df_tile_size = data_format_tile_size_map[df_val]
+            df_tile_size = get_data_format_tile_size_map(arch)[df_val]
             solver.add(
                 Implies(
                     data_format == df_val,
@@ -537,7 +537,7 @@ def constrain_sparse_matmul_l1_usage(
     all_data_format_vals = [e.value for e in DataFormat]
     for tiles_used in tiles_used_all_ops:
         for df_val in all_data_format_vals:
-            df_tile_size = data_format_tile_size_map[df_val]
+            df_tile_size = get_data_format_tile_size_map(arch)[df_val]
             solver.add(
                 Implies(
                     data_format == df_val, 

@@ -1,0 +1,108 @@
+# test_config_id=1467 from rpavlovic scatter unicast test group
+# Wormhole measured bandwith
+#   Source bandwith : 30.82
+#   Dest bandwith : 29.49
+
+devices:
+  arch: blackhole
+
+queues:
+  input_dram:
+    type: ram
+    input: HOST
+    entries: 1
+    grid_size: [1, 1]
+    t: 1
+    mblock: [2, 1]
+    ublock: [1, 3]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram:
+    - - 0
+      - 0x10000000
+
+  output_dram:
+    type: queue
+    input: drainer_op
+    entries: 64
+    grid_size: [1, 1]
+    t: 1
+    mblock: [1, 1]
+    ublock: [2, 3]
+    df: Float16
+    ublock_order: r
+    target_device: 0
+    loc: dram
+    dram:
+    - - 4
+      - 0x10000000
+
+graphs:
+  test_op:
+    target_device: 0
+    input_count: 64
+    feeder_op:
+      type: datacopy
+      grid_loc: [0, 0]
+      grid_size: [1, 1]
+      input_dram_io_buf_size_tiles: [600] # hack to make sure pipegen doesn't split to 2 streams
+      inputs: [input_dram]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 1
+      mblock: [2, 1]
+      ublock: [1, 3]
+    target_op:
+      type: datacopy
+      grid_loc: [0, 1]
+      grid_size: [1, 1]
+      inputs: [feeder_op]
+      input_buf_min_size_tiles: [12]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      t: 1
+      mblock: [1, 1]
+      ublock: [2, 3]
+    drainer_op:
+      type: datacopy
+      grid_loc: [0, 2]
+      grid_size: [1, 1]
+      inputs: [target_op]
+      in_df: [Float16]
+      acc_df: Float16
+      out_df: Float16
+      intermed_df: Float16
+      ublock_order: r
+      buf_size_mb: 2
+      math_fidelity: HiFi4
+      untilize_output: false
+      t: 1
+      mblock: [1, 1]
+      ublock: [2, 3]
+
+programs:
+- program0:
+  - var: [$c_microbatch_count, $c_zero]
+  - varinst: [$c_microbatch_count, set, 1]
+  - varinst: [$c_zero, set, 0]
+  - loop: $c_microbatch_count   #loop over number of microbatches that make a minibatch
+  - execute: {graph_name: test_op, queue_settings: {input_dram: {prologue: true, epilogue: false, zero: false, rd_ptr_global: $c_zero, wr_ptr_global: $c_zero}}}
+  - endloop
+
+test-config:
+  test-args:
+    microbatch_count: 1 # entries / input_count
+    microbatch_size: 64 # input_count
+    minibatch_count: 1 # host loop iterations

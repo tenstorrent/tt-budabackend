@@ -203,7 +203,7 @@ if __name__ == "__main__":
         exit(0)
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arch", type=str, required=True, choices=["grayskull", "wormhole_b0"], help="Arch name. Either grayskull or wormhole_b0")
+    parser.add_argument("--arch", type=str, required=True, choices=["grayskull", "wormhole_b0", "blackhole"], help="Arch name. Either grayskull, wormhole_b0 or blackhole")
     parser.add_argument("--tag", type=str, required=True, choices=["push", "nightly"], help="Test suite tag. Either push or nightly")
     parser.add_argument("--test-name", type=str, required=True, help="Name of the test as indicated in the test suite yaml")
     parser.add_argument("--test-type", type=str, required=True, choices=all_test_types, help=f"Type of test. Should be one of {all_test_types}")
