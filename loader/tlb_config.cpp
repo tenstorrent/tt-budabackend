@@ -238,16 +238,22 @@ void configure_static_tlbs(
 
     if (arch != tt::ARCH::BLACKHOLE) {
 
-        auto statically_mapped_cores = sdesc.workers;
-        statically_mapped_cores.insert(
-            statically_mapped_cores.end(), sdesc.ethernet_cores.begin(), sdesc.ethernet_cores.end());
         std::int32_t address = 0;
 
         // Setup static TLBs for all worker cores
-        for (auto& core : statically_mapped_cores) {
+        // Posted performs better, safe since we use barrier to avoid RAW.
+        for (auto& core : sdesc.workers) {
             auto tlb_index = get_static_tlb_index(core);
             device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Posted);
         }
+
+        // Setup static TLBs for all eth cores
+        // Must use Relaxed for erisc since remote write API in UMD doesn't use wait-for-non-mmio-flush to avoid RAW.
+        for (auto& core : sdesc.ethernet_cores) {
+            auto tlb_index = get_static_tlb_index(core);
+            device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Relaxed);
+        }
+
         // Setup static TLBs for MMIO mapped data space
         uint64_t peer_dram_offset = DRAM_CHANNEL_0_PEER2PEER_REGION_START;
         for (uint32_t tlb_id = DYNAMIC_TLB_BASE_INDEX; tlb_id < DYNAMIC_TLB_BASE_INDEX + DYNAMIC_TLB_COUNT; tlb_id++) {
@@ -273,10 +279,18 @@ void configure_static_tlbs(
         std::int32_t address = 0;
 
         // Setup static TLBs for all worker cores
+        // Posted performs better, safe since we use barrier to avoid RAW.
         for (auto& core : worker_cores) {
             auto tlb_index = get_static_tlb_index(core);
             device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Posted);
         }
+
+        // Setup static TLBs for all eth cores
+        // Must use Relaxed for erisc since remote write API in UMD doesn't use wait-for-non-mmio-flush to avoid RAW.
+        // for (auto& core : sdesc.ethernet_cores) {
+        //     auto tlb_index = get_static_tlb_index(core);
+        //     device->configure_tlb(chip, core, tlb_index, address, TLB_DATA::Relaxed);
+        // }
 
         // Setup static 4GB tlbs for DRAM cores
         std::uint32_t dram_addr = 0;
