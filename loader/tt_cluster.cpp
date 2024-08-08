@@ -170,7 +170,8 @@ std::vector<tt::ARCH> tt_cluster::detect_available_devices(const TargetDevice &t
         // 2. GS, since all devices are MMIO mapped
         // 3. the user asks for only mmio
         // 4. already cached non-mmio devices
-        if(available_devices.size() != 0 && available_devices.at(0) != tt::ARCH::GRAYSKULL && !only_detect_mmio && available_remote_devices.size() == 0) {
+        // TODO #2696: Temporary Blackhole hack until cluster creation starts working.
+        if(available_devices.size() != 0 && available_devices.at(0) != tt::ARCH::GRAYSKULL && available_devices.at(0) != tt::ARCH::BLACKHOLE && !only_detect_mmio && available_remote_devices.size() == 0) {
             log_trace(tt::LogRuntime, "Generating and querying cluster descriptor for remote devices in detect_available_devices()");
             get_cluster_desc_path(tt::buda_home());
             std::unique_ptr<tt_ClusterDescriptor> ndesc = tt_ClusterDescriptor::create_from_yaml(cluster_desc_path);
