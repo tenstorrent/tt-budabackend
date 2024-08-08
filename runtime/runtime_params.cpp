@@ -210,7 +210,8 @@ std::tuple<std::string, std::uint32_t> tt::param::get_device_yaml_at_index(std::
         auto silicon_devices_per_arch = get_arch_to_silicon_device_ids_map();
         for(auto& arch : available_archs) {
             std::string soc_desc_path = get_soc_description_file(arch, tt::TargetDevice::Silicon);
-            if(arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0 || arch == tt::ARCH::BLACKHOLE) {
+            // TODO #2696: Temporary Blackhole hack until cluster creation starts working.
+            if(arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0) {
                 tt_cluster::get_cluster_desc_path(tt::buda_home()); // populates cluster_desc_path used downstream
             }
 
@@ -557,8 +558,9 @@ std::tuple<std::string, std::string> tt::param::populate_runtime_system_params(
 
         auto available_devices_for_wormhole = std::count(devices.begin(), devices.end(), tt::ARCH::WORMHOLE);
         auto available_devices_for_wormhole_b0 = std::count(devices.begin(), devices.end(), tt::ARCH::WORMHOLE_B0);
-        auto available_devices_for_blackhole = std::count(devices.begin(), devices.end(), tt::ARCH::BLACKHOLE);
-        auto available_devices_for_arch = available_devices_for_wormhole + available_devices_for_wormhole_b0 + available_devices_for_blackhole;
+        // TODO #2696: Temporary Blackhole hack until cluster creation starts working.
+        // auto available_devices_for_blackhole = std::count(devices.begin(), devices.end(), tt::ARCH::BLACKHOLE);
+        auto available_devices_for_arch = available_devices_for_wormhole + available_devices_for_wormhole_b0;
 
         if (!fs::exists(eth_cluster_file_path) and available_devices_for_arch) {
             // Check if there are at least 1 wormhole silicon devices present - if so generate cluster description file and set path
