@@ -1,0 +1,135 @@
+#Test id=0
+- device: BLACKHOLE
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [4, 4], t: 1, mblock: [8, 1], ublock: [2, 1], df: Bfp8_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2ae069c0], [0, 0x2ae18a00], [0, 0x2ae2aa40], [0, 0x2ae3ca80], [0, 0x2ae4eac0], [0, 0x2ae60b00], [0, 0x2ae72b40], [0, 0x2ae84b80], [0, 0x2ae96bc0], [0, 0x2aea8c00], [0, 0x2aebac40], [0, 0x2aeccc80], [0, 0x2aedecc0], [0, 0x2aef0d00], [0, 0x2af02d40], [0, 0x2af14d80]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: ''
+  stimulus_in1: ''
+  queue_settings_in1: ''
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: queue, grid_size: [4, 4], t: 6, mblock: [12, 1], ublock: [4, 1], df: Float16_b, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0xa060340], [0, 0xa2b2380], [0, 0xa5043c0], [0, 0xa756400], [0, 0xa9a8440], [0, 0xabfa480], [0, 0xae4c4c0], [0, 0xb09e500], [0, 0xb2f0540], [0, 0xb542580], [0, 0xb7945c0], [0, 0xb9e6600], [0, 0xbc38640], [0, 0xbe8a680], [0, 0xc0dc6c0], [0, 0xc32e700]], }'
+  queue_settings_out0: ''
+  op0: 'op: {type: gelu_derivative, grid_size: [4, 4], t: 6, mblock: [12, 1], ublock: [4, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {stoch_rnd_mode: fpu, vector: rc, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 3}, broadcast: {z: 6}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.30, check_pct: 0.65, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=1
+- device: BLACKHOLE
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 18, mblock: [6, 13], ublock: [1, 3], df: Bfp8_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1878dd00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: ''
+  stimulus_in1: ''
+  queue_settings_in1: ''
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: queue, grid_size: [1, 1], t: 18, mblock: [9, 13], ublock: [2, 3], df: Float32, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0x2712b80]], }'
+  queue_settings_out0: ''
+  op0: 'op: {type: sigmoid, grid_size: [1, 1], t: 18, mblock: [9, 13], ublock: [2, 3], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Float32, acc_df: Float16, ublock_order: r, buf_size_mb: 2, untilize_output: true, gradient_op: false, input_0_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.90, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=2
+- device: BLACKHOLE
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 5], t: 40, mblock: [8, 1], ublock: [1, 5], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x24fad840], [0, 0x26911880], [0, 0x282758c0], [0, 0x29bd9900], [0, 0x2b53d940]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: ''
+  stimulus_in1: ''
+  queue_settings_in1: ''
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: queue, grid_size: [1, 5], t: 40, mblock: [8, 1], ublock: [1, 5], df: Float32, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0x8000a40], [0, 0x9964a80], [0, 0xb2c8ac0], [0, 0xcc2cb00], [0, 0xe590b40]], }'
+  queue_settings_out0: ''
+  op0: 'op: {type: datacopy, grid_size: [1, 5], t: 40, mblock: [8, 1], ublock: [1, 5], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: LoFi, intermed_df: Float32, acc_df: Float16, attributes: {vector: c, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.90, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 16] }'
+#Test id=3
+- device: BLACKHOLE
+  loop_count: 1
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 2
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 58, mblock: [6, 6], ublock: [1, 1], df: Bfp8_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x12b9bc00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: 0.1, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: ''
+  stimulus_in1: ''
+  queue_settings_in1: ''
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: queue, grid_size: [1, 1], t: 58, mblock: [6, 6], ublock: [1, 1], df: Float32, input: op, entries: 1, target_device: 0, loc: host, host: [[0, 0xf6aa640]], }'
+  queue_settings_out0: ''
+  op0: 'op: {type: reciprocal, grid_size: [1, 1], t: 58, mblock: [6, 6], ublock: [1, 1], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16, attributes: {stoch_rnd_mode: none, vector: c, }, ublock_order: r, buf_size_mb: 2, untilize_output: true, gradient_op: false, input_0_tms: [transpose], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.90, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 16] }'
+#Test id=4
+- device: BLACKHOLE
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 14, mblock: [2, 3], ublock: [1, 7], df: Bfp8_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2601f600]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: ''
+  stimulus_in1: ''
+  queue_settings_in1: ''
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: queue, grid_size: [1, 1], t: 14, mblock: [8, 7], ublock: [2, 3], df: Float32, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0x6239940]], }'
+  queue_settings_out0: ''
+  op0: 'op: {type: exp, grid_size: [1, 1], t: 14, mblock: [8, 7], ublock: [2, 3], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Float32, acc_df: Float16, attributes: {kernel_broadcast_per_t : {input_0 : 210}, vector: rc, }, ublock_order: r, buf_size_mb: 2, untilize_output: true, gradient_op: false, input_0_tms: [broadcast: {r: 8}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.90, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'

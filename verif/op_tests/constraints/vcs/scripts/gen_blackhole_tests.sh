@@ -21,3 +21,7 @@ make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul_ident/ma
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/depthwise/depthwise_single_configs HARVESTED_ROWS=0 LOOPS=25 SEED=0 C=main.sv ARGS='+op=depthwise'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/reduce/reduce_single_configs HARVESTED_ROWS=0 LOOPS=25 SEED=0 C=main.sv ARGS='+op=reduce'
 make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/splice/splice_single_configs HARVESTED_ROWS=0 LOOPS=20 SEED=0 C=main.sv ARGS='+op=splice'
+make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/unary/unary_single_configs_push HARVESTED_ROWS=0 LOOPS=5 SEED=0 C=main.sv ARGS='+op=unary'
+make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/binary/binary_single_configs_push HARVESTED_ROWS=0 LOOPS=5 SEED=0 C=main.sv ARGS='+op=binary'
+make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_single_configs_push HARVESTED_ROWS=0 LOOPS=8 SEED=0 C=main.sv ARGS='+op=matmul'
+make DEVICE=${device} TARGET_FILE=test_configs/blackhole/silicon/matmul/matmul_accumulate_z_single_configs_push HARVESTED_ROWS=0 LOOPS=3 SEED=0 C=main.sv ARGS='+op=matmul +accumulate_z=1'
