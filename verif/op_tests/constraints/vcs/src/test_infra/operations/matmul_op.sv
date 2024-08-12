@@ -224,6 +224,7 @@ class matmul_op extends operation_constraints;
     constraint rand_sfpu_op {
         sfpu_op_en dist {0:=80, 1:=20};
         (input_0.out_tile_dim_r != 32 || input_0.out_tile_dim_c != 32 || input_1.out_tile_dim_r != 32 || input_1.out_tile_dim_c != 32 || tensor.out_tile_dim_c != 32 || tensor.out_tile_dim_r != 32) -> (sfpu_op_en == 0); // #2174
+        gradient_op_en == 1 -> sfpu_op_en == 0; //Other option is to make changes in test config, and choose lower pct in this case
     }
 
     constraint rand_kernel_broadcast_freq {
@@ -272,7 +273,7 @@ class matmul_op extends operation_constraints;
 
     virtual function s_comparison_config get_comparison_config(int num_inputs);
         s_comparison_config cfg = tst_cfg.get_matmul_comparison_config(tensor.data_format, num_inputs, m_k,
-            math_fidelity, 0, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
+            math_fidelity, gradient_op_en, 0, intermed_data_format, _z, (relu_en) ? get_relu_mode(relu_mode) : "");
         cfg.Type = "AllClose";
         cfg.verbosity = "Concise";
         return cfg;

@@ -69,13 +69,11 @@ class netlist_constraints;
     }
 
     constraint rand_num_inputs {
-        //num_inputs dist {[1:16]:=95, [17:1023]:/4, [1024:1024]:=1};
+        num_inputs dist {[1:16]:=95, [17:1023]:/4, [1024:1024]:=1};
         op[0].gradient_op_en == 1 -> num_inputs <= 16;
 
         // must be 1 or multiple of 2 due to pipegen limitations
-        //(num_inputs != 1) -> (num_inputs%2==0);
-        // Sparse MM on BH hangs with num_input > 1
-        num_inputs == 1;
+        (num_inputs != 1) -> (num_inputs%2==0);
     }
 
     constraint rand_entries {

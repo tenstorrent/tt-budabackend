@@ -1,10 +1,10 @@
 #Test id=0
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 14
+  input_count: 6
   target_device: 0
-  queue_wrap_size: 112
-  in0: 'input_0: {type: queue, grid_size: [1, 2], t: 20, mblock: [2, 6], ublock: [2, 4], df: Float16, tile_dim: [32, 32], input: HOST, entries: 28, target_device: 0, loc: dram, dram: [[0, 0x116dd4c0], [0, 0x1ef6d4e0]], }'
+  queue_wrap_size: 24
+  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 30, mblock: [2, 3], ublock: [1, 4], df: Float16_b, input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x28ab5240], [0, 0x2ad83260], [0, 0x2d051280]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -16,22 +16,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 2], t: 20, mblock: [1, 6], ublock: [1, 4], df: Float16, tile_dim: [2, 32], input: op, entries: 28, target_device: 0, loc: dram, dram: [[0, 0x3693db00], [0, 0x39f61b20]], }'
+  out0: 'output0: {type: queue, grid_size: [3, 1], t: 6, mblock: [10, 2], ublock: [1, 6], df: Float16_b, input: op, entries: 12, target_device: 0, loc: host, host: [[0, 0x8faf740], [0, 0xb27d760], [0, 0xd54b780]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 2], t: 20, mblock: [1, 6], ublock: [1, 4], out_df: Float16, tile_dim: [2, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16, attributes: {type: max, dim: r, relu_en: true, relu_mode: max, relu_threshold: 0.200000, m_k: 2, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [3, 1], t: 6, mblock: [10, 2], ublock: [1, 6], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 5, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 5}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 2], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=1
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 6
+  input_count: 1
   target_device: 0
-  queue_wrap_size: 48
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 1, mblock: [14, 5], ublock: [3, 5], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x31f3e600], [0, 0x33aede20], [0, 0x3569d640]], }'
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [6, 3], t: 4, mblock: [1, 16], ublock: [1, 5], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1fe6d940], [0, 0x20381960], [0, 0x20895980], [0, 0x20da99a0], [0, 0x212bd9c0], [0, 0x217d19e0], [0, 0x21ce5a00], [0, 0x221f9a20], [0, 0x2270da40], [0, 0x22c21a60], [0, 0x23135a80], [0, 0x23649aa0], [0, 0x23b5dac0], [0, 0x24071ae0], [0, 0x24585b00], [0, 0x24a99b20], [0, 0x24fadb40], [0, 0x254c1b60]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -43,22 +43,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 1, mblock: [1, 5], ublock: [1, 5], df: Bfp8_b, tile_dim: [2, 32], input: op, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x3a85dc80], [0, 0x3a9068a0], [0, 0x3a9af4c0]], }'
+  out0: 'output0: {type: queue, grid_size: [6, 3], t: 2, mblock: [1, 16], ublock: [1, 5], df: Float32, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0xcc16cc0], [0, 0xcea0ce0], [0, 0xd12ad00], [0, 0xd3b4d20], [0, 0xd63ed40], [0, 0xd8c8d60], [0, 0xdb52d80], [0, 0xdddcda0], [0, 0xe066dc0], [0, 0xe2f0de0], [0, 0xe57ae00], [0, 0xe804e20], [0, 0xea8ee40], [0, 0xed18e60], [0, 0xefa2e80], [0, 0xf22cea0], [0, 0xf4b6ec0], [0, 0xf740ee0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 1, mblock: [1, 5], ublock: [1, 5], out_df: Bfp8_b, tile_dim: [2, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 14, u_kt: 3, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [6, 3], t: 2, mblock: [1, 16], ublock: [1, 5], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi4, intermed_df: Float32, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 2, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 2], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=2
 - device: WORMHOLE_B0
-  loop_count: 2
-  input_count: 6
+  loop_count: 1
+  input_count: 4
   target_device: 0
-  queue_wrap_size: 48
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 12, mblock: [6, 4], ublock: [5, 1], df: Float16, tile_dim: [32, 32], input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x1bb9e500], [0, 0x2013a520], [0, 0x246d6540]], }'
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [2, 1], t: 1, mblock: [6, 11], ublock: [6, 11], df: Bfp8_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x34d77700], [0, 0x3609bf20]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -70,9 +70,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 6, mblock: [6, 4], ublock: [5, 1], df: Float16, input: op, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x2c45c5c0], [0, 0x2e72a5e0], [0, 0x309f8600]], }'
+  out0: 'output0: {type: queue, grid_size: [2, 1], t: 1, mblock: [6, 1], ublock: [6, 1], df: Bfp8_b, input: op, entries: 4, target_device: 0, loc: host, host: [[0, 0xd2f3540], [0, 0xd31bd60]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 6, mblock: [6, 4], ublock: [5, 1], out_df: Float16, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: HiFi4, intermed_df: Float16, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 2, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [2, 1], t: 1, mblock: [6, 1], ublock: [6, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: c, relu_en: true, relu_mode: max, relu_threshold: 0.690000, m_k: 11, u_kt: 11, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
@@ -82,10 +82,10 @@
 #Test id=3
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 12
+  input_count: 10
   target_device: 0
-  queue_wrap_size: 96
-  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 16, mblock: [1, 6], ublock: [4, 2], df: Float16, tile_dim: [32, 32], input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x1d6fb680], [0, 0x2213b6a0], [0, 0x26b7b6c0], [0, 0x2b5bb6e0]], }'
+  queue_wrap_size: 40
+  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 1, mblock: [12, 15], ublock: [1, 2], df: Bfp8_b, input: HOST, entries: 20, target_device: 0, loc: dram, dram: [[0, 0x12964d00], [0, 0x13936d20], [0, 0x14908d40]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -97,9 +97,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 4], t: 4, mblock: [1, 6], ublock: [4, 2], df: Float16, input: op, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x300c1b00], [0, 0x31351b20], [0, 0x325e1b40], [0, 0x33871b60]], }'
+  out0: 'output0: {type: queue, grid_size: [3, 1], t: 1, mblock: [12, 1], ublock: [1, 1], df: Bfp8_b, input: op, entries: 20, target_device: 0, loc: host, host: [[0, 0xfd882c0], [0, 0xfe0f2e0], [0, 0xfe96300]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 4], t: 4, mblock: [1, 6], ublock: [4, 2], out_df: Float16, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: HiFi4, intermed_df: Float16, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 4, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [3, 1], t: 1, mblock: [12, 1], ublock: [1, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float32, attributes: {type: max, dim: c, m_k: 15, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
@@ -108,11 +108,11 @@
   comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=4
 - device: WORMHOLE_B0
-  loop_count: 1
-  input_count: 10
+  loop_count: 2
+  input_count: 2
   target_device: 0
-  queue_wrap_size: 20
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 1, mblock: [5, 4], ublock: [3, 14], df: Float32, tile_dim: [32, 32], input: HOST, entries: 10, target_device: 0, loc: dram, dram: [[0, 0x1a1385c0], [0, 0x1c28b9e0], [0, 0x1e3dee00]], }'
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [4, 7], t: 2, mblock: [14, 2], ublock: [6, 1], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1e122d40], [0, 0x1e68cd60], [0, 0x1ebf6d80], [0, 0x1f160da0], [0, 0x1f6cadc0], [0, 0x1fc34de0], [0, 0x2019ee00], [0, 0x20708e20], [0, 0x20c72e40], [0, 0x211dce60], [0, 0x21746e80], [0, 0x21cb0ea0], [0, 0x2221aec0], [0, 0x22784ee0], [0, 0x22ceef00], [0, 0x23258f20], [0, 0x237c2f40], [0, 0x23d2cf60], [0, 0x24296f80], [0, 0x24800fa0], [0, 0x24d6afc0], [0, 0x252d4fe0], [0, 0x2583f000], [0, 0x25da9020], [0, 0x26313040], [0, 0x2687d060], [0, 0x26de7080], [0, 0x273510a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -124,22 +124,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 1, mblock: [1, 7], ublock: [1, 8], df: Float32, tile_dim: [2, 32], input: op, entries: 10, target_device: 0, loc: dram, dram: [[0, 0x3c1c7280], [0, 0x3c3ffea0], [0, 0x3c638ac0]], }'
+  out0: 'output0: {type: queue, grid_size: [4, 7], t: 1, mblock: [14, 2], ublock: [6, 1], df: Float16_b, input: op, entries: 4, target_device: 0, loc: host, host: [[0, 0xa369140], [0, 0xa61e160], [0, 0xa8d3180], [0, 0xab881a0], [0, 0xae3d1c0], [0, 0xb0f21e0], [0, 0xb3a7200], [0, 0xb65c220], [0, 0xb911240], [0, 0xbbc6260], [0, 0xbe7b280], [0, 0xc1302a0], [0, 0xc3e52c0], [0, 0xc69a2e0], [0, 0xc94f300], [0, 0xcc04320], [0, 0xceb9340], [0, 0xd16e360], [0, 0xd423380], [0, 0xd6d83a0], [0, 0xd98d3c0], [0, 0xdc423e0], [0, 0xdef7400], [0, 0xe1ac420], [0, 0xe461440], [0, 0xe716460], [0, 0xe9cb480], [0, 0xec804a0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 1, mblock: [1, 7], ublock: [1, 8], out_df: Float32, tile_dim: [2, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi4, intermed_df: Float32, acc_df: Float16, attributes: {type: max, dim: r, m_k: 10, u_kt: 9, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 6}, ], }'
+  op0: 'op: {type: reduce, grid_size: [4, 7], t: 1, mblock: [14, 2], ublock: [6, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 2, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 2], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=5
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 1
+  input_count: 12
   target_device: 0
-  queue_wrap_size: 8
-  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 6, mblock: [1, 4], ublock: [5, 9], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1d038440], [0, 0x1d4f7460], [0, 0x1d9b6480]], }'
+  queue_wrap_size: 48
+  in0: 'input_0: {type: queue, grid_size: [1, 2], t: 54, mblock: [1, 1], ublock: [3, 1], df: Float16_b, input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x1e8ace80], [0, 0x1f8566a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -151,9 +151,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [3, 1], t: 1, mblock: [10, 12], ublock: [1, 3], df: Bfp8_b, input: op, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x28ff9b40], [0, 0x2918eb60], [0, 0x29323b80]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 2], t: 6, mblock: [8, 1], ublock: [3, 1], df: Float16_b, input: op, entries: 24, target_device: 0, loc: host, host: [[0, 0xbdc0700], [0, 0xcbac720]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [3, 1], t: 1, mblock: [10, 12], ublock: [1, 3], out_df: Bfp8_b, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 6, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 2}, ], }'
+  op0: 'op: {type: reduce, grid_size: [1, 2], t: 6, mblock: [8, 1], ublock: [3, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi4, intermed_df: Float16_b, acc_df: Float16_b, attributes: {type: max, dim: z, relu_en: true, relu_mode: max, relu_threshold: 0.940000, accumulate: true, z: 9, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -163,10 +163,10 @@
 #Test id=6
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 2
+  input_count: 6
   target_device: 0
-  queue_wrap_size: 16
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 42, mblock: [5, 1], ublock: [4, 1], df: Bfp8, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x36cf7c40], [0, 0x37459c60], [0, 0x37bbbc80]], }'
+  queue_wrap_size: 24
+  in0: 'input_0: {type: queue, grid_size: [1, 8], t: 6, mblock: [2, 1], ublock: [8, 4], df: Bfp8_b, input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x196925c0], [0, 0x1a0b25e0], [0, 0x1aad2600], [0, 0x1b4f2620], [0, 0x1bf12640], [0, 0x1c932660], [0, 0x1d352680], [0, 0x1dd726a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -178,9 +178,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 2, mblock: [16, 1], ublock: [5, 1], df: Bfp8, input: op, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x3c56c2c0], [0, 0x3c6d42e0], [0, 0x3c83c300]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 8], t: 1, mblock: [10, 4], ublock: [8, 1], df: Bfp8_b, input: op, entries: 12, target_device: 0, loc: host, host: [[0, 0x9766080], [0, 0x9fd60a0], [0, 0xa8460c0], [0, 0xb0b60e0], [0, 0xb926100], [0, 0xc196120], [0, 0xca06140], [0, 0xd276160]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 2, mblock: [16, 1], ublock: [5, 1], out_df: Bfp8, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8], math_fidelity: HiFi2, intermed_df: Bfp8, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 21, stoch_rnd_mode: none, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 4}, ], }'
+  op0: 'op: {type: reduce, grid_size: [1, 8], t: 1, mblock: [10, 4], ublock: [8, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 6, stoch_rnd_mode: none, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 5}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -190,10 +190,10 @@
 #Test id=7
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 4
+  input_count: 8
   target_device: 0
   queue_wrap_size: 32
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 1, mblock: [4, 16], ublock: [2, 8], df: Float16_b, tile_dim: [32, 32], input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x162a7a80], [0, 0x183a7aa0], [0, 0x1a4a7ac0]], }'
+  in0: 'input_0: {type: queue, grid_size: [1, 6], t: 1, mblock: [10, 6], ublock: [2, 9], df: Bfp8_b, input: HOST, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x216dde00], [0, 0x23cd5e20], [0, 0x262cde40], [0, 0x288c5e60], [0, 0x2aebde80], [0, 0x2d4b5ea0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -205,22 +205,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 1, mblock: [1, 16], ublock: [1, 8], df: Float16_b, tile_dim: [4, 32], input: op, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x3b696d40], [0, 0x3bab6d60], [0, 0x3bed6d80]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 6], t: 1, mblock: [1, 9], ublock: [1, 6], df: Bfp8_b, input: op, entries: 16, target_device: 0, loc: host, host: [[0, 0xef1b100], [0, 0xf101120], [0, 0xf2e7140], [0, 0xf4cd160], [0, 0xf6b3180], [0, 0xf8991a0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 1, mblock: [1, 16], ublock: [1, 8], out_df: Float16_b, tile_dim: [4, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {type: max, dim: r, m_k: 4, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [1, 6], t: 1, mblock: [1, 9], ublock: [1, 6], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: r, relu_en: true, relu_mode: max, relu_threshold: 0.140000, m_k: 15, u_kt: 4, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 3}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 4], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=8
 - device: WORMHOLE_B0
-  loop_count: 1
-  input_count: 10
+  loop_count: 2
+  input_count: 1
   target_device: 0
-  queue_wrap_size: 20
-  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 10, mblock: [1, 1], ublock: [10, 14], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 10, target_device: 0, loc: dram, dram: [[0, 0x2abe4740]], }'
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [8, 7], t: 6, mblock: [3, 2], ublock: [2, 4], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1bd47ac0], [0, 0x1bf99ae0], [0, 0x1c1ebb00], [0, 0x1c43db20], [0, 0x1c68fb40], [0, 0x1c8e1b60], [0, 0x1cb33b80], [0, 0x1cd85ba0], [0, 0x1cfd7bc0], [0, 0x1d229be0], [0, 0x1d47bc00], [0, 0x1d6cdc20], [0, 0x1d91fc40], [0, 0x1db71c60], [0, 0x1ddc3c80], [0, 0x1e015ca0], [0, 0x1e267cc0], [0, 0x1e4b9ce0], [0, 0x1e70bd00], [0, 0x1e95dd20], [0, 0x1ebafd40], [0, 0x1ee01d60], [0, 0x1f053d80], [0, 0x1f2a5da0], [0, 0x1f4f7dc0], [0, 0x1f749de0], [0, 0x1f99be00], [0, 0x1fbede20], [0, 0x1fe3fe40], [0, 0x20091e60], [0, 0x202e3e80], [0, 0x20535ea0], [0, 0x20787ec0], [0, 0x209d9ee0], [0, 0x20c2bf00], [0, 0x20e7df20], [0, 0x210cff40], [0, 0x21321f60], [0, 0x21573f80], [0, 0x217c5fa0], [0, 0x21a17fc0], [0, 0x21c69fe0], [0, 0x21ebc000], [0, 0x2210e020], [0, 0x22360040], [0, 0x225b2060], [0, 0x22804080], [0, 0x22a560a0], [0, 0x22ca80c0], [0, 0x22efa0e0], [0, 0x2314c100], [0, 0x2339e120], [0, 0x235f0140], [0, 0x23842160], [0, 0x23a94180], [0, 0x23ce61a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -232,22 +232,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 1], t: 10, mblock: [1, 8], ublock: [1, 7], df: Bfp8_b, tile_dim: [8, 32], input: op, entries: 10, target_device: 0, loc: dram, dram: [[0, 0x38b3a040]], }'
+  out0: 'output0: {type: queue, grid_size: [8, 7], t: 2, mblock: [3, 2], ublock: [2, 4], df: Float16_b, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0xb523680], [0, 0xb5e96a0], [0, 0xb6af6c0], [0, 0xb7756e0], [0, 0xb83b700], [0, 0xb901720], [0, 0xb9c7740], [0, 0xba8d760], [0, 0xbb53780], [0, 0xbc197a0], [0, 0xbcdf7c0], [0, 0xbda57e0], [0, 0xbe6b800], [0, 0xbf31820], [0, 0xbff7840], [0, 0xc0bd860], [0, 0xc183880], [0, 0xc2498a0], [0, 0xc30f8c0], [0, 0xc3d58e0], [0, 0xc49b900], [0, 0xc561920], [0, 0xc627940], [0, 0xc6ed960], [0, 0xc7b3980], [0, 0xc8799a0], [0, 0xc93f9c0], [0, 0xca059e0], [0, 0xcacba00], [0, 0xcb91a20], [0, 0xcc57a40], [0, 0xcd1da60], [0, 0xcde3a80], [0, 0xcea9aa0], [0, 0xcf6fac0], [0, 0xd035ae0], [0, 0xd0fbb00], [0, 0xd1c1b20], [0, 0xd287b40], [0, 0xd34db60], [0, 0xd413b80], [0, 0xd4d9ba0], [0, 0xd59fbc0], [0, 0xd665be0], [0, 0xd72bc00], [0, 0xd7f1c20], [0, 0xd8b7c40], [0, 0xd97dc60], [0, 0xda43c80], [0, 0xdb09ca0], [0, 0xdbcfcc0], [0, 0xdc95ce0], [0, 0xdd5bd00], [0, 0xde21d20], [0, 0xdee7d40], [0, 0xdfadd60]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 1], t: 10, mblock: [1, 8], ublock: [1, 7], out_df: Bfp8_b, tile_dim: [8, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, relu_en: true, relu_mode: min, relu_threshold: 0.820000, m_k: 10, u_kt: 5, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 5}, broadcast: {c: 4}, ], }'
+  op0: 'op: {type: reduce, grid_size: [8, 7], t: 2, mblock: [3, 2], ublock: [2, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi4, intermed_df: Float16_b, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 3, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 8], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=9
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 1006
+  input_count: 14
   target_device: 0
-  queue_wrap_size: 8048
-  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [15, 1], ublock: [6, 1], df: Float16, input: HOST, entries: 2012, target_device: 0, loc: dram, dram: [[0, 0x10bd6300]], }'
+  queue_wrap_size: 56
+  in0: 'input_0: {type: queue, grid_size: [1, 6], t: 1, mblock: [3, 7], ublock: [4, 6], df: Bfp8_b, input: HOST, entries: 28, target_device: 0, loc: dram, dram: [[0, 0x2ffe03c0], [0, 0x31ee23e0], [0, 0x33de4400], [0, 0x35ce6420], [0, 0x37be8440], [0, 0x39aea460]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -259,9 +259,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float16, input: op, entries: 2012, target_device: 0, loc: dram, dram: [[0, 0x3eb9d680]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 6], t: 1, mblock: [1, 14], ublock: [1, 3], df: Bfp8_b, input: op, entries: 28, target_device: 0, loc: host, host: [[0, 0xe940fc0], [0, 0xebd67e0], [0, 0xee6c000], [0, 0xf101820], [0, 0xf397040], [0, 0xf62c860]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16, attributes: {type: max, dim: r, stoch_rnd_mode: none, m_k: 15, u_kt: 12, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 2}, ], }'
+  op0: 'op: {type: reduce, grid_size: [1, 6], t: 1, mblock: [1, 14], ublock: [1, 3], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 3, u_kt: 12, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 3}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -271,10 +271,10 @@
 #Test id=10
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 12
+  input_count: 10
   target_device: 0
-  queue_wrap_size: 96
-  in0: 'input_0: {type: queue, grid_size: [2, 1], t: 1, mblock: [2, 7], ublock: [2, 9], df: Bfp8_b, input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x3067b540], [0, 0x313c5560]], }'
+  queue_wrap_size: 40
+  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 1, mblock: [6, 6], ublock: [2, 5], df: Float32, input: HOST, entries: 20, target_device: 0, loc: dram, dram: [[0, 0x20696cc0], [0, 0x23fb7ce0], [0, 0x278d8d00], [0, 0x2b1f9d20]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -286,9 +286,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [2, 1], t: 1, mblock: [7, 1], ublock: [4, 1], df: Bfp8_b, input: op, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x32ea3340], [0, 0x3301d360]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 4], t: 1, mblock: [1, 6], ublock: [1, 5], df: Float32, input: op, entries: 20, target_device: 0, loc: host, host: [[0, 0xe5cf080], [0, 0xea91ca0], [0, 0xef548c0], [0, 0xf4174e0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [2, 1], t: 1, mblock: [7, 1], ublock: [4, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: c, relu_en: true, relu_mode: max, relu_threshold: 0.080000, stoch_rnd_mode: fpu, m_k: 7, u_kt: 9, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, ], }'
+  op0: 'op: {type: reduce, grid_size: [1, 4], t: 1, mblock: [1, 6], ublock: [1, 5], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, stoch_rnd_mode: none, m_k: 6, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
@@ -298,10 +298,10 @@
 #Test id=11
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 8
+  input_count: 4
   target_device: 0
-  queue_wrap_size: 64
-  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 1, mblock: [4, 6], ublock: [3, 14], df: Float16_b, input: HOST, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x12568ec0], [0, 0x16660ee0], [0, 0x1a758f00]], }'
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [2, 8], t: 16, mblock: [2, 1], ublock: [2, 3], df: Bfp8_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x2fa7a480], [0, 0x2fdda4a0], [0, 0x3013a4c0], [0, 0x3049a4e0], [0, 0x307fa500], [0, 0x30b5a520], [0, 0x30eba540], [0, 0x3121a560], [0, 0x3157a580], [0, 0x318da5a0], [0, 0x31c3a5c0], [0, 0x31f9a5e0], [0, 0x322fa600], [0, 0x3265a620], [0, 0x329ba640], [0, 0x32d1a660]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -313,9 +313,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [3, 1], t: 1, mblock: [4, 1], ublock: [3, 1], df: Float16_b, tile_dim: [32, 32], input: op, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x27507ac0], [0, 0x275cdae0], [0, 0x27693b00]], }'
+  out0: 'output0: {type: queue, grid_size: [2, 8], t: 1, mblock: [14, 4], ublock: [2, 3], df: Bfp8_b, input: op, entries: 8, target_device: 0, loc: host, host: [[0, 0x8e8e500], [0, 0x9476520], [0, 0x9a5e540], [0, 0xa046560], [0, 0xa62e580], [0, 0xac165a0], [0, 0xb1fe5c0], [0, 0xb7e65e0], [0, 0xbdce600], [0, 0xc3b6620], [0, 0xc99e640], [0, 0xcf86660], [0, 0xd56e680], [0, 0xdb566a0], [0, 0xe13e6c0], [0, 0xe7266e0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [3, 1], t: 1, mblock: [4, 1], ublock: [3, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {type: max, dim: c, stoch_rnd_mode: fpu, m_k: 6, u_kt: 14, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [2, 8], t: 1, mblock: [14, 4], ublock: [2, 3], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 16, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, broadcast: {c: 4}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -325,10 +325,10 @@
 #Test id=12
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 12
+  input_count: 2
   target_device: 0
-  queue_wrap_size: 96
-  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 32, mblock: [2, 7], ublock: [1, 4], df: Bfp8, input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x14f3eec0], [0, 0x1adbeee0], [0, 0x20c3ef00], [0, 0x26abef20]], }'
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [7, 2], t: 10, mblock: [5, 1], ublock: [2, 4], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2bd7d4c0], [0, 0x2ca2f4e0], [0, 0x2d6e1500], [0, 0x2e393520], [0, 0x2f045540], [0, 0x2fcf7560], [0, 0x309a9580], [0, 0x3165b5a0], [0, 0x3230d5c0], [0, 0x32fbf5e0], [0, 0x33c71600], [0, 0x34923620], [0, 0x355d5640], [0, 0x36287660]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -340,9 +340,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 4], t: 2, mblock: [14, 4], ublock: [1, 7], df: Bfp8, input: op, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x35760d00], [0, 0x380b8d20], [0, 0x3aa10d40], [0, 0x3d368d60]], }'
+  out0: 'output0: {type: queue, grid_size: [7, 2], t: 2, mblock: [5, 1], ublock: [2, 4], df: Float32, input: op, entries: 4, target_device: 0, loc: host, host: [[0, 0xdb6bf80], [0, 0xddf5fa0], [0, 0xe07ffc0], [0, 0xe309fe0], [0, 0xe594000], [0, 0xe81e020], [0, 0xeaa8040], [0, 0xed32060], [0, 0xefbc080], [0, 0xf2460a0], [0, 0xf4d00c0], [0, 0xf75a0e0], [0, 0xf9e4100], [0, 0xfc6e120]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 4], t: 2, mblock: [14, 4], ublock: [1, 7], out_df: Bfp8, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8], math_fidelity: LoFi, intermed_df: Bfp8, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 16, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, ], }'
+  op0: 'op: {type: reduce, grid_size: [7, 2], t: 2, mblock: [5, 1], ublock: [2, 4], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi4, intermed_df: Float32, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 5, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
@@ -352,10 +352,10 @@
 #Test id=13
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 4
+  input_count: 16
   target_device: 0
-  queue_wrap_size: 32
-  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 10, mblock: [2, 8], ublock: [2, 6], df: Float32, tile_dim: [32, 32], input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x11aca080], [0, 0x194aa0a0], [0, 0x20e8a0c0], [0, 0x2886a0e0]], }'
+  queue_wrap_size: 64
+  in0: 'input_0: {type: queue, grid_size: [4, 1], t: 1, mblock: [1, 16], ublock: [8, 1], df: Float32, input: HOST, entries: 32, target_device: 0, loc: dram, dram: [[0, 0x33c582c0], [0, 0x35cd82e0], [0, 0x37d58300], [0, 0x39dd8320]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -367,22 +367,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 4], t: 10, mblock: [1, 8], ublock: [1, 6], df: Float32, tile_dim: [8, 32], input: op, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x31207800], [0, 0x3307f820], [0, 0x34ef7840], [0, 0x36d6f860]], }'
+  out0: 'output0: {type: queue, grid_size: [4, 1], t: 1, mblock: [7, 1], ublock: [8, 1], df: Float32, input: op, entries: 32, target_device: 0, loc: host, host: [[0, 0xc715040], [0, 0xd54d060], [0, 0xe385080], [0, 0xf1bd0a0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 4], t: 10, mblock: [1, 8], ublock: [1, 6], out_df: Float32, tile_dim: [8, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi3, intermed_df: Float32, acc_df: Float16_b, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 2, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [4, 1], t: 1, mblock: [7, 1], ublock: [8, 1], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: c, stoch_rnd_mode: fpu, m_k: 8, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 8], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=14
 - device: WORMHOLE_B0
-  loop_count: 1
-  input_count: 6
+  loop_count: 2
+  input_count: 4
   target_device: 0
-  queue_wrap_size: 12
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 1, mblock: [7, 8], ublock: [2, 7], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 6, target_device: 0, loc: dram, dram: [[0, 0x10cca680], [0, 0x111f56a0], [0, 0x117206c0]], }'
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [5, 3], t: 1, mblock: [1, 10], ublock: [1, 5], df: Bfp8_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x10c66700], [0, 0x10d47720], [0, 0x10e28740], [0, 0x10f09760], [0, 0x10fea780], [0, 0x110cb7a0], [0, 0x111ac7c0], [0, 0x1128d7e0], [0, 0x1136e800], [0, 0x1144f820], [0, 0x11530840], [0, 0x11611860], [0, 0x116f2880], [0, 0x117d38a0], [0, 0x118b48c0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -394,22 +394,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 1, mblock: [1, 8], ublock: [1, 7], df: Bfp8_b, tile_dim: [1, 32], input: op, entries: 6, target_device: 0, loc: dram, dram: [[0, 0x1c487540], [0, 0x1c4e5d60], [0, 0x1c544580]], }'
+  out0: 'output0: {type: queue, grid_size: [5, 3], t: 1, mblock: [8, 10], ublock: [1, 5], df: Bfp8_b, input: op, entries: 8, target_device: 0, loc: host, host: [[0, 0x33c06c0], [0, 0x3ac86e0], [0, 0x41d0700], [0, 0x48d8720], [0, 0x4fe0740], [0, 0x56e8760], [0, 0x5df0780], [0, 0x64f87a0], [0, 0x6c007c0], [0, 0x73087e0], [0, 0x7a10800], [0, 0x8118820], [0, 0x8820840], [0, 0x8f28860], [0, 0x9630880]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 1, mblock: [1, 8], ublock: [1, 7], out_df: Bfp8_b, tile_dim: [1, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, m_k: 7, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [5, 3], t: 1, mblock: [8, 10], ublock: [1, 5], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi2, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 2, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, broadcast: {z: 2}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 1], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=15
 - device: WORMHOLE_B0
-  loop_count: 1
+  loop_count: 2
   input_count: 4
   target_device: 0
-  queue_wrap_size: 8
-  in0: 'input_0: {type: queue, grid_size: [1, 2], t: 1, mblock: [11, 16], ublock: [2, 5], df: Float16_b, tile_dim: [32, 32], input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x22544500], [0, 0x23372520]], }'
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [2, 1], t: 1, mblock: [7, 12], ublock: [8, 2], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x22bd4c40], [0, 0x28124c60]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -421,22 +421,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 2], t: 1, mblock: [1, 16], ublock: [1, 5], df: Float16_b, tile_dim: [8, 32], input: op, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2b342a00], [0, 0x2b3e7a20]], }'
+  out0: 'output0: {type: queue, grid_size: [2, 1], t: 1, mblock: [7, 1], ublock: [8, 1], df: Float32, input: op, entries: 8, target_device: 0, loc: host, host: [[0, 0xe21b640], [0, 0xe5a9660]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 2], t: 1, mblock: [1, 16], ublock: [1, 5], out_df: Float16_b, tile_dim: [8, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {type: max, dim: r, m_k: 11, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [2, 1], t: 1, mblock: [7, 1], ublock: [8, 1], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: c, m_k: 12, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 8], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=16
 - device: WORMHOLE_B0
-  loop_count: 1
-  input_count: 4
+  loop_count: 2
+  input_count: 2
   target_device: 0
   queue_wrap_size: 8
-  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [10, 14], ublock: [4, 2], df: Float16, tile_dim: [32, 32], input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x13bab300]], }'
+  in0: 'input_0: {type: queue, grid_size: [2, 5], t: 32, mblock: [1, 6], ublock: [2, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x25b9c4c0], [0, 0x267cc4e0], [0, 0x273fc500], [0, 0x2802c520], [0, 0x28c5c540], [0, 0x2988c560], [0, 0x2a4bc580], [0, 0x2b0ec5a0], [0, 0x2bd1c5c0], [0, 0x2c94c5e0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -448,22 +448,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 1], t: 6, mblock: [1, 4], ublock: [1, 7], df: Float16, tile_dim: [8, 32], input: op, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2542c540]], }'
+  out0: 'output0: {type: queue, grid_size: [2, 5], t: 2, mblock: [14, 2], ublock: [1, 3], df: Float32, input: op, entries: 4, target_device: 0, loc: host, host: [[0, 0xc3e0400], [0, 0xc935420], [0, 0xce8a440], [0, 0xd3df460], [0, 0xd934480], [0, 0xde894a0], [0, 0xe3de4c0], [0, 0xe9334e0], [0, 0xee88500], [0, 0xf3dd520]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 1], t: 6, mblock: [1, 4], ublock: [1, 7], out_df: Float16, tile_dim: [8, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 10, u_kt: 16, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 4}, broadcast: {z: 6}, ], }'
+  op0: 'op: {type: reduce, grid_size: [2, 5], t: 2, mblock: [14, 2], ublock: [1, 3], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: LoFi, intermed_df: Float32, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 16, stoch_rnd_mode: none, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 8], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=17
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 6
+  input_count: 8
   target_device: 0
-  queue_wrap_size: 48
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 1, mblock: [13, 8], ublock: [2, 2], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x3d76c180], [0, 0x3e2641a0], [0, 0x3ed5c1c0]], }'
+  queue_wrap_size: 32
+  in0: 'input_0: {type: queue, grid_size: [2, 6], t: 1, mblock: [2, 1], ublock: [1, 11], df: Bfp8_b, input: HOST, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x14e7cc40], [0, 0x14f42c60], [0, 0x15008c80], [0, 0x150ceca0], [0, 0x15194cc0], [0, 0x1525ace0], [0, 0x15320d00], [0, 0x153e6d20], [0, 0x154acd40], [0, 0x15572d60], [0, 0x15638d80], [0, 0x156feda0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -475,22 +475,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 6, mblock: [1, 2], ublock: [1, 8], df: Bfp8_b, tile_dim: [8, 32], input: op, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x3f85e780], [0, 0x3fae67a0], [0, 0x3fd6e7c0]], }'
+  out0: 'output0: {type: queue, grid_size: [2, 6], t: 2, mblock: [6, 11], ublock: [3, 1], df: Bfp8_b, input: op, entries: 16, target_device: 0, loc: host, host: [[0, 0x4b115c0], [0, 0x58fd5e0], [0, 0x66e9600], [0, 0x74d5620], [0, 0x82c1640], [0, 0x90ad660], [0, 0x9e99680], [0, 0xac856a0], [0, 0xba716c0], [0, 0xc85d6e0], [0, 0xd649700], [0, 0xe435720]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 6, mblock: [1, 2], ublock: [1, 8], out_df: Bfp8_b, tile_dim: [8, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi3, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: r, relu_en: true, relu_mode: min, relu_threshold: 0.530000, m_k: 16, u_kt: 13, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, broadcast: {z: 6}, ], }'
+  op0: 'op: {type: reduce, grid_size: [2, 6], t: 2, mblock: [6, 11], ublock: [3, 1], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 3, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 9}, broadcast: {z: 6}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 8], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=18
 - device: WORMHOLE_B0
-  loop_count: 1
-  input_count: 8
+  loop_count: 2
+  input_count: 12
   target_device: 0
-  queue_wrap_size: 16
-  in0: 'input_0: {type: queue, grid_size: [2, 1], t: 1, mblock: [5, 14], ublock: [3, 3], df: Float16, tile_dim: [32, 32], input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x322e2180], [0, 0x32d08da0]], }'
+  queue_wrap_size: 48
+  in0: 'input_0: {type: queue, grid_size: [3, 2], t: 8, mblock: [2, 15], ublock: [1, 1], df: Bfp8_b, input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x1a603500], [0, 0x1b2ab520], [0, 0x1bf53540], [0, 0x1cbfb560], [0, 0x1d8a3580], [0, 0x1e54b5a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -502,9 +502,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [2, 1], t: 1, mblock: [5, 1], ublock: [3, 1], df: Float16, input: op, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x3ef3cec0], [0, 0x3ef7ace0]], }'
+  out0: 'output0: {type: queue, grid_size: [3, 2], t: 2, mblock: [16, 3], ublock: [1, 5], df: Bfp8_b, input: op, entries: 24, target_device: 0, loc: host, host: [[0, 0x60d6200], [0, 0x7a26220], [0, 0x9376240], [0, 0xacc6260], [0, 0xc616280], [0, 0xdf662a0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [2, 1], t: 1, mblock: [5, 1], ublock: [3, 1], out_df: Float16, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float16], math_fidelity: HiFi4, intermed_df: Float16, acc_df: Float16, attributes: {type: max, dim: c, stoch_rnd_mode: none, m_k: 14, u_kt: 3, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [3, 2], t: 2, mblock: [16, 3], ublock: [1, 5], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi2, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 4, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -514,10 +514,10 @@
 #Test id=19
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 6
+  input_count: 14
   target_device: 0
-  queue_wrap_size: 48
-  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [4, 12], ublock: [12, 1], df: Float32, tile_dim: [32, 32], input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x18254f80]], }'
+  queue_wrap_size: 56
+  in0: 'input_0: {type: queue, grid_size: [1, 6], t: 1, mblock: [3, 15], ublock: [8, 1], df: Bfp8_b, input: HOST, entries: 28, target_device: 0, loc: dram, dram: [[0, 0x332a3400], [0, 0x348c9420], [0, 0x35eef440], [0, 0x37515460], [0, 0x38b3b480], [0, 0x3a1614a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -529,22 +529,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 1], t: 6, mblock: [1, 3], ublock: [1, 4], df: Float32, tile_dim: [4, 32], input: op, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x2ed52180]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 6], t: 6, mblock: [1, 5], ublock: [1, 3], df: Bfp8_b, input: op, entries: 28, target_device: 0, loc: host, host: [[0, 0xda91940], [0, 0xe01b160], [0, 0xe5a4980], [0, 0xeb2e1a0], [0, 0xf0b79c0], [0, 0xf6411e0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 1], t: 6, mblock: [1, 3], ublock: [1, 4], out_df: Float32, tile_dim: [4, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: LoFi, intermed_df: Float32, acc_df: Float16, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 8, u_kt: 6, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {z: 6}, ], }'
+  op0: 'op: {type: reduce, grid_size: [1, 6], t: 6, mblock: [1, 5], ublock: [1, 3], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: r, relu_en: true, relu_mode: max, relu_threshold: 0.920000, m_k: 6, u_kt: 4, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {z: 6}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 4], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=20
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 1
+  input_count: 4
   target_device: 0
-  queue_wrap_size: 8
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 10, mblock: [11, 1], ublock: [7, 1], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x15827d40], [0, 0x1645ff60], [0, 0x17098180]], }'
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [8, 6], t: 1, mblock: [1, 1], ublock: [7, 12], df: Bfp8_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x2a76ad00], [0, 0x2a8e4d20], [0, 0x2aa5ed40], [0, 0x2abd8d60], [0, 0x2ad52d80], [0, 0x2aeccda0], [0, 0x2b046dc0], [0, 0x2b1c0de0], [0, 0x2b33ae00], [0, 0x2b4b4e20], [0, 0x2b62ee40], [0, 0x2b7a8e60], [0, 0x2b922e80], [0, 0x2ba9cea0], [0, 0x2bc16ec0], [0, 0x2bd90ee0], [0, 0x2bf0af00], [0, 0x2c084f20], [0, 0x2c1fef40], [0, 0x2c378f60], [0, 0x2c4f2f80], [0, 0x2c66cfa0], [0, 0x2c7e6fc0], [0, 0x2c960fe0], [0, 0x2cadb000], [0, 0x2cc55020], [0, 0x2cdcf040], [0, 0x2cf49060], [0, 0x2d0c3080], [0, 0x2d23d0a0], [0, 0x2d3b70c0], [0, 0x2d5310e0], [0, 0x2d6ab100], [0, 0x2d825120], [0, 0x2d99f140], [0, 0x2db19160], [0, 0x2dc93180], [0, 0x2de0d1a0], [0, 0x2df871c0], [0, 0x2e1011e0], [0, 0x2e27b200], [0, 0x2e3f5220], [0, 0x2e56f240], [0, 0x2e6e9260], [0, 0x2e863280], [0, 0x2e9dd2a0], [0, 0x2eb572c0], [0, 0x2ecd12e0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -556,9 +556,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 2, mblock: [11, 1], ublock: [7, 1], df: Float32, input: op, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x3135e540], [0, 0x315cff60], [0, 0x31841980]], }'
+  out0: 'output0: {type: queue, grid_size: [8, 6], t: 1, mblock: [7, 2], ublock: [1, 6], df: Bfp8_b, input: op, entries: 8, target_device: 0, loc: host, host: [[0, 0x4b24c40], [0, 0x4c9ec60], [0, 0x4e18c80], [0, 0x4f92ca0], [0, 0x510ccc0], [0, 0x5286ce0], [0, 0x5400d00], [0, 0x557ad20], [0, 0x56f4d40], [0, 0x586ed60], [0, 0x59e8d80], [0, 0x5b62da0], [0, 0x5cdcdc0], [0, 0x5e56de0], [0, 0x5fd0e00], [0, 0x614ae20], [0, 0x62c4e40], [0, 0x643ee60], [0, 0x65b8e80], [0, 0x6732ea0], [0, 0x68acec0], [0, 0x6a26ee0], [0, 0x6ba0f00], [0, 0x6d1af20], [0, 0x6e94f40], [0, 0x700ef60], [0, 0x7188f80], [0, 0x7302fa0], [0, 0x747cfc0], [0, 0x75f6fe0], [0, 0x7771000], [0, 0x78eb020], [0, 0x7a65040], [0, 0x7bdf060], [0, 0x7d59080], [0, 0x7ed30a0], [0, 0x804d0c0], [0, 0x81c70e0], [0, 0x8341100], [0, 0x84bb120], [0, 0x8635140], [0, 0x87af160], [0, 0x8929180], [0, 0x8aa31a0], [0, 0x8c1d1c0], [0, 0x8d971e0], [0, 0x8f11200], [0, 0x908b220]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 2, mblock: [11, 1], ublock: [7, 1], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: HiFi4, intermed_df: Float32, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 5, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [8, 6], t: 1, mblock: [7, 2], ublock: [1, 6], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, relu_en: true, relu_mode: max, relu_threshold: 0.140000, accumulate: true, z: 8, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {z: 8}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -568,10 +568,10 @@
 #Test id=21
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 2
+  input_count: 1
   target_device: 0
-  queue_wrap_size: 16
-  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 1, mblock: [3, 14], ublock: [6, 1], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1f3aa580], [0, 0x1f5e15a0], [0, 0x1f8185c0]], }'
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [7, 8], t: 34, mblock: [1, 13], ublock: [1, 2], df: Bfp8_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1c514780], [0, 0x1c8f6fa0], [0, 0x1ccd97c0], [0, 0x1d0bbfe0], [0, 0x1d49e800], [0, 0x1d881020], [0, 0x1dc63840], [0, 0x1e046060], [0, 0x1e428880], [0, 0x1e80b0a0], [0, 0x1ebed8c0], [0, 0x1efd00e0], [0, 0x1f3b2900], [0, 0x1f795120], [0, 0x1fb77940], [0, 0x1ff5a160], [0, 0x2033c980], [0, 0x2071f1a0], [0, 0x20b019c0], [0, 0x20ee41e0], [0, 0x212c6a00], [0, 0x216a9220], [0, 0x21a8ba40], [0, 0x21e6e260], [0, 0x22250a80], [0, 0x226332a0], [0, 0x22a15ac0], [0, 0x22df82e0], [0, 0x231dab00], [0, 0x235bd320], [0, 0x2399fb40], [0, 0x23d82360], [0, 0x24164b80], [0, 0x245473a0], [0, 0x24929bc0], [0, 0x24d0c3e0], [0, 0x250eec00], [0, 0x254d1420], [0, 0x258b3c40], [0, 0x25c96460], [0, 0x26078c80], [0, 0x2645b4a0], [0, 0x2683dcc0], [0, 0x26c204e0], [0, 0x27002d00], [0, 0x273e5520], [0, 0x277c7d40], [0, 0x27baa560], [0, 0x27f8cd80], [0, 0x2836f5a0], [0, 0x28751dc0], [0, 0x28b345e0], [0, 0x28f16e00], [0, 0x292f9620], [0, 0x296dbe40], [0, 0x29abe660]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -583,9 +583,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [3, 1], t: 1, mblock: [9, 7], ublock: [2, 2], df: Bfp8_b, input: op, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x280d1240], [0, 0x28308260], [0, 0x2853f280]], }'
+  out0: 'output0: {type: queue, grid_size: [7, 8], t: 2, mblock: [1, 13], ublock: [1, 2], df: Bfp8_b, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0xe07bc00], [0, 0xe0b6420], [0, 0xe0f0c40], [0, 0xe12b460], [0, 0xe165c80], [0, 0xe1a04a0], [0, 0xe1dacc0], [0, 0xe2154e0], [0, 0xe24fd00], [0, 0xe28a520], [0, 0xe2c4d40], [0, 0xe2ff560], [0, 0xe339d80], [0, 0xe3745a0], [0, 0xe3aedc0], [0, 0xe3e95e0], [0, 0xe423e00], [0, 0xe45e620], [0, 0xe498e40], [0, 0xe4d3660], [0, 0xe50de80], [0, 0xe5486a0], [0, 0xe582ec0], [0, 0xe5bd6e0], [0, 0xe5f7f00], [0, 0xe632720], [0, 0xe66cf40], [0, 0xe6a7760], [0, 0xe6e1f80], [0, 0xe71c7a0], [0, 0xe756fc0], [0, 0xe7917e0], [0, 0xe7cc000], [0, 0xe806820], [0, 0xe841040], [0, 0xe87b860], [0, 0xe8b6080], [0, 0xe8f08a0], [0, 0xe92b0c0], [0, 0xe9658e0], [0, 0xe9a0100], [0, 0xe9da920], [0, 0xea15140], [0, 0xea4f960], [0, 0xea8a180], [0, 0xeac49a0], [0, 0xeaff1c0], [0, 0xeb399e0], [0, 0xeb74200], [0, 0xebaea20], [0, 0xebe9240], [0, 0xec23a60], [0, 0xec5e280], [0, 0xec98aa0], [0, 0xecd32c0], [0, 0xed0dae0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [3, 1], t: 1, mblock: [9, 7], ublock: [2, 2], out_df: Bfp8_b, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, relu_en: true, relu_mode: max, relu_threshold: 0.820000, accumulate: true, z: 8, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {z: 8}, ], }'
+  op0: 'op: {type: reduce, grid_size: [7, 8], t: 2, mblock: [1, 13], ublock: [1, 2], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi2, intermed_df: Bfp8_b, acc_df: Float16_b, attributes: {type: max, dim: z, accumulate: true, z: 17, stoch_rnd_mode: fpu, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
@@ -595,10 +595,10 @@
 #Test id=22
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 8
+  input_count: 12
   target_device: 0
-  queue_wrap_size: 64
-  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 1, mblock: [15, 7], ublock: [2, 6], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x2d1f8ac0], [0, 0x2fe44ae0], [0, 0x32a90b00], [0, 0x356dcb20]], }'
+  queue_wrap_size: 48
+  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 8, mblock: [1, 4], ublock: [1, 13], df: Float16_b, input: HOST, entries: 24, target_device: 0, loc: dram, dram: [[0, 0x2ebaeb00], [0, 0x313e6b20], [0, 0x33c1eb40]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -610,22 +610,22 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 4], t: 1, mblock: [1, 7], ublock: [1, 6], df: Bfp8_b, tile_dim: [16, 32], input: op, entries: 16, target_device: 0, loc: dram, dram: [[0, 0x3a12e7c0], [0, 0x3a2a87e0], [0, 0x3a422800], [0, 0x3a59c820]], }'
+  out0: 'output0: {type: queue, grid_size: [1, 3], t: 4, mblock: [2, 13], ublock: [1, 4], df: Float16_b, input: op, entries: 24, target_device: 0, loc: host, host: [[0, 0x86f5780], [0, 0xaf2d7a0], [0, 0xd7657c0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 4], t: 1, mblock: [1, 7], ublock: [1, 6], out_df: Bfp8_b, tile_dim: [16, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: LoFi, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: r, stoch_rnd_mode: fpu, m_k: 15, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
+  op0: 'op: {type: reduce, grid_size: [1, 3], t: 4, mblock: [2, 13], ublock: [1, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Float16_b], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float32, attributes: {type: max, dim: z, accumulate: true, z: 2, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 2}, ], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 16], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
 #Test id=23
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 1
+  input_count: 6
   target_device: 0
-  queue_wrap_size: 8
-  in0: 'input_0: {type: queue, grid_size: [1, 3], t: 16, mblock: [1, 2], ublock: [7, 2], df: Bfp8_b, tile_dim: [32, 32], input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1ed1f140], [0, 0x1ef17160], [0, 0x1f10f180]], }'
+  queue_wrap_size: 24
+  in0: 'input_0: {type: queue, grid_size: [8, 1], t: 1, mblock: [12, 12], ublock: [1, 1], df: Float32, input: HOST, entries: 12, target_device: 0, loc: dram, dram: [[0, 0x1d15f1c0], [0, 0x1df151e0], [0, 0x1eccb200], [0, 0x1fa81220], [0, 0x20837240], [0, 0x215ed260], [0, 0x223a3280], [0, 0x231592a0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -637,9 +637,9 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 3], t: 2, mblock: [8, 4], ublock: [7, 1], df: Bfp8_b, input: op, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x29db1f00], [0, 0x29fa9f20], [0, 0x2a1a1f40]], }'
+  out0: 'output0: {type: queue, grid_size: [8, 1], t: 1, mblock: [6, 1], ublock: [6, 1], df: Float32, input: op, entries: 12, target_device: 0, loc: host, host: [[0, 0xe1eab00], [0, 0xe558320], [0, 0xe8c5b40], [0, 0xec33360], [0, 0xefa0b80], [0, 0xf30e3a0], [0, 0xf67bbc0], [0, 0xf9e93e0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 3], t: 2, mblock: [8, 4], ublock: [7, 1], out_df: Bfp8_b, tile_dim: [32, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: z, relu_en: true, relu_mode: max, relu_threshold: 0.390000, accumulate: true, z: 8, stoch_rnd_mode: none, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 8}, ], }'
+  op0: 'op: {type: reduce, grid_size: [8, 1], t: 1, mblock: [6, 1], ublock: [6, 1], out_df: Float32, grid_loc: [0, 0], inputs: [input_0], in_df: [Float32], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16_b, attributes: {type: max, dim: c, m_k: 6, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 3}, ], }'
   op1: ''
   op2: ''
   op3: ''
@@ -649,10 +649,10 @@
 #Test id=24
 - device: WORMHOLE_B0
   loop_count: 2
-  input_count: 16
+  input_count: 1
   target_device: 0
-  queue_wrap_size: 128
-  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 40, mblock: [12, 1], ublock: [2, 1], df: Bfp8, tile_dim: [32, 32], input: HOST, entries: 32, target_device: 0, loc: dram, dram: [[0, 0x222766c0]], }'
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [6, 7], t: 16, mblock: [10, 1], ublock: [1, 5], df: Bfp8_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x23911580], [0, 0x23c955a0], [0, 0x240195c0], [0, 0x2439d5e0], [0, 0x24721600], [0, 0x24aa5620], [0, 0x24e29640], [0, 0x251ad660], [0, 0x25531680], [0, 0x258b56a0], [0, 0x25c396c0], [0, 0x25fbd6e0], [0, 0x26341700], [0, 0x266c5720], [0, 0x26a49740], [0, 0x26dcd760], [0, 0x27151780], [0, 0x274d57a0], [0, 0x278597c0], [0, 0x27bdd7e0], [0, 0x27f61800], [0, 0x282e5820], [0, 0x28669840], [0, 0x289ed860], [0, 0x28d71880], [0, 0x290f58a0], [0, 0x294798c0], [0, 0x297fd8e0], [0, 0x29b81900], [0, 0x29f05920], [0, 0x2a289940], [0, 0x2a60d960], [0, 0x2a991980], [0, 0x2ad159a0], [0, 0x2b0999c0], [0, 0x2b41d9e0], [0, 0x2b7a1a00], [0, 0x2bb25a20], [0, 0x2bea9a40], [0, 0x2c22da60], [0, 0x2c5b1a80], [0, 0x2c935aa0]], }'
   stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
   queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
   in1: ''
@@ -664,12 +664,12 @@
   in3: ''
   stimulus_in3: ''
   queue_settings_in3: ''
-  out0: 'output0: {type: queue, grid_size: [1, 1], t: 40, mblock: [1, 9], ublock: [1, 1], df: Bfp8, tile_dim: [2, 32], input: op, entries: 32, target_device: 0, loc: dram, dram: [[0, 0x31746bc0]], }'
+  out0: 'output0: {type: queue, grid_size: [6, 7], t: 8, mblock: [10, 1], ublock: [1, 5], df: Bfp8_b, input: op, entries: 2, target_device: 0, loc: host, host: [[0, 0xa7fc6c0], [0, 0xa9be6e0], [0, 0xab80700], [0, 0xad42720], [0, 0xaf04740], [0, 0xb0c6760], [0, 0xb288780], [0, 0xb44a7a0], [0, 0xb60c7c0], [0, 0xb7ce7e0], [0, 0xb990800], [0, 0xbb52820], [0, 0xbd14840], [0, 0xbed6860], [0, 0xc098880], [0, 0xc25a8a0], [0, 0xc41c8c0], [0, 0xc5de8e0], [0, 0xc7a0900], [0, 0xc962920], [0, 0xcb24940], [0, 0xcce6960], [0, 0xcea8980], [0, 0xd06a9a0], [0, 0xd22c9c0], [0, 0xd3ee9e0], [0, 0xd5b0a00], [0, 0xd772a20], [0, 0xd934a40], [0, 0xdaf6a60], [0, 0xdcb8a80], [0, 0xde7aaa0], [0, 0xe03cac0], [0, 0xe1feae0], [0, 0xe3c0b00], [0, 0xe582b20], [0, 0xe744b40], [0, 0xe906b60], [0, 0xeac8b80], [0, 0xec8aba0], [0, 0xee4cbc0], [0, 0xf00ebe0]], }'
   queue_settings_out0: ''
-  op0: 'op: {type: reduce, grid_size: [1, 1], t: 40, mblock: [1, 9], ublock: [1, 1], out_df: Bfp8, tile_dim: [2, 32], grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8], math_fidelity: LoFi, intermed_df: Bfp8, acc_df: Float16_b, attributes: {type: max, dim: r, m_k: 14, u_kt: 12, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [broadcast: {r: 7}, broadcast: {c: 9}, ], }'
+  op0: 'op: {type: reduce, grid_size: [6, 7], t: 8, mblock: [10, 1], ublock: [1, 5], out_df: Bfp8_b, grid_loc: [0, 0], inputs: [input_0], in_df: [Bfp8_b], math_fidelity: HiFi4, intermed_df: Bfp8_b, acc_df: Float16, attributes: {type: max, dim: z, accumulate: true, z: 2, stoch_rnd_mode: none, m_k: 1, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: false, input_0_tms: [], }'
   op1: ''
   op2: ''
   op3: ''
   op4: ''
   op5: ''
-  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 2], check_tile_cols_range: [1, 32] }'
+  comparison_config: '{type: AllCloseHw, atol: 0.01, rtol: 0.15, check_pct: 0.9, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
