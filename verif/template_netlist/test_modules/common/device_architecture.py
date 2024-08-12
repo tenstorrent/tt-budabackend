@@ -227,7 +227,7 @@ class WormholeB0Architecture(DeviceArchitecture):
             tile_r = 32,
             tile_c = 32,
             grid_size_x = 8,
-            grid_size_y = 10 - harvested_rows,
+            grid_size_y = 8 - harvested_rows,
             l1_mem_size = 1464 * 1024,
             fw_l1_mem_size = 204 * 1024,
             pipegen_l1_mem_size = 256 * 1024,

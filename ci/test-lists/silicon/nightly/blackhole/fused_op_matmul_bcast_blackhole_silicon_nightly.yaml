@@ -1,0 +1,26 @@
+fused_op_matmul_bcast_blackhole_silicon_nightly:
+  build_on_runner: True
+  tag: nightly
+  arch_name: blackhole
+  harvested_rows_supported: 0
+  device_runner: Silicon
+  test_flow: "./build/test/verif/graph_tests/test_graph"
+
+  build_cmd: [
+    "make -j8 build_hw", 
+    "make -j8 verif/graph_tests", 
+    "verif/template_netlist/generate_netlists.py --template-yaml verif/template_netlist/templates/fused_op/test_fused_op_matmul_bcast.template.yaml --test-configs-yaml verif/template_netlist/netlist_configs/blackhole/fused_op/test_fused_op_matmul_bcast_configs.yaml --output-dir build/test/verif/graph_tests/test_fused_op_matmul_blackhole"
+  ]
+
+  build_timeout: "3600"
+  timeout: "120"
+  run_on_same_runner: True
+  artifacts: []
+
+# ========== Tests ========== #
+  test_fused_op_matmul_bcast_blackhole:
+    owner: ["macimovic", "sjovic", "ppopovic", "pjosipovic", "skrstic"]
+    command: ["--silicon"]
+    multi_test_dir: "build/test/verif/graph_tests/test_fused_op_matmul_blackhole"
+    multi_test_netlists: True
+    multi_test: True

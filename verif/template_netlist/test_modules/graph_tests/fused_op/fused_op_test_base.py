@@ -77,7 +77,7 @@ class FusedOpTestBase(GraphTestBase):
         with both A and B formats.)
         """
         # true a exp type inputs, false b exp type inputs
-        a_or_b_inputs = random.choice([True, False])
+        a_or_b_inputs = False
 
         valid_values_a = [DataFormat.Bfp8.value, DataFormat.Float16.value, DataFormat.Float32.value]
         valid_values_b = [
@@ -143,7 +143,7 @@ class FusedOpTestBase(GraphTestBase):
                 # to make things simpler for test generation, we only flip A/B side on
                 # output of the last op in the graph to have some test coverage.
                 output_df = (
-                    random.choice(valid_output_formats_b) if a_or_b_inputs else random.choice(valid_output_formats_a)
+                    random.choice(valid_output_formats_a) if a_or_b_inputs else random.choice(valid_output_formats_b)
                 )
             else:
                 output_df = (

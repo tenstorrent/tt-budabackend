@@ -14,7 +14,7 @@ from logging import Logger
 from z3 import *
 
 from test_modules.common.data_formats import DataFormat
-from test_modules.common.device_architecture import DeviceArchitecture, WormholeB0Architecture
+from test_modules.common.device_architecture import DeviceArchitecture, WormholeB0Architecture, BlackholeArchitecture
 from test_modules.common.node import Node
 from test_modules.common.enums import (
     TMS,
@@ -1242,7 +1242,8 @@ class TemplateNetlistTestBase(ABC):
         self.solver.add(
             If(
                 And(
-                    isinstance(self.arch, WormholeB0Architecture),
+                    Or(isinstance(self.arch, WormholeB0Architecture),
+                       isinstance(self.arch, BlackholeArchitecture)),
                     op_node.acc_df == DataFormat.Float32.value,
                 ),
                 op_node.ub_r * op_node.ub_c <= self.arch.max_tiles_in_dest / 4,
