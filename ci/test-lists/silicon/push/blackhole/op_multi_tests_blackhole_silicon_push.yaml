@@ -1,0 +1,61 @@
+op_multi_tests_blackhole_silicon_push:
+  build_on_runner: True
+  tag: push
+  owner: ["macimovic", "sjovic", "ppopovic", "pjosipovic", "skrstic", "rtawfik"]
+  arch_name: blackhole
+  harvested_rows_supported: 2
+  device_runner: Silicon
+  test_flow: "./build/test/verif/op_tests/test_op"
+  build_cmd: [
+    "make -j8 build_hw", 
+    "make -j8 verif/op_tests", 
+    "verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/blackhole/silicon/unary/unary_single_configs_push.yaml --output-dir build/test/unary-push --use-hash 0",
+    "verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/blackhole/silicon/binary/binary_single_configs_push.yaml --output-dir build/test/binary-push --use-hash 0",
+    "verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/blackhole/silicon/matmul/matmul_single_configs_push.yaml --output-dir build/test/matmul-push --use-hash 0",
+    "verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/blackhole/silicon/matmul/matmul_accumulate_z_single_configs_push.yaml --output-dir build/test/matmul-accumulate-z-push --use-hash 0",
+    "verif/op_tests/constraints/vcs/scripts/create_blackhole_silicon_int8_netlists.sh"
+    ]
+  build_timeout: "900"
+  timeout: "600"
+  run_on_same_runner: True
+  artifacts: []
+# ========== Tests ========== #
+  op_tests_random_unary:
+    command: ["--seed 0 --silicon --num-loops 2"]
+    multi_test_dir: "build/test/unary-push"
+    multi_test_netlists: True
+    multi_test: True
+  op_tests_random_binary:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/binary-push"
+    multi_test_netlists: True
+    multi_test: True
+  op_tests_random_matmul:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-push"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_matmul_z_accumulate:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-accumulate-z-push"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_binary_int8:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/binary-int8-push"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_matmul_int8:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-int8-push"
+    multi_test_netlists: True
+    multi_test: True
+
+  op_tests_random_matmul_int8_z_accumulate:
+    command: ["--seed 0 --silicon"]
+    multi_test_dir: "build/test/matmul-int8-accumulate-z-push"
+    multi_test_netlists: True
+    multi_test: True
