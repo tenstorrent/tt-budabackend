@@ -126,7 +126,7 @@ void tt_cluster::create_cluster_desc_for_gs(const std::string& root) {
     auto available_device_ids = tt_SiliconDevice::detect_available_device_ids();
     ofstream f(root + "/cluster_desc.yaml");
 
-    f << " chips: {\n}\n";
+    f << "chips: {\n}\n";
     f << "ethernet_connections: [\n]\n";
     f << "harvesting: [\n]\n";
     f << "chips_with_mmio: [\n";
