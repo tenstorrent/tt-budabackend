@@ -186,12 +186,11 @@ runtime_2row_harvested_blackhole_silicon_nightly:
         -   --silicon --netlist build/test/loader/tests/loop_on_device/netlist_large_external_update_list_split.yaml --O 4 --num-pushes 2 --batched-push
 
     # Added for #2167 : Remove recently added dual-view RAM restriction that only 2 views can exist, for models like T5
-    # TODO: Shuts down the host on blackhole. Figure out why.
-    # program_looping_on_device_dual_view_rams_multiple_views:
-    #     owner: [kmabee]
-    #     test_flow: ./build/test/verif/netlist_tests/test_inference
-    #     command:
-    #     -   --backend Silicon --io-timeout 100 --O 4 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
+    program_looping_on_device_dual_view_rams_multiple_views:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --backend Silicon --io-timeout 100 --O 4 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
 
     test_dual_view_ram_batch_loops_single_program_0_o3:
         owner: [kmabee]
@@ -224,7 +223,7 @@ runtime_2row_harvested_blackhole_silicon_nightly:
         command:
         -   --backend Silicon --O 4 --num-loops 10 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_single_graph_2.yaml --param-inner-loop-count 5 --param-outer-loop-count 2 --param-inner-loop-wr-incr 1 --param-outer-loop-wr-incr 2 --wr-cache-index-start 1 --param-inner-loop-rd-incr 1 --param-outer-loop-rd-incr 2
 
-    #TODO: Currently produces a DMA error due to 4gb host not supported on non-zero channels. Will be enabled later on.
+    #TODO: Currently produces a DMA error due to hugepages not supported on non-zero host channels. Will be enabled later on.
     # test_hq_dq_sanity_host_4gb_microbatches_o3:
     #     owner: [kmabee]
     #     test_flow: ./build/test/verif/netlist_tests/test_inference
