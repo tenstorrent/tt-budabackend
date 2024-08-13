@@ -152,7 +152,7 @@ runtime_2row_harvested_blackhole_silicon_push:
     #     command:
     #     -   --netlist build/test/loader/tests/net_basic/netlist_input_output_host_queue.yaml --backend Silicon --O 3 --sequential
 
-    #TODO: Currently not enabled on blackhole architecture. Will be enabled at a later point.
+    #TODO: Hugepages on non-zero channels currently not enabled on blackhole architecture. Will be enabled at a later point.
     # test_pybuda_api_hq_input_4gb_sanity:
     #     test_flow: ./build/test/loader/tests/test_pybuda_api
     #     command:
@@ -457,18 +457,17 @@ runtime_2row_harvested_blackhole_silicon_push:
         -   --backend Silicon --O 4 --num-loops 10 --compare-to Golden --netlist build/test/verif/netlist_tests/netlists/basic_ram/netlist_dual_view_ram_single_graph_2.yaml --param-inner-loop-count 5 --param-outer-loop-count 1 --param-inner-loop-wr-incr 1 --param-outer-loop-wr-incr 0 --wr-cache-index-start 1 --param-inner-loop-rd-incr 1 --param-outer-loop-rd-incr 0
 
   # Inspired by #2167 and 2513 - updating dual view RAM header for those with multiple views, syncing on producer/consumer.
-  # TODO: These tests currently kill the host, make an exploration into why.
-    # test_dual_view_rams_multiple_views_o3:
-    #     owner: [kmabee]
-    #     test_flow: ./build/test/verif/netlist_tests/test_inference
-    #     command:
-    #     -   --backend Silicon --io-timeout 100 --O 3 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
+    test_dual_view_rams_multiple_views_o3:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --backend Silicon --io-timeout 100 --O 3 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
 
-    # test_dual_view_rams_multiple_views_o2:
-    #     owner: [kmabee]
-    #     test_flow: ./build/test/verif/netlist_tests/test_inference
-    #     command:
-    #     -   --backend Silicon --io-timeout 100 --O 2 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
+    test_dual_view_rams_multiple_views_o2:
+        owner: [kmabee]
+        test_flow: ./build/test/verif/netlist_tests/test_inference
+        command:
+        -   --backend Silicon --io-timeout 100 --O 2 --netlist build/test/loader/tests/loop_on_device/netlist_programs2_aliased_queue_multiple_views.yaml --push-all-entries --golden None --num-loops 2
 
   # Issue #2181 epoch_id aliasing hazard/deadlocks - originally deadlock unless o3 write combine adds full-grid-sync to bypass aliasing wait (deadlock with WC)
   # Verify number of hazards and full-grid-syncs (used for Write-Combine and program-looping avoidance)
