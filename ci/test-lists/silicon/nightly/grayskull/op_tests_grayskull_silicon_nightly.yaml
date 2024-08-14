@@ -1,0 +1,130 @@
+op_tests_grayskull_silicon_nightly:
+    build_on_runner: true
+    tag: nightly
+    owner: [rtawfik, macimovic, sjovic, ppopovic, pjosipovic, skrstic]
+    arch_name: grayskull
+    harvested_rows_supported: 0
+    device_runner: Silicon
+    test_flow: ./build/test/verif/op_tests/test_op
+    build_cmd:
+      - make -j8 build_hw
+      - make -j8 verif/op_tests
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/unary/unary_single_configs.yaml --output-dir build/test/unary-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/unary/unary_feeder_drainer_configs.yaml --output-dir build/test/unary-feeder-drainer-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/unary/unary_gradient_acc_single_configs.yaml --output-dir build/test/unary-gradient-acc-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/binary/binary_single_configs.yaml --output-dir build/test/binary-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/binary/binary_feeder_drainer_configs.yaml --output-dir build/test/binary-feeder-drainer-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/binary/binary_gradient_acc_single_configs.yaml --output-dir build/test/binary-gradient-acc-nightly --use-hash 0
+      - unzip -qo verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_single_configs.zip -d verif/op_tests/constraints/vcs
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_single_configs.yaml --output-dir build/test/matmul-nightly --use-hash 0
+      - rm verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_single_configs.yaml
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_feeder_drainer_configs.yaml --output-dir build/test/matmul-feeder-drainer-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_gradient_acc_single_configs.yaml --output-dir build/test/matmul-gradient-acc-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/matmul/matmul_accumulate_z_single_configs.yaml --output-dir build/test/matmul-accumulate-z-acc-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/depthwise/depthwise_single_configs.yaml --output-dir build/test/depthwise-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/splice/splice_single_configs.yaml --output-dir build/test/splice-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/reduce/reduce_single_configs.yaml --output-dir build/test/reduce-nightly --use-hash 0
+      - verif/template_netlist/generate_netlists.py --template-yaml verif/op_tests/netlists/templates/wormhole_b0/netlist_op_test.template.yaml --test-configs-yaml verif/op_tests/constraints/vcs/test_configs/grayskull/matmul_ident/matmul_ident_single_configs.yaml --output-dir build/test/matmul_ident-nightly --use-hash 0
+      - echo Copy the netlist files to the test directory verif/op_tests/netlists
+      - rm -fr build/test/verif/op_tests/netlists
+      - mkdir -p build/test/verif/op_tests/netlists
+      - cp -a verif/op_tests/netlists/. build/test/verif/op_tests/netlists/
+    build_timeout: '750'
+    timeout: '600'
+    run_on_same_runner: true
+    artifacts: []
+# ========== Tests ========== #
+
+    # op_tests_random_unary:
+    #     command: [--seed 0 --silicon --num-loops 0]
+    #     multi_test_dir: build/test/unary-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_binary:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/binary-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_matmul:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/matmul-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_unary_with_fd:
+    #     command: [--seed 0 --silicon --num-loops 0]
+    #     multi_test_dir: build/test/unary-feeder-drainer-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_binary_with_fd:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/binary-feeder-drainer-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_splice:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/splice-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_matmul_with_fd:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/matmul-feeder-drainer-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    op_tests_random_matmul_gradient_acc:
+        command: [--seed 0 --silicon]
+        multi_test_dir: build/test/matmul-gradient-acc-nightly
+        multi_test_netlists: true
+        multi_test: true
+
+    # op_tests_random_unary_gradient_acc:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/unary-gradient-acc-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_binary_gradient_acc:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/binary-gradient-acc-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_reduce:
+    #     command: [--seed 0 --silicon --num-loops 0]
+    #     multi_test_dir: build/test/reduce-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_matmul_identity:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/matmul_ident-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_matmul_z_accumulate:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/matmul-accumulate-z-acc-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_random_depthwise:
+    #     command: [--seed 0 --silicon]
+    #     multi_test_dir: build/test/depthwise-nightly
+    #     multi_test_netlists: true
+    #     multi_test: true
+
+    # op_tests_netlist_stream_ptr_wrap:
+    #     command:
+    #     -   --netlist build/test/verif/op_tests/netlists/netlist_stream_ptr_wrap.yaml --seed 0 --silicon --num-loops 10
+
+    # op_tests_matmul_acc_reconfig_df:
+    #     owner: [rtawfik]
+    #     command:
+    #     -   --netlist build/test/verif/op_tests/netlists/netlist_matmul_acc_reconfig_df.yaml --seed 0 --silicon
+

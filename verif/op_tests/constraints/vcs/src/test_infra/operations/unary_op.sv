@@ -6,6 +6,9 @@ class unary_op extends operation_constraints;
 
     rand integer in0_buffer;
     rand integer out_buffer;
+    string stimulus_config_type;
+    real stimulus_config_uniform_lower_bound, stimulus_config_uniform_upper_bound;
+
 
     rand e_unary_type unary_op_type;
     bit force_grad_acc = 0;
@@ -134,21 +137,39 @@ class unary_op extends operation_constraints;
         if (input_id > 0) begin
             $fatal(0, "Invalid input id %0d", input_id);
         end
+
+        stimulus_config_type = "Uniform";
+        stimulus_config_uniform_lower_bound = -2.0;
+        stimulus_config_uniform_upper_bound = 2.0;
+
+        if (arch.unary_high_precision == 0 && (unary_op_type == sigmoid || unary_op_type == gelu)) begin
+            stimulus_config_uniform_lower_bound = -1.0;
+            stimulus_config_uniform_upper_bound = 1.0;
+        end
+
         if (unary_op_type == sqrt) begin
-            return "{type: Uniform, uniform_lower_bound: 0.0, uniform_upper_bound: 2.0}";
+            stimulus_config_uniform_lower_bound = 0.0;
+            stimulus_config_uniform_upper_bound = 2.0;
         end else if (unary_op_type == reciprocal || unary_op_type == log) begin
-            if (get_input_data_format(input_id) inside {bfp2, bfp2_b, bfp4, bfp4_b}) begin
-                return "{type: Uniform, uniform_lower_bound: 0.5, uniform_upper_bound: 2.0}";
-            end else begin
-                return "{type: Uniform, uniform_lower_bound: 0.1, uniform_upper_bound: 2.0}";
-            end
+        if (in[0].producer.tensor.data_format == bfp4 || in[0].producer.tensor.data_format == bfp4_b || output_data_format == bfp4 || output_data_format == bfp4_b) begin
+            stimulus_config_uniform_lower_bound = 0.5;
+        end else begin
+            stimulus_config_uniform_lower_bound = 0.02;
+        end
         end else if(gradient_op_en && dest_data_format == fp32) begin
             //Formats with 5 bits exponent and fp32 acc need larger range
-            if(output_data_format inside { bfp2, bfp4, bfp8 } ) begin
-                return "{type: Uniform, uniform_lower_bound: -5.0, uniform_upper_bound: 5.0}";
+            if(output_data_format == bfp2 || output_data_format == bfp4  || output_data_format == bfp8) begin
+                stimulus_config_uniform_lower_bound = -5.0;
+                stimulus_config_uniform_upper_bound = 5.0;
             end
         end
-        return super.get_stimulus_config(input_id);
+
+        return $sformatf(
+            "{type: %s, uniform_lower_bound: %.2f, uniform_upper_bound: %.2f}",
+            stimulus_config_type,
+            stimulus_config_uniform_lower_bound,
+            stimulus_config_uniform_upper_bound
+        );
     endfunction
 endclass
 

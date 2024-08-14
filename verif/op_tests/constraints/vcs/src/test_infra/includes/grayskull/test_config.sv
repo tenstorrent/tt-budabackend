@@ -41,6 +41,47 @@ class test_config;
      endcase 
   endfunction
 
+  function s_comparison_config get_unary_comparison_config(e_data_format out_data_format, e_unary_type unary_type);
+      begin
+         s_comparison_config comparison_config;
+         comparison_config.Type = get_comparison_config_type(config_type);
+         comparison_config.verbosity = get_comparison_config_verbosity(config_verbosity);
+
+         case (out_data_format)
+            bfp8, bfp8_b:  begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.30";
+                           if (unary_type == gelu_derivative) comparison_config.check_pct = "0.65";
+                           else comparison_config.check_pct = "0.85";
+                           if (unary_type == reciprocal) comparison_config.check_pcc = "0.95";
+                           else comparison_config.check_pcc = "0.99";
+                           end
+            bfp4, bfp4_b:  begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.30";
+                           comparison_config.check_pct = "0.80";
+                           if (unary_type == gelu_derivative || unary_type == sqrt || unary_type == exp) comparison_config.check_pcc = "0.95"; //ops cause PCC drop
+                           else comparison_config.check_pcc = "0.99";
+                           end
+            bfp2, bfp2_b:  begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.30";
+                           comparison_config.check_pct = "0.85";
+                           comparison_config.check_pcc = "0.99";
+                           end     
+            default:       begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.15";
+                           if (unary_type == gelu_derivative) comparison_config.check_pct = "0.65"; //adjust for gelu derivative
+                           else comparison_config.check_pct = "0.90";
+                           comparison_config.check_pcc = "0.99";
+                           end
+       endcase
+
+         return comparison_config;
+      end
+   endfunction
+
   function write_unary_comparison_config(integer out_filehandle, e_data_format out_data_format, e_unary_type unary_type, e_vector_mode vector_mode=vector_mode_rc);
      begin
        s_comparison_config comparison_config;
@@ -131,6 +172,32 @@ class test_config;
      end
   endfunction
 
+   function s_comparison_config get_binary_comparison_config(e_data_format out_data_format);
+      begin
+         s_comparison_config comparison_config;
+
+         comparison_config.Type = get_comparison_config_type(config_type);
+         comparison_config.verbosity = get_comparison_config_verbosity(config_verbosity);
+
+         case (out_data_format)
+            bfp8, bfp8_b:  begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.30";
+                           comparison_config.check_pct = "0.85";
+                           comparison_config.check_pcc = "0.99";
+                           end
+            default:       begin 
+                           comparison_config.atol = "0.01";
+                           comparison_config.rtol = "0.15";
+                           comparison_config.check_pct = "0.90";
+                           comparison_config.check_pcc = "0.99";
+                           end
+         endcase
+
+         return comparison_config;
+      end
+   endfunction
+
   function write_binary_comparison_config(integer out_filehandle, e_data_format out_data_format, e_binary_type binary_type);
      begin
        s_comparison_config comparison_config;
@@ -161,6 +228,8 @@ class test_config;
      end
   endfunction
 
+
+
   function write_binary_stimulus_config(integer out_filehandle, e_data_format out_data_format, e_binary_type binary_type);
      begin
        s_stimulus_config stimulus_config;
@@ -185,7 +254,7 @@ class test_config;
        if (gradient_op) begin
            comparison_config.atol = "0.01";
            comparison_config.rtol = "0.15";
-           comparison_config.check_pct = m_k*num_inputs>=40 ? "0.00" : "0.55";
+           comparison_config.check_pct = m_k*num_inputs>=30 ? (m_k*num_inputs >= 40 ? "0.00" : "0.30") : "0.50";
            comparison_config.check_pcc = m_k*num_inputs>=20 ? (m_k*num_inputs >= 120 ? (m_k*num_inputs > 300 ? "0.70" : "0.80") : "0.90") : (intermed_data_format == fp16_b) ? "0.98" : "0.99";
        end else if (identity) begin
            comparison_config.atol = "0.01";

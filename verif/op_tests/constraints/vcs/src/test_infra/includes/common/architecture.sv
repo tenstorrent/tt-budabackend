@@ -13,9 +13,15 @@ virtual class architecture;
     rand bit gradient_binary_multiply_constraint;
     rand bit force_emulator_grid_size;
     rand bit force_emulator_input_count;
+    bit unary_high_precision = 1;
 endclass;
 
 class grayskull_architecture extends architecture;
+    function new();
+        super.new();
+        unary_high_precision = 0;
+    endfunction
+
     constraint rand_tiny_tile_enabled {
         tiny_tile_enabled == 0;
     }

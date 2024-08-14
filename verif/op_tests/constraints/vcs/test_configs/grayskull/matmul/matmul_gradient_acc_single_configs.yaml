@@ -1,0 +1,1350 @@
+#Test id=0
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 8], ublock: [1, 6], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x3be709c0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [8, 2], ublock: [1, 4], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x3f0b4680]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [1, 4], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ffb1240]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [3, 2], ublock: [1, 4], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 6, u_kt: 8, kernel_broadcast_per_t : {input_1 : 64}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, ], input_1_tms: [broadcast: {r: 6}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=1
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [10, 1], ublock: [1, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x20e1ba00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 4], ublock: [1, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x30d85ac0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [5, 1], ublock: [2, 4], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x389b0b00]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [5, 1], ublock: [2, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 2, u_kt: 3, kernel_broadcast : {input_0 : 30}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {c: 6}, ], input_1_tms: [broadcast: {r: 2}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=2
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [4, 9], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x10d4d980], [0, 0x10dd19a0], [0, 0x10e559c0], [0, 0x10ed99e0], [0, 0x10f5da00], [0, 0x10fe1a20], [0, 0x11065a40], [0, 0x110e9a60], [0, 0x1116da80], [0, 0x111f1aa0], [0, 0x11275ac0], [0, 0x112f9ae0], [0, 0x1137db00], [0, 0x11401b20], [0, 0x11485b40], [0, 0x11509b60], [0, 0x1158db80], [0, 0x11611ba0], [0, 0x11695bc0], [0, 0x11719be0], [0, 0x1179dc00], [0, 0x11821c20], [0, 0x118a5c40], [0, 0x11929c60], [0, 0x119adc80], [0, 0x11a31ca0], [0, 0x11ab5cc0], [0, 0x11b39ce0], [0, 0x11bbdd00], [0, 0x11c41d20], [0, 0x11cc5d40], [0, 0x11d49d60], [0, 0x11dcdd80], [0, 0x11e51da0], [0, 0x11ed5dc0], [0, 0x11f59de0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [4, 9], t: 1, mblock: [9, 1], ublock: [1, 2], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x12661b40], [0, 0x126f6360], [0, 0x1278ab80], [0, 0x1281f3a0], [0, 0x128b3bc0], [0, 0x129483e0], [0, 0x129dcc00], [0, 0x12a71420], [0, 0x12b05c40], [0, 0x12b9a460], [0, 0x12c2ec80], [0, 0x12cc34a0], [0, 0x12d57cc0], [0, 0x12dec4e0], [0, 0x12e80d00], [0, 0x12f15520], [0, 0x12fa9d40], [0, 0x1303e560], [0, 0x130d2d80], [0, 0x131675a0], [0, 0x131fbdc0], [0, 0x132905e0], [0, 0x13324e00], [0, 0x133b9620], [0, 0x1344de40], [0, 0x134e2660], [0, 0x13576e80], [0, 0x1360b6a0], [0, 0x1369fec0], [0, 0x137346e0], [0, 0x137c8f00], [0, 0x1385d720], [0, 0x138f1f40], [0, 0x13986760], [0, 0x13a1af80], [0, 0x13aaf7a0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [4, 9], t: 1, mblock: [12, 2], ublock: [2, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3c4d6d40], [0, 0x3c508560], [0, 0x3c539d80], [0, 0x3c56b5a0], [0, 0x3c59cdc0], [0, 0x3c5ce5e0], [0, 0x3c5ffe00], [0, 0x3c631620], [0, 0x3c662e40], [0, 0x3c694660], [0, 0x3c6c5e80], [0, 0x3c6f76a0], [0, 0x3c728ec0], [0, 0x3c75a6e0], [0, 0x3c78bf00], [0, 0x3c7bd720], [0, 0x3c7eef40], [0, 0x3c820760], [0, 0x3c851f80], [0, 0x3c8837a0], [0, 0x3c8b4fc0], [0, 0x3c8e67e0], [0, 0x3c918000], [0, 0x3c949820], [0, 0x3c97b040], [0, 0x3c9ac860], [0, 0x3c9de080], [0, 0x3ca0f8a0], [0, 0x3ca410c0], [0, 0x3ca728e0], [0, 0x3caa4100], [0, 0x3cad5920], [0, 0x3cb07140], [0, 0x3cb38960], [0, 0x3cb6a180], [0, 0x3cb9b9a0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [4, 9], t: 1, mblock: [12, 2], ublock: [2, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 36, u_kt: 1, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 6}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.80, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=3
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [2, 6], ublock: [4, 4], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1e1a7bc0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [4, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x290e1500]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [8, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fc01d00]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [8, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 6, u_kt: 4, kernel_broadcast : {input_1 : 60}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 6}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=4
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [2, 9], t: 1, mblock: [4, 2], ublock: [1, 12], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x25b78dc0], [0, 0x25d04de0], [0, 0x25e90e00], [0, 0x2601ce20], [0, 0x261a8e40], [0, 0x26334e60], [0, 0x264c0e80], [0, 0x2664cea0], [0, 0x267d8ec0], [0, 0x26964ee0], [0, 0x26af0f00], [0, 0x26c7cf20], [0, 0x26e08f40], [0, 0x26f94f60], [0, 0x27120f80], [0, 0x272acfa0], [0, 0x27438fc0], [0, 0x275c4fe0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [2, 9], t: 1, mblock: [9, 2], ublock: [12, 2], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2b785640], [0, 0x2be7b660], [0, 0x2c571680], [0, 0x2cc676a0], [0, 0x2d35d6c0], [0, 0x2da536e0], [0, 0x2e149700], [0, 0x2e83f720], [0, 0x2ef35740], [0, 0x2f62b760], [0, 0x2fd21780], [0, 0x304177a0], [0, 0x30b0d7c0], [0, 0x312037e0], [0, 0x318f9800], [0, 0x31fef820], [0, 0x326e5840], [0, 0x32ddb860]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [2, 9], t: 1, mblock: [2, 1], ublock: [2, 4], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x399d6440], [0, 0x399e6c60], [0, 0x399f7480], [0, 0x39a07ca0], [0, 0x39a184c0], [0, 0x39a28ce0], [0, 0x39a39500], [0, 0x39a49d20], [0, 0x39a5a540], [0, 0x39a6ad60], [0, 0x39a7b580], [0, 0x39a8bda0], [0, 0x39a9c5c0], [0, 0x39aacde0], [0, 0x39abd600], [0, 0x39acde20], [0, 0x39ade640], [0, 0x39aeee60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [2, 9], t: 1, mblock: [2, 1], ublock: [2, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 18, u_kt: 12, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=5
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 10], ublock: [1, 12], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x2940ec40]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [15, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x2b042140]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [3, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ef601c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [3, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 8, u_kt: 15, kernel_broadcast_per_t : {input_1 : 15}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [broadcast: {r: 8}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=6
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 5], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x23fbd300]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [5, 8], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2619c440]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 8], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ab8a580]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 8], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 1, u_kt: 5, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=7
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [8, 8], t: 1, mblock: [9, 1], ublock: [2, 3], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x127d2b40], [0, 0x12990360], [0, 0x12b4db80], [0, 0x12d0b3a0], [0, 0x12ec8bc0], [0, 0x130863e0], [0, 0x13243c00], [0, 0x13401420], [0, 0x135bec40], [0, 0x1377c460], [0, 0x13939c80], [0, 0x13af74a0], [0, 0x13cb4cc0], [0, 0x13e724e0], [0, 0x1402fd00], [0, 0x141ed520], [0, 0x143aad40], [0, 0x14568560], [0, 0x14725d80], [0, 0x148e35a0], [0, 0x14aa0dc0], [0, 0x14c5e5e0], [0, 0x14e1be00], [0, 0x14fd9620], [0, 0x15196e40], [0, 0x15354660], [0, 0x15511e80], [0, 0x156cf6a0], [0, 0x1588cec0], [0, 0x15a4a6e0], [0, 0x15c07f00], [0, 0x15dc5720], [0, 0x15f82f40], [0, 0x16140760], [0, 0x162fdf80], [0, 0x164bb7a0], [0, 0x16678fc0], [0, 0x168367e0], [0, 0x169f4000], [0, 0x16bb1820], [0, 0x16d6f040], [0, 0x16f2c860], [0, 0x170ea080], [0, 0x172a78a0], [0, 0x174650c0], [0, 0x176228e0], [0, 0x177e0100], [0, 0x1799d920], [0, 0x17b5b140], [0, 0x17d18960], [0, 0x17ed6180], [0, 0x180939a0], [0, 0x182511c0], [0, 0x1840e9e0], [0, 0x185cc200], [0, 0x18789a20], [0, 0x18947240], [0, 0x18b04a60], [0, 0x18cc2280], [0, 0x18e7faa0], [0, 0x1903d2c0], [0, 0x191faae0], [0, 0x193b8300], [0, 0x19575b20]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [8, 8], t: 1, mblock: [1, 1], ublock: [3, 2], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1a3e2ec0], [0, 0x1a4446e0], [0, 0x1a4a5f00], [0, 0x1a507720], [0, 0x1a568f40], [0, 0x1a5ca760], [0, 0x1a62bf80], [0, 0x1a68d7a0], [0, 0x1a6eefc0], [0, 0x1a7507e0], [0, 0x1a7b2000], [0, 0x1a813820], [0, 0x1a875040], [0, 0x1a8d6860], [0, 0x1a938080], [0, 0x1a9998a0], [0, 0x1a9fb0c0], [0, 0x1aa5c8e0], [0, 0x1aabe100], [0, 0x1ab1f920], [0, 0x1ab81140], [0, 0x1abe2960], [0, 0x1ac44180], [0, 0x1aca59a0], [0, 0x1ad071c0], [0, 0x1ad689e0], [0, 0x1adca200], [0, 0x1ae2ba20], [0, 0x1ae8d240], [0, 0x1aeeea60], [0, 0x1af50280], [0, 0x1afb1aa0], [0, 0x1b0132c0], [0, 0x1b074ae0], [0, 0x1b0d6300], [0, 0x1b137b20], [0, 0x1b199340], [0, 0x1b1fab60], [0, 0x1b25c380], [0, 0x1b2bdba0], [0, 0x1b31f3c0], [0, 0x1b380be0], [0, 0x1b3e2400], [0, 0x1b443c20], [0, 0x1b4a5440], [0, 0x1b506c60], [0, 0x1b568480], [0, 0x1b5c9ca0], [0, 0x1b62b4c0], [0, 0x1b68cce0], [0, 0x1b6ee500], [0, 0x1b74fd20], [0, 0x1b7b1540], [0, 0x1b812d60], [0, 0x1b874580], [0, 0x1b8d5da0], [0, 0x1b9375c0], [0, 0x1b998de0], [0, 0x1b9fa600], [0, 0x1ba5be20], [0, 0x1babd640], [0, 0x1bb1ee60], [0, 0x1bb80680], [0, 0x1bbe1ea0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [8, 8], t: 1, mblock: [6, 1], ublock: [3, 2], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x1f0c2400], [0, 0x1f0e7620], [0, 0x1f10c840], [0, 0x1f131a60], [0, 0x1f156c80], [0, 0x1f17bea0], [0, 0x1f1a10c0], [0, 0x1f1c62e0], [0, 0x1f1eb500], [0, 0x1f210720], [0, 0x1f235940], [0, 0x1f25ab60], [0, 0x1f27fd80], [0, 0x1f2a4fa0], [0, 0x1f2ca1c0], [0, 0x1f2ef3e0], [0, 0x1f314600], [0, 0x1f339820], [0, 0x1f35ea40], [0, 0x1f383c60], [0, 0x1f3a8e80], [0, 0x1f3ce0a0], [0, 0x1f3f32c0], [0, 0x1f4184e0], [0, 0x1f43d700], [0, 0x1f462920], [0, 0x1f487b40], [0, 0x1f4acd60], [0, 0x1f4d1f80], [0, 0x1f4f71a0], [0, 0x1f51c3c0], [0, 0x1f5415e0], [0, 0x1f566800], [0, 0x1f58ba20], [0, 0x1f5b0c40], [0, 0x1f5d5e60], [0, 0x1f5fb080], [0, 0x1f6202a0], [0, 0x1f6454c0], [0, 0x1f66a6e0], [0, 0x1f68f900], [0, 0x1f6b4b20], [0, 0x1f6d9d40], [0, 0x1f6fef60], [0, 0x1f724180], [0, 0x1f7493a0], [0, 0x1f76e5c0], [0, 0x1f7937e0], [0, 0x1f7b8a00], [0, 0x1f7ddc20], [0, 0x1f802e40], [0, 0x1f828060], [0, 0x1f84d280], [0, 0x1f8724a0], [0, 0x1f8976c0], [0, 0x1f8bc8e0], [0, 0x1f8e1b00], [0, 0x1f906d20], [0, 0x1f92bf40], [0, 0x1f951160], [0, 0x1f976380], [0, 0x1f99b5a0], [0, 0x1f9c07c0], [0, 0x1f9e59e0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [8, 8], t: 1, mblock: [6, 1], ublock: [3, 2], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 8, u_kt: 3, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=8
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 6], ublock: [1, 9], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2c8bb3c0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [6, 5], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x39d41040]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [7, 1], ublock: [1, 5], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3e3970c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [7, 1], ublock: [1, 5], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 9, u_kt: 6, kernel_broadcast : {input_1 : 30}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 7}, ], input_1_tms: [broadcast: {r: 9}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=9
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [4, 4], t: 1, mblock: [2, 10], ublock: [3, 11], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x226bd340], [0, 0x22c0e760], [0, 0x2315fb80], [0, 0x236b0fa0], [0, 0x23c023c0], [0, 0x241537e0], [0, 0x246a4c00], [0, 0x24bf6020], [0, 0x25147440], [0, 0x25698860], [0, 0x25be9c80], [0, 0x2613b0a0], [0, 0x2668c4c0], [0, 0x26bdd8e0], [0, 0x2712ed00], [0, 0x27680120]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [4, 4], t: 1, mblock: [11, 1], ublock: [2, 2], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x31220a40], [0, 0x3127b660], [0, 0x312d6280], [0, 0x31330ea0], [0, 0x3138bac0], [0, 0x313e66e0], [0, 0x31441300], [0, 0x3149bf20], [0, 0x314f6b40], [0, 0x31551760], [0, 0x315ac380], [0, 0x31606fa0], [0, 0x31661bc0], [0, 0x316bc7e0], [0, 0x31717400], [0, 0x31772020]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [4, 4], t: 1, mblock: [2, 2], ublock: [3, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3e9e5f80], [0, 0x3e9f25a0], [0, 0x3e9febc0], [0, 0x3ea0b1e0], [0, 0x3ea17800], [0, 0x3ea23e20], [0, 0x3ea30440], [0, 0x3ea3ca60], [0, 0x3ea49080], [0, 0x3ea556a0], [0, 0x3ea61cc0], [0, 0x3ea6e2e0], [0, 0x3ea7a900], [0, 0x3ea86f20], [0, 0x3ea93540], [0, 0x3ea9fb60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [4, 4], t: 1, mblock: [2, 2], ublock: [3, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 40, u_kt: 11, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 5}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=10
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [3, 1], t: 1, mblock: [1, 13], ublock: [1, 9], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x18e2f600], [0, 0x18f20b20], [0, 0x19012040]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [3, 1], t: 1, mblock: [3, 1], ublock: [13, 2], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2092b100], [0, 0x20a67f20], [0, 0x20ba4d40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [3, 1], t: 1, mblock: [1, 2], ublock: [5, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ff64fc0], [0, 0x3ff6f4e0], [0, 0x3ff79a00]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [3, 1], t: 1, mblock: [1, 2], ublock: [5, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 9, u_kt: 13, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 5}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=11
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 7], ublock: [3, 10], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x255dfc00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [5, 2], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x25afa1c0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [3, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x29941900]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [3, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 7, u_kt: 10, kernel_broadcast : {input_1 : 60}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 7}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=12
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [2, 2], t: 1, mblock: [1, 14], ublock: [15, 1], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1ca89a40], [0, 0x1d14e260], [0, 0x1d812a80], [0, 0x1ded72a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [2, 2], t: 1, mblock: [1, 1], ublock: [7, 1], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1e9fc200], [0, 0x1ea6de20], [0, 0x1eadfa40], [0, 0x1eb51660]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [2, 2], t: 1, mblock: [9, 1], ublock: [5, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x25d58ec0], [0, 0x25d87560], [0, 0x25db5c00], [0, 0x25de42a0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [2, 2], t: 1, mblock: [9, 1], ublock: [5, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 28, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, ], input_1_tms: [broadcast: {r: 2}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=13
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [5, 7], t: 1, mblock: [1, 5], ublock: [3, 6], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1222ce40], [0, 0x1239a860], [0, 0x12508280], [0, 0x12675ca0], [0, 0x127e36c0], [0, 0x129510e0], [0, 0x12abeb00], [0, 0x12c2c520], [0, 0x12d99f40], [0, 0x12f07960], [0, 0x13075380], [0, 0x131e2da0], [0, 0x133507c0], [0, 0x134be1e0], [0, 0x1362bc00], [0, 0x13799620], [0, 0x13907040], [0, 0x13a74a60], [0, 0x13be2480], [0, 0x13d4fea0], [0, 0x13ebd8c0], [0, 0x1402b2e0], [0, 0x14198d00], [0, 0x14306720], [0, 0x14474140], [0, 0x145e1b60], [0, 0x1474f580], [0, 0x148bcfa0], [0, 0x14a2a9c0], [0, 0x14b983e0], [0, 0x14d05e00], [0, 0x14e73820], [0, 0x14fe1240], [0, 0x1514ec60], [0, 0x152bc680]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [5, 7], t: 1, mblock: [7, 6], ublock: [6, 1], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x156bd080], [0, 0x15abcca0], [0, 0x15ebc8c0], [0, 0x162bc4e0], [0, 0x166bc100], [0, 0x16abbd20], [0, 0x16ebb940], [0, 0x172bb560], [0, 0x176bb180], [0, 0x17abada0], [0, 0x17eba9c0], [0, 0x182ba5e0], [0, 0x186ba200], [0, 0x18ab9e20], [0, 0x18eb9a40], [0, 0x192b9660], [0, 0x196b9280], [0, 0x19ab8ea0], [0, 0x19eb8ac0], [0, 0x1a2b86e0], [0, 0x1a6b8300], [0, 0x1aab7f20], [0, 0x1aeb7b40], [0, 0x1b2b7760], [0, 0x1b6b7380], [0, 0x1bab6fa0], [0, 0x1beb6bc0], [0, 0x1c2b67e0], [0, 0x1c6b6400], [0, 0x1cab6020], [0, 0x1ceb5c40], [0, 0x1d2b5860], [0, 0x1d6b5480], [0, 0x1dab50a0], [0, 0x1deb4cc0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [5, 7], t: 1, mblock: [3, 1], ublock: [1, 6], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x29cd4840], [0, 0x29ce7160], [0, 0x29cf9a80], [0, 0x29d0c3a0], [0, 0x29d1ecc0], [0, 0x29d315e0], [0, 0x29d43f00], [0, 0x29d56820], [0, 0x29d69140], [0, 0x29d7ba60], [0, 0x29d8e380], [0, 0x29da0ca0], [0, 0x29db35c0], [0, 0x29dc5ee0], [0, 0x29dd8800], [0, 0x29deb120], [0, 0x29dfda40], [0, 0x29e10360], [0, 0x29e22c80], [0, 0x29e355a0], [0, 0x29e47ec0], [0, 0x29e5a7e0], [0, 0x29e6d100], [0, 0x29e7fa20], [0, 0x29e92340], [0, 0x29ea4c60], [0, 0x29eb7580], [0, 0x29ec9ea0], [0, 0x29edc7c0], [0, 0x29eef0e0], [0, 0x29f01a00], [0, 0x29f14320], [0, 0x29f26c40], [0, 0x29f39560], [0, 0x29f4be80]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [5, 7], t: 1, mblock: [3, 1], ublock: [1, 6], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 35, u_kt: 6, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=14
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [5, 2], ublock: [1, 15], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1063db00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [5, 2], ublock: [3, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x385207c0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [5, 1], ublock: [1, 2], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3a86db40]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [5, 1], ublock: [1, 2], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 2, u_kt: 15, kernel_broadcast : {input_1 : 30}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 2}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=15
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [1, 1], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x32b46f00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 5], ublock: [1, 4], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x35c25c00]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [4, 5], ublock: [1, 4], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3de8f3c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [4, 5], ublock: [1, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float16_b], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 3, u_kt: 1, kernel_broadcast : {input_1 : 20}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 4}, ], input_1_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=16
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [5, 2], t: 1, mblock: [1, 15], ublock: [1, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x26ae0340], [0, 0x26b5bf60], [0, 0x26bd7b80], [0, 0x26c537a0], [0, 0x26ccf3c0], [0, 0x26d4afe0], [0, 0x26dc6c00], [0, 0x26e42820], [0, 0x26ebe440], [0, 0x26f3a060]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [5, 2], t: 1, mblock: [6, 10], ublock: [1, 6], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x29e82a00], [0, 0x2aa1ca20], [0, 0x2b5b6a40], [0, 0x2c150a60], [0, 0x2cceaa80], [0, 0x2d884aa0], [0, 0x2e41eac0], [0, 0x2efb8ae0], [0, 0x2fb52b00], [0, 0x306ecb20]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [5, 2], t: 1, mblock: [1, 10], ublock: [1, 6], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3bb54140], [0, 0x3bb91f60], [0, 0x3bbcfd80], [0, 0x3bc0dba0], [0, 0x3bc4b9c0], [0, 0x3bc897e0], [0, 0x3bcc7600], [0, 0x3bd05420], [0, 0x3bd43240], [0, 0x3bd81060]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [5, 2], t: 1, mblock: [1, 10], ublock: [1, 6], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 30, u_kt: 1, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.80, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=17
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 10], ublock: [1, 9], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x1cc531c0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [10, 1], ublock: [1, 7], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x22986a00]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [1, 7], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x30df9bc0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [3, 1], ublock: [1, 7], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 9, u_kt: 10, kernel_broadcast : {input_1 : 70}, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, ], input_1_tms: [broadcast: {r: 9}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=18
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [8, 8], t: 1, mblock: [1, 2], ublock: [2, 11], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1f8fcc00], [0, 0x1f9b2420], [0, 0x1fa67c40], [0, 0x1fb1d460], [0, 0x1fbd2c80], [0, 0x1fc884a0], [0, 0x1fd3dcc0], [0, 0x1fdf34e0], [0, 0x1fea8d00], [0, 0x1ff5e520], [0, 0x20013d40], [0, 0x200c9560], [0, 0x2017ed80], [0, 0x202345a0], [0, 0x202e9dc0], [0, 0x2039f5e0], [0, 0x20454e00], [0, 0x2050a620], [0, 0x205bfe40], [0, 0x20675660], [0, 0x2072ae80], [0, 0x207e06a0], [0, 0x20895ec0], [0, 0x2094b6e0], [0, 0x20a00f00], [0, 0x20ab6720], [0, 0x20b6bf40], [0, 0x20c21760], [0, 0x20cd6f80], [0, 0x20d8c7a0], [0, 0x20e41fc0], [0, 0x20ef77e0], [0, 0x20fad000], [0, 0x21062820], [0, 0x21118040], [0, 0x211cd860], [0, 0x21283080], [0, 0x213388a0], [0, 0x213ee0c0], [0, 0x214a38e0], [0, 0x21559100], [0, 0x2160e920], [0, 0x216c4140], [0, 0x21779960], [0, 0x2182f180], [0, 0x218e49a0], [0, 0x2199a1c0], [0, 0x21a4f9e0], [0, 0x21b05200], [0, 0x21bbaa20], [0, 0x21c70240], [0, 0x21d25a60], [0, 0x21ddb280], [0, 0x21e90aa0], [0, 0x21f462c0], [0, 0x21ffbae0], [0, 0x220b1300], [0, 0x22166b20], [0, 0x2221c340], [0, 0x222d1b60], [0, 0x22387380], [0, 0x2243cba0], [0, 0x224f23c0], [0, 0x225a7be0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [8, 8], t: 1, mblock: [2, 1], ublock: [11, 4], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x236c6c40], [0, 0x23991c60], [0, 0x23c5cc80], [0, 0x23f27ca0], [0, 0x241f2cc0], [0, 0x244bdce0], [0, 0x24788d00], [0, 0x24a53d20], [0, 0x24d1ed40], [0, 0x24fe9d60], [0, 0x252b4d80], [0, 0x2557fda0], [0, 0x2584adc0], [0, 0x25b15de0], [0, 0x25de0e00], [0, 0x260abe20], [0, 0x26376e40], [0, 0x26641e60], [0, 0x2690ce80], [0, 0x26bd7ea0], [0, 0x26ea2ec0], [0, 0x2716dee0], [0, 0x27438f00], [0, 0x27703f20], [0, 0x279cef40], [0, 0x27c99f60], [0, 0x27f64f80], [0, 0x2822ffa0], [0, 0x284fafc0], [0, 0x287c5fe0], [0, 0x28a91000], [0, 0x28d5c020], [0, 0x29027040], [0, 0x292f2060], [0, 0x295bd080], [0, 0x298880a0], [0, 0x29b530c0], [0, 0x29e1e0e0], [0, 0x2a0e9100], [0, 0x2a3b4120], [0, 0x2a67f140], [0, 0x2a94a160], [0, 0x2ac15180], [0, 0x2aee01a0], [0, 0x2b1ab1c0], [0, 0x2b4761e0], [0, 0x2b741200], [0, 0x2ba0c220], [0, 0x2bcd7240], [0, 0x2bfa2260], [0, 0x2c26d280], [0, 0x2c5382a0], [0, 0x2c8032c0], [0, 0x2cace2e0], [0, 0x2cd99300], [0, 0x2d064320], [0, 0x2d32f340], [0, 0x2d5fa360], [0, 0x2d8c5380], [0, 0x2db903a0], [0, 0x2de5b3c0], [0, 0x2e1263e0], [0, 0x2e3f1400], [0, 0x2e6bc420]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [8, 8], t: 1, mblock: [2, 1], ublock: [1, 4], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x37f1a740], [0, 0x37f22b60], [0, 0x37f2af80], [0, 0x37f333a0], [0, 0x37f3b7c0], [0, 0x37f43be0], [0, 0x37f4c000], [0, 0x37f54420], [0, 0x37f5c840], [0, 0x37f64c60], [0, 0x37f6d080], [0, 0x37f754a0], [0, 0x37f7d8c0], [0, 0x37f85ce0], [0, 0x37f8e100], [0, 0x37f96520], [0, 0x37f9e940], [0, 0x37fa6d60], [0, 0x37faf180], [0, 0x37fb75a0], [0, 0x37fbf9c0], [0, 0x37fc7de0], [0, 0x37fd0200], [0, 0x37fd8620], [0, 0x37fe0a40], [0, 0x37fe8e60], [0, 0x37ff1280], [0, 0x37ff96a0], [0, 0x38001ac0], [0, 0x38009ee0], [0, 0x38012300], [0, 0x3801a720], [0, 0x38022b40], [0, 0x3802af60], [0, 0x38033380], [0, 0x3803b7a0], [0, 0x38043bc0], [0, 0x3804bfe0], [0, 0x38054400], [0, 0x3805c820], [0, 0x38064c40], [0, 0x3806d060], [0, 0x38075480], [0, 0x3807d8a0], [0, 0x38085cc0], [0, 0x3808e0e0], [0, 0x38096500], [0, 0x3809e920], [0, 0x380a6d40], [0, 0x380af160], [0, 0x380b7580], [0, 0x380bf9a0], [0, 0x380c7dc0], [0, 0x380d01e0], [0, 0x380d8600], [0, 0x380e0a20], [0, 0x380e8e40], [0, 0x380f1260], [0, 0x380f9680], [0, 0x38101aa0], [0, 0x38109ec0], [0, 0x381122e0], [0, 0x3811a700], [0, 0x38122b20]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [8, 8], t: 1, mblock: [2, 1], ublock: [1, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 16, u_kt: 11, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=19
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [7, 5], t: 1, mblock: [2, 7], ublock: [1, 14], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x11925340], [0, 0x11c4db60], [0, 0x11f76380], [0, 0x1229eba0], [0, 0x125c73c0], [0, 0x128efbe0], [0, 0x12c18400], [0, 0x12f40c20], [0, 0x13269440], [0, 0x13591c60], [0, 0x138ba480], [0, 0x13be2ca0], [0, 0x13f0b4c0], [0, 0x14233ce0], [0, 0x1455c500], [0, 0x14884d20], [0, 0x14bad540], [0, 0x14ed5d60], [0, 0x151fe580], [0, 0x15526da0], [0, 0x1584f5c0], [0, 0x15b77de0], [0, 0x15ea0600], [0, 0x161c8e20], [0, 0x164f1640], [0, 0x16819e60], [0, 0x16b42680], [0, 0x16e6aea0], [0, 0x171936c0], [0, 0x174bbee0], [0, 0x177e4700], [0, 0x17b0cf20], [0, 0x17e35740], [0, 0x1815df60], [0, 0x18486780]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [7, 5], t: 1, mblock: [5, 2], ublock: [14, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x18db8600], [0, 0x18ff9e20], [0, 0x1923b640], [0, 0x1947ce60], [0, 0x196be680], [0, 0x198ffea0], [0, 0x19b416c0], [0, 0x19d82ee0], [0, 0x19fc4700], [0, 0x1a205f20], [0, 0x1a447740], [0, 0x1a688f60], [0, 0x1a8ca780], [0, 0x1ab0bfa0], [0, 0x1ad4d7c0], [0, 0x1af8efe0], [0, 0x1b1d0800], [0, 0x1b412020], [0, 0x1b653840], [0, 0x1b895060], [0, 0x1bad6880], [0, 0x1bd180a0], [0, 0x1bf598c0], [0, 0x1c19b0e0], [0, 0x1c3dc900], [0, 0x1c61e120], [0, 0x1c85f940], [0, 0x1caa1160], [0, 0x1cce2980], [0, 0x1cf241a0], [0, 0x1d1659c0], [0, 0x1d3a71e0], [0, 0x1d5e8a00], [0, 0x1d82a220], [0, 0x1da6ba40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [7, 5], t: 1, mblock: [1, 1], ublock: [2, 4], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f165d40], [0, 0x3f16e160], [0, 0x3f176580], [0, 0x3f17e9a0], [0, 0x3f186dc0], [0, 0x3f18f1e0], [0, 0x3f197600], [0, 0x3f19fa20], [0, 0x3f1a7e40], [0, 0x3f1b0260], [0, 0x3f1b8680], [0, 0x3f1c0aa0], [0, 0x3f1c8ec0], [0, 0x3f1d12e0], [0, 0x3f1d9700], [0, 0x3f1e1b20], [0, 0x3f1e9f40], [0, 0x3f1f2360], [0, 0x3f1fa780], [0, 0x3f202ba0], [0, 0x3f20afc0], [0, 0x3f2133e0], [0, 0x3f21b800], [0, 0x3f223c20], [0, 0x3f22c040], [0, 0x3f234460], [0, 0x3f23c880], [0, 0x3f244ca0], [0, 0x3f24d0c0], [0, 0x3f2554e0], [0, 0x3f25d900], [0, 0x3f265d20], [0, 0x3f26e140], [0, 0x3f276560], [0, 0x3f27e980]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [7, 5], t: 1, mblock: [1, 1], ublock: [2, 4], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 35, u_kt: 14, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {c: 2}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=20
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 2], ublock: [1, 1], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x3f3f1a00]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 7], ublock: [1, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x3fac5c40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [7, 1], ublock: [1, 7], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ff915c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [7, 1], ublock: [1, 7], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 1, u_kt: 2, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 7}, ], input_1_tms: [broadcast: {r: 2}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=21
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [3, 12], t: 1, mblock: [1, 4], ublock: [4, 3], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2c2d2dc0], [0, 0x2c335de0], [0, 0x2c398e00], [0, 0x2c3fbe20], [0, 0x2c45ee40], [0, 0x2c4c1e60], [0, 0x2c524e80], [0, 0x2c587ea0], [0, 0x2c5eaec0], [0, 0x2c64dee0], [0, 0x2c6b0f00], [0, 0x2c713f20], [0, 0x2c776f40], [0, 0x2c7d9f60], [0, 0x2c83cf80], [0, 0x2c89ffa0], [0, 0x2c902fc0], [0, 0x2c965fe0], [0, 0x2c9c9000], [0, 0x2ca2c020], [0, 0x2ca8f040], [0, 0x2caf2060], [0, 0x2cb55080], [0, 0x2cbb80a0], [0, 0x2cc1b0c0], [0, 0x2cc7e0e0], [0, 0x2cce1100], [0, 0x2cd44120], [0, 0x2cda7140], [0, 0x2ce0a160], [0, 0x2ce6d180], [0, 0x2ced01a0], [0, 0x2cf331c0], [0, 0x2cf961e0], [0, 0x2cff9200], [0, 0x2d05c220]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [3, 12], t: 1, mblock: [2, 13], ublock: [3, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2da348c0], [0, 0x2dad56e0], [0, 0x2db76500], [0, 0x2dc17320], [0, 0x2dcb8140], [0, 0x2dd58f60], [0, 0x2ddf9d80], [0, 0x2de9aba0], [0, 0x2df3b9c0], [0, 0x2dfdc7e0], [0, 0x2e07d600], [0, 0x2e11e420], [0, 0x2e1bf240], [0, 0x2e260060], [0, 0x2e300e80], [0, 0x2e3a1ca0], [0, 0x2e442ac0], [0, 0x2e4e38e0], [0, 0x2e584700], [0, 0x2e625520], [0, 0x2e6c6340], [0, 0x2e767160], [0, 0x2e807f80], [0, 0x2e8a8da0], [0, 0x2e949bc0], [0, 0x2e9ea9e0], [0, 0x2ea8b800], [0, 0x2eb2c620], [0, 0x2ebcd440], [0, 0x2ec6e260], [0, 0x2ed0f080], [0, 0x2edafea0], [0, 0x2ee50cc0], [0, 0x2eef1ae0], [0, 0x2ef92900], [0, 0x2f033720]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [3, 12], t: 1, mblock: [2, 13], ublock: [2, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3dfa2600], [0, 0x3dfbd320], [0, 0x3dfd8040], [0, 0x3dff2d60], [0, 0x3e00da80], [0, 0x3e0287a0], [0, 0x3e0434c0], [0, 0x3e05e1e0], [0, 0x3e078f00], [0, 0x3e093c20], [0, 0x3e0ae940], [0, 0x3e0c9660], [0, 0x3e0e4380], [0, 0x3e0ff0a0], [0, 0x3e119dc0], [0, 0x3e134ae0], [0, 0x3e14f800], [0, 0x3e16a520], [0, 0x3e185240], [0, 0x3e19ff60], [0, 0x3e1bac80], [0, 0x3e1d59a0], [0, 0x3e1f06c0], [0, 0x3e20b3e0], [0, 0x3e226100], [0, 0x3e240e20], [0, 0x3e25bb40], [0, 0x3e276860], [0, 0x3e291580], [0, 0x3e2ac2a0], [0, 0x3e2c6fc0], [0, 0x3e2e1ce0], [0, 0x3e2fca00], [0, 0x3e317720], [0, 0x3e332440], [0, 0x3e34d160]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [3, 12], t: 1, mblock: [2, 13], ublock: [2, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 48, u_kt: 3, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 8}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.80, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=22
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [7, 6], t: 1, mblock: [1, 1], ublock: [1, 13], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x15e98640], [0, 0x15eb3360], [0, 0x15ece080], [0, 0x15ee8da0], [0, 0x15f03ac0], [0, 0x15f1e7e0], [0, 0x15f39500], [0, 0x15f54220], [0, 0x15f6ef40], [0, 0x15f89c60], [0, 0x15fa4980], [0, 0x15fbf6a0], [0, 0x15fda3c0], [0, 0x15ff50e0], [0, 0x1600fe00], [0, 0x1602ab20], [0, 0x16045840], [0, 0x16060560], [0, 0x1607b280], [0, 0x16095fa0], [0, 0x160b0cc0], [0, 0x160cb9e0], [0, 0x160e6700], [0, 0x16101420], [0, 0x1611c140], [0, 0x16136e60], [0, 0x16151b80], [0, 0x1616c8a0], [0, 0x161875c0], [0, 0x161a22e0], [0, 0x161bd000], [0, 0x161d7d20], [0, 0x161f2a40], [0, 0x1620d760], [0, 0x16228480], [0, 0x162431a0], [0, 0x1625dec0], [0, 0x16278be0], [0, 0x16293900], [0, 0x162ae620], [0, 0x162c9340], [0, 0x162e4060]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [7, 6], t: 1, mblock: [6, 8], ublock: [13, 1], df: Float16, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x218fa500], [0, 0x21e01520], [0, 0x22308540], [0, 0x2280f560], [0, 0x22d16580], [0, 0x2321d5a0], [0, 0x237245c0], [0, 0x23c2b5e0], [0, 0x24132600], [0, 0x24639620], [0, 0x24b40640], [0, 0x25047660], [0, 0x2554e680], [0, 0x25a556a0], [0, 0x25f5c6c0], [0, 0x264636e0], [0, 0x2696a700], [0, 0x26e71720], [0, 0x27378740], [0, 0x2787f760], [0, 0x27d86780], [0, 0x2828d7a0], [0, 0x287947c0], [0, 0x28c9b7e0], [0, 0x291a2800], [0, 0x296a9820], [0, 0x29bb0840], [0, 0x2a0b7860], [0, 0x2a5be880], [0, 0x2aac58a0], [0, 0x2afcc8c0], [0, 0x2b4d38e0], [0, 0x2b9da900], [0, 0x2bee1920], [0, 0x2c3e8940], [0, 0x2c8ef960], [0, 0x2cdf6980], [0, 0x2d2fd9a0], [0, 0x2d8049c0], [0, 0x2dd0b9e0], [0, 0x2e212a00], [0, 0x2e719a20]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [7, 6], t: 1, mblock: [1, 1], ublock: [1, 8], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x39410fc0], [0, 0x394193e0], [0, 0x39421800], [0, 0x39429c20], [0, 0x39432040], [0, 0x3943a460], [0, 0x39442880], [0, 0x3944aca0], [0, 0x394530c0], [0, 0x3945b4e0], [0, 0x39463900], [0, 0x3946bd20], [0, 0x39474140], [0, 0x3947c560], [0, 0x39484980], [0, 0x3948cda0], [0, 0x394951c0], [0, 0x3949d5e0], [0, 0x394a5a00], [0, 0x394ade20], [0, 0x394b6240], [0, 0x394be660], [0, 0x394c6a80], [0, 0x394ceea0], [0, 0x394d72c0], [0, 0x394df6e0], [0, 0x394e7b00], [0, 0x394eff20], [0, 0x394f8340], [0, 0x39500760], [0, 0x39508b80], [0, 0x39510fa0], [0, 0x395193c0], [0, 0x395217e0], [0, 0x39529c00], [0, 0x39532020], [0, 0x3953a440], [0, 0x39542860], [0, 0x3954ac80], [0, 0x395530a0], [0, 0x3955b4c0], [0, 0x395638e0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [7, 6], t: 1, mblock: [1, 1], ublock: [1, 8], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 42, u_kt: 13, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {c: 7}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=23
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [6, 12], t: 1, mblock: [1, 6], ublock: [16, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x23b9ddc0], [0, 0x23d29de0], [0, 0x23eb5e00], [0, 0x24041e20], [0, 0x241cde40], [0, 0x24359e60], [0, 0x244e5e80], [0, 0x24671ea0], [0, 0x247fdec0], [0, 0x24989ee0], [0, 0x24b15f00], [0, 0x24ca1f20], [0, 0x24e2df40], [0, 0x24fb9f60], [0, 0x25145f80], [0, 0x252d1fa0], [0, 0x2545dfc0], [0, 0x255e9fe0], [0, 0x25776000], [0, 0x25902020], [0, 0x25a8e040], [0, 0x25c1a060], [0, 0x25da6080], [0, 0x25f320a0], [0, 0x260be0c0], [0, 0x2624a0e0], [0, 0x263d6100], [0, 0x26562120], [0, 0x266ee140], [0, 0x2687a160], [0, 0x26a06180], [0, 0x26b921a0], [0, 0x26d1e1c0], [0, 0x26eaa1e0], [0, 0x27036200], [0, 0x271c2220], [0, 0x2734e240], [0, 0x274da260], [0, 0x27666280], [0, 0x277f22a0], [0, 0x2797e2c0], [0, 0x27b0a2e0], [0, 0x27c96300], [0, 0x27e22320], [0, 0x27fae340], [0, 0x2813a360], [0, 0x282c6380], [0, 0x284523a0], [0, 0x285de3c0], [0, 0x2876a3e0], [0, 0x288f6400], [0, 0x28a82420], [0, 0x28c0e440], [0, 0x28d9a460], [0, 0x28f26480], [0, 0x290b24a0], [0, 0x2923e4c0], [0, 0x293ca4e0], [0, 0x29556500], [0, 0x296e2520], [0, 0x2986e540], [0, 0x299fa560], [0, 0x29b86580], [0, 0x29d125a0], [0, 0x29e9e5c0], [0, 0x2a02a5e0], [0, 0x2a1b6600], [0, 0x2a342620], [0, 0x2a4ce640], [0, 0x2a65a660], [0, 0x2a7e6680], [0, 0x2a9726a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [6, 12], t: 1, mblock: [12, 1], ublock: [1, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2f8bc6c0], [0, 0x2f8edee0], [0, 0x2f91f700], [0, 0x2f950f20], [0, 0x2f982740], [0, 0x2f9b3f60], [0, 0x2f9e5780], [0, 0x2fa16fa0], [0, 0x2fa487c0], [0, 0x2fa79fe0], [0, 0x2faab800], [0, 0x2fadd020], [0, 0x2fb0e840], [0, 0x2fb40060], [0, 0x2fb71880], [0, 0x2fba30a0], [0, 0x2fbd48c0], [0, 0x2fc060e0], [0, 0x2fc37900], [0, 0x2fc69120], [0, 0x2fc9a940], [0, 0x2fccc160], [0, 0x2fcfd980], [0, 0x2fd2f1a0], [0, 0x2fd609c0], [0, 0x2fd921e0], [0, 0x2fdc3a00], [0, 0x2fdf5220], [0, 0x2fe26a40], [0, 0x2fe58260], [0, 0x2fe89a80], [0, 0x2febb2a0], [0, 0x2feecac0], [0, 0x2ff1e2e0], [0, 0x2ff4fb00], [0, 0x2ff81320], [0, 0x2ffb2b40], [0, 0x2ffe4360], [0, 0x30015b80], [0, 0x300473a0], [0, 0x30078bc0], [0, 0x300aa3e0], [0, 0x300dbc00], [0, 0x3010d420], [0, 0x3013ec40], [0, 0x30170460], [0, 0x301a1c80], [0, 0x301d34a0], [0, 0x30204cc0], [0, 0x302364e0], [0, 0x30267d00], [0, 0x30299520], [0, 0x302cad40], [0, 0x302fc560], [0, 0x3032dd80], [0, 0x3035f5a0], [0, 0x30390dc0], [0, 0x303c25e0], [0, 0x303f3e00], [0, 0x30425620], [0, 0x30456e40], [0, 0x30488660], [0, 0x304b9e80], [0, 0x304eb6a0], [0, 0x3051cec0], [0, 0x3054e6e0], [0, 0x3057ff00], [0, 0x305b1720], [0, 0x305e2f40], [0, 0x30614760], [0, 0x30645f80], [0, 0x306777a0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [6, 12], t: 1, mblock: [8, 1], ublock: [6, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x38c4b540], [0, 0x38c7cd60], [0, 0x38cae580], [0, 0x38cdfda0], [0, 0x38d115c0], [0, 0x38d42de0], [0, 0x38d74600], [0, 0x38da5e20], [0, 0x38dd7640], [0, 0x38e08e60], [0, 0x38e3a680], [0, 0x38e6bea0], [0, 0x38e9d6c0], [0, 0x38eceee0], [0, 0x38f00700], [0, 0x38f31f20], [0, 0x38f63740], [0, 0x38f94f60], [0, 0x38fc6780], [0, 0x38ff7fa0], [0, 0x390297c0], [0, 0x3905afe0], [0, 0x3908c800], [0, 0x390be020], [0, 0x390ef840], [0, 0x39121060], [0, 0x39152880], [0, 0x391840a0], [0, 0x391b58c0], [0, 0x391e70e0], [0, 0x39218900], [0, 0x3924a120], [0, 0x3927b940], [0, 0x392ad160], [0, 0x392de980], [0, 0x393101a0], [0, 0x393419c0], [0, 0x393731e0], [0, 0x393a4a00], [0, 0x393d6220], [0, 0x39407a40], [0, 0x39439260], [0, 0x3946aa80], [0, 0x3949c2a0], [0, 0x394cdac0], [0, 0x394ff2e0], [0, 0x39530b00], [0, 0x39562320], [0, 0x39593b40], [0, 0x395c5360], [0, 0x395f6b80], [0, 0x396283a0], [0, 0x39659bc0], [0, 0x3968b3e0], [0, 0x396bcc00], [0, 0x396ee420], [0, 0x3971fc40], [0, 0x39751460], [0, 0x39782c80], [0, 0x397b44a0], [0, 0x397e5cc0], [0, 0x398174e0], [0, 0x39848d00], [0, 0x3987a520], [0, 0x398abd40], [0, 0x398dd560], [0, 0x3990ed80], [0, 0x399405a0], [0, 0x39971dc0], [0, 0x399a35e0], [0, 0x399d4e00], [0, 0x39a06620]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [6, 12], t: 1, mblock: [8, 1], ublock: [6, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 72, u_kt: 1, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.80, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=24
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 15], ublock: [1, 2], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x361d6300]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [5, 4], ublock: [1, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x388ccb40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 4], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fd87a80]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 4], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 15, u_kt: 2, kernel_broadcast : {input_1 : 40}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [broadcast: {r: 6}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=25
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [4, 4], t: 1, mblock: [1, 7], ublock: [1, 2], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1e077100], [0, 0x1e093f20], [0, 0x1e0b0d40], [0, 0x1e0cdb60], [0, 0x1e0ea980], [0, 0x1e1077a0], [0, 0x1e1245c0], [0, 0x1e1413e0], [0, 0x1e15e200], [0, 0x1e17b020], [0, 0x1e197e40], [0, 0x1e1b4c60], [0, 0x1e1d1a80], [0, 0x1e1ee8a0], [0, 0x1e20b6c0], [0, 0x1e2284e0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [4, 4], t: 1, mblock: [7, 4], ublock: [2, 9], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1e4d9780], [0, 0x1e8e8fa0], [0, 0x1ecf87c0], [0, 0x1f107fe0], [0, 0x1f517800], [0, 0x1f927020], [0, 0x1fd36840], [0, 0x20146060], [0, 0x20555880], [0, 0x209650a0], [0, 0x20d748c0], [0, 0x211840e0], [0, 0x21593900], [0, 0x219a3120], [0, 0x21db2940], [0, 0x221c2160]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [4, 4], t: 1, mblock: [1, 9], ublock: [1, 4], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x36db9b80], [0, 0x36dcc4a0], [0, 0x36ddedc0], [0, 0x36df16e0], [0, 0x36e04000], [0, 0x36e16920], [0, 0x36e29240], [0, 0x36e3bb60], [0, 0x36e4e480], [0, 0x36e60da0], [0, 0x36e736c0], [0, 0x36e85fe0], [0, 0x36e98900], [0, 0x36eab220], [0, 0x36ebdb40], [0, 0x36ed0460]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [4, 4], t: 1, mblock: [1, 9], ublock: [1, 4], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 28, u_kt: 2, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=26
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 4], t: 1, mblock: [6, 2], ublock: [1, 14], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1856fc00], [0, 0x18ad9c20], [0, 0x19043c40], [0, 0x195adc60]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 4], t: 1, mblock: [8, 1], ublock: [14, 1], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1bc51d80], [0, 0x1bfedda0], [0, 0x1c389dc0], [0, 0x1c725de0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 4], t: 1, mblock: [2, 1], ublock: [3, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x27d55680], [0, 0x27d5b9a0], [0, 0x27d61cc0], [0, 0x27d67fe0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 4], t: 1, mblock: [2, 1], ublock: [3, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 8, u_kt: 14, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=27
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 2
+  in0: 'input_0: {type: queue, grid_size: [6, 12], t: 1, mblock: [4, 3], ublock: [1, 1], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x12813b00], [0, 0x12819e20], [0, 0x12820140], [0, 0x12826460], [0, 0x1282c780], [0, 0x12832aa0], [0, 0x12838dc0], [0, 0x1283f0e0], [0, 0x12845400], [0, 0x1284b720], [0, 0x12851a40], [0, 0x12857d60], [0, 0x1285e080], [0, 0x128643a0], [0, 0x1286a6c0], [0, 0x128709e0], [0, 0x12876d00], [0, 0x1287d020], [0, 0x12883340], [0, 0x12889660], [0, 0x1288f980], [0, 0x12895ca0], [0, 0x1289bfc0], [0, 0x128a22e0], [0, 0x128a8600], [0, 0x128ae920], [0, 0x128b4c40], [0, 0x128baf60], [0, 0x128c1280], [0, 0x128c75a0], [0, 0x128cd8c0], [0, 0x128d3be0], [0, 0x128d9f00], [0, 0x128e0220], [0, 0x128e6540], [0, 0x128ec860], [0, 0x128f2b80], [0, 0x128f8ea0], [0, 0x128ff1c0], [0, 0x129054e0], [0, 0x1290b800], [0, 0x12911b20], [0, 0x12917e40], [0, 0x1291e160], [0, 0x12924480], [0, 0x1292a7a0], [0, 0x12930ac0], [0, 0x12936de0], [0, 0x1293d100], [0, 0x12943420], [0, 0x12949740], [0, 0x1294fa60], [0, 0x12955d80], [0, 0x1295c0a0], [0, 0x129623c0], [0, 0x129686e0], [0, 0x1296ea00], [0, 0x12974d20], [0, 0x1297b040], [0, 0x12981360], [0, 0x12987680], [0, 0x1298d9a0], [0, 0x12993cc0], [0, 0x12999fe0], [0, 0x129a0300], [0, 0x129a6620], [0, 0x129ac940], [0, 0x129b2c60], [0, 0x129b8f80], [0, 0x129bf2a0], [0, 0x129c55c0], [0, 0x129cb8e0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [6, 12], t: 1, mblock: [12, 6], ublock: [1, 1], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x13e43e00], [0, 0x13e69020], [0, 0x13e8e240], [0, 0x13eb3460], [0, 0x13ed8680], [0, 0x13efd8a0], [0, 0x13f22ac0], [0, 0x13f47ce0], [0, 0x13f6cf00], [0, 0x13f92120], [0, 0x13fb7340], [0, 0x13fdc560], [0, 0x14001780], [0, 0x140269a0], [0, 0x1404bbc0], [0, 0x14070de0], [0, 0x14096000], [0, 0x140bb220], [0, 0x140e0440], [0, 0x14105660], [0, 0x1412a880], [0, 0x1414faa0], [0, 0x14174cc0], [0, 0x14199ee0], [0, 0x141bf100], [0, 0x141e4320], [0, 0x14209540], [0, 0x1422e760], [0, 0x14253980], [0, 0x14278ba0], [0, 0x1429ddc0], [0, 0x142c2fe0], [0, 0x142e8200], [0, 0x1430d420], [0, 0x14332640], [0, 0x14357860], [0, 0x1437ca80], [0, 0x143a1ca0], [0, 0x143c6ec0], [0, 0x143ec0e0], [0, 0x14411300], [0, 0x14436520], [0, 0x1445b740], [0, 0x14480960], [0, 0x144a5b80], [0, 0x144cada0], [0, 0x144effc0], [0, 0x145151e0], [0, 0x1453a400], [0, 0x1455f620], [0, 0x14584840], [0, 0x145a9a60], [0, 0x145cec80], [0, 0x145f3ea0], [0, 0x146190c0], [0, 0x1463e2e0], [0, 0x14663500], [0, 0x14688720], [0, 0x146ad940], [0, 0x146d2b60], [0, 0x146f7d80], [0, 0x1471cfa0], [0, 0x147421c0], [0, 0x147673e0], [0, 0x1478c600], [0, 0x147b1820], [0, 0x147d6a40], [0, 0x147fbc60], [0, 0x14820e80], [0, 0x148460a0], [0, 0x1486b2c0], [0, 0x148904e0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [6, 12], t: 1, mblock: [2, 3], ublock: [4, 2], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f2637c0], [0, 0x3f27c3e0], [0, 0x3f295000], [0, 0x3f2adc20], [0, 0x3f2c6840], [0, 0x3f2df460], [0, 0x3f2f8080], [0, 0x3f310ca0], [0, 0x3f3298c0], [0, 0x3f3424e0], [0, 0x3f35b100], [0, 0x3f373d20], [0, 0x3f38c940], [0, 0x3f3a5560], [0, 0x3f3be180], [0, 0x3f3d6da0], [0, 0x3f3ef9c0], [0, 0x3f4085e0], [0, 0x3f421200], [0, 0x3f439e20], [0, 0x3f452a40], [0, 0x3f46b660], [0, 0x3f484280], [0, 0x3f49cea0], [0, 0x3f4b5ac0], [0, 0x3f4ce6e0], [0, 0x3f4e7300], [0, 0x3f4fff20], [0, 0x3f518b40], [0, 0x3f531760], [0, 0x3f54a380], [0, 0x3f562fa0], [0, 0x3f57bbc0], [0, 0x3f5947e0], [0, 0x3f5ad400], [0, 0x3f5c6020], [0, 0x3f5dec40], [0, 0x3f5f7860], [0, 0x3f610480], [0, 0x3f6290a0], [0, 0x3f641cc0], [0, 0x3f65a8e0], [0, 0x3f673500], [0, 0x3f68c120], [0, 0x3f6a4d40], [0, 0x3f6bd960], [0, 0x3f6d6580], [0, 0x3f6ef1a0], [0, 0x3f707dc0], [0, 0x3f7209e0], [0, 0x3f739600], [0, 0x3f752220], [0, 0x3f76ae40], [0, 0x3f783a60], [0, 0x3f79c680], [0, 0x3f7b52a0], [0, 0x3f7cdec0], [0, 0x3f7e6ae0], [0, 0x3f7ff700], [0, 0x3f818320], [0, 0x3f830f40], [0, 0x3f849b60], [0, 0x3f862780], [0, 0x3f87b3a0], [0, 0x3f893fc0], [0, 0x3f8acbe0], [0, 0x3f8c5800], [0, 0x3f8de420], [0, 0x3f8f7040], [0, 0x3f90fc60], [0, 0x3f928880], [0, 0x3f9414a0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [6, 12], t: 1, mblock: [2, 3], ublock: [4, 2], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 72, u_kt: 1, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, broadcast: {c: 2}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=28
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [7, 8], t: 1, mblock: [2, 7], ublock: [1, 1], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x24a91a80], [0, 0x24aae8a0], [0, 0x24acb6c0], [0, 0x24ae84e0], [0, 0x24b05300], [0, 0x24b22120], [0, 0x24b3ef40], [0, 0x24b5bd60], [0, 0x24b78b80], [0, 0x24b959a0], [0, 0x24bb27c0], [0, 0x24bcf5e0], [0, 0x24bec400], [0, 0x24c09220], [0, 0x24c26040], [0, 0x24c42e60], [0, 0x24c5fc80], [0, 0x24c7caa0], [0, 0x24c998c0], [0, 0x24cb66e0], [0, 0x24cd3500], [0, 0x24cf0320], [0, 0x24d0d140], [0, 0x24d29f60], [0, 0x24d46d80], [0, 0x24d63ba0], [0, 0x24d809c0], [0, 0x24d9d7e0], [0, 0x24dba600], [0, 0x24dd7420], [0, 0x24df4240], [0, 0x24e11060], [0, 0x24e2de80], [0, 0x24e4aca0], [0, 0x24e67ac0], [0, 0x24e848e0], [0, 0x24ea1700], [0, 0x24ebe520], [0, 0x24edb340], [0, 0x24ef8160], [0, 0x24f14f80], [0, 0x24f31da0], [0, 0x24f4ebc0], [0, 0x24f6b9e0], [0, 0x24f88800], [0, 0x24fa5620], [0, 0x24fc2440], [0, 0x24fdf260], [0, 0x24ffc080], [0, 0x25018ea0], [0, 0x25035cc0], [0, 0x25052ae0], [0, 0x2506f900], [0, 0x2508c720], [0, 0x250a9540], [0, 0x250c6360]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [7, 8], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x2668d180], [0, 0x266912a0], [0, 0x266953c0], [0, 0x266994e0], [0, 0x2669d600], [0, 0x266a1720], [0, 0x266a5840], [0, 0x266a9960], [0, 0x266ada80], [0, 0x266b1ba0], [0, 0x266b5cc0], [0, 0x266b9de0], [0, 0x266bdf00], [0, 0x266c2020], [0, 0x266c6140], [0, 0x266ca260], [0, 0x266ce380], [0, 0x266d24a0], [0, 0x266d65c0], [0, 0x266da6e0], [0, 0x266de800], [0, 0x266e2920], [0, 0x266e6a40], [0, 0x266eab60], [0, 0x266eec80], [0, 0x266f2da0], [0, 0x266f6ec0], [0, 0x266fafe0], [0, 0x266ff100], [0, 0x26703220], [0, 0x26707340], [0, 0x2670b460], [0, 0x2670f580], [0, 0x267136a0], [0, 0x267177c0], [0, 0x2671b8e0], [0, 0x2671fa00], [0, 0x26723b20], [0, 0x26727c40], [0, 0x2672bd60], [0, 0x2672fe80], [0, 0x26733fa0], [0, 0x267380c0], [0, 0x2673c1e0], [0, 0x26740300], [0, 0x26744420], [0, 0x26748540], [0, 0x2674c660], [0, 0x26750780], [0, 0x267548a0], [0, 0x267589c0], [0, 0x2675cae0], [0, 0x26760c00], [0, 0x26764d20], [0, 0x26768e40], [0, 0x2676cf60]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [7, 8], t: 1, mblock: [8, 1], ublock: [1, 5], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x39715c80], [0, 0x3973f0a0], [0, 0x397684c0], [0, 0x397918e0], [0, 0x397bad00], [0, 0x397e4120], [0, 0x3980d540], [0, 0x39836960], [0, 0x3985fd80], [0, 0x398891a0], [0, 0x398b25c0], [0, 0x398db9e0], [0, 0x39904e00], [0, 0x3992e220], [0, 0x39957640], [0, 0x39980a60], [0, 0x399a9e80], [0, 0x399d32a0], [0, 0x399fc6c0], [0, 0x39a25ae0], [0, 0x39a4ef00], [0, 0x39a78320], [0, 0x39aa1740], [0, 0x39acab60], [0, 0x39af3f80], [0, 0x39b1d3a0], [0, 0x39b467c0], [0, 0x39b6fbe0], [0, 0x39b99000], [0, 0x39bc2420], [0, 0x39beb840], [0, 0x39c14c60], [0, 0x39c3e080], [0, 0x39c674a0], [0, 0x39c908c0], [0, 0x39cb9ce0], [0, 0x39ce3100], [0, 0x39d0c520], [0, 0x39d35940], [0, 0x39d5ed60], [0, 0x39d88180], [0, 0x39db15a0], [0, 0x39dda9c0], [0, 0x39e03de0], [0, 0x39e2d200], [0, 0x39e56620], [0, 0x39e7fa40], [0, 0x39ea8e60], [0, 0x39ed2280], [0, 0x39efb6a0], [0, 0x39f24ac0], [0, 0x39f4dee0], [0, 0x39f77300], [0, 0x39fa0720], [0, 0x39fc9b40], [0, 0x39ff2f60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [7, 8], t: 1, mblock: [8, 1], ublock: [1, 5], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 56, u_kt: 1, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 4}, ], input_1_tms: [broadcast: {r: 8}, broadcast: {c: 5}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=29
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [4, 10], ublock: [1, 4], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x237935c0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [10, 1], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x263dcc40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 3], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3c8c8e40]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [4, 1], ublock: [1, 3], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float16_b], math_fidelity: LoFi, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 10, u_kt: 4, kernel_broadcast : {input_1 : 60}, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 2}, broadcast: {c: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=30
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [6, 6], t: 1, mblock: [6, 3], ublock: [1, 2], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x13edce40], [0, 0x14005e60], [0, 0x1412ee80], [0, 0x14257ea0], [0, 0x14380ec0], [0, 0x144a9ee0], [0, 0x145d2f00], [0, 0x146fbf20], [0, 0x14824f40], [0, 0x1494df60], [0, 0x14a76f80], [0, 0x14b9ffa0], [0, 0x14cc8fc0], [0, 0x14df1fe0], [0, 0x14f1b000], [0, 0x15044020], [0, 0x1516d040], [0, 0x15296060], [0, 0x153bf080], [0, 0x154e80a0], [0, 0x156110c0], [0, 0x1573a0e0], [0, 0x15863100], [0, 0x1598c120], [0, 0x15ab5140], [0, 0x15bde160], [0, 0x15d07180], [0, 0x15e301a0], [0, 0x15f591c0], [0, 0x160821e0], [0, 0x161ab200], [0, 0x162d4220], [0, 0x163fd240], [0, 0x16526260], [0, 0x1664f280], [0, 0x167782a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [6, 6], t: 1, mblock: [3, 3], ublock: [2, 2], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x198088c0], [0, 0x199318e0], [0, 0x19a5a900], [0, 0x19b83920], [0, 0x19cac940], [0, 0x19dd5960], [0, 0x19efe980], [0, 0x1a0279a0], [0, 0x1a1509c0], [0, 0x1a2799e0], [0, 0x1a3a2a00], [0, 0x1a4cba20], [0, 0x1a5f4a40], [0, 0x1a71da60], [0, 0x1a846a80], [0, 0x1a96faa0], [0, 0x1aa98ac0], [0, 0x1abc1ae0], [0, 0x1aceab00], [0, 0x1ae13b20], [0, 0x1af3cb40], [0, 0x1b065b60], [0, 0x1b18eb80], [0, 0x1b2b7ba0], [0, 0x1b3e0bc0], [0, 0x1b509be0], [0, 0x1b632c00], [0, 0x1b75bc20], [0, 0x1b884c40], [0, 0x1b9adc60], [0, 0x1bad6c80], [0, 0x1bbffca0], [0, 0x1bd28cc0], [0, 0x1be51ce0], [0, 0x1bf7ad00], [0, 0x1c0a3d20]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [6, 6], t: 1, mblock: [6, 2], ublock: [1, 3], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3ad7d2c0], [0, 0x3ada24e0], [0, 0x3adc7700], [0, 0x3adec920], [0, 0x3ae11b40], [0, 0x3ae36d60], [0, 0x3ae5bf80], [0, 0x3ae811a0], [0, 0x3aea63c0], [0, 0x3aecb5e0], [0, 0x3aef0800], [0, 0x3af15a20], [0, 0x3af3ac40], [0, 0x3af5fe60], [0, 0x3af85080], [0, 0x3afaa2a0], [0, 0x3afcf4c0], [0, 0x3aff46e0], [0, 0x3b019900], [0, 0x3b03eb20], [0, 0x3b063d40], [0, 0x3b088f60], [0, 0x3b0ae180], [0, 0x3b0d33a0], [0, 0x3b0f85c0], [0, 0x3b11d7e0], [0, 0x3b142a00], [0, 0x3b167c20], [0, 0x3b18ce40], [0, 0x3b1b2060], [0, 0x3b1d7280], [0, 0x3b1fc4a0], [0, 0x3b2216c0], [0, 0x3b2468e0], [0, 0x3b26bb00], [0, 0x3b290d20]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [6, 6], t: 1, mblock: [6, 2], ublock: [1, 3], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 18, u_kt: 2, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [transpose], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=31
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [7, 7], t: 1, mblock: [8, 1], ublock: [1, 2], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1ec141c0], [0, 0x1ec981e0], [0, 0x1ed1c200], [0, 0x1eda0220], [0, 0x1ee24240], [0, 0x1eea8260], [0, 0x1ef2c280], [0, 0x1efb02a0], [0, 0x1f0342c0], [0, 0x1f0b82e0], [0, 0x1f13c300], [0, 0x1f1c0320], [0, 0x1f244340], [0, 0x1f2c8360], [0, 0x1f34c380], [0, 0x1f3d03a0], [0, 0x1f4543c0], [0, 0x1f4d83e0], [0, 0x1f55c400], [0, 0x1f5e0420], [0, 0x1f664440], [0, 0x1f6e8460], [0, 0x1f76c480], [0, 0x1f7f04a0], [0, 0x1f8744c0], [0, 0x1f8f84e0], [0, 0x1f97c500], [0, 0x1fa00520], [0, 0x1fa84540], [0, 0x1fb08560], [0, 0x1fb8c580], [0, 0x1fc105a0], [0, 0x1fc945c0], [0, 0x1fd185e0], [0, 0x1fd9c600], [0, 0x1fe20620], [0, 0x1fea4640], [0, 0x1ff28660], [0, 0x1ffac680], [0, 0x200306a0], [0, 0x200b46c0], [0, 0x201386e0], [0, 0x201bc700], [0, 0x20240720], [0, 0x202c4740], [0, 0x20348760], [0, 0x203cc780], [0, 0x204507a0], [0, 0x204d47c0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [7, 7], t: 1, mblock: [1, 7], ublock: [2, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x232f6e00], [0, 0x2336a620], [0, 0x233dde40], [0, 0x23451660], [0, 0x234c4e80], [0, 0x235386a0], [0, 0x235abec0], [0, 0x2361f6e0], [0, 0x23692f00], [0, 0x23706720], [0, 0x23779f40], [0, 0x237ed760], [0, 0x23860f80], [0, 0x238d47a0], [0, 0x23947fc0], [0, 0x239bb7e0], [0, 0x23a2f000], [0, 0x23aa2820], [0, 0x23b16040], [0, 0x23b89860], [0, 0x23bfd080], [0, 0x23c708a0], [0, 0x23ce40c0], [0, 0x23d578e0], [0, 0x23dcb100], [0, 0x23e3e920], [0, 0x23eb2140], [0, 0x23f25960], [0, 0x23f99180], [0, 0x2400c9a0], [0, 0x240801c0], [0, 0x240f39e0], [0, 0x24167200], [0, 0x241daa20], [0, 0x2424e240], [0, 0x242c1a60], [0, 0x24335280], [0, 0x243a8aa0], [0, 0x2441c2c0], [0, 0x2448fae0], [0, 0x24503300], [0, 0x24576b20], [0, 0x245ea340], [0, 0x2465db60], [0, 0x246d1380], [0, 0x24744ba0], [0, 0x247b83c0], [0, 0x2482bbe0], [0, 0x2489f400]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [7, 7], t: 1, mblock: [8, 1], ublock: [1, 7], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f43d540], [0, 0x3f477160], [0, 0x3f4b0d80], [0, 0x3f4ea9a0], [0, 0x3f5245c0], [0, 0x3f55e1e0], [0, 0x3f597e00], [0, 0x3f5d1a20], [0, 0x3f60b640], [0, 0x3f645260], [0, 0x3f67ee80], [0, 0x3f6b8aa0], [0, 0x3f6f26c0], [0, 0x3f72c2e0], [0, 0x3f765f00], [0, 0x3f79fb20], [0, 0x3f7d9740], [0, 0x3f813360], [0, 0x3f84cf80], [0, 0x3f886ba0], [0, 0x3f8c07c0], [0, 0x3f8fa3e0], [0, 0x3f934000], [0, 0x3f96dc20], [0, 0x3f9a7840], [0, 0x3f9e1460], [0, 0x3fa1b080], [0, 0x3fa54ca0], [0, 0x3fa8e8c0], [0, 0x3fac84e0], [0, 0x3fb02100], [0, 0x3fb3bd20], [0, 0x3fb75940], [0, 0x3fbaf560], [0, 0x3fbe9180], [0, 0x3fc22da0], [0, 0x3fc5c9c0], [0, 0x3fc965e0], [0, 0x3fcd0200], [0, 0x3fd09e20], [0, 0x3fd43a40], [0, 0x3fd7d660], [0, 0x3fdb7280], [0, 0x3fdf0ea0], [0, 0x3fe2aac0], [0, 0x3fe646e0], [0, 0x3fe9e300], [0, 0x3fed7f20], [0, 0x3ff11b40]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [7, 7], t: 1, mblock: [8, 1], ublock: [1, 7], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 7, u_kt: 2, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=32
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [5, 5], t: 1, mblock: [4, 9], ublock: [3, 2], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1f6dff40], [0, 0x1f89d760], [0, 0x1fa5af80], [0, 0x1fc187a0], [0, 0x1fdd5fc0], [0, 0x1ff937e0], [0, 0x20151000], [0, 0x2030e820], [0, 0x204cc040], [0, 0x20689860], [0, 0x20847080], [0, 0x20a048a0], [0, 0x20bc20c0], [0, 0x20d7f8e0], [0, 0x20f3d100], [0, 0x210fa920], [0, 0x212b8140], [0, 0x21475960], [0, 0x21633180], [0, 0x217f09a0], [0, 0x219ae1c0], [0, 0x21b6b9e0], [0, 0x21d29200], [0, 0x21ee6a20], [0, 0x220a4240]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [5, 5], t: 1, mblock: [9, 1], ublock: [2, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x222d47c0], [0, 0x222f99e0], [0, 0x2231ec00], [0, 0x22343e20], [0, 0x22369040], [0, 0x2238e260], [0, 0x223b3480], [0, 0x223d86a0], [0, 0x223fd8c0], [0, 0x22422ae0], [0, 0x22447d00], [0, 0x2246cf20], [0, 0x22492140], [0, 0x224b7360], [0, 0x224dc580], [0, 0x225017a0], [0, 0x225269c0], [0, 0x2254bbe0], [0, 0x22570e00], [0, 0x22596020], [0, 0x225bb240], [0, 0x225e0460], [0, 0x22605680], [0, 0x2262a8a0], [0, 0x2264fac0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [5, 5], t: 1, mblock: [3, 7], ublock: [4, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x32759b40], [0, 0x32785060], [0, 0x327b0580], [0, 0x327dbaa0], [0, 0x32806fc0], [0, 0x328324e0], [0, 0x3285da00], [0, 0x32888f20], [0, 0x328b4440], [0, 0x328df960], [0, 0x3290ae80], [0, 0x329363a0], [0, 0x329618c0], [0, 0x3298cde0], [0, 0x329b8300], [0, 0x329e3820], [0, 0x32a0ed40], [0, 0x32a3a260], [0, 0x32a65780], [0, 0x32a90ca0], [0, 0x32abc1c0], [0, 0x32ae76e0], [0, 0x32b12c00], [0, 0x32b3e120], [0, 0x32b69640]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [5, 5], t: 1, mblock: [3, 7], ublock: [4, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 45, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {c: 7}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.80, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=33
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [6, 6], t: 1, mblock: [1, 9], ublock: [1, 4], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x23bd7e40], [0, 0x23c6c660], [0, 0x23d00e80], [0, 0x23d956a0], [0, 0x23e29ec0], [0, 0x23ebe6e0], [0, 0x23f52f00], [0, 0x23fe7720], [0, 0x2407bf40], [0, 0x24110760], [0, 0x241a4f80], [0, 0x242397a0], [0, 0x242cdfc0], [0, 0x243627e0], [0, 0x243f7000], [0, 0x2448b820], [0, 0x24520040], [0, 0x245b4860], [0, 0x24649080], [0, 0x246dd8a0], [0, 0x247720c0], [0, 0x248068e0], [0, 0x2489b100], [0, 0x2492f920], [0, 0x249c4140], [0, 0x24a58960], [0, 0x24aed180], [0, 0x24b819a0], [0, 0x24c161c0], [0, 0x24caa9e0], [0, 0x24d3f200], [0, 0x24dd3a20], [0, 0x24e68240], [0, 0x24efca60], [0, 0x24f91280], [0, 0x25025aa0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [6, 6], t: 1, mblock: [4, 8], ublock: [3, 1], df: Float32, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x2e9d5740], [0, 0x2ece1760], [0, 0x2efed780], [0, 0x2f2f97a0], [0, 0x2f6057c0], [0, 0x2f9117e0], [0, 0x2fc1d800], [0, 0x2ff29820], [0, 0x30235840], [0, 0x30541860], [0, 0x3084d880], [0, 0x30b598a0], [0, 0x30e658c0], [0, 0x311718e0], [0, 0x3147d900], [0, 0x31789920], [0, 0x31a95940], [0, 0x31da1960], [0, 0x320ad980], [0, 0x323b99a0], [0, 0x326c59c0], [0, 0x329d19e0], [0, 0x32cdda00], [0, 0x32fe9a20], [0, 0x332f5a40], [0, 0x33601a60], [0, 0x3390da80], [0, 0x33c19aa0], [0, 0x33f25ac0], [0, 0x34231ae0], [0, 0x3453db00], [0, 0x34849b20], [0, 0x34b55b40], [0, 0x34e61b60], [0, 0x3516db80], [0, 0x35479ba0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [6, 6], t: 1, mblock: [3, 1], ublock: [1, 8], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x38259b80], [0, 0x382727a0], [0, 0x3828b3c0], [0, 0x382a3fe0], [0, 0x382bcc00], [0, 0x382d5820], [0, 0x382ee440], [0, 0x38307060], [0, 0x3831fc80], [0, 0x383388a0], [0, 0x383514c0], [0, 0x3836a0e0], [0, 0x38382d00], [0, 0x3839b920], [0, 0x383b4540], [0, 0x383cd160], [0, 0x383e5d80], [0, 0x383fe9a0], [0, 0x384175c0], [0, 0x384301e0], [0, 0x38448e00], [0, 0x38461a20], [0, 0x3847a640], [0, 0x38493260], [0, 0x384abe80], [0, 0x384c4aa0], [0, 0x384dd6c0], [0, 0x384f62e0], [0, 0x3850ef00], [0, 0x38527b20], [0, 0x38540740], [0, 0x38559360], [0, 0x38571f80], [0, 0x3858aba0], [0, 0x385a37c0], [0, 0x385bc3e0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [6, 6], t: 1, mblock: [3, 1], ublock: [1, 8], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 54, u_kt: 4, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, ], input_1_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=34
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 2
+  in0: 'input_0: {type: queue, grid_size: [4, 1], t: 1, mblock: [2, 12], ublock: [2, 4], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x29920740], [0, 0x29983760], [0, 0x299e6780], [0, 0x29a497a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [4, 1], t: 1, mblock: [4, 2], ublock: [1, 1], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x374a6e80], [0, 0x374ab0a0], [0, 0x374af2c0], [0, 0x374b34e0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [4, 1], t: 1, mblock: [8, 1], ublock: [3, 2], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f7da2c0], [0, 0x3f7f2ee0], [0, 0x3f80bb00], [0, 0x3f824720]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [4, 1], t: 1, mblock: [8, 1], ublock: [3, 2], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 16, u_kt: 3, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 6}, ], input_1_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=35
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 3], ublock: [1, 14], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x33b85800]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 5], ublock: [14, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x38a60a00]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 5], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3e156080]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [2, 1], ublock: [1, 5], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi3, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 3, u_kt: 14, kernel_broadcast_per_t : {input_1 : 70}, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=36
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [3, 5], t: 1, mblock: [1, 6], ublock: [4, 8], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1fc63240], [0, 0x1ff7b260], [0, 0x20293280], [0, 0x205ab2a0], [0, 0x208c32c0], [0, 0x20bdb2e0], [0, 0x20ef3300], [0, 0x2120b320], [0, 0x21523340], [0, 0x2183b360], [0, 0x21b53380], [0, 0x21e6b3a0], [0, 0x221833c0], [0, 0x2249b3e0], [0, 0x227b3400]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [3, 5], t: 1, mblock: [10, 1], ublock: [8, 8], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x22c998c0], [0, 0x236e98e0], [0, 0x24139900], [0, 0x24b89920], [0, 0x255d9940], [0, 0x26029960], [0, 0x26a79980], [0, 0x274c99a0], [0, 0x27f199c0], [0, 0x289699e0], [0, 0x293b9a00], [0, 0x29e09a20], [0, 0x2a859a40], [0, 0x2b2a9a60], [0, 0x2bcf9a80]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [3, 5], t: 1, mblock: [4, 1], ublock: [1, 8], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x2e208240], [0, 0x2e229260], [0, 0x2e24a280], [0, 0x2e26b2a0], [0, 0x2e28c2c0], [0, 0x2e2ad2e0], [0, 0x2e2ce300], [0, 0x2e2ef320], [0, 0x2e310340], [0, 0x2e331360], [0, 0x2e352380], [0, 0x2e3733a0], [0, 0x2e3943c0], [0, 0x2e3b53e0], [0, 0x2e3d6400]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [3, 5], t: 1, mblock: [4, 1], ublock: [1, 8], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 30, u_kt: 8, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=37
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [7, 3], t: 1, mblock: [4, 14], ublock: [2, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x118c8580], [0, 0x11a965a0], [0, 0x11c645c0], [0, 0x11e325e0], [0, 0x12000600], [0, 0x121ce620], [0, 0x1239c640], [0, 0x1256a660], [0, 0x12738680], [0, 0x129066a0], [0, 0x12ad46c0], [0, 0x12ca26e0], [0, 0x12e70700], [0, 0x1303e720], [0, 0x1320c740], [0, 0x133da760], [0, 0x135a8780], [0, 0x137767a0], [0, 0x139447c0], [0, 0x13b127e0], [0, 0x13ce0800]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [7, 3], t: 1, mblock: [1, 1], ublock: [6, 2], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1f42ba40], [0, 0x1f45d260], [0, 0x1f48ea80], [0, 0x1f4c02a0], [0, 0x1f4f1ac0], [0, 0x1f5232e0], [0, 0x1f554b00], [0, 0x1f586320], [0, 0x1f5b7b40], [0, 0x1f5e9360], [0, 0x1f61ab80], [0, 0x1f64c3a0], [0, 0x1f67dbc0], [0, 0x1f6af3e0], [0, 0x1f6e0c00], [0, 0x1f712420], [0, 0x1f743c40], [0, 0x1f775460], [0, 0x1f7a6c80], [0, 0x1f7d84a0], [0, 0x1f809cc0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [7, 3], t: 1, mblock: [4, 10], ublock: [2, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f2d1bc0], [0, 0x3f3243e0], [0, 0x3f376c00], [0, 0x3f3c9420], [0, 0x3f41bc40], [0, 0x3f46e460], [0, 0x3f4c0c80], [0, 0x3f5134a0], [0, 0x3f565cc0], [0, 0x3f5b84e0], [0, 0x3f60ad00], [0, 0x3f65d520], [0, 0x3f6afd40], [0, 0x3f702560], [0, 0x3f754d80], [0, 0x3f7a75a0], [0, 0x3f7f9dc0], [0, 0x3f84c5e0], [0, 0x3f89ee00], [0, 0x3f8f1620], [0, 0x3f943e40]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [7, 3], t: 1, mblock: [4, 10], ublock: [2, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16, attributes: {m_k: 42, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {c: 5}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=38
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 14], ublock: [1, 15], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x12470680]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [6, 3], ublock: [5, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x269e99c0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 3], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x36558100]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 3], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: HiFi2, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 14, u_kt: 15, kernel_broadcast_per_t : {input_1 : 90}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [broadcast: {r: 7}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=39
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [2, 8], t: 1, mblock: [3, 1], ublock: [2, 6], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x12c973c0], [0, 0x12dc03e0], [0, 0x12ee9400], [0, 0x13012420], [0, 0x1313b440], [0, 0x13264460], [0, 0x1338d480], [0, 0x134b64a0], [0, 0x135df4c0], [0, 0x137084e0], [0, 0x13831500], [0, 0x1395a520], [0, 0x13a83540], [0, 0x13bac560], [0, 0x13cd5580], [0, 0x13dfe5a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [2, 8], t: 1, mblock: [4, 7], ublock: [6, 1], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x2877c600], [0, 0x28ce6620], [0, 0x29250640], [0, 0x297ba660], [0, 0x29d24680], [0, 0x2a28e6a0], [0, 0x2a7f86c0], [0, 0x2ad626e0], [0, 0x2b2cc700], [0, 0x2b836720], [0, 0x2bda0740], [0, 0x2c30a760], [0, 0x2c874780], [0, 0x2cdde7a0], [0, 0x2d3487c0], [0, 0x2d8b27e0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [2, 8], t: 1, mblock: [6, 1], ublock: [1, 7], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3e8c1e00], [0, 0x3e8ed320], [0, 0x3e918840], [0, 0x3e943d60], [0, 0x3e96f280], [0, 0x3e99a7a0], [0, 0x3e9c5cc0], [0, 0x3e9f11e0], [0, 0x3ea1c700], [0, 0x3ea47c20], [0, 0x3ea73140], [0, 0x3ea9e660], [0, 0x3eac9b80], [0, 0x3eaf50a0], [0, 0x3eb205c0], [0, 0x3eb4bae0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [2, 8], t: 1, mblock: [6, 1], ublock: [1, 7], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 8, u_kt: 6, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.30, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=40
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [2, 5], ublock: [1, 11], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x3a7dc400]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [11, 3], ublock: [1, 1], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x3b7784c0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 3], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f40e000]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [2, 3], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 5, u_kt: 11, kernel_broadcast_per_t : {input_1 : 33}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 5}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=41
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 2
+  in0: 'input_0: {type: queue, grid_size: [2, 8], t: 1, mblock: [1, 3], ublock: [1, 1], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x2f8d9280], [0, 0x2f8dab60], [0, 0x2f8dc440], [0, 0x2f8ddd20], [0, 0x2f8df600], [0, 0x2f8e0ee0], [0, 0x2f8e27c0], [0, 0x2f8e40a0], [0, 0x2f8e5980], [0, 0x2f8e7260], [0, 0x2f8e8b40], [0, 0x2f8ea420], [0, 0x2f8ebd00], [0, 0x2f8ed5e0], [0, 0x2f8eeec0], [0, 0x2f8f07a0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [2, 8], t: 1, mblock: [4, 12], ublock: [1, 2], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x377d2b80], [0, 0x378043a0], [0, 0x37835bc0], [0, 0x378673e0], [0, 0x37898c00], [0, 0x378ca420], [0, 0x378fbc40], [0, 0x3792d460], [0, 0x3795ec80], [0, 0x379904a0], [0, 0x379c1cc0], [0, 0x379f34e0], [0, 0x37a24d00], [0, 0x37a56520], [0, 0x37a87d40], [0, 0x37ab9560]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [2, 8], t: 1, mblock: [1, 12], ublock: [4, 2], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x39e34980], [0, 0x39e661a0], [0, 0x39e979c0], [0, 0x39ec91e0], [0, 0x39efaa00], [0, 0x39f2c220], [0, 0x39f5da40], [0, 0x39f8f260], [0, 0x39fc0a80], [0, 0x39ff22a0], [0, 0x3a023ac0], [0, 0x3a0552e0], [0, 0x3a086b00], [0, 0x3a0b8320], [0, 0x3a0e9b40], [0, 0x3a11b360]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [2, 8], t: 1, mblock: [1, 12], ublock: [4, 2], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 24, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 4}, ], input_1_tms: [broadcast: {r: 3}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=42
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [2, 4], t: 1, mblock: [1, 7], ublock: [7, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x1cc3eb80], [0, 0x1cdd2fa0], [0, 0x1cf673c0], [0, 0x1d0fb7e0], [0, 0x1d28fc00], [0, 0x1d424020], [0, 0x1d5b8440], [0, 0x1d74c860]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [2, 4], t: 1, mblock: [1, 3], ublock: [2, 1], df: Float16, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x21b1f200], [0, 0x21b50a20], [0, 0x21b82240], [0, 0x21bb3a60], [0, 0x21be5280], [0, 0x21c16aa0], [0, 0x21c482c0], [0, 0x21c79ae0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [2, 4], t: 1, mblock: [14, 3], ublock: [2, 1], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x2cf44b00], [0, 0x2cf9b520], [0, 0x2cff1f40], [0, 0x2d048960], [0, 0x2d09f380], [0, 0x2d0f5da0], [0, 0x2d14c7c0], [0, 0x2d1a31e0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [2, 4], t: 1, mblock: [14, 3], ublock: [2, 1], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 28, u_kt: 1, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 4}, ], input_1_tms: [broadcast: {r: 7}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=43
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [6, 4], t: 1, mblock: [1, 3], ublock: [1, 10], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x39478740], [0, 0x394f4360], [0, 0x3956ff80], [0, 0x395ebba0], [0, 0x396677c0], [0, 0x396e33e0], [0, 0x3975f000], [0, 0x397dac20], [0, 0x39856840], [0, 0x398d2460], [0, 0x3994e080], [0, 0x399c9ca0], [0, 0x39a458c0], [0, 0x39ac14e0], [0, 0x39b3d100], [0, 0x39bb8d20], [0, 0x39c34940], [0, 0x39cb0560], [0, 0x39d2c180], [0, 0x39da7da0], [0, 0x39e239c0], [0, 0x39e9f5e0], [0, 0x39f1b200], [0, 0x39f96e20]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [6, 4], t: 1, mblock: [2, 4], ublock: [10, 2], df: Float16_b, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x3a179140], [0, 0x3a40d160], [0, 0x3a6a1180], [0, 0x3a9351a0], [0, 0x3abc91c0], [0, 0x3ae5d1e0], [0, 0x3b0f1200], [0, 0x3b385220], [0, 0x3b619240], [0, 0x3b8ad260], [0, 0x3bb41280], [0, 0x3bdd52a0], [0, 0x3c0692c0], [0, 0x3c2fd2e0], [0, 0x3c591300], [0, 0x3c825320], [0, 0x3cab9340], [0, 0x3cd4d360], [0, 0x3cfe1380], [0, 0x3d2753a0], [0, 0x3d5093c0], [0, 0x3d79d3e0], [0, 0x3da31400], [0, 0x3dcc5420]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [6, 4], t: 1, mblock: [2, 1], ublock: [1, 8], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fc98280], [0, 0x3fca8aa0], [0, 0x3fcb92c0], [0, 0x3fcc9ae0], [0, 0x3fcda300], [0, 0x3fceab20], [0, 0x3fcfb340], [0, 0x3fd0bb60], [0, 0x3fd1c380], [0, 0x3fd2cba0], [0, 0x3fd3d3c0], [0, 0x3fd4dbe0], [0, 0x3fd5e400], [0, 0x3fd6ec20], [0, 0x3fd7f440], [0, 0x3fd8fc60], [0, 0x3fda0480], [0, 0x3fdb0ca0], [0, 0x3fdc14c0], [0, 0x3fdd1ce0], [0, 0x3fde2500], [0, 0x3fdf2d20], [0, 0x3fe03540], [0, 0x3fe13d60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [6, 4], t: 1, mblock: [2, 1], ublock: [1, 8], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float16_b], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 12, u_kt: 10, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=44
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [8, 1], t: 1, mblock: [2, 1], ublock: [3, 2], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x381e4340], [0, 0x38215b60], [0, 0x38247380], [0, 0x38278ba0], [0, 0x382aa3c0], [0, 0x382dbbe0], [0, 0x3830d400], [0, 0x3833ec20]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [8, 1], t: 1, mblock: [1, 2], ublock: [2, 2], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x38b313c0], [0, 0x38b523e0], [0, 0x38b73400], [0, 0x38b94420], [0, 0x38bb5440], [0, 0x38bd6460], [0, 0x38bf7480], [0, 0x38c184a0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [8, 1], t: 1, mblock: [9, 1], ublock: [2, 4], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fa0c280], [0, 0x3fa566a0], [0, 0x3faa0ac0], [0, 0x3faeaee0], [0, 0x3fb35300], [0, 0x3fb7f720], [0, 0x3fbc9b40], [0, 0x3fc13f60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [8, 1], t: 1, mblock: [9, 1], ublock: [2, 4], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 8, u_kt: 2, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 3}, broadcast: {c: 8}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.99, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=45
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [4, 6], ublock: [13, 1], df: Float16_b, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x38eb3440]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [1, 1], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x3ac30a00]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [13, 1], ublock: [4, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fe4c180]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [13, 1], ublock: [4, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 6, u_kt: 1, kernel_broadcast_per_t : {input_1 : 1}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 6}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=46
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 4
+  target_device: 0
+  queue_wrap_size: 16
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [3, 7], ublock: [2, 5], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x26736bc0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [1, 1], ublock: [5, 1], df: Float32, input: HOST, entries: 8, target_device: 0, loc: dram, dram: [[0, 0x27ae8d00]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [1, 4], ublock: [6, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x363b53c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [1, 4], ublock: [6, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float32, Float32], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 7, u_kt: 5, kernel_broadcast : {input_1 : 20}, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 7}, broadcast: {c: 4}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=47
+- device: GRAYSKULL
+  loop_count: 1
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 2
+  in0: 'input_0: {type: queue, grid_size: [1, 1], t: 1, mblock: [2, 15], ublock: [11, 4], df: Float16_b, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f4f0640]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [1, 1], t: 1, mblock: [15, 1], ublock: [4, 1], df: Float32, input: HOST, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3f85fc40]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [1, 1], t: 1, mblock: [11, 1], ublock: [2, 1], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fbb99c0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [1, 1], t: 1, mblock: [11, 1], ublock: [2, 1], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi3, intermed_df: Float16_b, acc_df: Float16_b, attributes: {m_k: 15, u_kt: 4, min_buffer_input: 0, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.50, check_pcc: 0.98, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=48
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 2
+  target_device: 0
+  queue_wrap_size: 8
+  in0: 'input_0: {type: queue, grid_size: [8, 12], t: 1, mblock: [4, 2], ublock: [1, 10], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x1fa8aec0], [0, 0x1fbd4ee0], [0, 0x1fd1ef00], [0, 0x1fe68f20], [0, 0x1ffb2f40], [0, 0x200fcf60], [0, 0x20246f80], [0, 0x20390fa0], [0, 0x204dafc0], [0, 0x20624fe0], [0, 0x2076f000], [0, 0x208b9020], [0, 0x20a03040], [0, 0x20b4d060], [0, 0x20c97080], [0, 0x20de10a0], [0, 0x20f2b0c0], [0, 0x210750e0], [0, 0x211bf100], [0, 0x21309120], [0, 0x21453140], [0, 0x2159d160], [0, 0x216e7180], [0, 0x218311a0], [0, 0x2197b1c0], [0, 0x21ac51e0], [0, 0x21c0f200], [0, 0x21d59220], [0, 0x21ea3240], [0, 0x21fed260], [0, 0x22137280], [0, 0x222812a0], [0, 0x223cb2c0], [0, 0x225152e0], [0, 0x2265f300], [0, 0x227a9320], [0, 0x228f3340], [0, 0x22a3d360], [0, 0x22b87380], [0, 0x22cd13a0], [0, 0x22e1b3c0], [0, 0x22f653e0], [0, 0x230af400], [0, 0x231f9420], [0, 0x23343440], [0, 0x2348d460], [0, 0x235d7480], [0, 0x237214a0], [0, 0x2386b4c0], [0, 0x239b54e0], [0, 0x23aff500], [0, 0x23c49520], [0, 0x23d93540], [0, 0x23edd560], [0, 0x24027580], [0, 0x241715a0], [0, 0x242bb5c0], [0, 0x244055e0], [0, 0x2454f600], [0, 0x24699620], [0, 0x247e3640], [0, 0x2492d660], [0, 0x24a77680], [0, 0x24bc16a0], [0, 0x24d0b6c0], [0, 0x24e556e0], [0, 0x24f9f700], [0, 0x250e9720], [0, 0x25233740], [0, 0x2537d760], [0, 0x254c7780], [0, 0x256117a0], [0, 0x2575b7c0], [0, 0x258a57e0], [0, 0x259ef800], [0, 0x25b39820], [0, 0x25c83840], [0, 0x25dcd860], [0, 0x25f17880], [0, 0x260618a0], [0, 0x261ab8c0], [0, 0x262f58e0], [0, 0x2643f900], [0, 0x26589920], [0, 0x266d3940], [0, 0x2681d960], [0, 0x26967980], [0, 0x26ab19a0], [0, 0x26bfb9c0], [0, 0x26d459e0], [0, 0x26e8fa00], [0, 0x26fd9a20], [0, 0x27123a40], [0, 0x2726da60], [0, 0x273b7a80], [0, 0x27501aa0]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [8, 12], t: 1, mblock: [1, 6], ublock: [6, 1], df: Float16, input: HOST, entries: 4, target_device: 0, loc: dram, dram: [[0, 0x28c50500], [0, 0x28ce4d20], [0, 0x28d79540], [0, 0x28e0dd60], [0, 0x28ea2580], [0, 0x28f36da0], [0, 0x28fcb5c0], [0, 0x2905fde0], [0, 0x290f4600], [0, 0x29188e20], [0, 0x2921d640], [0, 0x292b1e60], [0, 0x29346680], [0, 0x293daea0], [0, 0x2946f6c0], [0, 0x29503ee0], [0, 0x29598700], [0, 0x2962cf20], [0, 0x296c1740], [0, 0x29755f60], [0, 0x297ea780], [0, 0x2987efa0], [0, 0x299137c0], [0, 0x299a7fe0], [0, 0x29a3c800], [0, 0x29ad1020], [0, 0x29b65840], [0, 0x29bfa060], [0, 0x29c8e880], [0, 0x29d230a0], [0, 0x29db78c0], [0, 0x29e4c0e0], [0, 0x29ee0900], [0, 0x29f75120], [0, 0x2a009940], [0, 0x2a09e160], [0, 0x2a132980], [0, 0x2a1c71a0], [0, 0x2a25b9c0], [0, 0x2a2f01e0], [0, 0x2a384a00], [0, 0x2a419220], [0, 0x2a4ada40], [0, 0x2a542260], [0, 0x2a5d6a80], [0, 0x2a66b2a0], [0, 0x2a6ffac0], [0, 0x2a7942e0], [0, 0x2a828b00], [0, 0x2a8bd320], [0, 0x2a951b40], [0, 0x2a9e6360], [0, 0x2aa7ab80], [0, 0x2ab0f3a0], [0, 0x2aba3bc0], [0, 0x2ac383e0], [0, 0x2acccc00], [0, 0x2ad61420], [0, 0x2adf5c40], [0, 0x2ae8a460], [0, 0x2af1ec80], [0, 0x2afb34a0], [0, 0x2b047cc0], [0, 0x2b0dc4e0], [0, 0x2b170d00], [0, 0x2b205520], [0, 0x2b299d40], [0, 0x2b32e560], [0, 0x2b3c2d80], [0, 0x2b4575a0], [0, 0x2b4ebdc0], [0, 0x2b5805e0], [0, 0x2b614e00], [0, 0x2b6a9620], [0, 0x2b73de40], [0, 0x2b7d2660], [0, 0x2b866e80], [0, 0x2b8fb6a0], [0, 0x2b98fec0], [0, 0x2ba246e0], [0, 0x2bab8f00], [0, 0x2bb4d720], [0, 0x2bbe1f40], [0, 0x2bc76760], [0, 0x2bd0af80], [0, 0x2bd9f7a0], [0, 0x2be33fc0], [0, 0x2bec87e0], [0, 0x2bf5d000], [0, 0x2bff1820], [0, 0x2c086040], [0, 0x2c11a860], [0, 0x2c1af080], [0, 0x2c2438a0], [0, 0x2c2d80c0], [0, 0x2c36c8e0]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [8, 12], t: 1, mblock: [2, 2], ublock: [2, 3], df: Float16, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x352ccd80], [0, 0x352e59a0], [0, 0x352fe5c0], [0, 0x353171e0], [0, 0x3532fe00], [0, 0x35348a20], [0, 0x35361640], [0, 0x3537a260], [0, 0x35392e80], [0, 0x353abaa0], [0, 0x353c46c0], [0, 0x353dd2e0], [0, 0x353f5f00], [0, 0x3540eb20], [0, 0x35427740], [0, 0x35440360], [0, 0x35458f80], [0, 0x35471ba0], [0, 0x3548a7c0], [0, 0x354a33e0], [0, 0x354bc000], [0, 0x354d4c20], [0, 0x354ed840], [0, 0x35506460], [0, 0x3551f080], [0, 0x35537ca0], [0, 0x355508c0], [0, 0x355694e0], [0, 0x35582100], [0, 0x3559ad20], [0, 0x355b3940], [0, 0x355cc560], [0, 0x355e5180], [0, 0x355fdda0], [0, 0x356169c0], [0, 0x3562f5e0], [0, 0x35648200], [0, 0x35660e20], [0, 0x35679a40], [0, 0x35692660], [0, 0x356ab280], [0, 0x356c3ea0], [0, 0x356dcac0], [0, 0x356f56e0], [0, 0x3570e300], [0, 0x35726f20], [0, 0x3573fb40], [0, 0x35758760], [0, 0x35771380], [0, 0x35789fa0], [0, 0x357a2bc0], [0, 0x357bb7e0], [0, 0x357d4400], [0, 0x357ed020], [0, 0x35805c40], [0, 0x3581e860], [0, 0x35837480], [0, 0x358500a0], [0, 0x35868cc0], [0, 0x358818e0], [0, 0x3589a500], [0, 0x358b3120], [0, 0x358cbd40], [0, 0x358e4960], [0, 0x358fd580], [0, 0x359161a0], [0, 0x3592edc0], [0, 0x359479e0], [0, 0x35960600], [0, 0x35979220], [0, 0x35991e40], [0, 0x359aaa60], [0, 0x359c3680], [0, 0x359dc2a0], [0, 0x359f4ec0], [0, 0x35a0dae0], [0, 0x35a26700], [0, 0x35a3f320], [0, 0x35a57f40], [0, 0x35a70b60], [0, 0x35a89780], [0, 0x35aa23a0], [0, 0x35abafc0], [0, 0x35ad3be0], [0, 0x35aec800], [0, 0x35b05420], [0, 0x35b1e040], [0, 0x35b36c60], [0, 0x35b4f880], [0, 0x35b684a0], [0, 0x35b810c0], [0, 0x35b99ce0], [0, 0x35bb2900], [0, 0x35bcb520], [0, 0x35be4140], [0, 0x35bfcd60]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [8, 12], t: 1, mblock: [2, 2], ublock: [2, 3], out_df: Float16, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16, Float16], math_fidelity: LoFi, intermed_df: Float16, acc_df: Float16_b, attributes: {m_k: 24, u_kt: 10, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [], input_1_tms: [broadcast: {r: 5}, ], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
+#Test id=49
+- device: GRAYSKULL
+  loop_count: 2
+  input_count: 1
+  target_device: 0
+  queue_wrap_size: 4
+  in0: 'input_0: {type: queue, grid_size: [4, 5], t: 1, mblock: [2, 4], ublock: [1, 15], df: Float16_b, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x32120e00], [0, 0x32218620], [0, 0x3230fe40], [0, 0x32407660], [0, 0x324fee80], [0, 0x325f66a0], [0, 0x326edec0], [0, 0x327e56e0], [0, 0x328dcf00], [0, 0x329d4720], [0, 0x32acbf40], [0, 0x32bc3760], [0, 0x32cbaf80], [0, 0x32db27a0], [0, 0x32ea9fc0], [0, 0x32fa17e0], [0, 0x33099000], [0, 0x33190820], [0, 0x33288040], [0, 0x3337f860]], }'
+  stimulus_in0: 'input_0: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in0: 'input_0: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in1: 'input_1: {type: queue, grid_size: [4, 5], t: 1, mblock: [15, 1], ublock: [5, 7], df: Float32, input: HOST, entries: 2, target_device: 0, loc: dram, dram: [[0, 0x335266c0], [0, 0x33d7b3e0], [0, 0x345d0100], [0, 0x34e24e20], [0, 0x35679b40], [0, 0x35ece860], [0, 0x36723580], [0, 0x36f782a0], [0, 0x377ccfc0], [0, 0x38021ce0], [0, 0x38876a00], [0, 0x390cb720], [0, 0x39920440], [0, 0x3a175160], [0, 0x3a9c9e80], [0, 0x3b21eba0], [0, 0x3ba738c0], [0, 0x3c2c85e0], [0, 0x3cb1d300], [0, 0x3d372020]], }'
+  stimulus_in1: 'input_1: {type: Uniform, uniform_lower_bound: -2.0, uniform_upper_bound: 2.0}'
+  queue_settings_in1: 'input_1: {prologue: false, epilogue: false, zero: false, rd_ptr_local: $lptr, rd_ptr_global: $gptr},'
+  in2: ''
+  stimulus_in2: ''
+  queue_settings_in2: ''
+  in3: ''
+  stimulus_in3: ''
+  queue_settings_in3: ''
+  out0: 'output0: {type: ram, grid_size: [4, 5], t: 1, mblock: [4, 1], ublock: [1, 7], df: Float16_b, input: op, entries: 1, target_device: 0, loc: dram, dram: [[0, 0x3fb01340], [0, 0x3fb1e160], [0, 0x3fb3af80], [0, 0x3fb57da0], [0, 0x3fb74bc0], [0, 0x3fb919e0], [0, 0x3fbae800], [0, 0x3fbcb620], [0, 0x3fbe8440], [0, 0x3fc05260], [0, 0x3fc22080], [0, 0x3fc3eea0], [0, 0x3fc5bcc0], [0, 0x3fc78ae0], [0, 0x3fc95900], [0, 0x3fcb2720], [0, 0x3fccf540], [0, 0x3fcec360], [0, 0x3fd09180], [0, 0x3fd25fa0]], }'
+  queue_settings_out0: 'output0: {prologue: true, epilogue: true, zero: true, wr_ptr_global: 0, rd_ptr_global: 0},'
+  op0: 'op: {type: matmul, grid_size: [4, 5], t: 1, mblock: [4, 1], ublock: [1, 7], out_df: Float16_b, grid_loc: [0, 0], inputs: [input_0, input_1], in_df: [Float16_b, Float32], math_fidelity: HiFi2, intermed_df: Float16_b, acc_df: Float16, attributes: {m_k: 60, u_kt: 5, }, ublock_order: r, buf_size_mb: 2, untilize_output: false, gradient_op: true, input_0_tms: [broadcast: {r: 2}, ], input_1_tms: [], }'
+  op1: ''
+  op2: ''
+  op3: ''
+  op4: ''
+  op5: ''
+  comparison_config: '{type: AllClose, atol: 0.01, rtol: 0.15, check_pct: 0.00, check_pcc: 0.90, verbosity: Concise, check_tile_rows_range: [1, 32], check_tile_cols_range: [1, 32] }'
