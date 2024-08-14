@@ -94,6 +94,12 @@ class matmul_op extends operation_constraints;
             input_bias.data_format == int32;
             input_scaller.data_format == fp32;
         }
+        if (gradient_op_en == 1) {
+            foreach(in[i]) {
+                in[i].producer.tensor.data_format inside {fp16, fp16_b, fp32};
+            }
+            output_data_format inside {fp16, fp16_b, fp32};
+        }
     }
 
     constraint rand_inner_dim {
