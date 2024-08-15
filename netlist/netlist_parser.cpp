@@ -2188,7 +2188,7 @@ void netlist_parser::recalculate_expanded_queue_addresses() {
 
                     // calculation here needs to be consistent with what the frontend function get_queue_size() does
                     std::uint32_t q_size = tt::backend::get_next_aligned_address(
-                            get_tensor_size_in_bytes(queue_info, include_header_padding) * queue_info.entries
+                            get_entry_size_in_bytes(queue_info, include_header_padding) * queue_info.entries
                             + tt::io::io_queue_header_size_bytes);
                     log_trace(tt::LogNetlist, "Adding {} to {}, include_header_padding is {}.",
                             q_size, q_name, include_header_padding);
