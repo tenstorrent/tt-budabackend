@@ -187,7 +187,9 @@ inline void risc_get_noc_addr_from_dram_ptr(volatile uint32_t tt_l1_ptr *noc_rea
   uint64_t dram_addr_offset_lo = noc_read_dest_buf_ptr[0];
   uint64_t dram_addr_offset_hi = noc_read_dest_buf_ptr[1] & 0xFFFF;
   // TODO: Blackhole specific hack, remove when 64 bit addresses are properly implemented. Should not affect GS and WH.
+#ifdef RISC_BLACKHOLE_HW
   dram_addr_offset_hi = (dram_addr_offset_hi & 0xF000) << 16 | (dram_addr_offset_hi & 0x0FFF);
+#endif
   dram_addr_offset = dram_addr_offset_lo | (dram_addr_offset_hi << 32);
   dram_coord_x = (noc_read_dest_buf_ptr[1] >> 16) & 0x3F;
   dram_coord_y = (noc_read_dest_buf_ptr[1] >> 22) & 0x3F;
