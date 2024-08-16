@@ -67,7 +67,7 @@ def get_tests_with_perf_targets(arch: str, tag: str, bbe_path: str, suppress_log
         for test_name in test_names:
             test_info = PerfTestInfo(arch_name=arch, tag=tag, test_group=test_group, test_name=test_name)
             # We need the test type to fetch the perf targets
-            post_ci_command: List[str] = test_params[post_ci_command_key]
+            post_ci_command: List[str] = test_params[post_ci_command_key].split()
             ASSERT("--test-type" in post_ci_command, "post ci command should include --test-type parameter")
             test_info.test_type = post_ci_command[post_ci_command.index("--test-type") + 1]
             ASSERT(test_info.test_type in all_test_types, f"invalid test type {test_info.test_type}")
