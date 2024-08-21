@@ -281,10 +281,19 @@ bool using_arm_host() {
     return false;
 #endif
 }
+
+bool using_riscv_host() {
+#ifdef __riscv
+    return true;
+#else
+    return false;
+#endif
+}
+
 void check_system_params(const string &build_dir_path) {
 
-    // In case some environments need a quick way to skip this check or if host does not have required settings (ARM hosts so far)...
-    if (using_arm_host() or parse_env("TT_BACKEND_SKIP_CHECK_SYSTEM_PARAMS", false)) {
+    // In case some environments need a quick way to skip this check or if host does not have required settings (ARM and RISCV hosts so far)...
+    if (using_arm_host() or parse_env("TT_BACKEND_SKIP_CHECK_SYSTEM_PARAMS", false) or using_riscv_host()) {
         log_warning(tt::LogRuntime,  "Skipping system checks via env-var");
         return;
     }
