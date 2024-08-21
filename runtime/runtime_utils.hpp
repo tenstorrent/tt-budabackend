@@ -88,6 +88,7 @@ void populate_common_pipegen_error_info(const std::string &graph_name,
                                         tt_compile_result_per_epoch &compile_result);
 void profile_pipegen2_data_buffers(const unordered_map<tt_cxy_pair, vector<pipegen2::L1BufferAllocationInfo>> &all_worker_l1_allocations, perf::MemoryProfiler* memory_profiler, int temporal_epoch_id);                       
 bool using_arm_host();
+bool using_riscv_host();
 void check_system_params(const string &build_dir_path);
 std::string get_soc_desc_path(chip_id_t chip, bool runtime_descriptor = false);
 void cleanup_stale_soc_descriptors();

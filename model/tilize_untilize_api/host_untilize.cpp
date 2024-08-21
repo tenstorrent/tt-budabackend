@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "model/tensor.hpp"
 
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 // Include AVX library for x86.
 #include <immintrin.h>
 #define PREFETCH(addr) _mm_prefetch((addr), _MM_HINT_T0)
@@ -15,13 +15,13 @@
 // Unpacker: packed data on device -> tt_tile (used in tt_tensor)
 // Untilizer: tt_tensor -> flattened Pytorch Tensor of appropriate format
 
-// We have x86 optimized implementations (using AVX2 under #ifndef __ARM_ARCH) and scalar implementations for ARM.
+// We have x86 optimized implementations (using AVX2 under #ifdef __x86_64__) and scalar implementations for ARM.
 
 /////////////////////////////////////////////////////////
 //             Unpacker Implementation                 //
 /////////////////////////////////////////////////////////
 
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 // AVX optimized unpack functions
 void tt_tile::unpack_fp32_and_fill_tile(){
     // Strips tile headers and "converts" FP32 to FP32. Then fills tile with the data.
@@ -225,7 +225,7 @@ void tt_tile::unpack_raw16_and_fill_tile(){
 #endif
 
 void tt_tile::packed_data_to_tile() {
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     // If using x86, vector based unpack functions can be used.
     vector<DataFormat> formats_supporting_fast_unpack = {DataFormat::Float32, DataFormat::Float16_b, DataFormat::Float16, DataFormat::Bfp8, DataFormat::Bfp8_b, DataFormat::RawUInt32, DataFormat::RawUInt16};
     if(tile_height == 32 and tile_width == 32 and std::find(formats_supporting_fast_unpack.begin(), formats_supporting_fast_unpack.end(), data_format) != formats_supporting_fast_unpack.end() and !force_slow_untilize){
@@ -309,7 +309,7 @@ void tt_tile::packed_data_to_tile() {
                 }
             }
         }
-    #ifndef __ARM_ARCH
+    #ifdef __x86_64__
     }
     #endif
 }
@@ -372,7 +372,7 @@ void copy_dword_to_flat_vector_int32(vector<int32_t>&to, const tt::tt_tile& tile
     }
 }
 
-#ifndef __ARM_ARCH
+#ifdef __x86_64__
 // ********* x86 specific functions. *********
 namespace tt {
 namespace untilize_utils {

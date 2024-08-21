@@ -154,9 +154,9 @@ namespace tt {
     {
         if (isinf(in)){
             if (signbit(in))
-                return -MAXFLOAT;
+                return -std::numeric_limits<float>::max();
             else
-                return MAXFLOAT;
+                return std::numeric_limits<float>::max();
         } else {
             return in;
         }

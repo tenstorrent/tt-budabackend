@@ -11,6 +11,13 @@ ARCH_NAME ?= grayskull
 HOST_ARCH = $(shell uname -m)
 # TODO: enable OUT to be per config (this impacts all scripts that run tests)
 # OUT ?= build_$(DEVICE_RUNNER)_$(CONFIG)
+
+NOFW ?= 0
+# don't build FW on non-x86 hosts
+ifneq ("$(HOST_ARCH)", "x86_64")
+NOFW = 1
+endif
+
 OUT ?= $(BUDA_HOME)/build
 PREFIX ?= $(OUT)
 TT_MODULES=
@@ -110,8 +117,8 @@ ifneq ($(CCACHE),)
   #$(info CCACHE IS DISABLED)
 endif
 
-ifeq ("$(HOST_ARCH)", "aarch64")
-# Include yaml from system libraries if compiling for ARM
+ifneq ("$(HOST_ARCH)", "x86_64")
+# Include yaml from system libraries if compiling for non x86 hosts (e.g. ARM)
 BASE_INCLUDES+=-I/usr/include/yaml-cpp
 YAML_PATH=/usr/include/yaml-cpp
 else
@@ -125,7 +132,7 @@ WARNINGS ?= -Werror -Wdelete-non-virtual-dtor -Wreturn-type -Wswitch -Wuninitial
 CC ?= $(CCACHE_CMD) gcc
 CXX ?= $(CCACHE_CMD) g++
 DEVICE_CXX = g++
-ifeq ("$(HOST_ARCH)", "aarch64")
+ifneq ("$(HOST_ARCH)", "x86_64")
 CFLAGS ?= -MMD $(WARNINGS) -I. $(CONFIG_CFLAGS) -DBUILD_DIR=\"$(OUT)\" -DFMT_HEADER_ONLY -Ithird_party/fmt
 else
 # Add AVX and FMA (Fused Multiply Add) flags for x86 compile
@@ -179,8 +186,8 @@ else
 endif
 
 build: backend build_hw
-ifeq ("$(HOST_ARCH)", "aarch64")
-# Don't build RiscV FW on ARM. Supported toolchain only works on x86.
+ifeq ($(NOFW), 1)
+# Don't build RISC-V FW on non x86 hosts
 build_hw: gitinfo umd src_ops src_pipes src_verif src_perf_lib netlist loader runtime
 else
 build_hw: gitinfo umd build_fw src_ops src_pipes src_verif src_perf_lib netlist loader runtime
