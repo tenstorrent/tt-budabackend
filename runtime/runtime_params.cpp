@@ -211,7 +211,9 @@ std::tuple<std::string, std::uint32_t> tt::param::get_device_yaml_at_index(std::
         for(auto& arch : available_archs) {
             std::string soc_desc_path = get_soc_description_file(arch, tt::TargetDevice::Silicon);
             if(arch == tt::ARCH::WORMHOLE || arch == tt::ARCH::WORMHOLE_B0 || arch == tt::ARCH::BLACKHOLE) {
-                tt_cluster::get_cluster_desc_path(tt::buda_home()); // populates cluster_desc_path used downstream
+                char temp[] = "/tmp/temp_cluster_desc_dir_XXXXXX";
+                char *dir_name = mkdtemp(temp);
+                tt_cluster::get_cluster_desc_path(dir_name); // populates cluster_desc_path used downstream
             }
 
             std::unique_ptr<tt_cluster> cluster = std::make_unique<tt_cluster>();
@@ -562,7 +564,9 @@ std::tuple<std::string, std::string> tt::param::populate_runtime_system_params(
 
         if (!fs::exists(eth_cluster_file_path) and available_devices_for_arch) {
             // Check if there are at least 1 wormhole silicon devices present - if so generate cluster description file and set path
-            eth_cluster_file_path = tt_cluster::get_cluster_desc_path(tt::buda_home());
+            char temp[] = "/tmp/temp_cluster_desc_dir_XXXXXX";
+            char *dir_name = mkdtemp(temp);
+            eth_cluster_file_path = tt_cluster::get_cluster_desc_path(dir_name);
         }
         tt_cluster cluster;
 

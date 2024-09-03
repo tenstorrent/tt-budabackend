@@ -200,4 +200,5 @@ class tt_runtime : public tt_backend
     void query_all_device_aiclks(std::string loc);
 
     void sync_on_execute_dependencies(netlist_program &program, tt_instruction_info &instrn);
+    void clear_temp_cluster_desc_dirs();
 };

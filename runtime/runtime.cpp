@@ -4,6 +4,7 @@
 #include "runtime.hpp"
 
 #include <experimental/filesystem>  // clang6 requires us to use "experimental", g++ 9.3 is fine with just <filesystem>
+#include <string>
 #include "common/cache_lib.hpp"
 #include "common/param_lib.hpp"
 #include "common/tt_parallel_for.h"
@@ -1408,6 +1409,7 @@ void tt_runtime::cleanup_runtime_and_close_device() {
     }
     // Undo pinning for this thread, and clear state in case thread continues with new compile work.
     tt::cpuset::tt_cpuset_allocator::clear_state_and_cpuset_pins();
+    clear_temp_cluster_desc_dirs();
 }
 
 tt::DEVICE_STATUS_CODE tt_runtime::run_program(const string &program_name, const std::map<string, string> &parameters) {
@@ -2435,6 +2437,20 @@ void tt_runtime::patch_overlay_compile_result_with_op_name(tt_overlay_compile_re
         if (is_valid_logical_location(logical_location)) {
             compile_result_epoch.op_name = this->workload.get_op_name(
                 compile_result_epoch.graph_name, logical_location);
+        }
+    }
+}
+
+void tt_runtime::clear_temp_cluster_desc_dirs() {
+    std::string pattern = "temp_cluster_desc_dir_.*";
+    fs::path base_path = "/tmp";
+    std::regex dir_regex(pattern); 
+    for (const auto& entry : fs::directory_iterator(base_path)) {
+        if (fs::is_directory(entry)) {
+            std::string dir_name = entry.path().filename().string();
+            if (std::regex_match(dir_name, dir_regex)) {
+                fs::remove_all(entry.path());  // Remove the directory and its contents
+            }
         }
     }
 }

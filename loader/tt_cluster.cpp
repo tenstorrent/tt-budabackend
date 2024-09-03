@@ -172,7 +172,9 @@ std::vector<tt::ARCH> tt_cluster::detect_available_devices(const TargetDevice &t
         // 4. already cached non-mmio devices
         if(available_devices.size() != 0 && available_devices.at(0) != tt::ARCH::GRAYSKULL && !only_detect_mmio && available_remote_devices.size() == 0) {
             log_trace(tt::LogRuntime, "Generating and querying cluster descriptor for remote devices in detect_available_devices()");
-            get_cluster_desc_path(tt::buda_home());
+            char temp[] = "/tmp/temp_cluster_desc_dir_XXXXXX";
+            char *dir_name = mkdtemp(temp);
+            get_cluster_desc_path(dir_name);
             std::unique_ptr<tt_ClusterDescriptor> ndesc = tt_ClusterDescriptor::create_from_yaml(cluster_desc_path);
             ndesc -> get_all_chips();
             int num_mmio_chips = available_devices.size();
