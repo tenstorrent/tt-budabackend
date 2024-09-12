@@ -96,7 +96,7 @@ std::string tt_cluster::get_cluster_desc_path(const std::string& root) {
     }
     if (!fs::exists(custom_cluster_desc_path) or !cluster_desc_path.size()) {
         // Either the cluster descriptor has not been generated or not been populated in the dir specified by root.
-        if (cluster_desc_path.size()) {
+        if (cluster_desc_path.size() && fs::exists(cluster_desc_path)) {
             // Cluster desc in root does not exist but has been previously generated and stored in cluster_desc_path.
             // Copy cluster desc to root.
             fs::copy(cluster_desc_path, custom_cluster_desc_path);
