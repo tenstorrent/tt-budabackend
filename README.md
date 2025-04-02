@@ -1,3 +1,5 @@
+⚠️ **IMPORTANT: This project is no longer under active development. Please check out [tt-forge](https://github.com/tenstorrent/tt-forge) instead.** ⚠️
+
 This repository contains the code that interacts with Tenstorrent hardware to provide lower level functionalities. 
 It should be automatically built as part of buda, meanwhile you may also build and test the individual modules.
 
@@ -75,4 +77,3 @@ You can link the existing script as a pre-commit hook, which will block the comm
 code is not properly formatted:
 ```bash
 ln -s ../../ci/pre-commit.sh .git/hooks/pre-commit
-```
